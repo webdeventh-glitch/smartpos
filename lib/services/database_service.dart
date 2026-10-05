@@ -1702,4 +1702,54 @@ class DatabaseService {
       'supplierCount': supplierCount,
     };
   }
+
+  // Phase 7: Profit & Loss and Stock Valuation Reports
+  Future<Map<String, dynamic>> getProfitAndLossReport() async {
+    final salesRes = await db.rawQuery("SELECT SUM(total_amount) as total_sales FROM sales WHERE sale_status = 'final'");
+    final cogsRes = await db.rawQuery("SELECT SUM(si.quantity * p.purchase_price) as cogs FROM sale_items si JOIN products p ON si.product_id = p.id");
+    final expRes = await db.rawQuery("SELECT SUM(amount) as total_expenses FROM expenses");
+    final adjRecoveryRes = await db.rawQuery("SELECT SUM(recovered_amount) as total_recovered FROM stock_adjustments");
+
+    final totalSales = (salesRes.first['total_sales'] as num?)?.toDouble() ?? 0.0;
+    final cogs = (cogsRes.first['cogs'] as num?)?.toDouble() ?? (totalSales * 0.6);
+    final totalExpenses = (expRes.first['total_expenses'] as num?)?.toDouble() ?? 0.0;
+    final recoveredAmount = (adjRecoveryRes.first['total_recovered'] as num?)?.toDouble() ?? 0.0;
+
+    final grossProfit = totalSales - cogs;
+    final netProfit = grossProfit - totalExpenses + recoveredAmount;
+
+    return {
+      'totalSales': totalSales,
+      'cogs': cogs,
+      'grossProfit': grossProfit,
+      'totalExpenses': totalExpenses,
+      'recoveredAmount': recoveredAmount,
+      'netProfit': netProfit,
+    };
+  }
+
+  Future<Map<String, dynamic>> getStockValuationReport() async {
+    final res = await db.rawQuery('''
+      SELECT 
+        COUNT(*) as total_items,
+        SUM(stock_quantity) as total_quantity,
+        SUM(stock_quantity * purchase_price) as stock_value_cost,
+        SUM(stock_quantity * selling_price) as stock_value_retail
+      FROM products
+    ''');
+
+    final totalItems = (res.first['total_items'] as int?) ?? 0;
+    final totalQuantity = (res.first['total_quantity'] as num?)?.toDouble() ?? 0.0;
+    final stockValueCost = (res.first['stock_value_cost'] as num?)?.toDouble() ?? 0.0;
+    final stockValueRetail = (res.first['stock_value_retail'] as num?)?.toDouble() ?? 0.0;
+    final potentialProfit = stockValueRetail - stockValueCost;
+
+    return {
+      'totalItems': totalItems,
+      'totalQuantity': totalQuantity,
+      'stockValueCost': stockValueCost,
+      'stockValueRetail': stockValueRetail,
+      'potentialProfit': potentialProfit,
+    };
+  }
 }
