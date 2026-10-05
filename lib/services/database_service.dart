@@ -318,6 +318,21 @@ class DatabaseService {
         'items_json': '[{"product_id":2,"product_name":"Mechanical Keyboard","sku":"ACC-002","quantity":2.0,"unit_price":80.0}]',
       });
     }
+
+    // Phase 5: Contact Payments (Ledger & Due Payments)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS contact_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        contact_id INTEGER NOT NULL,
+        contact_name TEXT NOT NULL,
+        payment_type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        payment_method TEXT DEFAULT 'cash',
+        date TEXT NOT NULL,
+        ref_no TEXT,
+        note TEXT
+      );
+    ''');
   }
 
   static Future<void> _createTables(Database db) async {
@@ -1198,6 +1213,12 @@ class DatabaseService {
         where: 'id = ?', whereArgs: [contact.id]);
   }
 
+  Future<Contact?> getContactById(int id) async {
+    final rows = await db.query('contacts', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (rows.isNotEmpty) return Contact.fromMap(rows.first);
+    return null;
+  }
+
   // POS & Sales
   Future<String> generateNextInvoiceNo() async {
     final rows = await db.rawQuery('SELECT MAX(id) as max_id FROM sales');
@@ -1431,6 +1452,44 @@ class DatabaseService {
 
   Future<int> deleteStockAdjustment(int id) async {
     return await db.delete('stock_adjustments', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Contact Payments & Due Collections
+  Future<String> generateNextPaymentRef() async {
+    final rows = await db.rawQuery('SELECT MAX(id) as max_id FROM contact_payments');
+    final maxId = (rows.first['max_id'] as int?) ?? 0;
+    return 'PAY-2026-${(maxId + 1).toString().padLeft(4, '0')}';
+  }
+
+  Future<int> addContactPayment(ContactPayment payment) async {
+    return await db.transaction((txn) async {
+      final paymentId = await txn.insert('contact_payments', payment.toMap());
+
+      // Deduct paid amount from contact's outstanding due balance
+      await txn.rawUpdate(
+        'UPDATE contacts SET balance = balance - ? WHERE id = ?',
+        [payment.amount, payment.contactId],
+      );
+
+      // If customer paid due in cash, update active register total cash
+      if (payment.paymentType == 'receive' && payment.paymentMethod == 'cash') {
+        await txn.rawUpdate(
+          'UPDATE cash_registers SET total_sales_cash = total_sales_cash + ? WHERE status = \'open\'',
+          [payment.amount],
+        );
+      }
+      return paymentId;
+    });
+  }
+
+  Future<List<ContactPayment>> getContactPayments(int contactId) async {
+    final rows = await db.query(
+      'contact_payments',
+      where: 'contact_id = ?',
+      whereArgs: [contactId],
+      orderBy: 'id DESC',
+    );
+    return rows.map((e) => ContactPayment.fromMap(e)).toList();
   }
 
   // Expenses
