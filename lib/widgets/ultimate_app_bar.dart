@@ -11,6 +11,8 @@ class UltimateAppBar extends StatefulWidget implements PreferredSizeWidget {
   final VoidCallback onOpenRegisterDetails;
   final VoidCallback onToggleSidebar;
   final BusinessSettings settings;
+  final String? activeLocationName;
+  final Function(String)? onLocationChanged;
 
   const UltimateAppBar({
     super.key,
@@ -18,6 +20,8 @@ class UltimateAppBar extends StatefulWidget implements PreferredSizeWidget {
     required this.onOpenRegisterDetails,
     required this.onToggleSidebar,
     required this.settings,
+    this.activeLocationName,
+    this.onLocationChanged,
   });
 
   @override
@@ -31,10 +35,13 @@ class _UltimateAppBarState extends State<UltimateAppBar> {
   Timer? _clockTimer;
   DateTime _currentTime = DateTime.now();
   CashRegister? _activeRegister;
+  List<BusinessLocation> _locations = [];
+  String _currentLocation = 'Main Branch HQ';
 
   @override
   void initState() {
     super.initState();
+    _currentLocation = widget.activeLocationName ?? widget.settings.branchName;
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
       _clockTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (mounted) {
@@ -42,12 +49,22 @@ class _UltimateAppBarState extends State<UltimateAppBar> {
         }
       });
     }
-    _loadRegister();
+    _loadRegisterAndLocations();
   }
 
-  Future<void> _loadRegister() async {
-    final reg = await DatabaseService.initialize().then((s) => s.getActiveRegister());
-    if (mounted) setState(() => _activeRegister = reg);
+  Future<void> _loadRegisterAndLocations() async {
+    final db = await DatabaseService.initialize();
+    final reg = await db.getActiveRegister();
+    final locs = await db.getBusinessLocations();
+    if (mounted) {
+      setState(() {
+        _activeRegister = reg;
+        _locations = locs;
+        if (_locations.isNotEmpty && !_locations.any((l) => l.name == _currentLocation)) {
+          _currentLocation = _locations.first.name;
+        }
+      });
+    }
   }
 
   @override
@@ -124,7 +141,69 @@ class _UltimateAppBarState extends State<UltimateAppBar> {
               ),
             ],
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
+
+          // Business Location Selector (Branch / Warehouse)
+          if (_locations.isNotEmpty)
+            PopupMenuButton<String>(
+              tooltip: 'Switch Active Branch',
+              color: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              onSelected: (locName) {
+                setState(() => _currentLocation = locName);
+                if (widget.onLocationChanged != null) {
+                  widget.onLocationChanged!(locName);
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Switched active branch to $locName'),
+                    duration: const Duration(seconds: 1),
+                    backgroundColor: const Color(0xFF0038B8),
+                  ),
+                );
+              },
+              itemBuilder: (ctx) => _locations
+                  .map(
+                    (loc) => PopupMenuItem<String>(
+                      value: loc.name,
+                      child: Row(
+                        children: [
+                          Icon(
+                            loc.name == _currentLocation ? Icons.check_circle : Icons.store_outlined,
+                            size: 16,
+                            color: loc.name == _currentLocation ? const Color(0xFF0038B8) : Colors.grey,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(loc.name, style: TextStyle(fontWeight: loc.name == _currentLocation ? FontWeight.bold : FontWeight.normal)),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+              child: Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.location_on_outlined, color: Colors.white70, size: 14),
+                    const SizedBox(width: 5),
+                    Text(
+                      _currentLocation,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.keyboard_arrow_down, color: Colors.white70, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(width: 16),
 
           // Sidebar Toggle Button [ ◫ ]
           _squareBtn(

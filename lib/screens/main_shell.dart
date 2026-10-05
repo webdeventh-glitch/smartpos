@@ -33,11 +33,13 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   bool _sidebarCollapsed = false;
   late BusinessSettings _settings;
+  String _activeLocationName = 'Main Branch HQ';
 
   @override
   void initState() {
     super.initState();
     _settings = widget.initialSettings;
+    _activeLocationName = _settings.branchName;
   }
 
   void _onOpenPos() {
@@ -121,6 +123,8 @@ class _MainShellState extends State<MainShell> {
             onOpenRegisterDetails: _onOpenRegister,
             onToggleSidebar: () => setState(() => _sidebarCollapsed = !_sidebarCollapsed),
             settings: _settings,
+            activeLocationName: _activeLocationName,
+            onLocationChanged: (loc) => setState(() => _activeLocationName = loc),
           ),
 
           // Main Workspace: Sidebar + Dynamic Body

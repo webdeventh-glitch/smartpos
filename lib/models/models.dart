@@ -58,6 +58,150 @@ class BusinessSettings {
       );
 }
 
+/// Business Location (Branch / Warehouse) in Ultimate POS
+class BusinessLocation {
+  final int? id;
+  final String name;
+  final String locationId;
+  final String landmark;
+  final String city;
+  final String state;
+  final String country;
+  final String zipCode;
+  final String mobile;
+  final String email;
+  final String invoiceScheme;
+  final bool isActive;
+
+  BusinessLocation({
+    this.id,
+    required this.name,
+    this.locationId = 'BL0001',
+    this.landmark = '',
+    this.city = 'New York',
+    this.state = 'NY',
+    this.country = 'USA',
+    this.zipCode = '10001',
+    this.mobile = '+1 (800) 555-0199',
+    this.email = 'branch@ultimatepos.com',
+    this.invoiceScheme = 'INV-',
+    this.isActive = true,
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'location_id': locationId,
+        'landmark': landmark,
+        'city': city,
+        'state': state,
+        'country': country,
+        'zip_code': zipCode,
+        'mobile': mobile,
+        'email': email,
+        'invoice_scheme': invoiceScheme,
+        'is_active': isActive ? 1 : 0,
+      };
+
+  factory BusinessLocation.fromMap(Map<String, dynamic> map) => BusinessLocation(
+        id: map['id'] as int?,
+        name: map['name'] as String,
+        locationId: map['location_id'] as String? ?? 'BL0001',
+        landmark: map['landmark'] as String? ?? '',
+        city: map['city'] as String? ?? '',
+        state: map['state'] as String? ?? '',
+        country: map['country'] as String? ?? '',
+        zipCode: map['zip_code'] as String? ?? '',
+        mobile: map['mobile'] as String? ?? '',
+        email: map['email'] as String? ?? '',
+        invoiceScheme: map['invoice_scheme'] as String? ?? 'INV-',
+        isActive: (map['is_active'] as int? ?? 1) == 1,
+      );
+}
+
+/// Tax Rate representation in Ultimate POS (Single or Tax Group)
+class TaxRate {
+  final int? id;
+  final String name;
+  final double amount;
+  final bool isTaxGroup;
+
+  TaxRate({
+    this.id,
+    required this.name,
+    required this.amount,
+    this.isTaxGroup = false,
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'amount': amount,
+        'is_tax_group': isTaxGroup ? 1 : 0,
+      };
+
+  factory TaxRate.fromMap(Map<String, dynamic> map) => TaxRate(
+        id: map['id'] as int?,
+        name: map['name'] as String,
+        amount: (map['amount'] as num).toDouble(),
+        isTaxGroup: (map['is_tax_group'] as int? ?? 0) == 1,
+      );
+}
+
+/// Invoice Scheme configuration in Ultimate POS
+class InvoiceScheme {
+  final int? id;
+  final String name;
+  final String schemeType; // 'blank', 'year'
+  final String prefix;
+  final int startNumber;
+  final int invoiceCount;
+  final int totalDigits;
+  final bool isDefault;
+
+  InvoiceScheme({
+    this.id,
+    required this.name,
+    this.schemeType = 'blank',
+    this.prefix = 'INV-',
+    this.startNumber = 1,
+    this.invoiceCount = 0,
+    this.totalDigits = 4,
+    this.isDefault = false,
+  });
+
+  String get previewExample {
+    final nextNum = (startNumber + invoiceCount).toString().padLeft(totalDigits, '0');
+    if (schemeType == 'year') {
+      final year = DateTime.now().year;
+      return '$prefix$year-$nextNum';
+    }
+    return '$prefix$nextNum';
+  }
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'scheme_type': schemeType,
+        'prefix': prefix,
+        'start_number': startNumber,
+        'invoice_count': invoiceCount,
+        'total_digits': totalDigits,
+        'is_default': isDefault ? 1 : 0,
+      };
+
+  factory InvoiceScheme.fromMap(Map<String, dynamic> map) => InvoiceScheme(
+        id: map['id'] as int?,
+        name: map['name'] as String,
+        schemeType: map['scheme_type'] as String? ?? 'blank',
+        prefix: map['prefix'] as String? ?? 'INV-',
+        startNumber: map['start_number'] as int? ?? 1,
+        invoiceCount: map['invoice_count'] as int? ?? 0,
+        totalDigits: map['total_digits'] as int? ?? 4,
+        isDefault: (map['is_default'] as int? ?? 0) == 1,
+      );
+}
+
 /// Category representation
 class Category {
   final int? id;

@@ -32,11 +32,118 @@ class DatabaseService {
           await _createTables(db);
           await _seedInitialData(db);
         },
+        onOpen: (db) async {
+          await _ensureSchemaUpdates(db);
+        },
       ),
     );
 
     _instance = DatabaseService(db);
     return _instance!;
+  }
+
+  static Future<void> _ensureSchemaUpdates(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS business_locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        location_id TEXT NOT NULL,
+        landmark TEXT,
+        city TEXT,
+        state TEXT,
+        country TEXT,
+        zip_code TEXT,
+        mobile TEXT,
+        email TEXT,
+        invoice_scheme TEXT,
+        is_active INTEGER DEFAULT 1
+      );
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tax_rates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        amount REAL NOT NULL,
+        is_tax_group INTEGER DEFAULT 0
+      );
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS invoice_schemes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        scheme_type TEXT DEFAULT 'blank',
+        prefix TEXT DEFAULT 'INV-',
+        start_number INTEGER DEFAULT 1,
+        invoice_count INTEGER DEFAULT 0,
+        total_digits INTEGER DEFAULT 4,
+        is_default INTEGER DEFAULT 0
+      );
+    ''');
+
+    // Ensure default location if empty
+    final locRes = await db.rawQuery('SELECT COUNT(*) as c FROM business_locations');
+    final locCount = (locRes.first['c'] as int?) ?? 0;
+    if (locCount == 0) {
+      await db.insert('business_locations', {
+        'name': 'Main Branch HQ',
+        'location_id': 'BL0001',
+        'landmark': 'Near Central Plaza',
+        'city': 'New York',
+        'state': 'NY',
+        'country': 'USA',
+        'zip_code': '10001',
+        'mobile': '+1 (800) 555-0199',
+        'email': 'hq@ultimatepos.com',
+        'invoice_scheme': 'INV-',
+        'is_active': 1,
+      });
+      await db.insert('business_locations', {
+        'name': 'Downtown Warehouse & Depot',
+        'location_id': 'BL0002',
+        'landmark': 'Industrial Park Sector 4',
+        'city': 'New York',
+        'state': 'NY',
+        'country': 'USA',
+        'zip_code': '10013',
+        'mobile': '+1 (800) 555-0188',
+        'email': 'warehouse@ultimatepos.com',
+        'invoice_scheme': 'WH-',
+        'is_active': 1,
+      });
+    }
+
+    // Ensure default tax rates if empty
+    final taxRes = await db.rawQuery('SELECT COUNT(*) as c FROM tax_rates');
+    final taxCount = (taxRes.first['c'] as int?) ?? 0;
+    if (taxCount == 0) {
+      await db.insert('tax_rates', {'name': 'No Tax (0%)', 'amount': 0.0, 'is_tax_group': 0});
+      await db.insert('tax_rates', {'name': 'Standard VAT (5%)', 'amount': 5.0, 'is_tax_group': 0});
+      await db.insert('tax_rates', {'name': 'GST / Sales Tax (15%)', 'amount': 15.0, 'is_tax_group': 0});
+    }
+
+    // Ensure default invoice schemes if empty
+    final schemeRes = await db.rawQuery('SELECT COUNT(*) as c FROM invoice_schemes');
+    final schemeCount = (schemeRes.first['c'] as int?) ?? 0;
+    if (schemeCount == 0) {
+      await db.insert('invoice_schemes', {
+        'name': 'Default Format (INV-XXXX)',
+        'scheme_type': 'blank',
+        'prefix': 'INV-',
+        'start_number': 1001,
+        'invoice_count': 2,
+        'total_digits': 4,
+        'is_default': 1,
+      });
+      await db.insert('invoice_schemes', {
+        'name': 'Yearly Format (INV-YYYY-XXXX)',
+        'scheme_type': 'year',
+        'prefix': 'INV-',
+        'start_number': 1,
+        'invoice_count': 0,
+        'total_digits': 4,
+        'is_default': 0,
+      });
+    }
   }
 
   static Future<void> _createTables(Database db) async {
@@ -196,13 +303,55 @@ class DatabaseService {
 
     // 11. Parked / Held Sales
     await db.execute('''
-      CREATE TABLE parked_sales (
+      CREATE TABLE IF NOT EXISTS parked_sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         customer_name TEXT NOT NULL,
         note TEXT,
         total REAL NOT NULL,
         created_at TEXT NOT NULL,
         items_json TEXT NOT NULL
+      )
+    ''');
+
+    // 12. Business Locations (Multi-store / Warehouse)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS business_locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        location_id TEXT NOT NULL,
+        landmark TEXT,
+        city TEXT,
+        state TEXT,
+        country TEXT,
+        zip_code TEXT,
+        mobile TEXT,
+        email TEXT,
+        invoice_scheme TEXT,
+        is_active INTEGER DEFAULT 1
+      )
+    ''');
+
+    // 13. Tax Rates
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tax_rates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        amount REAL NOT NULL,
+        is_tax_group INTEGER DEFAULT 0
+      )
+    ''');
+
+    // 14. Invoice Schemes
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS invoice_schemes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        scheme_type TEXT DEFAULT 'blank',
+        prefix TEXT DEFAULT 'INV-',
+        start_number INTEGER DEFAULT 1,
+        invoice_count INTEGER DEFAULT 0,
+        total_digits INTEGER DEFAULT 4,
+        is_default INTEGER DEFAULT 0
       )
     ''');
   }
@@ -622,6 +771,85 @@ class DatabaseService {
   Future<void> updateBusinessSettings(BusinessSettings settings) async {
     await db.update('business_settings', settings.toMap(),
         where: 'id = ?', whereArgs: [settings.id]);
+  }
+
+  // Business Locations
+  Future<List<BusinessLocation>> getBusinessLocations() async {
+    final rows = await db.query('business_locations', orderBy: 'id ASC');
+    return rows.map((r) => BusinessLocation.fromMap(r)).toList();
+  }
+
+  Future<int> addBusinessLocation(BusinessLocation location) async {
+    return await db.insert('business_locations', location.toMap());
+  }
+
+  Future<void> updateBusinessLocation(BusinessLocation location) async {
+    if (location.id != null) {
+      await db.update('business_locations', location.toMap(),
+          where: 'id = ?', whereArgs: [location.id]);
+    }
+  }
+
+  Future<void> deleteBusinessLocation(int id) async {
+    await db.delete('business_locations', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Tax Rates
+  Future<List<TaxRate>> getTaxRates() async {
+    final rows = await db.query('tax_rates', orderBy: 'amount ASC');
+    return rows.map((r) => TaxRate.fromMap(r)).toList();
+  }
+
+  Future<int> addTaxRate(TaxRate taxRate) async {
+    return await db.insert('tax_rates', taxRate.toMap());
+  }
+
+  Future<void> deleteTaxRate(int id) async {
+    await db.delete('tax_rates', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Invoice Schemes
+  Future<List<InvoiceScheme>> getInvoiceSchemes() async {
+    final rows = await db.query('invoice_schemes', orderBy: 'id ASC');
+    return rows.map((r) => InvoiceScheme.fromMap(r)).toList();
+  }
+
+  Future<int> addInvoiceScheme(InvoiceScheme scheme) async {
+    return await db.insert('invoice_schemes', scheme.toMap());
+  }
+
+  Future<void> updateInvoiceScheme(InvoiceScheme scheme) async {
+    if (scheme.id != null) {
+      await db.update('invoice_schemes', scheme.toMap(),
+          where: 'id = ?', whereArgs: [scheme.id]);
+    }
+  }
+
+  Future<void> deleteInvoiceScheme(int id) async {
+    await db.delete('invoice_schemes', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<String> generateNextInvoiceNumber({int? schemeId}) async {
+    List<Map<String, dynamic>> schemes;
+    if (schemeId != null) {
+      schemes = await db.query('invoice_schemes', where: 'id = ?', whereArgs: [schemeId], limit: 1);
+    } else {
+      schemes = await db.query('invoice_schemes', where: 'is_default = 1', limit: 1);
+    }
+    if (schemes.isEmpty) {
+      schemes = await db.query('invoice_schemes', limit: 1);
+    }
+
+    if (schemes.isNotEmpty) {
+      final s = InvoiceScheme.fromMap(schemes.first);
+      final nextNumber = s.startNumber + s.invoiceCount;
+      final padded = nextNumber.toString().padLeft(s.totalDigits, '0');
+      final code = s.schemeType == 'year' ? '${s.prefix}${DateTime.now().year}-$padded' : '${s.prefix}$padded';
+      // Increment count
+      await db.rawUpdate('UPDATE invoice_schemes SET invoice_count = invoice_count + 1 WHERE id = ?', [s.id]);
+      return code;
+    }
+    return 'INV-${DateTime.now().millisecondsSinceEpoch % 100000}';
   }
 
   // Products
