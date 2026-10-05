@@ -144,6 +144,82 @@ class DatabaseService {
         'is_default': 0,
       });
     }
+
+    // Phase 2: Units, Variations, Price Groups, Warranties
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS units (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actual_name TEXT NOT NULL,
+        short_name TEXT NOT NULL,
+        allow_decimal INTEGER DEFAULT 0,
+        base_unit_id INTEGER,
+        base_unit_multiplier REAL DEFAULT 1.0
+      );
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS variations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        sub_sku TEXT NOT NULL,
+        purchase_price REAL NOT NULL,
+        selling_price REAL NOT NULL,
+        stock_quantity REAL DEFAULT 0.0
+      );
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS selling_price_groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        is_active INTEGER DEFAULT 1
+      );
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS warranties (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        duration INTEGER NOT NULL,
+        duration_type TEXT DEFAULT 'months'
+      );
+    ''');
+
+    // Add optional columns to products table if missing
+    try {
+      await db.execute("ALTER TABLE products ADD COLUMN type TEXT DEFAULT 'single'");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE products ADD COLUMN barcode_type TEXT DEFAULT 'Code 128'");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE products ADD COLUMN warranty TEXT");
+    } catch (_) {}
+
+    // Seed units if empty
+    final unitRes = await db.rawQuery('SELECT COUNT(*) as c FROM units');
+    if (((unitRes.first['c'] as int?) ?? 0) == 0) {
+      await db.insert('units', {'actual_name': 'Pieces', 'short_name': 'Pc', 'allow_decimal': 0});
+      await db.insert('units', {'actual_name': 'Box (12 Pcs)', 'short_name': 'Box', 'allow_decimal': 0, 'base_unit_multiplier': 12.0});
+      await db.insert('units', {'actual_name': 'Kilograms', 'short_name': 'Kg', 'allow_decimal': 1});
+      await db.insert('units', {'actual_name': 'Liters', 'short_name': 'Ltr', 'allow_decimal': 1});
+    }
+
+    // Seed price groups if empty
+    final pgRes = await db.rawQuery('SELECT COUNT(*) as c FROM selling_price_groups');
+    if (((pgRes.first['c'] as int?) ?? 0) == 0) {
+      await db.insert('selling_price_groups', {'name': 'Retail Price', 'description': 'Standard Walk-in customer price', 'is_active': 1});
+      await db.insert('selling_price_groups', {'name': 'Wholesale Price', 'description': 'Bulk purchase price with 15% margin', 'is_active': 1});
+      await db.insert('selling_price_groups', {'name': 'Special VIP Price', 'description': 'Preferred loyal customer price', 'is_active': 1});
+    }
+
+    // Seed warranties if empty
+    final warRes = await db.rawQuery('SELECT COUNT(*) as c FROM warranties');
+    if (((warRes.first['c'] as int?) ?? 0) == 0) {
+      await db.insert('warranties', {'name': '1 Year Standard Warranty', 'description': 'Full replacement & parts warranty', 'duration': 12, 'duration_type': 'months'});
+      await db.insert('warranties', {'name': '6 Months Limited Warranty', 'description': 'Hardware warranty only', 'duration': 6, 'duration_type': 'months'});
+      await db.insert('warranties', {'name': 'No Warranty', 'description': 'Consumables & fresh food', 'duration': 0, 'duration_type': 'days'});
+    }
   }
 
   static Future<void> _createTables(Database db) async {
@@ -852,6 +928,56 @@ class DatabaseService {
     return 'INV-${DateTime.now().millisecondsSinceEpoch % 100000}';
   }
 
+  // Units
+  Future<List<Unit>> getUnits() async {
+    final rows = await db.query('units', orderBy: 'actual_name ASC');
+    return rows.map((r) => Unit.fromMap(r)).toList();
+  }
+
+  Future<int> addUnit(Unit unit) async {
+    return await db.insert('units', unit.toMap());
+  }
+
+  Future<void> deleteUnit(int id) async {
+    await db.delete('units', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Selling Price Groups
+  Future<List<SellingPriceGroup>> getSellingPriceGroups() async {
+    final rows = await db.query('selling_price_groups', orderBy: 'id ASC');
+    return rows.map((r) => SellingPriceGroup.fromMap(r)).toList();
+  }
+
+  Future<int> addSellingPriceGroup(SellingPriceGroup group) async {
+    return await db.insert('selling_price_groups', group.toMap());
+  }
+
+  // Warranties
+  Future<List<Warranty>> getWarranties() async {
+    final rows = await db.query('warranties', orderBy: 'duration ASC');
+    return rows.map((r) => Warranty.fromMap(r)).toList();
+  }
+
+  Future<int> addWarranty(Warranty warranty) async {
+    return await db.insert('warranties', warranty.toMap());
+  }
+
+  // Product Variations
+  Future<List<ProductVariation>> getProductVariations(int productId) async {
+    final rows = await db.query('variations', where: 'product_id = ?', whereArgs: [productId]);
+    return rows.map((r) => ProductVariation.fromMap(r)).toList();
+  }
+
+  Future<int> addProductWithVariations(Product product, List<ProductVariation> variations) async {
+    return await db.transaction((txn) async {
+      final prodId = await txn.insert('products', product.toMap());
+      for (var v in variations) {
+        await txn.insert('variations', v.toMap(prodId));
+      }
+      return prodId;
+    });
+  }
+
   // Products
   Future<List<Product>> getProducts({int? categoryId, String? search}) async {
     String? where;
@@ -880,6 +1006,27 @@ class DatabaseService {
         whereArgs: [clean, clean],
         limit: 1);
     if (rows.isNotEmpty) return Product.fromMap(rows.first);
+
+    // Variation Sub-SKU Lookup
+    final varRows = await db.query('variations',
+        where: 'sub_sku = ? COLLATE NOCASE',
+        whereArgs: [clean],
+        limit: 1);
+    if (varRows.isNotEmpty) {
+      final v = ProductVariation.fromMap(varRows.first);
+      final prodRows = await db.query('products', where: 'id = ?', whereArgs: [v.productId], limit: 1);
+      if (prodRows.isNotEmpty) {
+        final p = Product.fromMap(prodRows.first);
+        return p.copyWith(
+          name: '${p.name} (${v.name})',
+          sku: v.subSku,
+          barcode: v.subSku,
+          purchasePrice: v.purchasePrice,
+          sellingPrice: v.sellingPrice,
+          stockQuantity: v.stockQuantity,
+        );
+      }
+    }
     return null;
   }
 
@@ -888,6 +1035,13 @@ class DatabaseService {
   }
 
   Future<int> insertProduct(Product product) => addProduct(product);
+
+  Future<Product?> getProductById(int id) async {
+    final rows = await db.query('products', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (rows.isEmpty) return null;
+    final vars = await getProductVariations(id);
+    return Product.fromMap(rows.first, variations: vars);
+  }
 
   Future<int> updateProduct(Product product) async {
     return await db.update('products', product.toMap(),

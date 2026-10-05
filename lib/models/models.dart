@@ -247,12 +247,154 @@ class Brand {
       );
 }
 
-/// Product representation in Ultimate POS
+/// Unit representation in Ultimate POS (with sub-unit multipliers)
+class Unit {
+  final int? id;
+  final String actualName;
+  final String shortName;
+  final bool allowDecimal;
+  final int? baseUnitId;
+  final double baseUnitMultiplier;
+
+  Unit({
+    this.id,
+    required this.actualName,
+    required this.shortName,
+    this.allowDecimal = false,
+    this.baseUnitId,
+    this.baseUnitMultiplier = 1.0,
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'actual_name': actualName,
+        'short_name': shortName,
+        'allow_decimal': allowDecimal ? 1 : 0,
+        'base_unit_id': baseUnitId,
+        'base_unit_multiplier': baseUnitMultiplier,
+      };
+
+  factory Unit.fromMap(Map<String, dynamic> map) => Unit(
+        id: map['id'] as int?,
+        actualName: map['actual_name'] as String,
+        shortName: map['short_name'] as String,
+        allowDecimal: (map['allow_decimal'] as int? ?? 0) == 1,
+        baseUnitId: map['base_unit_id'] as int?,
+        baseUnitMultiplier: (map['base_unit_multiplier'] as num?)?.toDouble() ?? 1.0,
+      );
+}
+
+/// Product Variation for Variable Products (Ultimate POS `variations`)
+class ProductVariation {
+  final int? id;
+  final int? productId;
+  final String name; // e.g. "Small", "Medium", "Large" or "Red / XL"
+  final String subSku;
+  final double purchasePrice;
+  final double sellingPrice;
+  final double stockQuantity;
+
+  ProductVariation({
+    this.id,
+    this.productId,
+    required this.name,
+    required this.subSku,
+    required this.purchasePrice,
+    required this.sellingPrice,
+    this.stockQuantity = 0.0,
+  });
+
+  Map<String, dynamic> toMap(int? prodId) => {
+        if (id != null) 'id': id,
+        'product_id': prodId ?? productId,
+        'name': name,
+        'sub_sku': subSku,
+        'purchase_price': purchasePrice,
+        'selling_price': sellingPrice,
+        'stock_quantity': stockQuantity,
+      };
+
+  factory ProductVariation.fromMap(Map<String, dynamic> map) => ProductVariation(
+        id: map['id'] as int?,
+        productId: map['product_id'] as int?,
+        name: map['name'] as String,
+        subSku: map['sub_sku'] as String? ?? '',
+        purchasePrice: (map['purchase_price'] as num?)?.toDouble() ?? 0.0,
+        sellingPrice: (map['selling_price'] as num?)?.toDouble() ?? 0.0,
+        stockQuantity: (map['stock_quantity'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+/// Selling Price Group in Ultimate POS
+class SellingPriceGroup {
+  final int? id;
+  final String name; // e.g. "Wholesale Price", "VIP Retail", "Distributor"
+  final String description;
+  final bool isActive;
+
+  SellingPriceGroup({
+    this.id,
+    required this.name,
+    this.description = '',
+    this.isActive = true,
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'description': description,
+        'is_active': isActive ? 1 : 0,
+      };
+
+  factory SellingPriceGroup.fromMap(Map<String, dynamic> map) => SellingPriceGroup(
+        id: map['id'] as int?,
+        name: map['name'] as String,
+        description: map['description'] as String? ?? '',
+        isActive: (map['is_active'] as int? ?? 1) == 1,
+      );
+}
+
+/// Warranty in Ultimate POS
+class Warranty {
+  final int? id;
+  final String name;
+  final String description;
+  final int duration;
+  final String durationType; // 'days', 'months', 'years'
+
+  Warranty({
+    this.id,
+    required this.name,
+    this.description = '',
+    required this.duration,
+    this.durationType = 'months',
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'description': description,
+        'duration': duration,
+        'duration_type': durationType,
+      };
+
+  factory Warranty.fromMap(Map<String, dynamic> map) => Warranty(
+        id: map['id'] as int?,
+        name: map['name'] as String,
+        description: map['description'] as String? ?? '',
+        duration: map['duration'] as int? ?? 12,
+        durationType: map['duration_type'] as String? ?? 'months',
+      );
+}
+
+/// Product representation in Ultimate POS (Single or Variable)
 class Product {
   final int? id;
   final String name;
   final String sku;
   final String barcode;
+  final String type; // 'single' or 'variable'
+  final String barcodeType; // 'Code 128', 'EAN-13', 'UPC-A'
   final int? categoryId;
   final String categoryName;
   final int? brandId;
@@ -263,12 +405,16 @@ class Product {
   final double stockQuantity;
   final double alertQuantity;
   final String? imageColor; // Hex string for visual tile fallback
+  final String? warranty;
+  final List<ProductVariation>? variations;
 
   Product({
     this.id,
     required this.name,
     required this.sku,
     required this.barcode,
+    this.type = 'single',
+    this.barcodeType = 'Code 128',
     this.categoryId,
     this.categoryName = 'General',
     this.brandId,
@@ -279,8 +425,11 @@ class Product {
     required this.stockQuantity,
     this.alertQuantity = 5.0,
     this.imageColor,
+    this.warranty,
+    this.variations,
   });
 
+  bool get isVariable => type == 'variable';
   bool get isLowStock => stockQuantity <= alertQuantity && stockQuantity > 0;
   bool get isOutOfStock => stockQuantity <= 0;
 
@@ -289,6 +438,8 @@ class Product {
         'name': name,
         'sku': sku,
         'barcode': barcode,
+        'type': type,
+        'barcode_type': barcodeType,
         'category_id': categoryId,
         'category_name': categoryName,
         'brand_id': brandId,
@@ -299,13 +450,16 @@ class Product {
         'stock_quantity': stockQuantity,
         'alert_quantity': alertQuantity,
         'image_color': imageColor ?? '#004EEB',
+        'warranty': warranty ?? '',
       };
 
-  factory Product.fromMap(Map<String, dynamic> map) => Product(
+  factory Product.fromMap(Map<String, dynamic> map, {List<ProductVariation>? variations}) => Product(
         id: map['id'] as int?,
         name: map['name'] as String,
         sku: map['sku'] as String,
         barcode: map['barcode'] as String? ?? map['sku'] as String,
+        type: map['type'] as String? ?? 'single',
+        barcodeType: map['barcode_type'] as String? ?? 'Code 128',
         categoryId: map['category_id'] as int?,
         categoryName: map['category_name'] as String? ?? 'General',
         brandId: map['brand_id'] as int?,
@@ -316,6 +470,8 @@ class Product {
         stockQuantity: (map['stock_quantity'] as num).toDouble(),
         alertQuantity: (map['alert_quantity'] as num?)?.toDouble() ?? 5.0,
         imageColor: map['image_color'] as String?,
+        warranty: map['warranty'] as String?,
+        variations: variations,
       );
 
   Product copyWith({
@@ -323,6 +479,8 @@ class Product {
     String? name,
     String? sku,
     String? barcode,
+    String? type,
+    String? barcodeType,
     int? categoryId,
     String? categoryName,
     int? brandId,
@@ -333,12 +491,16 @@ class Product {
     double? stockQuantity,
     double? alertQuantity,
     String? imageColor,
+    String? warranty,
+    List<ProductVariation>? variations,
   }) =>
       Product(
         id: id ?? this.id,
         name: name ?? this.name,
         sku: sku ?? this.sku,
         barcode: barcode ?? this.barcode,
+        type: type ?? this.type,
+        barcodeType: barcodeType ?? this.barcodeType,
         categoryId: categoryId ?? this.categoryId,
         categoryName: categoryName ?? this.categoryName,
         brandId: brandId ?? this.brandId,
@@ -349,6 +511,8 @@ class Product {
         stockQuantity: stockQuantity ?? this.stockQuantity,
         alertQuantity: alertQuantity ?? this.alertQuantity,
         imageColor: imageColor ?? this.imageColor,
+        warranty: warranty ?? this.warranty,
+        variations: variations ?? this.variations,
       );
 }
 

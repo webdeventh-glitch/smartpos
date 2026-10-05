@@ -38,6 +38,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
   String _barcodeType = 'Code 128 (C128)';
   final List<String> _barcodeTypes = ['Code 128 (C128)', 'Code 39', 'EAN-13', 'UPC-A'];
 
+  String _productType = 'single'; // 'single' or 'variable'
+  final List<ProductVariation> _variations = [];
+
   String _selectedUnit = 'Pieces (Pc)';
   final List<String> _units = ['Pieces (Pc)', 'Box', 'Kilogram (Kg)', 'Liter (Ltr)', 'Pack'];
 
@@ -46,6 +49,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   List<Brand> _brands = [];
   Brand? _selectedBrand;
+
+  List<Warranty> _warranties = [];
+  Warranty? _selectedWarranty;
 
   String? _selectedSubCategory;
   final List<String> _subCategories = ['Electronics', 'Accessories', 'Groceries', 'Beverages', 'Clothing'];
@@ -82,13 +88,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final db = await DatabaseService.initialize();
     final cats = await db.getCategories();
     final brs = await db.getBrands();
+    final wars = await db.getWarranties();
 
     if (mounted) {
       setState(() {
         _categories = cats;
         _brands = brs;
+        _warranties = wars;
         if (cats.isNotEmpty) _selectedCategory = cats.first;
         if (brs.isNotEmpty) _selectedBrand = brs.first;
+        if (wars.isNotEmpty) _selectedWarranty = wars.first;
         _isLoading = false;
       });
     }
@@ -240,8 +249,105 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  void _showAddVariationModal() {
+    final nameCtrl = TextEditingController();
+    final purchaseCtrl = TextEditingController(text: _purchasePriceCtrl.text.trim());
+    final sellingCtrl = TextEditingController(text: _sellingPriceCtrl.text.trim());
+    final stockCtrl = TextEditingController(text: '10');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Row(
+          children: [
+            Icon(Icons.style, color: Color(0xFF0038B8)),
+            SizedBox(width: 8),
+            Text('Add Product Variation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Variation Value (e.g. Small, Medium, XL, Red)*', isDense: true),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: purchaseCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Purchase Price*', isDense: true),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: sellingCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Selling Price*', isDense: true),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: stockCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Opening Stock', isDense: true),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0038B8), foregroundColor: Colors.white),
+            onPressed: () {
+              if (nameCtrl.text.trim().isEmpty) return;
+              final valName = nameCtrl.text.trim();
+              final baseSku = _skuCtrl.text.trim().isEmpty ? 'PRD' : _skuCtrl.text.trim();
+              final subSku = '$baseSku-${valName.toUpperCase().replaceAll(' ', '-')}';
+              final pPrice = double.tryParse(purchaseCtrl.text.trim()) ?? 0.0;
+              final sPrice = double.tryParse(sellingCtrl.text.trim()) ?? 0.0;
+              final st = double.tryParse(stockCtrl.text.trim()) ?? 0.0;
+
+              setState(() {
+                _variations.add(
+                  ProductVariation(
+                    name: valName,
+                    subSku: subSku,
+                    purchasePrice: pPrice,
+                    sellingPrice: sPrice,
+                    stockQuantity: st,
+                  ),
+                );
+              });
+              Navigator.pop(ctx);
+            },
+            child: const Text('Add Variation'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<bool> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return false;
+    if (_productType == 'variable' && _variations.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.orange,
+          content: Text('Please add at least one variation (e.g. Small, Medium) for variable product.'),
+        ),
+      );
+      return false;
+    }
 
     setState(() => _isSaving = true);
     try {
@@ -251,23 +357,31 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final stock = _manageStock ? (double.tryParse(_openingStockCtrl.text.trim()) ?? 0.0) : 999.0;
       final alert = double.tryParse(_alertQtyCtrl.text.trim()) ?? 5.0;
 
+      final totalVarStock = _variations.fold(0.0, (sum, v) => sum + v.stockQuantity);
       final product = Product(
         name: _nameCtrl.text.trim(),
         sku: _skuCtrl.text.trim().isEmpty ? 'SKU-${Random().nextInt(99999)}' : _skuCtrl.text.trim(),
         barcode: _barcodeCtrl.text.trim().isEmpty ? _skuCtrl.text.trim() : _barcodeCtrl.text.trim(),
+        type: _productType,
+        barcodeType: _barcodeType,
         categoryId: _selectedCategory?.id,
         categoryName: _selectedCategory?.name ?? 'General',
         brandId: _selectedBrand?.id,
         brandName: _selectedBrand?.name ?? 'Standard',
         unit: _selectedUnit,
-        purchasePrice: purchase,
-        sellingPrice: selling,
-        stockQuantity: stock,
+        purchasePrice: _productType == 'variable' && _variations.isNotEmpty ? _variations.first.purchasePrice : purchase,
+        sellingPrice: _productType == 'variable' && _variations.isNotEmpty ? _variations.first.sellingPrice : selling,
+        stockQuantity: _productType == 'variable' ? totalVarStock : stock,
         alertQuantity: alert,
         imageColor: _selectedColor,
+        warranty: _selectedWarranty?.name,
       );
 
-      await db.insertProduct(product);
+      if (_productType == 'variable' && _variations.isNotEmpty) {
+        await db.addProductWithVariations(product, _variations);
+      } else {
+        await db.insertProduct(product);
+      }
       return true;
     } catch (e) {
       if (mounted) {
@@ -743,8 +857,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             ),
                             const SizedBox(width: 20),
 
-                            // Empty space for layout balance
-                            const Spacer(flex: 4),
+                            // Warranty
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildFieldLabel('Warranty', hasInfo: true, info: 'Product warranty terms'),
+                                  DropdownButtonFormField<Warranty>(
+                                    initialValue: _selectedWarranty,
+                                    hint: const Text('No Warranty', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8))),
+                                    decoration: _inputDecor('Please Select'),
+                                    items: _warranties
+                                        .map((w) => DropdownMenuItem(
+                                              value: w,
+                                              child: Text(w.name, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                                            ))
+                                        .toList(),
+                                    onChanged: (val) => setState(() => _selectedWarranty = val),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         );
                       } else {
@@ -879,83 +1013,233 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Pricing, Margin & Opening Stock',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Product Type & Pricing Engine',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                        ),
+                        // Segmented Button Toggle for Single vs Variable Product
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            children: [
+                              InkWell(
+                                onTap: () => setState(() => _productType = 'single'),
+                                borderRadius: BorderRadius.circular(6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: _productType == 'single' ? const Color(0xFF0038B8) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'Single Product',
+                                    style: TextStyle(
+                                      color: _productType == 'single' ? Colors.white : const Color(0xFF64748B),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              InkWell(
+                                onTap: () => setState(() => _productType = 'variable'),
+                                borderRadius: BorderRadius.circular(6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: _productType == 'variable' ? const Color(0xFF0038B8) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'Variable Product',
+                                    style: TextStyle(
+                                      color: _productType == 'variable' ? Colors.white : const Color(0xFF64748B),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        // Purchase Price
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildFieldLabel('Purchase Price ($currency)*', isRequired: true),
-                              TextFormField(
-                                controller: _purchasePriceCtrl,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: _inputDecor('0.00'),
-                                onChanged: (_) => _recalcSellingPrice(),
-                                validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
 
-                        // Profit Margin (%)
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildFieldLabel('Profit Margin (%)'),
-                              TextFormField(
-                                controller: _profitMarginCtrl,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: _inputDecor('25.0'),
-                                onChanged: (_) => _recalcSellingPrice(),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-
-                        // Selling Price
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildFieldLabel('Selling Price ($currency)*', isRequired: true),
-                              TextFormField(
-                                controller: _sellingPriceCtrl,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                decoration: _inputDecor('0.00'),
-                                onChanged: (_) => _recalcMargin(),
-                                validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-
-                        // Opening Stock
-                        if (_manageStock)
+                    if (_productType == 'single') ...[
+                      Row(
+                        children: [
+                          // Purchase Price
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildFieldLabel('Opening Stock (Units)'),
+                                _buildFieldLabel('Purchase Price ($currency)*', isRequired: true),
                                 TextFormField(
-                                  controller: _openingStockCtrl,
+                                  controller: _purchasePriceCtrl,
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  decoration: _inputDecor('50'),
+                                  decoration: _inputDecor('0.00'),
+                                  onChanged: (_) => _recalcSellingPrice(),
+                                  validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
                                 ),
                               ],
                             ),
                           ),
-                      ],
-                    ),
+                          const SizedBox(width: 16),
+
+                          // Profit Margin (%)
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFieldLabel('Profit Margin (%)'),
+                                TextFormField(
+                                  controller: _profitMarginCtrl,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  decoration: _inputDecor('25.0'),
+                                  onChanged: (_) => _recalcSellingPrice(),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Selling Price
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildFieldLabel('Selling Price ($currency)*', isRequired: true),
+                                TextFormField(
+                                  controller: _sellingPriceCtrl,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  decoration: _inputDecor('0.00'),
+                                  onChanged: (_) => _recalcMargin(),
+                                  validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Opening Stock
+                          if (_manageStock)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildFieldLabel('Opening Stock (Units)'),
+                                  TextFormField(
+                                    controller: _openingStockCtrl,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    decoration: _inputDecor('50'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ] else ...[
+                      // Variable Product Variations Matrix
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Variations Matrix (${_variations.length} variations configured)',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)),
+                          ),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0038B8),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            ),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Add Variation Option'),
+                            onPressed: _showAddVariationModal,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (_variations.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            children: const [
+                              Icon(Icons.style_outlined, size: 36, color: Color(0xFF94A3B8)),
+                              SizedBox(height: 8),
+                              Text(
+                                'No variations added yet.',
+                                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Click "+ Add Variation Option" to define variants like Small, Medium, Large or Color choices.',
+                                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Table(
+                          border: TableBorder.all(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(6)),
+                          columnWidths: const {
+                            0: FlexColumnWidth(2),
+                            1: FlexColumnWidth(2.5),
+                            2: FlexColumnWidth(1.5),
+                            3: FlexColumnWidth(1.5),
+                            4: FlexColumnWidth(1.2),
+                            5: FixedColumnWidth(60),
+                          },
+                          children: [
+                            const TableRow(
+                              decoration: BoxDecoration(color: Color(0xFFF1F5F9)),
+                              children: [
+                                Padding(padding: EdgeInsets.all(10), child: Text('Variation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                Padding(padding: EdgeInsets.all(10), child: Text('Sub-SKU', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                Padding(padding: EdgeInsets.all(10), child: Text('Purchase Price', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                Padding(padding: EdgeInsets.all(10), child: Text('Selling Price', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                Padding(padding: EdgeInsets.all(10), child: Text('Opening Stock', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                Padding(padding: EdgeInsets.all(10), child: Text('Action', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                              ],
+                            ),
+                            ..._variations.asMap().entries.map((entry) {
+                              final idx = entry.key;
+                              final v = entry.value;
+                              return TableRow(
+                                children: [
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(v.name, style: const TextStyle(fontWeight: FontWeight.w600))),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text(v.subSku, style: const TextStyle(fontFamily: 'monospace'))),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text('$currency${v.purchasePrice.toStringAsFixed(2)}')),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text('$currency${v.sellingPrice.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF16A34A)))),
+                                  Padding(padding: const EdgeInsets.all(10), child: Text('${v.stockQuantity.toInt()} Pcs')),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                    onPressed: () => setState(() => _variations.removeAt(idx)),
+                                  ),
+                                ],
+                              );
+                            }),
+                          ],
+                        ),
+                    ],
                   ],
                 ),
               ),

@@ -241,6 +241,17 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                         ),
                                         const SizedBox(width: 10),
                                         Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                        if (p.isVariable) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF3E8FF),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: const Text('Variable', style: TextStyle(color: Color(0xFF7E22CE), fontSize: 10, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
