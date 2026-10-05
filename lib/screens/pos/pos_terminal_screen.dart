@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
@@ -338,6 +339,83 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
+  void _openQuickCustomerModal() {
+    showDialog(
+      context: context,
+      builder: (_) => QuickCustomerDialog(
+        onCustomerAdded: (newCustomer) {
+          setState(() {
+            _customers.add(newCustomer);
+            _selectedCustomer = newCustomer;
+          });
+        },
+      ),
+    );
+  }
+
+  void _showShortcutsDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Row(
+          children: [
+            Icon(Icons.keyboard, color: Color(0xFF0038B8)),
+            SizedBox(width: 8),
+            Text('Ultimate POS Keyboard Shortcuts', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _shortcutRow('F1', 'Keyboard Shortcuts Help Modal'),
+              _shortcutRow('F2', 'Quick Cash Pay (Instant Complete)'),
+              _shortcutRow('F4', 'Suspend / Park Current Sale Order'),
+              _shortcutRow('F6', 'Add / Select Customer'),
+              _shortcutRow('F7', 'Multiple / Split Pay Modal'),
+              _shortcutRow('F8', 'Cancel Sale / Clear Cart'),
+              _shortcutRow('F9', 'Open Calculator'),
+              _shortcutRow('F10', 'Register Details & Session'),
+              _shortcutRow('Esc', 'Focus Barcode Scanner / Search Input'),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0038B8), foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _shortcutRow(String key, String description) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            alignment: Alignment.center,
+            child: Text(key, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0038B8), fontSize: 13)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(child: Text(description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF334155)))),
+        ],
+      ),
+    );
+  }
+
   Widget _topIconBtn({required IconData icon, required VoidCallback onTap, Color? color, String? tooltip}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -366,9 +444,29 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     final currency = widget.settings.currencySymbol;
     final nowTime = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
-      body: Column(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.f1): _showShortcutsDialog,
+        const SingleActivator(LogicalKeyboardKey.f2): _quickCashCheckout,
+        const SingleActivator(LogicalKeyboardKey.f4): _suspendSale,
+        const SingleActivator(LogicalKeyboardKey.f6): _openQuickCustomerModal,
+        const SingleActivator(LogicalKeyboardKey.f7): _openPaymentModal,
+        const SingleActivator(LogicalKeyboardKey.f8): _clearCart,
+        const SingleActivator(LogicalKeyboardKey.f9): () {
+          showDialog(context: context, builder: (_) => const CalculatorDialog());
+        },
+        const SingleActivator(LogicalKeyboardKey.f10): () {
+          showDialog(context: context, builder: (_) => RegisterDetailsDialog(settings: widget.settings));
+        },
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          _searchFocusNode.requestFocus();
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF1F5F9),
+          body: Column(
         children: [
           // ================= SCREENSHOT 2: TOP POS BAR =================
           Container(
@@ -496,16 +594,30 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                   ),
                   icon: const Icon(Icons.add, size: 14),
-                          label: const Text('Add Expense', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          onPressed: () {},
-                        ),
-                      ],
-                    ),
+                  label: const Text('Add Expense', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: () {},
+                ),
+                const SizedBox(width: 6),
+
+                // [ ⌨ Shortcuts F1 ]
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E293B),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                   ),
+                  icon: const Icon(Icons.keyboard_outlined, size: 14),
+                  label: const Text('Shortcuts [F1]', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: _showShortcutsDialog,
                 ),
               ],
             ),
           ),
+        ),
+      ],
+    ),
+  ),
 
           // ================= MAIN TERMINAL SPLIT LAYOUT =================
           Expanded(
@@ -1108,6 +1220,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
           ),
         ],
       ),
+    ),
+    ),
     );
   }
 
