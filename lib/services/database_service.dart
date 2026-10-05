@@ -333,6 +333,62 @@ class DatabaseService {
         note TEXT
       );
     ''');
+
+    // Phase 6: Payment Accounts & Double-entry Transfers
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS payment_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        account_number TEXT,
+        account_type TEXT DEFAULT 'bank',
+        opening_balance REAL DEFAULT 0.0,
+        current_balance REAL DEFAULT 0.0,
+        note TEXT
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS account_transfers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_account_id INTEGER NOT NULL,
+        from_account_name TEXT NOT NULL,
+        to_account_id INTEGER NOT NULL,
+        to_account_name TEXT NOT NULL,
+        amount REAL NOT NULL,
+        date TEXT NOT NULL,
+        ref_no TEXT,
+        note TEXT
+      );
+    ''');
+
+    // Seed default accounts if empty
+    final accRes = await db.rawQuery('SELECT COUNT(*) as c FROM payment_accounts');
+    if (((accRes.first['c'] as int?) ?? 0) == 0) {
+      await db.insert('payment_accounts', {
+        'name': 'Main Store Cash Drawer',
+        'account_number': 'CASH-001',
+        'account_type': 'cash',
+        'opening_balance': 1500.0,
+        'current_balance': 1500.0,
+        'note': 'Front counter cash register',
+      });
+      await db.insert('payment_accounts', {
+        'name': 'Business Operating Bank Account',
+        'account_number': 'PK89MEZN001234567890',
+        'account_type': 'bank',
+        'opening_balance': 25000.0,
+        'current_balance': 25000.0,
+        'note': 'Meezan Bank Corporate Account',
+      });
+      await db.insert('payment_accounts', {
+        'name': 'POS Card Merchant Terminal',
+        'account_number': 'STRIPE-TERM-01',
+        'account_type': 'pos_terminal',
+        'opening_balance': 5400.0,
+        'current_balance': 5400.0,
+        'note': 'Credit / Debit card settlement account',
+      });
+    }
   }
 
   static Future<void> _createTables(Database db) async {
@@ -1500,6 +1556,47 @@ class DatabaseService {
 
   Future<int> addExpense(Expense expense) async {
     return await db.insert('expenses', expense.toMap());
+  }
+
+  // Payment Accounts & Fund Transfers
+  Future<String> generateNextAccountTransferRef() async {
+    final rows = await db.rawQuery('SELECT MAX(id) as max_id FROM account_transfers');
+    final maxId = (rows.first['max_id'] as int?) ?? 0;
+    return 'TRF-2026-${(maxId + 1).toString().padLeft(4, '0')}';
+  }
+
+  Future<List<PaymentAccount>> getPaymentAccounts() async {
+    final rows = await db.query('payment_accounts', orderBy: 'id ASC');
+    return rows.map((e) => PaymentAccount.fromMap(e)).toList();
+  }
+
+  Future<int> addPaymentAccount(PaymentAccount account) async {
+    return await db.insert('payment_accounts', account.toMap());
+  }
+
+  Future<List<AccountTransfer>> getAccountTransfers() async {
+    final rows = await db.query('account_transfers', orderBy: 'id DESC');
+    return rows.map((e) => AccountTransfer.fromMap(e)).toList();
+  }
+
+  Future<int> transferAccountFunds(AccountTransfer transfer) async {
+    return await db.transaction((txn) async {
+      final transferId = await txn.insert('account_transfers', transfer.toMap());
+
+      // Deduct from sender account
+      await txn.rawUpdate(
+        'UPDATE payment_accounts SET current_balance = current_balance - ? WHERE id = ?',
+        [transfer.amount, transfer.fromAccountId],
+      );
+
+      // Add to receiver account
+      await txn.rawUpdate(
+        'UPDATE payment_accounts SET current_balance = current_balance + ? WHERE id = ?',
+        [transfer.amount, transfer.toAccountId],
+      );
+
+      return transferId;
+    });
   }
 
   // Cash Register

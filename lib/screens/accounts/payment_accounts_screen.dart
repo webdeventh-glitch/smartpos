@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../models/models.dart';
+import '../../services/database_service.dart';
 
 class PaymentAccountsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -10,86 +12,118 @@ class PaymentAccountsScreen extends StatefulWidget {
   State<PaymentAccountsScreen> createState() => _PaymentAccountsScreenState();
 }
 
-class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> {
-  final List<Map<String, dynamic>> _accounts = [
-    {
-      'name': 'Cash Register Drawer #1',
-      'accountNumber': 'CASH-REG-01',
-      'type': 'Cash in Hand',
-      'balance': 1250.00,
-      'status': 'Active',
-    },
-    {
-      'name': 'Primary Business Bank',
-      'accountNumber': 'ACC-9821-4402',
-      'type': 'Bank Account',
-      'balance': 24500.00,
-      'status': 'Active',
-    },
-    {
-      'name': 'Card POS Terminal Gateway',
-      'accountNumber': 'STRIPE-POS-89',
-      'type': 'POS Terminal / Merchant',
-      'balance': 8340.50,
-      'status': 'Active',
-    },
-  ];
+class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<PaymentAccount> _accounts = [];
+  List<AccountTransfer> _transfers = [];
+  bool _loading = true;
 
-  void _showAddAccountDialog() {
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final db = await DatabaseService.initialize();
+    final accs = await db.getPaymentAccounts();
+    final trfs = await db.getAccountTransfers();
+    if (mounted) {
+      setState(() {
+        _accounts = accs;
+        _transfers = trfs;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _showAddAccountDialog() async {
     final nameCtrl = TextEditingController();
     final numCtrl = TextEditingController();
     final balCtrl = TextEditingController(text: '0.00');
-    String type = 'Bank Account';
+    final noteCtrl = TextEditingController();
+    String type = 'bank';
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
-          title: const Text('Add Payment Account', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Row(
+            children: [
+              Icon(Icons.account_balance, color: Color(0xFF004EEB)),
+              SizedBox(width: 8),
+              Text('Add Payment Account', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
           content: SizedBox(
-            width: 420,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Account Name*')),
-                const SizedBox(height: 12),
-                TextField(controller: numCtrl, decoration: const InputDecoration(labelText: 'Account Number / Identifier*')),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: type,
-                  decoration: const InputDecoration(labelText: 'Account Type'),
-                  items: const [
-                    DropdownMenuItem(value: 'Cash in Hand', child: Text('Cash in Hand')),
-                    DropdownMenuItem(value: 'Bank Account', child: Text('Bank Account')),
-                    DropdownMenuItem(value: 'POS Terminal / Merchant', child: Text('POS Terminal / Merchant')),
-                  ],
-                  onChanged: (val) => setDlgState(() => type = val ?? type),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: balCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(labelText: 'Opening Balance (${widget.settings.currencySymbol})'),
-                ),
-              ],
+            width: 440,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Account Name*', isDense: true)),
+                  const SizedBox(height: 12),
+                  TextField(controller: numCtrl, decoration: const InputDecoration(labelText: 'Account Number / IBAN', isDense: true)),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: type,
+                    decoration: const InputDecoration(labelText: 'Account Type*', isDense: true),
+                    items: const [
+                      DropdownMenuItem(value: 'cash', child: Text('Cash Drawer / Register')),
+                      DropdownMenuItem(value: 'bank', child: Text('Bank Operating Account')),
+                      DropdownMenuItem(value: 'pos_terminal', child: Text('POS Merchant Terminal / Gateway')),
+                    ],
+                    onChanged: (val) => setDlgState(() => type = val ?? type),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: balCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Opening Balance (${widget.settings.currencySymbol})*',
+                      isDense: true,
+                      prefixText: '${widget.settings.currencySymbol} ',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(controller: noteCtrl, decoration: const InputDecoration(labelText: 'Account Description / Note', isDense: true)),
+                ],
+              ),
             ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF004EEB), foregroundColor: Colors.white),
-              onPressed: () {
-                if (nameCtrl.text.trim().isNotEmpty) {
-                  setState(() {
-                    _accounts.add({
-                      'name': nameCtrl.text.trim(),
-                      'accountNumber': numCtrl.text.trim(),
-                      'type': type,
-                      'balance': double.tryParse(balCtrl.text.trim()) ?? 0.0,
-                      'status': 'Active',
-                    });
-                  });
-                  Navigator.pop(ctx);
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isEmpty) return;
+                final bal = double.tryParse(balCtrl.text.trim()) ?? 0.0;
+
+                final db = await DatabaseService.initialize();
+                await db.addPaymentAccount(PaymentAccount(
+                  name: name,
+                  accountNumber: numCtrl.text.trim(),
+                  accountType: type,
+                  openingBalance: bal,
+                  currentBalance: bal,
+                  note: noteCtrl.text.trim(),
+                ));
+
+                Navigator.pop(ctx);
+                _load();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Payment account "$name" created successfully!'), backgroundColor: const Color(0xFF10B981)),
+                  );
                 }
               },
               child: const Text('Save Account'),
@@ -100,10 +134,134 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> {
     );
   }
 
+  Future<void> _showTransferFundsDialog() async {
+    if (_accounts.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('At least 2 payment accounts are required to transfer funds.')),
+      );
+      return;
+    }
+
+    final db = await DatabaseService.initialize();
+    final nextRef = await db.generateNextAccountTransferRef();
+
+    PaymentAccount fromAcc = _accounts.first;
+    PaymentAccount toAcc = _accounts[1];
+    final amountCtrl = TextEditingController(text: '500.00');
+    final noteCtrl = TextEditingController();
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.swap_horiz, color: Color(0xFF0284C7)),
+              SizedBox(width: 8),
+              Text('Transfer Funds Between Accounts', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: SizedBox(
+            width: 460,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<PaymentAccount>(
+                    initialValue: fromAcc,
+                    decoration: const InputDecoration(labelText: 'From Account (Source)*', isDense: true),
+                    items: _accounts
+                        .map((a) => DropdownMenuItem(
+                              value: a,
+                              child: Text('${a.name} (${widget.settings.currencySymbol}${a.currentBalance.toStringAsFixed(2)})'),
+                            ))
+                        .toList(),
+                    onChanged: (val) => setDlgState(() => fromAcc = val ?? fromAcc),
+                  ),
+                  const SizedBox(height: 12),
+
+                  DropdownButtonFormField<PaymentAccount>(
+                    initialValue: toAcc,
+                    decoration: const InputDecoration(labelText: 'To Account (Destination)*', isDense: true),
+                    items: _accounts
+                        .map((a) => DropdownMenuItem(
+                              value: a,
+                              child: Text('${a.name} (${widget.settings.currencySymbol}${a.currentBalance.toStringAsFixed(2)})'),
+                            ))
+                        .toList(),
+                    onChanged: (val) => setDlgState(() => toAcc = val ?? toAcc),
+                  ),
+                  const SizedBox(height: 12),
+
+                  TextField(
+                    controller: amountCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Transfer Amount (${widget.settings.currencySymbol})*',
+                      isDense: true,
+                      prefixText: '${widget.settings.currencySymbol} ',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  TextField(controller: noteCtrl, decoration: const InputDecoration(labelText: 'Reference Note / Reason', isDense: true)),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0284C7), foregroundColor: Colors.white),
+              onPressed: () async {
+                if (fromAcc.id == toAcc.id) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Source and destination accounts cannot be the same!'), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+
+                final amount = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+                if (amount <= 0) return;
+
+                final transfer = AccountTransfer(
+                  fromAccountId: fromAcc.id!,
+                  fromAccountName: fromAcc.name,
+                  toAccountId: toAcc.id!,
+                  toAccountName: toAcc.name,
+                  amount: amount,
+                  date: DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+                  refNo: nextRef,
+                  note: noteCtrl.text.trim(),
+                );
+
+                await db.transferAccountFunds(transfer);
+                Navigator.pop(ctx);
+                _load();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Transferred ${widget.settings.currencySymbol}${amount.toStringAsFixed(2)} from ${fromAcc.name} to ${toAcc.name}!'),
+                      backgroundColor: const Color(0xFF10B981),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Transfer Funds'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currency = widget.settings.currencySymbol;
-    final totalBalance = _accounts.fold(0.0, (sum, a) => sum + (a['balance'] as double));
+    final totalFunds = _accounts.fold(0.0, (sum, a) => sum + a.currentBalance);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -115,110 +273,185 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
+                const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text('Payment Accounts', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                  children: [
+                    Text('Payment Accounts & Banking',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
                     SizedBox(height: 4),
-                    Text('Manage cash drawers, bank accounts, POS card gateways, and general ledger balances.',
+                    Text('Manage cash drawers, bank accounts, POS merchant terminals, and double-entry transfers.',
                         style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
                   ],
                 ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF004EEB),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  ),
-                  icon: const Icon(Icons.account_balance, size: 18),
-                  label: const Text('Add Account', style: TextStyle(fontWeight: FontWeight.bold)),
-                  onPressed: _showAddAccountDialog,
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF004EEB),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Add Account', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: _showAddAccountDialog,
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0284C7),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      icon: const Icon(Icons.swap_horiz, size: 18),
+                      label: const Text('Transfer Funds', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: _showTransferFundsDialog,
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // Total Liquidity Banner
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF004EEB), Color(0xFF0284C7)]),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Total Cash & Liquidity Balance', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      Text('$currency${totalBalance.toStringAsFixed(2)}',
-                          style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900)),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.account_balance_wallet, color: Colors.white, size: 32),
-                  ),
-                ],
-              ),
+            Row(
+              children: [
+                _mini('Total Liquid Assets', '$currency${totalFunds.toStringAsFixed(2)}', const Color(0xFF004EEB)),
+                const SizedBox(width: 14),
+                _mini('Active Accounts', '${_accounts.length}', const Color(0xFF10B981)),
+                const SizedBox(width: 14),
+                _mini('Inter-Account Transfers', '${_transfers.length}', const Color(0xFF6366F1)),
+              ],
             ),
             const SizedBox(height: 20),
 
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
-                columns: const [
-                  DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Account Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Account Number', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Account Type', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Current Balance', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-                ],
-                rows: _accounts.map((a) {
-                  return DataRow(cells: [
-                    DataCell(
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.swap_horiz, size: 18, color: Color(0xFF004EEB)),
-                            tooltip: 'Transfer Fund',
-                            onPressed: () {},
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.receipt_long, size: 18, color: Color(0xFF64748B)),
-                            tooltip: 'Account Book',
-                            onPressed: () {},
-                          ),
-                        ],
-                      ),
-                    ),
-                    DataCell(Text(a['name'], style: const TextStyle(fontWeight: FontWeight.bold))),
-                    DataCell(Text(a['accountNumber'])),
-                    DataCell(Text(a['type'])),
-                    DataCell(Text('$currency${(a['balance'] as double).toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)))),
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(4)),
-                        child: Text(a['status'],
-                            style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 11)),
-                      ),
-                    ),
-                  ]);
-                }).toList(),
-              ),
+            TabBar(
+              controller: _tabController,
+              labelColor: const Color(0xFF004EEB),
+              unselectedLabelColor: const Color(0xFF64748B),
+              indicatorColor: const Color(0xFF004EEB),
+              indicatorWeight: 3,
+              tabs: const [
+                Tab(icon: Icon(Icons.account_balance_wallet_outlined), text: 'Payment Accounts'),
+                Tab(icon: Icon(Icons.history_outlined), text: 'Transfer History'),
+              ],
             ),
+            const SizedBox(height: 16),
+
+            _loading
+                ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
+                : SizedBox(
+                    height: 520,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        // Tab 1: Accounts List
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: _accounts.isEmpty
+                              ? const Center(child: Text('No payment accounts configured yet.'))
+                              : SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: DataTable(
+                                    headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                                    columns: const [
+                                      DataColumn(label: Text('ACCOUNT NAME', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('TYPE', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('ACCOUNT / IBAN', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('OPENING BALANCE', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('CURRENT BALANCE', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('NOTE', style: TextStyle(fontWeight: FontWeight.bold))),
+                                    ],
+                                    rows: _accounts.map((a) {
+                                      final isCash = a.accountType == 'cash';
+                                      return DataRow(cells: [
+                                        DataCell(
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                isCash ? Icons.money : (a.accountType == 'pos_terminal' ? Icons.credit_card : Icons.account_balance),
+                                                size: 16,
+                                                color: isCash ? const Color(0xFF10B981) : const Color(0xFF004EEB),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(a.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                        ),
+                                        DataCell(Text(a.accountType.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600))),
+                                        DataCell(Text(a.accountNumber.isNotEmpty ? a.accountNumber : '-', style: const TextStyle(fontSize: 12))),
+                                        DataCell(Text('$currency${a.openingBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12))),
+                                        DataCell(Text(
+                                          '$currency${a.currentBalance.toStringAsFixed(2)}',
+                                          style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A), fontSize: 13),
+                                        )),
+                                        DataCell(Text(a.note.isNotEmpty ? a.note : '-', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                                      ]);
+                                    }).toList(),
+                                  ),
+                                ),
+                        ),
+
+                        // Tab 2: Transfers History
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: _transfers.isEmpty
+                              ? const Center(child: Text('No fund transfers recorded yet.'))
+                              : SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: DataTable(
+                                    headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                                    columns: const [
+                                      DataColumn(label: Text('DATE', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('REF NO', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('FROM ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('TO ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('AMOUNT TRANSFERRED', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('NOTE', style: TextStyle(fontWeight: FontWeight.bold))),
+                                    ],
+                                    rows: _transfers.map((t) {
+                                      return DataRow(cells: [
+                                        DataCell(Text(t.date.split(' ').first)),
+                                        DataCell(Text(t.refNo, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF004EEB)))),
+                                        DataCell(Text(t.fromAccountName, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600))),
+                                        DataCell(Text(t.toAccountName, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600))),
+                                        DataCell(Text('$currency${t.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900))),
+                                        DataCell(Text(t.note.isNotEmpty ? t.note : '-', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                                      ]);
+                                    }).toList(),
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _mini(String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
           ],
         ),
       ),
