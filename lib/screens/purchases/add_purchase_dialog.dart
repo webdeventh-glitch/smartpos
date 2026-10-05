@@ -16,8 +16,11 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
   final _formKey = GlobalKey<FormState>();
   Contact? _selectedSupplier;
   Product? _selectedProduct;
+  BusinessLocation? _selectedLocation;
   List<Contact> _suppliers = [];
   List<Product> _products = [];
+  List<BusinessLocation> _locations = [];
+  String _status = 'received';
   bool _loading = true;
   bool _isSaving = false;
 
@@ -37,11 +40,14 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
     final db = await DatabaseService.initialize();
     final sups = await db.getContacts(type: 'supplier');
     final prods = await db.getProducts();
+    final locs = await db.getBusinessLocations();
 
     if (mounted) {
       setState(() {
         _suppliers = sups;
         _products = prods;
+        _locations = locs;
+        if (locs.isNotEmpty) _selectedLocation = locs.first;
         if (sups.isNotEmpty) _selectedSupplier = sups.first;
         if (prods.isNotEmpty) {
           _selectedProduct = prods.first;
@@ -79,9 +85,11 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
         refNo: refNo,
         supplierId: _selectedSupplier!.id,
         supplierName: _selectedSupplier!.name,
+        locationId: _selectedLocation?.id ?? 1,
+        locationName: _selectedLocation?.name ?? 'Main Branch HQ',
         totalAmount: total,
         paidAmount: paid,
-        status: 'received',
+        status: _status,
         paymentStatus: paymentStatus,
         createdAt: now,
         note: _noteController.text.trim(),
@@ -168,6 +176,34 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                       ],
                     ),
                     const Divider(height: 20),
+
+                    // Location & Status
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<BusinessLocation>(
+                            decoration: const InputDecoration(labelText: 'Receiving Location *', isDense: true),
+                            initialValue: _selectedLocation,
+                            items: _locations.map((loc) => DropdownMenuItem(value: loc, child: Text(loc.name))).toList(),
+                            onChanged: (val) => setState(() => _selectedLocation = val),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(labelText: 'Purchase Status *', isDense: true),
+                            initialValue: _status,
+                            items: const [
+                              DropdownMenuItem(value: 'received', child: Text('Received (Add to Stock)')),
+                              DropdownMenuItem(value: 'pending', child: Text('Pending Approval')),
+                              DropdownMenuItem(value: 'ordered', child: Text('Ordered (Awaiting)')),
+                            ],
+                            onChanged: (val) => setState(() => _status = val ?? 'received'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
 
                     // Supplier Dropdown
                     DropdownButtonFormField<Contact>(

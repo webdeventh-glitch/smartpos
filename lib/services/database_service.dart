@@ -220,6 +220,104 @@ class DatabaseService {
       await db.insert('warranties', {'name': '6 Months Limited Warranty', 'description': 'Hardware warranty only', 'duration': 6, 'duration_type': 'months'});
       await db.insert('warranties', {'name': 'No Warranty', 'description': 'Consumables & fresh food', 'duration': 0, 'duration_type': 'days'});
     }
+
+    // Phase 4: Stock Transfers & Adjustments
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN location_id INTEGER DEFAULT 1");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN location_name TEXT DEFAULT 'Main Branch HQ'");
+    } catch (_) {}
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS stock_transfers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ref_no TEXT NOT NULL UNIQUE,
+        from_location_id INTEGER NOT NULL,
+        from_location_name TEXT NOT NULL,
+        to_location_id INTEGER NOT NULL,
+        to_location_name TEXT NOT NULL,
+        status TEXT DEFAULT 'completed',
+        shipping_charges REAL DEFAULT 0.0,
+        final_total REAL DEFAULT 0.0,
+        date TEXT NOT NULL,
+        note TEXT,
+        items_json TEXT NOT NULL
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS stock_adjustments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ref_no TEXT NOT NULL UNIQUE,
+        location_id INTEGER NOT NULL,
+        location_name TEXT NOT NULL,
+        adjustment_type TEXT DEFAULT 'normal',
+        total_amount REAL DEFAULT 0.0,
+        recovered_amount REAL DEFAULT 0.0,
+        reason TEXT,
+        date TEXT NOT NULL,
+        items_json TEXT NOT NULL
+      );
+    ''');
+
+    // Seed sample transfer if empty
+    final trRes = await db.rawQuery('SELECT COUNT(*) as c FROM stock_transfers');
+    if (((trRes.first['c'] as int?) ?? 0) == 0) {
+      await db.insert('stock_transfers', {
+        'ref_no': 'ST-2026-001',
+        'from_location_id': 1,
+        'from_location_name': 'Main Branch HQ',
+        'to_location_id': 2,
+        'to_location_name': 'Downtown Warehouse & Depot',
+        'status': 'completed',
+        'shipping_charges': 15.0,
+        'final_total': 450.0,
+        'date': '2026-10-04 11:30:00',
+        'note': 'Inter-branch rebalance',
+        'items_json': '[{"product_id":1,"product_name":"Wireless Mouse","sku":"ACC-001","quantity":10.0,"unit_price":25.0}]',
+      });
+      await db.insert('stock_transfers', {
+        'ref_no': 'ST-2026-002',
+        'from_location_id': 2,
+        'from_location_name': 'Downtown Warehouse & Depot',
+        'to_location_id': 1,
+        'to_location_name': 'Main Branch HQ',
+        'status': 'in_transit',
+        'shipping_charges': 25.0,
+        'final_total': 1200.0,
+        'date': '2026-10-05 09:15:00',
+        'note': 'Restock shipment for weekend surge',
+        'items_json': '[{"product_id":2,"product_name":"Mechanical Keyboard","sku":"ACC-002","quantity":15.0,"unit_price":80.0}]',
+      });
+    }
+
+    // Seed sample adjustments if empty
+    final adjRes = await db.rawQuery('SELECT COUNT(*) as c FROM stock_adjustments');
+    if (((adjRes.first['c'] as int?) ?? 0) == 0) {
+      await db.insert('stock_adjustments', {
+        'ref_no': 'ADJ-2026-001',
+        'location_id': 1,
+        'location_name': 'Main Branch HQ',
+        'adjustment_type': 'normal',
+        'total_amount': 85.0,
+        'recovered_amount': 0.0,
+        'reason': 'Water leakage damage in aisle 3',
+        'date': '2026-10-04 15:45:00',
+        'items_json': '[{"product_id":1,"product_name":"Wireless Mouse","sku":"ACC-001","quantity":3.0,"unit_price":25.0}]',
+      });
+      await db.insert('stock_adjustments', {
+        'ref_no': 'ADJ-2026-002',
+        'location_id': 1,
+        'location_name': 'Main Branch HQ',
+        'adjustment_type': 'abnormal',
+        'total_amount': 160.0,
+        'recovered_amount': 50.0,
+        'reason': 'Quarterly audit discrepancy reconciliation',
+        'date': '2026-10-05 14:00:00',
+        'items_json': '[{"product_id":2,"product_name":"Mechanical Keyboard","sku":"ACC-002","quantity":2.0,"unit_price":80.0}]',
+      });
+    }
   }
 
   static Future<void> _createTables(Database db) async {
@@ -1273,6 +1371,66 @@ class DatabaseService {
   Future<List<Purchase>> getPurchases() async {
     final rows = await db.query('purchases', orderBy: 'id DESC');
     return rows.map((e) => Purchase.fromMap(e)).toList();
+  }
+
+  // Stock Transfers
+  Future<String> generateNextTransferRef() async {
+    final rows = await db.rawQuery('SELECT MAX(id) as max_id FROM stock_transfers');
+    final maxId = (rows.first['max_id'] as int?) ?? 0;
+    return 'ST-2026-${(maxId + 1).toString().padLeft(4, '0')}';
+  }
+
+  Future<List<StockTransfer>> getStockTransfers() async {
+    final rows = await db.query('stock_transfers', orderBy: 'id DESC');
+    return rows.map((e) => StockTransfer.fromMap(e)).toList();
+  }
+
+  Future<int> createStockTransfer(StockTransfer transfer) async {
+    return await db.transaction((txn) async {
+      final transferId = await txn.insert('stock_transfers', transfer.toMap());
+      if (transfer.status == 'completed') {
+        for (final item in transfer.getItems()) {
+          await txn.rawUpdate(
+            'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+            [item.quantity, item.productId],
+          );
+        }
+      }
+      return transferId;
+    });
+  }
+
+  Future<int> deleteStockTransfer(int id) async {
+    return await db.delete('stock_transfers', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Stock Adjustments
+  Future<String> generateNextAdjustmentRef() async {
+    final rows = await db.rawQuery('SELECT MAX(id) as max_id FROM stock_adjustments');
+    final maxId = (rows.first['max_id'] as int?) ?? 0;
+    return 'ADJ-2026-${(maxId + 1).toString().padLeft(4, '0')}';
+  }
+
+  Future<List<StockAdjustment>> getStockAdjustments() async {
+    final rows = await db.query('stock_adjustments', orderBy: 'id DESC');
+    return rows.map((e) => StockAdjustment.fromMap(e)).toList();
+  }
+
+  Future<int> createStockAdjustment(StockAdjustment adjustment) async {
+    return await db.transaction((txn) async {
+      final adjId = await txn.insert('stock_adjustments', adjustment.toMap());
+      for (final item in adjustment.getItems()) {
+        await txn.rawUpdate(
+          'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+          [item.quantity, item.productId],
+        );
+      }
+      return adjId;
+    });
+  }
+
+  Future<int> deleteStockAdjustment(int id) async {
+    return await db.delete('stock_adjustments', where: 'id = ?', whereArgs: [id]);
   }
 
   // Expenses

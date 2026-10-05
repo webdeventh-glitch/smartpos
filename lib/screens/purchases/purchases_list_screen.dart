@@ -120,6 +120,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                             columns: const [
                               DataColumn(label: Text('REF NO')),
                               DataColumn(label: Text('DATE')),
+                              DataColumn(label: Text('LOCATION')),
                               DataColumn(label: Text('SUPPLIER')),
                               DataColumn(label: Text('STATUS')),
                               DataColumn(label: Text('PAYMENT')),
@@ -132,6 +133,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                 cells: [
                                   DataCell(Text(p.refNo, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF004EEB)))),
                                   DataCell(Text(p.createdAt, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                                  DataCell(Text(p.locationName, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF475569)))),
                                   DataCell(Text(p.supplierName, style: const TextStyle(fontWeight: FontWeight.w600))),
                                   DataCell(StatusPill(status: p.status)),
                                   DataCell(StatusPill(status: p.paymentStatus)),
