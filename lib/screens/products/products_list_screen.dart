@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../widgets/data_table_pagination_bar.dart';
 import 'add_product_dialog.dart';
 import 'product_detail_dialog.dart';
 import 'print_labels_screen.dart';
@@ -35,6 +37,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   String _typeFilter = 'all'; // 'all', 'single', 'variable'
   String _search = '';
   bool _loading = true;
+
+  // Pagination States
+  int _currentPage = 1;
+  int _pageSize = 10;
 
   @override
   void initState() {
@@ -150,6 +156,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   Widget build(BuildContext context) {
     final currency = widget.settings.currencySymbol;
     final filtered = _getFilteredProducts();
+    final totalFiltered = filtered.length;
+    final totalPages = max(1, (totalFiltered / _pageSize).ceil());
+    final currentPage = _currentPage > totalPages ? totalPages : _currentPage;
+    final startIndex = (currentPage - 1) * _pageSize;
+    final endIndex = min(totalFiltered, startIndex + _pageSize);
+    final paginatedProducts = totalFiltered > 0 ? filtered.sublist(startIndex, endIndex) : <Product>[];
 
     final totalInventoryValue = filtered.fold(0.0, (sum, p) => sum + (p.sellingPrice * p.stockQuantity));
     final totalUnitsCount = filtered.fold(0.0, (sum, p) => sum + p.stockQuantity);
@@ -268,7 +280,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       Expanded(
                         flex: 3,
                         child: TextField(
-                          onChanged: (val) => setState(() => _search = val.trim()),
+                          onChanged: (val) => setState(() {
+                            _search = val.trim();
+                            _currentPage = 1;
+                          }),
                           decoration: InputDecoration(
                             hintText: 'Search product name, SKU, or barcode...',
                             hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
@@ -292,7 +307,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             const DropdownMenuItem<int?>(value: null, child: Text('All Categories')),
                             ..._categories.map((c) => DropdownMenuItem<int?>(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))),
                           ],
-                          onChanged: (val) => setState(() => _selectedCategory = val),
+                          onChanged: (val) => setState(() {
+                            _selectedCategory = val;
+                            _currentPage = 1;
+                          }),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -307,7 +325,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             const DropdownMenuItem<int?>(value: null, child: Text('All Brands')),
                             ..._brands.map((b) => DropdownMenuItem<int?>(value: b.id, child: Text(b.name, overflow: TextOverflow.ellipsis))),
                           ],
-                          onChanged: (val) => setState(() => _selectedBrand = val),
+                          onChanged: (val) => setState(() {
+                            _selectedBrand = val;
+                            _currentPage = 1;
+                          }),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -325,7 +346,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             DropdownMenuItem(value: 'out_of_stock', child: Text('Out of Stock')),
                           ],
                           onChanged: (val) {
-                            if (val != null) setState(() => _stockFilter = val);
+                            if (val != null) {
+                              setState(() {
+                                _stockFilter = val;
+                                _currentPage = 1;
+                              });
+                            }
                           },
                         ),
                       ),
@@ -342,6 +368,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               _selectedBrand = null;
                               _stockFilter = 'all';
                               _search = '';
+                              _currentPage = 1;
                             });
                           },
                         ),
@@ -384,32 +411,41 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Table(
-                    columnWidths: const {
-                      0: FlexColumnWidth(3.0), // Product Name & Type
-                      1: FlexColumnWidth(1.8), // SKU & Barcode
-                      2: FlexColumnWidth(1.8), // Category / Brand
-                      3: FlexColumnWidth(1.3), // Cost Price
-                      4: FlexColumnWidth(1.6), // Selling Price (Margin)
-                      5: FlexColumnWidth(1.4), // Stock Quantity
-                      6: FlexColumnWidth(1.4), // Actions
-                    },
-                    children: [
-                      TableRow(
-                        decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-                        children: [
-                          _th('Product Item'),
-                          _th('SKU / Barcode'),
-                          _th('Category / Brand'),
-                          _th('Cost Price'),
-                          _th('Selling Price'),
-                          _th('Current Stock'),
-                          _th('Actions', alignRight: true),
-                        ],
-                      ),
-                      ...filtered.map((p) {
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final minWidth = max(constraints.maxWidth, 980.0);
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minWidth: minWidth),
+                              child: Table(
+                                columnWidths: const {
+                                  0: FlexColumnWidth(3.0), // Product Name & Type
+                                  1: FlexColumnWidth(1.8), // SKU & Barcode
+                                  2: FlexColumnWidth(1.8), // Category / Brand
+                                  3: FlexColumnWidth(1.3), // Cost Price
+                                  4: FlexColumnWidth(1.6), // Selling Price (Margin)
+                                  5: FlexColumnWidth(1.4), // Stock Quantity
+                                  6: FlexColumnWidth(1.4), // Actions
+                                },
+                                children: [
+                                  TableRow(
+                                    decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                                    children: [
+                                      _th('Product Item'),
+                                      _th('SKU / Barcode'),
+                                      _th('Category / Brand'),
+                                      _th('Cost Price'),
+                                      _th('Selling Price'),
+                                      _th('Current Stock'),
+                                      _th('Actions', alignRight: true),
+                                    ],
+                                  ),
+                                  ...paginatedProducts.map((p) {
                         final margin = p.purchasePrice > 0
                             ? (((p.sellingPrice - p.purchasePrice) / p.purchasePrice) * 100)
                             : 0.0;
@@ -596,7 +632,23 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     ],
                   ),
                 ),
-              ),
+              );
+            },
+          ),
+        ),
+        DataTablePaginationBar(
+          currentPage: currentPage,
+          pageSize: _pageSize,
+          totalItems: totalFiltered,
+          onPageChanged: (newPage) => setState(() => _currentPage = newPage),
+          onPageSizeChanged: (newSize) => setState(() {
+            _pageSize = newSize;
+            _currentPage = 1;
+          }),
+        ),
+      ],
+    ),
+  ),
           ],
         ),
       ),

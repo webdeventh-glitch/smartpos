@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../widgets/data_table_pagination_bar.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -16,6 +18,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Map<int, int> _categoryProductCounts = {};
   String _search = '';
   bool _loading = true;
+  int _currentPage = 1;
+  int _pageSize = 10;
 
   @override
   void initState() {
@@ -264,6 +268,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       return c.name.toLowerCase().contains(_search) || c.code.toLowerCase().contains(_search) || (c.description ?? '').toLowerCase().contains(_search);
     }).toList();
 
+    final totalFiltered = filtered.length;
+    final totalPages = (totalFiltered / _pageSize).ceil();
+    final currentPage = totalPages == 0 ? 1 : _currentPage.clamp(1, totalPages);
+    final startIndex = (currentPage - 1) * _pageSize;
+    final endIndex = min(startIndex + _pageSize, totalFiltered);
+    final paginatedCategories = (startIndex < totalFiltered) ? filtered.sublist(startIndex, endIndex) : <Category>[];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
@@ -320,7 +331,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 children: [
                   Expanded(
                     child: TextField(
-                      onChanged: (val) => setState(() => _search = val.trim().toLowerCase()),
+                      onChanged: (val) => setState(() {
+                        _search = val.trim().toLowerCase();
+                        _currentPage = 1;
+                      }),
                       decoration: InputDecoration(
                         hintText: 'Search categories by name, code, or description...',
                         hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
@@ -381,137 +395,162 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Table(
-                    columnWidths: const {
-                      0: FlexColumnWidth(2.5),
-                      1: FlexColumnWidth(1.4),
-                      2: FlexColumnWidth(1.8),
-                      3: FlexColumnWidth(2.5),
-                      4: FlexColumnWidth(1.2),
-                      5: FlexColumnWidth(1.4),
-                    },
-                    children: [
-                      TableRow(
-                        decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-                        children: [
-                          _th('Category Name'),
-                          _th('Short Code'),
-                          _th('Hierarchy Level'),
-                          _th('Description'),
-                          _th('Products'),
-                          _th('Actions', alignRight: true),
-                        ],
-                      ),
-                      ...filtered.map((c) {
-                        final count = _categoryProductCounts[c.id] ?? 0;
-                        final isSub = c.parentId != null;
-                        String parentName = '';
-                        if (isSub) {
-                          final parent = _categories.firstWhere((p) => p.id == c.parentId, orElse: () => Category(name: 'Main', code: ''));
-                          parentName = parent.name;
-                        }
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final minWidth = max(constraints.maxWidth, 840.0);
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minWidth: minWidth),
+                              child: Table(
+                                columnWidths: const {
+                                  0: FlexColumnWidth(2.5),
+                                  1: FlexColumnWidth(1.4),
+                                  2: FlexColumnWidth(1.8),
+                                  3: FlexColumnWidth(2.5),
+                                  4: FlexColumnWidth(1.2),
+                                  5: FlexColumnWidth(1.4),
+                                },
+                                children: [
+                                  TableRow(
+                                    decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                                    children: [
+                                      _th('Category Name'),
+                                      _th('Short Code'),
+                                      _th('Hierarchy Level'),
+                                      _th('Description'),
+                                      _th('Products'),
+                                      _th('Actions', alignRight: true),
+                                    ],
+                                  ),
+                                  ...paginatedCategories.map((c) {
+                                    final count = _categoryProductCounts[c.id] ?? 0;
+                                    final isSub = c.parentId != null;
+                                    String parentName = '';
+                                    if (isSub) {
+                                      final parent = _categories.firstWhere((p) => p.id == c.parentId, orElse: () => Category(name: 'Main', code: ''));
+                                      parentName = parent.name;
+                                    }
 
-                        return TableRow(
-                          decoration: const BoxDecoration(
-                            border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: isSub ? const Color(0xFFF1F5F9) : const Color(0xFFEEF2FF),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      isSub ? Icons.subdirectory_arrow_right_rounded : Icons.folder_rounded,
-                                      size: 16,
-                                      color: isSub ? const Color(0xFF64748B) : const Color(0xFF4F46E5),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      c.name,
-                                      style: TextStyle(
-                                        fontWeight: isSub ? FontWeight.w600 : FontWeight.w700,
-                                        fontSize: 13,
-                                        color: const Color(0xFF0F172A),
+                                    return TableRow(
+                                      decoration: const BoxDecoration(
+                                        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                                       ),
-                                    ),
-                                  ),
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 32,
+                                                height: 32,
+                                                decoration: BoxDecoration(
+                                                  color: isSub ? const Color(0xFFF1F5F9) : const Color(0xFFEEF2FF),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: Icon(
+                                                  isSub ? Icons.subdirectory_arrow_right_rounded : Icons.folder_rounded,
+                                                  size: 16,
+                                                  color: isSub ? const Color(0xFF64748B) : const Color(0xFF4F46E5),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  c.name,
+                                                  style: TextStyle(
+                                                    fontWeight: isSub ? FontWeight.w600 : FontWeight.w700,
+                                                    fontSize: 13,
+                                                    color: const Color(0xFF0F172A),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(c.code, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF334155))),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Text(
+                                            isSub ? 'Sub ($parentName)' : 'Main Category',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: isSub ? const Color(0xFF7C3AED) : const Color(0xFF059669),
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Text(
+                                            c.description?.isNotEmpty == true ? c.description! : '-',
+                                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Text(
+                                            '$count Items',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: count > 0 ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              IconButton(
+                                                tooltip: 'Edit Category',
+                                                icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
+                                                onPressed: () => _openCategoryDialog(c),
+                                              ),
+                                              IconButton(
+                                                tooltip: 'Delete Category',
+                                                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
+                                                onPressed: () => _deleteCategory(c),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }),
                                 ],
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(c.code, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF334155))),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                isSub ? 'Sub ($parentName)' : 'Main Category',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isSub ? const Color(0xFF7C3AED) : const Color(0xFF059669),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                c.description?.isNotEmpty == true ? c.description! : '-',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                '$count Items',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: count > 0 ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Edit Category',
-                                    icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
-                                    onPressed: () => _openCategoryDialog(c),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Delete Category',
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
-                                    onPressed: () => _deleteCategory(c),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
+                          );
+                        },
+                      ),
+                    ),
+                    DataTablePaginationBar(
+                      currentPage: currentPage,
+                      pageSize: _pageSize,
+                      totalItems: totalFiltered,
+                      onPageChanged: (newPage) => setState(() => _currentPage = newPage),
+                      onPageSizeChanged: (newSize) => setState(() {
+                        _pageSize = newSize;
+                        _currentPage = 1;
                       }),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
           ],

@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../widgets/data_table_pagination_bar.dart';
 
 class VariationTemplatesScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -15,6 +17,8 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
   List<VariationTemplate> _templates = [];
   String _search = '';
   bool _loading = true;
+  int _currentPage = 1;
+  int _pageSize = 10;
 
   @override
   void initState() {
@@ -250,6 +254,13 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
       return t.name.toLowerCase().contains(_search) || t.values.any((v) => v.toLowerCase().contains(_search));
     }).toList();
 
+    final totalFiltered = filtered.length;
+    final totalPages = (totalFiltered / _pageSize).ceil();
+    final currentPage = totalPages == 0 ? 1 : _currentPage.clamp(1, totalPages);
+    final startIndex = (currentPage - 1) * _pageSize;
+    final endIndex = min(startIndex + _pageSize, totalFiltered);
+    final paginatedTemplates = (startIndex < totalFiltered) ? filtered.sublist(startIndex, endIndex) : <VariationTemplate>[];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
@@ -306,7 +317,10 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                 children: [
                   Expanded(
                     child: TextField(
-                      onChanged: (val) => setState(() => _search = val.trim().toLowerCase()),
+                      onChanged: (val) => setState(() {
+                        _search = val.trim().toLowerCase();
+                        _currentPage = 1;
+                      }),
                       decoration: InputDecoration(
                         hintText: 'Search variation templates...',
                         hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
@@ -367,82 +381,107 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                     BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Table(
-                    columnWidths: const {
-                      0: FlexColumnWidth(2.0),
-                      1: FlexColumnWidth(5.5),
-                      2: FlexColumnWidth(1.5),
-                    },
-                    children: [
-                      TableRow(
-                        decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-                        children: [
-                          _th('Template Name'),
-                          _th('Variation Values'),
-                          _th('Actions', alignRight: true),
-                        ],
-                      ),
-                      ...filtered.map((t) {
-                        return TableRow(
-                          decoration: const BoxDecoration(
-                            border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                t.name,
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              child: Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: t.values
-                                    .map(
-                                      (v) => Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFEEF2FF),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: const Color(0xFFC7D2FE)),
-                                        ),
-                                        child: Text(
-                                          v,
-                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF4F46E5)),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final minWidth = max(constraints.maxWidth, 640.0);
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minWidth: minWidth),
+                              child: Table(
+                                columnWidths: const {
+                                  0: FlexColumnWidth(2.0),
+                                  1: FlexColumnWidth(5.5),
+                                  2: FlexColumnWidth(1.5),
+                                },
                                 children: [
-                                  IconButton(
-                                    tooltip: 'Edit Template',
-                                    icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
-                                    onPressed: () => _openTemplateDialog(t),
+                                  TableRow(
+                                    decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                                    children: [
+                                      _th('Template Name'),
+                                      _th('Variation Values'),
+                                      _th('Actions', alignRight: true),
+                                    ],
                                   ),
-                                  IconButton(
-                                    tooltip: 'Delete Template',
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
-                                    onPressed: () => _deleteTemplate(t),
-                                  ),
+                                  ...paginatedTemplates.map((t) {
+                                    return TableRow(
+                                      decoration: const BoxDecoration(
+                                        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                                      ),
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Text(
+                                            t.name,
+                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          child: Wrap(
+                                            spacing: 6,
+                                            runSpacing: 6,
+                                            children: t.values
+                                                .map(
+                                                  (v) => Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFEEF2FF),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      border: Border.all(color: const Color(0xFFC7D2FE)),
+                                                    ),
+                                                    child: Text(
+                                                      v,
+                                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF4F46E5)),
+                                                    ),
+                                                  ),
+                                                )
+                                                .toList(),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              IconButton(
+                                                tooltip: 'Edit Template',
+                                                icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
+                                                onPressed: () => _openTemplateDialog(t),
+                                              ),
+                                              IconButton(
+                                                tooltip: 'Delete Template',
+                                                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
+                                                onPressed: () => _deleteTemplate(t),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }),
                                 ],
                               ),
                             ),
-                          ],
-                        );
+                          );
+                        },
+                      ),
+                    ),
+                    DataTablePaginationBar(
+                      currentPage: currentPage,
+                      pageSize: _pageSize,
+                      totalItems: totalFiltered,
+                      onPageChanged: (newPage) => setState(() => _currentPage = newPage),
+                      onPageSizeChanged: (newSize) => setState(() {
+                        _pageSize = newSize;
+                        _currentPage = 1;
                       }),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
           ],

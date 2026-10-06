@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../widgets/data_table_pagination_bar.dart';
 
 class SellingPriceGroupsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -16,6 +18,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   final TextEditingController _searchCtrl = TextEditingController();
+  int _currentPage = 1;
+  int _pageSize = 10;
 
   @override
   void initState() {
@@ -271,6 +275,13 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
 
     final activeCount = _groups.where((g) => g.isActive).length;
 
+    final totalFiltered = filtered.length;
+    final totalPages = (totalFiltered / _pageSize).ceil();
+    final currentPage = totalPages == 0 ? 1 : _currentPage.clamp(1, totalPages);
+    final startIndex = (currentPage - 1) * _pageSize;
+    final endIndex = min(startIndex + _pageSize, totalFiltered);
+    final paginatedGroups = (startIndex < totalFiltered) ? filtered.sublist(startIndex, endIndex) : <SellingPriceGroup>[];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
@@ -361,7 +372,10 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                   Expanded(
                     child: TextField(
                       controller: _searchCtrl,
-                      onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                      onChanged: (val) => setState(() {
+                        _searchQuery = val.trim();
+                        _currentPage = 1;
+                      }),
                       decoration: const InputDecoration(
                         hintText: 'Search by group name or description...',
                         hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
@@ -377,7 +391,10 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                       icon: const Icon(Icons.clear, size: 18, color: Color(0xFF94A3B8)),
                       onPressed: () {
                         _searchCtrl.clear();
-                        setState(() => _searchQuery = '');
+                        setState(() {
+                          _searchQuery = '';
+                          _currentPage = 1;
+                        });
                       },
                     ),
                 ],
@@ -421,89 +438,113 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                             ),
                           ),
                         )
-                      : ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: DataTable(
-                              headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
-                              columnSpacing: 24,
-                              horizontalMargin: 20,
-                              columns: const [
-                                DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF475569)))),
-                                DataColumn(label: Text('GROUP NAME', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF475569)))),
-                                DataColumn(label: Text('DESCRIPTION', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF475569)))),
-                                DataColumn(label: Text('STATUS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF475569)))),
-                                DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF475569)))),
-                              ],
-                              rows: List.generate(filtered.length, (index) {
-                                final g = filtered[index];
-                                return DataRow(
-                                  cells: [
-                                    DataCell(Text('${index + 1}', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)))),
-                                    DataCell(
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(6),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFEEF2FF),
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                            child: const Icon(Icons.price_change_outlined, size: 16, color: Color(0xFF4F46E5)),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Text(
-                                            g.name,
-                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
-                                          ),
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final minWidth = max(constraints.maxWidth, 720.0);
+                                  return SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(minWidth: minWidth),
+                                      child: DataTable(
+                                        headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                                        columnSpacing: 24,
+                                        horizontalMargin: 20,
+                                        columns: const [
+                                          DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF475569)))),
+                                          DataColumn(label: Text('GROUP NAME', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF475569)))),
+                                          DataColumn(label: Text('DESCRIPTION', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF475569)))),
+                                          DataColumn(label: Text('STATUS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF475569)))),
+                                          DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF475569)))),
                                         ],
+                                        rows: List.generate(paginatedGroups.length, (index) {
+                                          final g = paginatedGroups[index];
+                                          final itemNum = startIndex + index + 1;
+                                          return DataRow(
+                                            cells: [
+                                              DataCell(Text('$itemNum', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)))),
+                                              DataCell(
+                                                Row(
+                                                  children: [
+                                                    Container(
+                                                      padding: const EdgeInsets.all(6),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFFEEF2FF),
+                                                        borderRadius: BorderRadius.circular(6),
+                                                      ),
+                                                      child: const Icon(Icons.price_change_outlined, size: 16, color: Color(0xFF4F46E5)),
+                                                    ),
+                                                    const SizedBox(width: 10),
+                                                    Text(
+                                                      g.name,
+                                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Text(
+                                                  g.description.isNotEmpty ? g.description : '-',
+                                                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: g.isActive ? const Color(0xFFDEF7EC) : const Color(0xFFFEE2E2),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: Text(
+                                                    g.isActive ? 'Active' : 'Inactive',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: g.isActive ? const Color(0xFF03543F) : const Color(0xFF991B1B),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Row(
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF4F46E5)),
+                                                      tooltip: 'Edit Group',
+                                                      onPressed: () => _showAddEditDialog(g),
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
+                                                      tooltip: 'Delete Group',
+                                                      onPressed: () => _deleteGroup(g),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        }),
                                       ),
                                     ),
-                                    DataCell(
-                                      Text(
-                                        g.description.isNotEmpty ? g.description : '-',
-                                        style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: g.isActive ? const Color(0xFFDEF7EC) : const Color(0xFFFEE2E2),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          g.isActive ? 'Active' : 'Inactive',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: g.isActive ? const Color(0xFF03543F) : const Color(0xFF991B1B),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Row(
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF4F46E5)),
-                                            tooltip: 'Edit Group',
-                                            onPressed: () => _showAddEditDialog(g),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
-                                            tooltip: 'Delete Group',
-                                            onPressed: () => _deleteGroup(g),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
+                                  );
+                                },
+                              ),
+                            ),
+                            DataTablePaginationBar(
+                              currentPage: currentPage,
+                              pageSize: _pageSize,
+                              totalItems: totalFiltered,
+                              onPageChanged: (newPage) => setState(() => _currentPage = newPage),
+                              onPageSizeChanged: (newSize) => setState(() {
+                                _pageSize = newSize;
+                                _currentPage = 1;
                               }),
                             ),
-                          ),
+                          ],
                         ),
             ),
           ],

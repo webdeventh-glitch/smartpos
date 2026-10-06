@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../widgets/data_table_pagination_bar.dart';
 
 class WarrantiesScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -15,6 +17,8 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
   List<Warranty> _warranties = [];
   String _search = '';
   bool _loading = true;
+  int _currentPage = 1;
+  int _pageSize = 10;
 
   @override
   void initState() {
@@ -231,6 +235,13 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
       return w.name.toLowerCase().contains(_search) || w.description.toLowerCase().contains(_search);
     }).toList();
 
+    final totalFiltered = filtered.length;
+    final totalPages = (totalFiltered / _pageSize).ceil();
+    final currentPage = totalPages == 0 ? 1 : _currentPage.clamp(1, totalPages);
+    final startIndex = (currentPage - 1) * _pageSize;
+    final endIndex = min(startIndex + _pageSize, totalFiltered);
+    final paginatedWarranties = (startIndex < totalFiltered) ? filtered.sublist(startIndex, endIndex) : <Warranty>[];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
@@ -287,7 +298,10 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                 children: [
                   Expanded(
                     child: TextField(
-                      onChanged: (val) => setState(() => _search = val.trim().toLowerCase()),
+                      onChanged: (val) => setState(() {
+                        _search = val.trim().toLowerCase();
+                        _currentPage = 1;
+                      }),
                       decoration: InputDecoration(
                         hintText: 'Search warranty policies...',
                         hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
@@ -348,82 +362,107 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                     BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Table(
-                    columnWidths: const {
-                      0: FlexColumnWidth(2.5),
-                      1: FlexColumnWidth(1.8),
-                      2: FlexColumnWidth(3.5),
-                      3: FlexColumnWidth(1.5),
-                    },
-                    children: [
-                      TableRow(
-                        decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-                        children: [
-                          _th('Warranty Name'),
-                          _th('Duration'),
-                          _th('Description / Terms'),
-                          _th('Actions', alignRight: true),
-                        ],
-                      ),
-                      ...filtered.map((w) {
-                        return TableRow(
-                          decoration: const BoxDecoration(
-                            border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                w.name,
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFECFDF5),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  w.duration > 0 ? '${w.duration} ${w.durationType.toUpperCase()}' : 'No Warranty',
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                w.description.isNotEmpty ? w.description : '-',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final minWidth = max(constraints.maxWidth, 680.0);
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minWidth: minWidth),
+                              child: Table(
+                                columnWidths: const {
+                                  0: FlexColumnWidth(2.5),
+                                  1: FlexColumnWidth(1.8),
+                                  2: FlexColumnWidth(3.5),
+                                  3: FlexColumnWidth(1.5),
+                                },
                                 children: [
-                                  IconButton(
-                                    tooltip: 'Edit Warranty',
-                                    icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
-                                    onPressed: () => _openWarrantyDialog(w),
+                                  TableRow(
+                                    decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                                    children: [
+                                      _th('Warranty Name'),
+                                      _th('Duration'),
+                                      _th('Description / Terms'),
+                                      _th('Actions', alignRight: true),
+                                    ],
                                   ),
-                                  IconButton(
-                                    tooltip: 'Delete Warranty',
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
-                                    onPressed: () => _deleteWarranty(w),
-                                  ),
+                                  ...paginatedWarranties.map((w) {
+                                    return TableRow(
+                                      decoration: const BoxDecoration(
+                                        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                                      ),
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Text(
+                                            w.name,
+                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFECFDF5),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              w.duration > 0 ? '${w.duration} ${w.durationType.toUpperCase()}' : 'No Warranty',
+                                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Text(
+                                            w.description.isNotEmpty ? w.description : '-',
+                                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              IconButton(
+                                                tooltip: 'Edit Warranty',
+                                                icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
+                                                onPressed: () => _openWarrantyDialog(w),
+                                              ),
+                                              IconButton(
+                                                tooltip: 'Delete Warranty',
+                                                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
+                                                onPressed: () => _deleteWarranty(w),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }),
                                 ],
                               ),
                             ),
-                          ],
-                        );
+                          );
+                        },
+                      ),
+                    ),
+                    DataTablePaginationBar(
+                      currentPage: currentPage,
+                      pageSize: _pageSize,
+                      totalItems: totalFiltered,
+                      onPageChanged: (newPage) => setState(() => _currentPage = newPage),
+                      onPageSizeChanged: (newSize) => setState(() {
+                        _pageSize = newSize;
+                        _currentPage = 1;
                       }),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
           ],

@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../widgets/data_table_pagination_bar.dart';
 
 class BrandsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -16,6 +18,8 @@ class _BrandsScreenState extends State<BrandsScreen> {
   Map<int, int> _brandProductCounts = {};
   String _search = '';
   bool _loading = true;
+  int _currentPage = 1;
+  int _pageSize = 10;
 
   @override
   void initState() {
@@ -211,6 +215,13 @@ class _BrandsScreenState extends State<BrandsScreen> {
       return b.name.toLowerCase().contains(_search) || (b.description ?? '').toLowerCase().contains(_search);
     }).toList();
 
+    final totalFiltered = filtered.length;
+    final totalPages = max(1, (totalFiltered / _pageSize).ceil());
+    final currentPage = _currentPage > totalPages ? totalPages : _currentPage;
+    final startIndex = (currentPage - 1) * _pageSize;
+    final endIndex = min(totalFiltered, startIndex + _pageSize);
+    final paginatedBrands = totalFiltered > 0 ? filtered.sublist(startIndex, endIndex) : <Brand>[];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
@@ -328,100 +339,125 @@ class _BrandsScreenState extends State<BrandsScreen> {
                     BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Table(
-                    columnWidths: const {
-                      0: FlexColumnWidth(2.5),
-                      1: FlexColumnWidth(3.5),
-                      2: FlexColumnWidth(1.5),
-                      3: FlexColumnWidth(1.5),
-                    },
-                    children: [
-                      TableRow(
-                        decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-                        children: [
-                          _th('Brand Name'),
-                          _th('Description'),
-                          _th('Products Linked'),
-                          _th('Actions', alignRight: true),
-                        ],
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final minWidth = max(constraints.maxWidth, 720.0);
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minWidth: minWidth),
+                              child: Table(
+                                columnWidths: const {
+                                  0: FlexColumnWidth(2.5),
+                                  1: FlexColumnWidth(3.5),
+                                  2: FlexColumnWidth(1.5),
+                                  3: FlexColumnWidth(1.5),
+                                },
+                                children: [
+                                  TableRow(
+                                    decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                                    children: [
+                                      _th('Brand Name'),
+                                      _th('Description'),
+                                      _th('Products Linked'),
+                                      _th('Actions', alignRight: true),
+                                    ],
+                                  ),
+                                  ...paginatedBrands.map((b) {
+                                    final count = _brandProductCounts[b.id] ?? 0;
+                                    return TableRow(
+                                      decoration: const BoxDecoration(
+                                        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                                      ),
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 14,
+                                                backgroundColor: const Color(0xFFEEF2FF),
+                                                child: Text(
+                                                  b.name.isNotEmpty ? b.name[0].toUpperCase() : 'B',
+                                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                b.name,
+                                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Text(
+                                            b.description?.isNotEmpty == true ? b.description! : '-',
+                                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: count > 0 ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '$count Items',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: count > 0 ? const Color(0xFF059669) : const Color(0xFF64748B),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              IconButton(
+                                                tooltip: 'Edit Brand',
+                                                icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
+                                                onPressed: () => _openBrandDialog(b),
+                                              ),
+                                              IconButton(
+                                                tooltip: 'Delete Brand',
+                                                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
+                                                onPressed: () => _deleteBrand(b),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      ...filtered.map((b) {
-                        final count = _brandProductCounts[b.id] ?? 0;
-                        return TableRow(
-                          decoration: const BoxDecoration(
-                            border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: const Color(0xFFEEF2FF),
-                                    child: Text(
-                                      b.name.isNotEmpty ? b.name[0].toUpperCase() : 'B',
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    b.name,
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                b.description?.isNotEmpty == true ? b.description! : '-',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: count > 0 ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '$count Items',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: count > 0 ? const Color(0xFF059669) : const Color(0xFF64748B),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Edit Brand',
-                                    icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
-                                    onPressed: () => _openBrandDialog(b),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Delete Brand',
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
-                                    onPressed: () => _deleteBrand(b),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
+                    ),
+                    DataTablePaginationBar(
+                      currentPage: currentPage,
+                      pageSize: _pageSize,
+                      totalItems: totalFiltered,
+                      onPageChanged: (newPage) => setState(() => _currentPage = newPage),
+                      onPageSizeChanged: (newSize) => setState(() {
+                        _pageSize = newSize;
+                        _currentPage = 1;
                       }),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
           ],

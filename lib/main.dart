@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'models/models.dart';
 import 'services/database_service.dart';
@@ -35,9 +36,23 @@ class UltimatePosApp extends StatelessWidget {
     return MaterialApp(
       title: 'Ultimate POS - Enterprise ERP & Point of Sale',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.touch,
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.trackpad,
+        },
+      ),
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Segoe UI',
+        scrollbarTheme: ScrollbarThemeData(
+          thumbVisibility: WidgetStateProperty.all(true),
+          thickness: WidgetStateProperty.all(8),
+          radius: const Radius.circular(4),
+          thumbColor: WidgetStateProperty.all(const Color(0xFF94A3B8)),
+        ),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF4F46E5),
           primary: const Color(0xFF4F46E5),

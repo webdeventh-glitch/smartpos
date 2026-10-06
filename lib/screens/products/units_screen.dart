@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../widgets/data_table_pagination_bar.dart';
 
 class UnitsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -15,6 +17,8 @@ class _UnitsScreenState extends State<UnitsScreen> {
   List<Unit> _units = [];
   String _search = '';
   bool _loading = true;
+  int _currentPage = 1;
+  int _pageSize = 10;
 
   @override
   void initState() {
@@ -286,6 +290,13 @@ class _UnitsScreenState extends State<UnitsScreen> {
       return u.actualName.toLowerCase().contains(_search) || u.shortName.toLowerCase().contains(_search);
     }).toList();
 
+    final totalFiltered = filtered.length;
+    final totalPages = (totalFiltered / _pageSize).ceil();
+    final currentPage = totalPages == 0 ? 1 : _currentPage.clamp(1, totalPages);
+    final startIndex = (currentPage - 1) * _pageSize;
+    final endIndex = min(startIndex + _pageSize, totalFiltered);
+    final paginatedUnits = (startIndex < totalFiltered) ? filtered.sublist(startIndex, endIndex) : <Unit>[];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
@@ -342,7 +353,10 @@ class _UnitsScreenState extends State<UnitsScreen> {
                 children: [
                   Expanded(
                     child: TextField(
-                      onChanged: (val) => setState(() => _search = val.trim().toLowerCase()),
+                      onChanged: (val) => setState(() {
+                        _search = val.trim().toLowerCase();
+                        _currentPage = 1;
+                      }),
                       decoration: InputDecoration(
                         hintText: 'Search measurement units...',
                         hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
@@ -403,111 +417,136 @@ class _UnitsScreenState extends State<UnitsScreen> {
                     BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Table(
-                    columnWidths: const {
-                      0: FlexColumnWidth(2.5),
-                      1: FlexColumnWidth(1.8),
-                      2: FlexColumnWidth(1.8),
-                      3: FlexColumnWidth(2.2),
-                      4: FlexColumnWidth(1.5),
-                    },
-                    children: [
-                      TableRow(
-                        decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-                        children: [
-                          _th('Unit Name'),
-                          _th('Short Name'),
-                          _th('Allow Decimals'),
-                          _th('Multiplier / Base'),
-                          _th('Actions', alignRight: true),
-                        ],
-                      ),
-                      ...filtered.map((u) {
-                        return TableRow(
-                          decoration: const BoxDecoration(
-                            border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-                          ),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Row(
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final minWidth = max(constraints.maxWidth, 720.0);
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minWidth: minWidth),
+                              child: Table(
+                                columnWidths: const {
+                                  0: FlexColumnWidth(2.5),
+                                  1: FlexColumnWidth(1.8),
+                                  2: FlexColumnWidth(1.8),
+                                  3: FlexColumnWidth(2.2),
+                                  4: FlexColumnWidth(1.5),
+                                },
                                 children: [
-                                  Container(
-                                    width: 30,
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEEF2FF),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        u.shortName,
-                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                  TableRow(
+                                    decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                                    children: [
+                                      _th('Unit Name'),
+                                      _th('Short Name'),
+                                      _th('Allow Decimals'),
+                                      _th('Multiplier / Base'),
+                                      _th('Actions', alignRight: true),
+                                    ],
+                                  ),
+                                  ...paginatedUnits.map((u) {
+                                    return TableRow(
+                                      decoration: const BoxDecoration(
+                                        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                                       ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    u.actualName,
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
-                                  ),
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 30,
+                                                height: 30,
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFEEF2FF),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    u.shortName,
+                                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                u.actualName,
+                                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Text(u.shortName, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: u.allowDecimal ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              u.allowDecimal ? 'Yes (Decimal)' : 'No (Whole)',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: u.allowDecimal ? const Color(0xFF059669) : const Color(0xFF64748B),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          child: Text(
+                                            u.baseUnitMultiplier != 1.0 ? 'x${u.baseUnitMultiplier}' : '1.0 (Base)',
+                                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              IconButton(
+                                                tooltip: 'Edit Unit',
+                                                icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
+                                                onPressed: () => _openUnitDialog(u),
+                                              ),
+                                              IconButton(
+                                                tooltip: 'Delete Unit',
+                                                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
+                                                onPressed: () => _deleteUnit(u),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }),
                                 ],
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(u.shortName, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: u.allowDecimal ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  u.allowDecimal ? 'Yes (Decimal)' : 'No (Whole)',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: u.allowDecimal ? const Color(0xFF059669) : const Color(0xFF64748B),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                u.baseUnitMultiplier != 1.0 ? 'x${u.baseUnitMultiplier}' : '1.0 (Base)',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Edit Unit',
-                                    icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
-                                    onPressed: () => _openUnitDialog(u),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Delete Unit',
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
-                                    onPressed: () => _deleteUnit(u),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
+                          );
+                        },
+                      ),
+                    ),
+                    DataTablePaginationBar(
+                      currentPage: currentPage,
+                      pageSize: _pageSize,
+                      totalItems: totalFiltered,
+                      onPageChanged: (newPage) => setState(() => _currentPage = newPage),
+                      onPageSizeChanged: (newSize) => setState(() {
+                        _pageSize = newSize;
+                        _currentPage = 1;
                       }),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
           ],
