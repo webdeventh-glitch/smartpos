@@ -356,20 +356,55 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
   void _showShortcutsDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Row(
-          children: [
-            Icon(Icons.keyboard, color: Color(0xFF0038B8)),
-            SizedBox(width: 8),
-            Text('Ultimate POS Keyboard Shortcuts', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: SizedBox(
-          width: 480,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 8,
+        backgroundColor: Colors.white,
+        child: Container(
+          width: 500,
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.keyboard_rounded, color: Color(0xFF4F46E5), size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'POS Terminal Shortcuts',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF0F172A)),
+                          ),
+                          Text(
+                            'Quick keyboard hotkeys for rapid cashier operation',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                    onPressed: () => Navigator.pop(ctx),
+                    splashRadius: 18,
+                  ),
+                ],
+              ),
+              const Divider(height: 24, color: Color(0xFFE2E8F0)),
+
               _shortcutRow('F1', 'Keyboard Shortcuts Help Modal'),
               _shortcutRow('F2', 'Quick Cash Pay (Instant Complete)'),
               _shortcutRow('F4', 'Suspend / Park Current Sale Order'),
@@ -379,35 +414,44 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
               _shortcutRow('F9', 'Open Calculator'),
               _shortcutRow('F10', 'Register Details & Session'),
               _shortcutRow('Esc', 'Focus Barcode Scanner / Search Input'),
+
+              const SizedBox(height: 18),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Got it', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+              ),
             ],
           ),
         ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0038B8), foregroundColor: Colors.white),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Got it'),
-          ),
-        ],
       ),
     );
   }
 
   Widget _shortcutRow(String key, String description) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Container(
             width: 46,
             padding: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
+              color: const Color(0xFFEEF2FF),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFFBFDBFE)),
+              border: Border.all(color: const Color(0xFFC7D2FE)),
             ),
             alignment: Alignment.center,
-            child: Text(key, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0038B8), fontSize: 13)),
+            child: Text(key, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4F46E5), fontSize: 12)),
           ),
           const SizedBox(width: 14),
           Expanded(child: Text(description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF334155)))),
@@ -523,7 +567,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                       Navigator.of(context).maybePop();
                     }
                   },
-                  color: const Color(0xFF004EEB),
+                  color: const Color(0xFF4F46E5),
                   tooltip: 'Back to Dashboard',
                 ),
 
@@ -566,7 +610,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                 _topIconBtn(
                   icon: Icons.calculate_outlined,
                   onTap: () => showDialog(context: context, builder: (_) => const CalculatorDialog()),
-                  color: const Color(0xFF004EEB),
+                  color: const Color(0xFF4F46E5),
                   tooltip: 'Calculator',
                 ),
 
@@ -692,7 +736,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                   width: 38,
                                   height: 38,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF004EEB),
+                                    color: const Color(0xFF4F46E5),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: const Icon(Icons.add, color: Colors.white, size: 20),
@@ -707,11 +751,11 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                   width: 38,
                                   height: 38,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEFF6FF),
+                                    color: const Color(0xFFEEF2FF),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                                    border: Border.all(color: const Color(0xFFC7D2FE)),
                                   ),
-                                  child: const Icon(Icons.payments_outlined, color: Color(0xFF004EEB), size: 18),
+                                  child: const Icon(Icons.payments_outlined, color: Color(0xFF4F46E5), size: 18),
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -751,7 +795,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                 width: 38,
                                 height: 38,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF004EEB),
+                                  color: const Color(0xFF4F46E5),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Icon(Icons.add, color: Colors.white, size: 20),
@@ -767,7 +811,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                           child: const Row(
                             children: [
                               SizedBox(width: 20, child: Text('#', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)))),
-                              Expanded(flex: 5, child: Text('PRODUCT ℹ️', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF004EEB)))),
+                              Expanded(flex: 5, child: Text('PRODUCT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)))),
                               Expanded(flex: 3, child: Text('QUANTITY', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)))),
                               Expanded(flex: 3, child: Text('PRICE INC. TAX', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)))),
                               Expanded(flex: 2, child: Text('SUBTOTAL', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)))),
@@ -808,15 +852,15 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                             width: 36,
                                             height: 36,
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFF1F5F9),
-                                              borderRadius: BorderRadius.circular(4),
+                                              color: const Color(0xFFEEF2FF),
+                                              borderRadius: BorderRadius.circular(6),
                                               border: Border.all(color: const Color(0xFFE2E8F0)),
                                             ),
-                                            child: const Icon(Icons.laptop_chromebook, size: 20, color: Color(0xFF004EEB)),
+                                            child: const Icon(Icons.inventory_2_outlined, size: 18, color: Color(0xFF4F46E5)),
                                           ),
                                           const SizedBox(width: 10),
 
-                                          // Product Name (Blue) + SKU & Stock
+                                          // Product Name (Dark) + SKU & Stock
                                           Expanded(
                                             flex: 5,
                                             child: Column(
@@ -824,7 +868,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                               children: [
                                                 Text(
                                                   item.product.name,
-                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF004EEB)),
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
@@ -1174,7 +1218,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                       child: Icon(
                                                         Icons.inventory_2_outlined,
                                                         size: 40,
-                                                        color: const Color(0xFF004EEB).withValues(alpha: 0.8),
+                                                        color: const Color(0xFF4F46E5).withValues(alpha: 0.8),
                                                       ),
                                                     ),
                                                   ),
@@ -1236,7 +1280,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
               const SizedBox(width: 4),
               InkWell(
                 onTap: onEdit,
-                child: const Icon(Icons.edit, size: 10, color: Color(0xFF004EEB)),
+                child: const Icon(Icons.edit, size: 10, color: Color(0xFF4F46E5)),
               ),
             ],
           ],
@@ -1271,21 +1315,21 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEBF3FE) : Colors.white,
+          color: isSelected ? const Color(0xFFEEF2FF) : Colors.white,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: isSelected ? const Color(0xFF004EEB) : const Color(0xFFCBD5E1)),
+          border: Border.all(color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFFCBD5E1)),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 15, color: isSelected ? const Color(0xFF004EEB) : const Color(0xFF64748B)),
+            Icon(icon, size: 15, color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFF64748B)),
             const SizedBox(width: 6),
-            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? const Color(0xFF004EEB) : const Color(0xFF1E293B))),
+            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFF1E293B))),
             if (count != null) ...[
               const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF004EEB) : const Color(0xFFF1F5F9),
+                  color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(

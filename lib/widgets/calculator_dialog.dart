@@ -130,16 +130,16 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.calculate, color: Color(0xFF004EEB)),
+                    Icon(Icons.calculate_rounded, color: Color(0xFF4F46E5)),
                     SizedBox(width: 8),
                     Text(
                       'Calculator',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 20),
+                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -175,7 +175,7 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                   final val = (double.tryParse(_display) ?? 0) / 100;
                   setState(() => _display = val.toString());
                 }),
-                _btn('÷', bg: const Color(0xFFE0EAFF), fg: const Color(0xFF004EEB), onPressed: () => _onOperator('÷')),
+                _btn('÷', bg: const Color(0xFFEEF2FF), fg: const Color(0xFF4F46E5), onPressed: () => _onOperator('÷')),
               ],
             ),
             Row(
@@ -183,7 +183,7 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                 _btn('7', onPressed: () => _onDigit('7')),
                 _btn('8', onPressed: () => _onDigit('8')),
                 _btn('9', onPressed: () => _onDigit('9')),
-                _btn('×', bg: const Color(0xFFE0EAFF), fg: const Color(0xFF004EEB), onPressed: () => _onOperator('×')),
+                _btn('×', bg: const Color(0xFFEEF2FF), fg: const Color(0xFF4F46E5), onPressed: () => _onOperator('×')),
               ],
             ),
             Row(
@@ -191,7 +191,7 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                 _btn('4', onPressed: () => _onDigit('4')),
                 _btn('5', onPressed: () => _onDigit('5')),
                 _btn('6', onPressed: () => _onDigit('6')),
-                _btn('-', bg: const Color(0xFFE0EAFF), fg: const Color(0xFF004EEB), onPressed: () => _onOperator('-')),
+                _btn('-', bg: const Color(0xFFEEF2FF), fg: const Color(0xFF4F46E5), onPressed: () => _onOperator('-')),
               ],
             ),
             Row(
@@ -199,7 +199,7 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                 _btn('1', onPressed: () => _onDigit('1')),
                 _btn('2', onPressed: () => _onDigit('2')),
                 _btn('3', onPressed: () => _onDigit('3')),
-                _btn('+', bg: const Color(0xFFE0EAFF), fg: const Color(0xFF004EEB), onPressed: () => _onOperator('+')),
+                _btn('+', bg: const Color(0xFFEEF2FF), fg: const Color(0xFF4F46E5), onPressed: () => _onOperator('+')),
               ],
             ),
             Row(
@@ -207,7 +207,7 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                 _btn('0', onPressed: () => _onDigit('0')),
                 _btn('00', onPressed: () => _onDigit('00')),
                 _btn('.', onPressed: _onDecimal),
-                _btn('=', bg: const Color(0xFF004EEB), fg: Colors.white, onPressed: _onEquals),
+                _btn('=', bg: const Color(0xFF4F46E5), fg: Colors.white, onPressed: _onEquals),
               ],
             ),
           ],

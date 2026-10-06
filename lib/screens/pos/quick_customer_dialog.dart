@@ -71,12 +71,28 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
     super.dispose();
   }
 
+  Widget _fieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF334155),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 8,
+      backgroundColor: Colors.white,
       child: Container(
-        width: 460,
+        width: 480,
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
@@ -84,102 +100,157 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.person_add_alt_1, color: Color(0xFF004EEB)),
-                      SizedBox(width: 10),
-                      Text(
-                        'Add Quick Customer',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.person_add_rounded, color: Color(0xFF4F46E5), size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Add Quick Customer',
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                          ),
+                          Text(
+                            'Create new customer and assign to current cart',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20),
+                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
                     onPressed: () => Navigator.of(context).pop(),
+                    splashRadius: 18,
                   ),
                 ],
               ),
-              const Divider(height: 24),
+              const Divider(height: 24, color: Color(0xFFE2E8F0)),
+
+              // Name
+              _fieldLabel('Customer Name *'),
               TextFormField(
                 controller: _nameController,
                 autofocus: true,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
                 decoration: const InputDecoration(
-                  labelText: 'Customer Name *',
-                  hintText: 'e.g. John Doe',
-                  prefixIcon: Icon(Icons.person_outline, size: 20),
+                  hintText: 'e.g. John Doe / Walk-in Buyer',
+                  prefixIcon: Icon(Icons.person_outline, size: 18, color: Color(0xFF64748B)),
+                  isDense: true,
                 ),
                 validator: (val) => val == null || val.trim().isEmpty ? 'Customer name is required' : null,
               ),
               const SizedBox(height: 14),
+
+              // Phone & Credit Limit
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Mobile Phone',
-                        hintText: '+1 (555) 000-0000',
-                        prefixIcon: Icon(Icons.phone_outlined, size: 20),
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _fieldLabel('Mobile Phone'),
+                        TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+                          decoration: const InputDecoration(
+                            hintText: '+1 (555) 000-0000',
+                            prefixIcon: Icon(Icons.phone_outlined, size: 18, color: Color(0xFF64748B)),
+                            isDense: true,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: TextFormField(
-                      controller: _creditLimitController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Credit Limit',
-                        prefixIcon: Icon(Icons.credit_card_outlined, size: 20),
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _fieldLabel('Credit Limit'),
+                        TextFormField(
+                          controller: _creditLimitController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.credit_card_outlined, size: 18, color: Color(0xFF64748B)),
+                            isDense: true,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
+
+              // Email
+              _fieldLabel('Email Address'),
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
                 decoration: const InputDecoration(
-                  labelText: 'Email Address',
                   hintText: 'customer@example.com',
-                  prefixIcon: Icon(Icons.email_outlined, size: 20),
+                  prefixIcon: Icon(Icons.email_outlined, size: 18, color: Color(0xFF64748B)),
+                  isDense: true,
                 ),
               ),
               const SizedBox(height: 14),
+
+              // Address
+              _fieldLabel('Address / Location'),
               TextFormField(
                 controller: _addressController,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
                 decoration: const InputDecoration(
-                  labelText: 'Address',
-                  hintText: 'Street address, City',
-                  prefixIcon: Icon(Icons.location_on_outlined, size: 20),
+                  hintText: 'Street address, City, State',
+                  prefixIcon: Icon(Icons.location_on_outlined, size: 18, color: Color(0xFF64748B)),
+                  isDense: true,
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Action Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF64748B),
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+                    child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF004EEB),
+                      backgroundColor: const Color(0xFF4F46E5),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: _isSaving ? null : _save,
                     child: _isSaving
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Save & Select', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Save & Select', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
                 ],
               ),

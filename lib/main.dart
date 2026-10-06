@@ -39,12 +39,12 @@ class UltimatePosApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Segoe UI',
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF004EEB),
-          primary: const Color(0xFF004EEB),
+          seedColor: const Color(0xFF4F46E5),
+          primary: const Color(0xFF4F46E5),
           secondary: const Color(0xFF10B981),
           surface: Colors.white,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF1F5F9),
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
@@ -59,11 +59,21 @@ class UltimatePosApp extends StatelessWidget {
             side: const BorderSide(color: Color(0xFFE2E8F0)),
           ),
         ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: Colors.white,
+          elevation: 8,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        dividerTheme: const DividerThemeData(
+          color: Color(0xFFE2E8F0),
+          thickness: 1,
+          space: 1,
+        ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
@@ -74,13 +84,15 @@ class UltimatePosApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF004EEB), width: 1.5),
+            borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            backgroundColor: const Color(0xFF4F46E5),
+            foregroundColor: Colors.white,
           ),
         ),
       ),

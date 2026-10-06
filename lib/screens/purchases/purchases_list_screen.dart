@@ -48,9 +48,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     final totalDue = _purchases.fold(0.0, (sum, p) => sum + p.dueAmount);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -62,7 +62,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                   children: [
                     const Text(
                       'Purchases & Restocking',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.3),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -73,13 +73,13 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF004EEB),
+                    backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  icon: const Icon(Icons.add, size: 20),
-                  label: const Text('Add Purchase', style: TextStyle(fontWeight: FontWeight.bold)),
+                  icon: const Icon(Icons.add_rounded, size: 19),
+                  label: const Text('Add Purchase', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   onPressed: _openAddPurchase,
                 ),
               ],
@@ -88,7 +88,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
 
             Row(
               children: [
-                _mini('Total Purchases', '$currency${totalPurchases.toStringAsFixed(2)}', const Color(0xFF004EEB)),
+                _mini('Total Purchases', '$currency${totalPurchases.toStringAsFixed(2)}', const Color(0xFF4F46E5)),
                 const SizedBox(width: 14),
                 _mini('Total Payables Due', '$currency${totalDue.toStringAsFixed(2)}', const Color(0xFFEF4444)),
                 const SizedBox(width: 14),
@@ -104,7 +104,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: _loading
-                  ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
+                  ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5))))
                   : _purchases.isEmpty
                       ? const Padding(
                           padding: EdgeInsets.all(40),
@@ -131,7 +131,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                             rows: _purchases.map((p) {
                               return DataRow(
                                 cells: [
-                                  DataCell(Text(p.refNo, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF004EEB)))),
+                                  DataCell(Text(p.refNo, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)))),
                                   DataCell(Text(p.createdAt, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
                                   DataCell(Text(p.locationName, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF475569)))),
                                   DataCell(Text(p.supplierName, style: const TextStyle(fontWeight: FontWeight.w600))),

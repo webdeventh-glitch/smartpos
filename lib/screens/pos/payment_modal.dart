@@ -87,9 +87,9 @@ class _PaymentModalState extends State<PaymentModal> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF004EEB) : const Color(0xFFF8FAFC),
+            color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFFF8FAFC),
             border: Border.all(
-              color: isSelected ? const Color(0xFF004EEB) : const Color(0xFFE2E8F0),
+              color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFFE2E8F0),
               width: 1.5,
             ),
             borderRadius: BorderRadius.circular(10),
@@ -310,10 +310,15 @@ class _PaymentModalState extends State<PaymentModal> {
             ],
 
             const SizedBox(height: 16),
+            const Text(
+              'PAYMENT NOTE / REFERENCE (OPTIONAL)',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B), letterSpacing: 0.8),
+            ),
+            const SizedBox(height: 6),
             TextField(
               controller: _noteController,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
               decoration: const InputDecoration(
-                labelText: 'Payment Note / Reference (Optional)',
                 hintText: 'e.g. Card Auth #98124, or Cheque #00452',
                 isDense: true,
               ),
@@ -324,20 +329,27 @@ class _PaymentModalState extends State<PaymentModal> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF64748B),
+                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
+                    backgroundColor: const Color(0xFF059669),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  icon: const Icon(Icons.check_circle_outline, size: 20),
-                  label: const Text('FINALIZE PAYMENT', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                  icon: const Icon(Icons.check_circle_rounded, size: 18),
+                  label: const Text('FINALIZE PAYMENT', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                   onPressed: _confirmPayment,
                 ),
               ],
