@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 
-class CategoriesScreen extends StatefulWidget {
+class WarrantiesScreen extends StatefulWidget {
   final BusinessSettings settings;
 
-  const CategoriesScreen({super.key, required this.settings});
+  const WarrantiesScreen({super.key, required this.settings});
 
   @override
-  State<CategoriesScreen> createState() => _CategoriesScreenState();
+  State<WarrantiesScreen> createState() => _WarrantiesScreenState();
 }
 
-class _CategoriesScreenState extends State<CategoriesScreen> {
-  List<Category> _categories = [];
-  Map<int, int> _categoryProductCounts = {};
+class _WarrantiesScreenState extends State<WarrantiesScreen> {
+  List<Warranty> _warranties = [];
   String _search = '';
   bool _loading = true;
 
@@ -25,30 +24,20 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Future<void> _load() async {
     final db = await DatabaseService.initialize();
-    final cats = await db.getCategories();
-    final prods = await db.getProducts();
-
-    final counts = <int, int>{};
-    for (var p in prods) {
-      if (p.categoryId != null) {
-        counts[p.categoryId!] = (counts[p.categoryId!] ?? 0) + 1;
-      }
-    }
-
+    final list = await db.getWarranties();
     if (mounted) {
       setState(() {
-        _categories = cats;
-        _categoryProductCounts = counts;
+        _warranties = list;
         _loading = false;
       });
     }
   }
 
-  void _openCategoryDialog([Category? toEdit]) {
+  void _openWarrantyDialog([Warranty? toEdit]) {
     final nameCtrl = TextEditingController(text: toEdit?.name ?? '');
-    final codeCtrl = TextEditingController(text: toEdit?.code ?? '');
     final descCtrl = TextEditingController(text: toEdit?.description ?? '');
-    int? selectedParent = toEdit?.parentId;
+    final durCtrl = TextEditingController(text: toEdit != null ? toEdit.duration.toString() : '12');
+    String durationType = toEdit?.durationType ?? 'months';
 
     showDialog(
       context: context,
@@ -58,7 +47,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
+            constraints: const BoxConstraints(maxWidth: 480),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -69,7 +58,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        toEdit == null ? 'Add Category' : 'Edit Category',
+                        toEdit == null ? 'Add Warranty Policy' : 'Edit Warranty Policy',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                       ),
                       IconButton(
@@ -79,9 +68,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _fieldLabel('Category Name *'),
+                  _fieldLabel('Warranty Name * (e.g. 1 Year Standard Warranty)'),
                   const SizedBox(height: 6),
-                  TextField(controller: nameCtrl, decoration: _inputDeco('e.g. Beverages, Groceries, Bakery')),
+                  TextField(controller: nameCtrl, decoration: _inputDeco('e.g. 1 Year Standard Warranty')),
                   const SizedBox(height: 14),
                   Row(
                     children: [
@@ -89,12 +78,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _fieldLabel('Category Code *'),
+                            _fieldLabel('Duration *'),
                             const SizedBox(height: 6),
                             TextField(
-                              controller: codeCtrl,
-                              textCapitalization: TextCapitalization.characters,
-                              decoration: _inputDeco('e.g. BEV, BAK'),
+                              controller: durCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: _inputDeco('12'),
                             ),
                           ],
                         ),
@@ -104,21 +93,17 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _fieldLabel('Parent Category (Optional)'),
+                            _fieldLabel('Duration Type'),
                             const SizedBox(height: 6),
-                            DropdownButtonFormField<int?>(
-                              value: selectedParent,
-                              decoration: _inputDeco('None (Top Level)'),
-                              items: [
-                                const DropdownMenuItem<int?>(value: null, child: Text('None (Main Level)')),
-                                ..._categories.where((c) => c.id != toEdit?.id).map(
-                                      (c) => DropdownMenuItem<int?>(
-                                        value: c.id,
-                                        child: Text(c.name, overflow: TextOverflow.ellipsis),
-                                      ),
-                                    ),
-                              ],
-                              onChanged: (val) => setDlgState(() => selectedParent = val),
+                            DropdownButtonFormField<String>(
+                              value: durationType,
+                              decoration: _inputDeco('Type'),
+                              items: ['days', 'months', 'years']
+                                  .map((t) => DropdownMenuItem(value: t, child: Text(t.toUpperCase())))
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) setDlgState(() => durationType = val);
+                              },
                             ),
                           ],
                         ),
@@ -126,12 +111,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _fieldLabel('Description'),
+                  _fieldLabel('Terms & Conditions / Description'),
                   const SizedBox(height: 6),
                   TextField(
                     controller: descCtrl,
                     maxLines: 2,
-                    decoration: _inputDeco('Optional category summary or details'),
+                    decoration: _inputDeco('Optional policy coverage details'),
                   ),
                   const SizedBox(height: 22),
                   Row(
@@ -152,37 +137,36 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         ),
                         onPressed: () async {
                           final name = nameCtrl.text.trim();
-                          final code = codeCtrl.text.trim().toUpperCase();
-
-                          if (name.isEmpty || code.isEmpty) {
+                          final dur = int.tryParse(durCtrl.text.trim()) ?? 0;
+                          if (name.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please enter category name and code')),
+                              const SnackBar(content: Text('Please enter warranty name')),
                             );
                             return;
                           }
 
                           final db = await DatabaseService.initialize();
                           if (toEdit == null) {
-                            await db.addCategory(Category(
+                            await db.addWarranty(Warranty(
                               name: name,
-                              code: code,
                               description: descCtrl.text.trim(),
-                              parentId: selectedParent,
+                              duration: dur,
+                              durationType: durationType,
                             ));
                           } else {
-                            await db.updateCategory(Category(
+                            await db.updateWarranty(Warranty(
                               id: toEdit.id,
                               name: name,
-                              code: code,
                               description: descCtrl.text.trim(),
-                              parentId: selectedParent,
+                              duration: dur,
+                              durationType: durationType,
                             ));
                           }
 
                           if (ctx.mounted) Navigator.pop(ctx);
                           _load();
                         },
-                        child: Text(toEdit == null ? 'Save Category' : 'Update Category'),
+                        child: Text(toEdit == null ? 'Save Warranty' : 'Update Warranty'),
                       ),
                     ],
                   ),
@@ -195,29 +179,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     );
   }
 
-  Future<void> _deleteCategory(Category cat) async {
-    final prodsCount = _categoryProductCounts[cat.id] ?? 0;
-    if (prodsCount > 0) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Cannot Delete Category'),
-          content: Text(
-            'Category "${cat.name}" has $prodsCount active products associated with it. Please reassign or delete these products first.',
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
-          ],
-        ),
-      );
-      return;
-    }
-
+  Future<void> _deleteWarranty(Warranty warranty) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Category?'),
-        content: Text('Are you sure you want to delete category "${cat.name}"?'),
+        title: const Text('Delete Warranty?'),
+        content: Text('Are you sure you want to delete warranty "${warranty.name}"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -229,9 +196,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       ),
     );
 
-    if (confirm == true && cat.id != null) {
+    if (confirm == true && warranty.id != null) {
       final db = await DatabaseService.initialize();
-      await db.deleteCategory(cat.id!);
+      await db.deleteWarranty(warranty.id!);
       _load();
     }
   }
@@ -259,9 +226,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _categories.where((c) {
+    final filtered = _warranties.where((w) {
       if (_search.isEmpty) return true;
-      return c.name.toLowerCase().contains(_search) || c.code.toLowerCase().contains(_search) || (c.description ?? '').toLowerCase().contains(_search);
+      return w.name.toLowerCase().contains(_search) || w.description.toLowerCase().contains(_search);
     }).toList();
 
     return Scaffold(
@@ -280,12 +247,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Categories & Sub-Categories',
+                        'Warranties & Guarantees',
                         style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.3),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Organize products into hierarchical departments, categories, and sub-groups.',
+                        'Manage customer warranty policies, repair terms, and replacement durations.',
                         style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
                       ),
                     ],
@@ -301,8 +268,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Category', style: TextStyle(fontWeight: FontWeight.w700)),
-                  onPressed: () => _openCategoryDialog(),
+                  label: const Text('Add Warranty', style: TextStyle(fontWeight: FontWeight.w700)),
+                  onPressed: () => _openWarrantyDialog(),
                 ),
               ],
             ),
@@ -322,7 +289,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     child: TextField(
                       onChanged: (val) => setState(() => _search = val.trim().toLowerCase()),
                       decoration: InputDecoration(
-                        hintText: 'Search categories by name, code, or description...',
+                        hintText: 'Search warranty policies...',
                         hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                         prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
                         isDense: true,
@@ -340,7 +307,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '${filtered.length} Categories',
+                      '${filtered.length} Policies active',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
                     ),
                   ),
@@ -349,7 +316,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Categories Table
+            // Warranties Table
             if (_loading)
               const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
             else if (filtered.isEmpty)
@@ -363,11 +330,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.category_outlined, size: 48, color: Colors.grey.shade400),
+                    Icon(Icons.verified_outlined, size: 48, color: Colors.grey.shade400),
                     const SizedBox(height: 12),
-                    const Text('No Categories Found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text('No Warranties Found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text('Click "Add Category" above to organize your catalog.', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    Text('Click "Add Warranty" to define your coverage policies.', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                   ],
                 ),
               )
@@ -386,33 +353,21 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                   child: Table(
                     columnWidths: const {
                       0: FlexColumnWidth(2.5),
-                      1: FlexColumnWidth(1.4),
-                      2: FlexColumnWidth(1.8),
-                      3: FlexColumnWidth(2.5),
-                      4: FlexColumnWidth(1.2),
-                      5: FlexColumnWidth(1.4),
+                      1: FlexColumnWidth(1.8),
+                      2: FlexColumnWidth(3.5),
+                      3: FlexColumnWidth(1.5),
                     },
                     children: [
                       TableRow(
                         decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
                         children: [
-                          _th('Category Name'),
-                          _th('Short Code'),
-                          _th('Hierarchy Level'),
-                          _th('Description'),
-                          _th('Products'),
+                          _th('Warranty Name'),
+                          _th('Duration'),
+                          _th('Description / Terms'),
                           _th('Actions', alignRight: true),
                         ],
                       ),
-                      ...filtered.map((c) {
-                        final count = _categoryProductCounts[c.id] ?? 0;
-                        final isSub = c.parentId != null;
-                        String parentName = '';
-                        if (isSub) {
-                          final parent = _categories.firstWhere((p) => p.id == c.parentId, orElse: () => Category(name: 'Main', code: ''));
-                          parentName = parent.name;
-                        }
-
+                      ...filtered.map((w) {
                         return TableRow(
                           decoration: const BoxDecoration(
                             border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
@@ -420,73 +375,30 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: isSub ? const Color(0xFFF1F5F9) : const Color(0xFFEEF2FF),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      isSub ? Icons.subdirectory_arrow_right_rounded : Icons.folder_rounded,
-                                      size: 16,
-                                      color: isSub ? const Color(0xFF64748B) : const Color(0xFF4F46E5),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      c.name,
-                                      style: TextStyle(
-                                        fontWeight: isSub ? FontWeight.w600 : FontWeight.w700,
-                                        fontSize: 13,
-                                        color: const Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              child: Text(
+                                w.name,
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: const Color(0xFFECFDF5),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Text(c.code, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF334155))),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                isSub ? 'Sub ($parentName)' : 'Main Category',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isSub ? const Color(0xFF7C3AED) : const Color(0xFF059669),
+                                child: Text(
+                                  w.duration > 0 ? '${w.duration} ${w.durationType.toUpperCase()}' : 'No Warranty',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
                                 ),
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                               child: Text(
-                                c.description?.isNotEmpty == true ? c.description! : '-',
+                                w.description.isNotEmpty ? w.description : '-',
                                 style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                '$count Items',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: count > 0 ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
-                                ),
                               ),
                             ),
                             Padding(
@@ -495,14 +407,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    tooltip: 'Edit Category',
+                                    tooltip: 'Edit Warranty',
                                     icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
-                                    onPressed: () => _openCategoryDialog(c),
+                                    onPressed: () => _openWarrantyDialog(w),
                                   ),
                                   IconButton(
-                                    tooltip: 'Delete Category',
+                                    tooltip: 'Delete Warranty',
                                     icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
-                                    onPressed: () => _deleteCategory(c),
+                                    onPressed: () => _deleteWarranty(w),
                                   ),
                                 ],
                               ),

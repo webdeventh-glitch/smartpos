@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 
-class CategoriesScreen extends StatefulWidget {
+class UnitsScreen extends StatefulWidget {
   final BusinessSettings settings;
 
-  const CategoriesScreen({super.key, required this.settings});
+  const UnitsScreen({super.key, required this.settings});
 
   @override
-  State<CategoriesScreen> createState() => _CategoriesScreenState();
+  State<UnitsScreen> createState() => _UnitsScreenState();
 }
 
-class _CategoriesScreenState extends State<CategoriesScreen> {
-  List<Category> _categories = [];
-  Map<int, int> _categoryProductCounts = {};
+class _UnitsScreenState extends State<UnitsScreen> {
+  List<Unit> _units = [];
   String _search = '';
   bool _loading = true;
 
@@ -25,30 +24,21 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Future<void> _load() async {
     final db = await DatabaseService.initialize();
-    final cats = await db.getCategories();
-    final prods = await db.getProducts();
-
-    final counts = <int, int>{};
-    for (var p in prods) {
-      if (p.categoryId != null) {
-        counts[p.categoryId!] = (counts[p.categoryId!] ?? 0) + 1;
-      }
-    }
-
+    final uList = await db.getUnits();
     if (mounted) {
       setState(() {
-        _categories = cats;
-        _categoryProductCounts = counts;
+        _units = uList;
         _loading = false;
       });
     }
   }
 
-  void _openCategoryDialog([Category? toEdit]) {
-    final nameCtrl = TextEditingController(text: toEdit?.name ?? '');
-    final codeCtrl = TextEditingController(text: toEdit?.code ?? '');
-    final descCtrl = TextEditingController(text: toEdit?.description ?? '');
-    int? selectedParent = toEdit?.parentId;
+  void _openUnitDialog([Unit? toEdit]) {
+    final nameCtrl = TextEditingController(text: toEdit?.actualName ?? '');
+    final shortCtrl = TextEditingController(text: toEdit?.shortName ?? '');
+    final multCtrl = TextEditingController(text: toEdit?.baseUnitMultiplier != null && toEdit!.baseUnitMultiplier != 1.0 ? toEdit.baseUnitMultiplier.toString() : '1');
+    bool allowDecimal = toEdit?.allowDecimal ?? false;
+    int? selectedBaseUnit = toEdit?.baseUnitId;
 
     showDialog(
       context: context,
@@ -69,7 +59,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        toEdit == null ? 'Add Category' : 'Edit Category',
+                        toEdit == null ? 'Add Unit of Measure' : 'Edit Unit of Measure',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                       ),
                       IconButton(
@@ -79,9 +69,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _fieldLabel('Category Name *'),
+                  _fieldLabel('Unit Name * (e.g. Pieces, Kilograms, Box)'),
                   const SizedBox(height: 6),
-                  TextField(controller: nameCtrl, decoration: _inputDeco('e.g. Beverages, Groceries, Bakery')),
+                  TextField(controller: nameCtrl, decoration: _inputDeco('e.g. Pieces')),
                   const SizedBox(height: 14),
                   Row(
                     children: [
@@ -89,36 +79,40 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _fieldLabel('Category Code *'),
+                            _fieldLabel('Short Name * (e.g. Pc, Kg)'),
                             const SizedBox(height: 6),
-                            TextField(
-                              controller: codeCtrl,
-                              textCapitalization: TextCapitalization.characters,
-                              decoration: _inputDeco('e.g. BEV, BAK'),
-                            ),
+                            TextField(controller: shortCtrl, decoration: _inputDeco('e.g. Pc')),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _fieldLabel('Parent Category (Optional)'),
+                            _fieldLabel('Allow Decimal Values?'),
                             const SizedBox(height: 6),
-                            DropdownButtonFormField<int?>(
-                              value: selectedParent,
-                              decoration: _inputDeco('None (Top Level)'),
-                              items: [
-                                const DropdownMenuItem<int?>(value: null, child: Text('None (Main Level)')),
-                                ..._categories.where((c) => c.id != toEdit?.id).map(
-                                      (c) => DropdownMenuItem<int?>(
-                                        value: c.id,
-                                        child: Text(c.name, overflow: TextOverflow.ellipsis),
-                                      ),
-                                    ),
-                              ],
-                              onChanged: (val) => setDlgState(() => selectedParent = val),
+                            Container(
+                              height: 44,
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFCBD5E1)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Switch(
+                                    value: allowDecimal,
+                                    activeColor: const Color(0xFF4F46E5),
+                                    onChanged: (val) => setDlgState(() => allowDecimal = val),
+                                  ),
+                                  Text(
+                                    allowDecimal ? 'Yes (1.5 kg)' : 'No (Integers)',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -126,12 +120,54 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _fieldLabel('Description'),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: descCtrl,
-                    maxLines: 2,
-                    decoration: _inputDeco('Optional category summary or details'),
+                  // Secondary Unit / Base Unit Multiplier section
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Sub-Unit Multiplier (Optional)',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'e.g. If this unit is "Box" and base unit is "Pieces", set multiplier to 12.0',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: DropdownButtonFormField<int?>(
+                                value: selectedBaseUnit,
+                                decoration: _inputDeco('Base Unit'),
+                                items: [
+                                  const DropdownMenuItem<int?>(value: null, child: Text('None (Primary Base Unit)')),
+                                  ..._units.where((u) => u.id != toEdit?.id).map((u) => DropdownMenuItem<int?>(value: u.id, child: Text(u.actualName))),
+                                ],
+                                onChanged: (val) => setDlgState(() => selectedBaseUnit = val),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: multCtrl,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: _inputDeco('Multiplier'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 22),
                   Row(
@@ -152,37 +188,40 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         ),
                         onPressed: () async {
                           final name = nameCtrl.text.trim();
-                          final code = codeCtrl.text.trim().toUpperCase();
+                          final short = shortCtrl.text.trim();
+                          final mult = double.tryParse(multCtrl.text.trim()) ?? 1.0;
 
-                          if (name.isEmpty || code.isEmpty) {
+                          if (name.isEmpty || short.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please enter category name and code')),
+                              const SnackBar(content: Text('Please fill unit name and short name')),
                             );
                             return;
                           }
 
                           final db = await DatabaseService.initialize();
                           if (toEdit == null) {
-                            await db.addCategory(Category(
-                              name: name,
-                              code: code,
-                              description: descCtrl.text.trim(),
-                              parentId: selectedParent,
+                            await db.addUnit(Unit(
+                              actualName: name,
+                              shortName: short,
+                              allowDecimal: allowDecimal,
+                              baseUnitId: selectedBaseUnit,
+                              baseUnitMultiplier: mult,
                             ));
                           } else {
-                            await db.updateCategory(Category(
+                            await db.updateUnit(Unit(
                               id: toEdit.id,
-                              name: name,
-                              code: code,
-                              description: descCtrl.text.trim(),
-                              parentId: selectedParent,
+                              actualName: name,
+                              shortName: short,
+                              allowDecimal: allowDecimal,
+                              baseUnitId: selectedBaseUnit,
+                              baseUnitMultiplier: mult,
                             ));
                           }
 
                           if (ctx.mounted) Navigator.pop(ctx);
                           _load();
                         },
-                        child: Text(toEdit == null ? 'Save Category' : 'Update Category'),
+                        child: Text(toEdit == null ? 'Save Unit' : 'Update Unit'),
                       ),
                     ],
                   ),
@@ -195,29 +234,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     );
   }
 
-  Future<void> _deleteCategory(Category cat) async {
-    final prodsCount = _categoryProductCounts[cat.id] ?? 0;
-    if (prodsCount > 0) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Cannot Delete Category'),
-          content: Text(
-            'Category "${cat.name}" has $prodsCount active products associated with it. Please reassign or delete these products first.',
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
-          ],
-        ),
-      );
-      return;
-    }
-
+  Future<void> _deleteUnit(Unit unit) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Category?'),
-        content: Text('Are you sure you want to delete category "${cat.name}"?'),
+        title: const Text('Delete Unit?'),
+        content: Text('Are you sure you want to delete unit "${unit.actualName}"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -229,9 +251,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       ),
     );
 
-    if (confirm == true && cat.id != null) {
+    if (confirm == true && unit.id != null) {
       final db = await DatabaseService.initialize();
-      await db.deleteCategory(cat.id!);
+      await db.deleteUnit(unit.id!);
       _load();
     }
   }
@@ -259,9 +281,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _categories.where((c) {
+    final filtered = _units.where((u) {
       if (_search.isEmpty) return true;
-      return c.name.toLowerCase().contains(_search) || c.code.toLowerCase().contains(_search) || (c.description ?? '').toLowerCase().contains(_search);
+      return u.actualName.toLowerCase().contains(_search) || u.shortName.toLowerCase().contains(_search);
     }).toList();
 
     return Scaffold(
@@ -280,12 +302,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Categories & Sub-Categories',
+                        'Units of Measure',
                         style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.3),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Organize products into hierarchical departments, categories, and sub-groups.',
+                        'Define measurement units (Pieces, Kg, Boxes, Liters) and decimal allowances.',
                         style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
                       ),
                     ],
@@ -301,8 +323,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Category', style: TextStyle(fontWeight: FontWeight.w700)),
-                  onPressed: () => _openCategoryDialog(),
+                  label: const Text('Add Unit', style: TextStyle(fontWeight: FontWeight.w700)),
+                  onPressed: () => _openUnitDialog(),
                 ),
               ],
             ),
@@ -322,7 +344,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     child: TextField(
                       onChanged: (val) => setState(() => _search = val.trim().toLowerCase()),
                       decoration: InputDecoration(
-                        hintText: 'Search categories by name, code, or description...',
+                        hintText: 'Search measurement units...',
                         hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                         prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
                         isDense: true,
@@ -340,7 +362,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '${filtered.length} Categories',
+                      '${filtered.length} Units available',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
                     ),
                   ),
@@ -349,7 +371,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Categories Table
+            // Units Data Table
             if (_loading)
               const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
             else if (filtered.isEmpty)
@@ -363,11 +385,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.category_outlined, size: 48, color: Colors.grey.shade400),
+                    Icon(Icons.straighten_outlined, size: 48, color: Colors.grey.shade400),
                     const SizedBox(height: 12),
-                    const Text('No Categories Found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text('No Units Found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text('Click "Add Category" above to organize your catalog.', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    Text('Click "Add Unit" to configure measurement units.', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                   ],
                 ),
               )
@@ -386,33 +408,23 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                   child: Table(
                     columnWidths: const {
                       0: FlexColumnWidth(2.5),
-                      1: FlexColumnWidth(1.4),
+                      1: FlexColumnWidth(1.8),
                       2: FlexColumnWidth(1.8),
-                      3: FlexColumnWidth(2.5),
-                      4: FlexColumnWidth(1.2),
-                      5: FlexColumnWidth(1.4),
+                      3: FlexColumnWidth(2.2),
+                      4: FlexColumnWidth(1.5),
                     },
                     children: [
                       TableRow(
                         decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
                         children: [
-                          _th('Category Name'),
-                          _th('Short Code'),
-                          _th('Hierarchy Level'),
-                          _th('Description'),
-                          _th('Products'),
+                          _th('Unit Name'),
+                          _th('Short Name'),
+                          _th('Allow Decimals'),
+                          _th('Multiplier / Base'),
                           _th('Actions', alignRight: true),
                         ],
                       ),
-                      ...filtered.map((c) {
-                        final count = _categoryProductCounts[c.id] ?? 0;
-                        final isSub = c.parentId != null;
-                        String parentName = '';
-                        if (isSub) {
-                          final parent = _categories.firstWhere((p) => p.id == c.parentId, orElse: () => Category(name: 'Main', code: ''));
-                          parentName = parent.name;
-                        }
-
+                      ...filtered.map((u) {
                         return TableRow(
                           decoration: const BoxDecoration(
                             border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
@@ -423,70 +435,54 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                               child: Row(
                                 children: [
                                   Container(
-                                    width: 32,
-                                    height: 32,
+                                    width: 30,
+                                    height: 30,
                                     decoration: BoxDecoration(
-                                      color: isSub ? const Color(0xFFF1F5F9) : const Color(0xFFEEF2FF),
-                                      borderRadius: BorderRadius.circular(8),
+                                      color: const Color(0xFFEEF2FF),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: Icon(
-                                      isSub ? Icons.subdirectory_arrow_right_rounded : Icons.folder_rounded,
-                                      size: 16,
-                                      color: isSub ? const Color(0xFF64748B) : const Color(0xFF4F46E5),
+                                    child: Center(
+                                      child: Text(
+                                        u.shortName,
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      c.name,
-                                      style: TextStyle(
-                                        fontWeight: isSub ? FontWeight.w600 : FontWeight.w700,
-                                        fontSize: 13,
-                                        color: const Color(0xFF0F172A),
-                                      ),
-                                    ),
+                                  Text(
+                                    u.actualName,
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
                                   ),
                                 ],
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              child: Text(u.shortName, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: u.allowDecimal ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Text(c.code, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF334155))),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                isSub ? 'Sub ($parentName)' : 'Main Category',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isSub ? const Color(0xFF7C3AED) : const Color(0xFF059669),
+                                child: Text(
+                                  u.allowDecimal ? 'Yes (Decimal)' : 'No (Whole)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: u.allowDecimal ? const Color(0xFF059669) : const Color(0xFF64748B),
+                                  ),
                                 ),
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                               child: Text(
-                                c.description?.isNotEmpty == true ? c.description! : '-',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              child: Text(
-                                '$count Items',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: count > 0 ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
-                                ),
+                                u.baseUnitMultiplier != 1.0 ? 'x${u.baseUnitMultiplier}' : '1.0 (Base)',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                               ),
                             ),
                             Padding(
@@ -495,14 +491,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    tooltip: 'Edit Category',
+                                    tooltip: 'Edit Unit',
                                     icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
-                                    onPressed: () => _openCategoryDialog(c),
+                                    onPressed: () => _openUnitDialog(u),
                                   ),
                                   IconButton(
-                                    tooltip: 'Delete Category',
+                                    tooltip: 'Delete Unit',
                                     icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
-                                    onPressed: () => _deleteCategory(c),
+                                    onPressed: () => _deleteUnit(u),
                                   ),
                                 ],
                               ),

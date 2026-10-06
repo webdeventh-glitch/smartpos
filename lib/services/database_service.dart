@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
@@ -185,6 +186,15 @@ class DatabaseService {
       );
     ''');
 
+    // Variation Templates table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS variation_templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        values_json TEXT NOT NULL
+      );
+    ''');
+
     // Add optional columns to products table if missing
     try {
       await db.execute("ALTER TABLE products ADD COLUMN type TEXT DEFAULT 'single'");
@@ -195,6 +205,26 @@ class DatabaseService {
     try {
       await db.execute("ALTER TABLE products ADD COLUMN warranty TEXT");
     } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE categories ADD COLUMN parent_id INTEGER");
+    } catch (_) {}
+
+    // Seed default variation templates if empty
+    final varTempRes = await db.rawQuery('SELECT COUNT(*) as c FROM variation_templates');
+    if (((varTempRes.first['c'] as int?) ?? 0) == 0) {
+      await db.insert('variation_templates', {
+        'name': 'Size',
+        'values_json': jsonEncode(['S', 'M', 'L', 'XL', 'XXL']),
+      });
+      await db.insert('variation_templates', {
+        'name': 'Color',
+        'values_json': jsonEncode(['Black', 'White', 'Navy Blue', 'Crimson Red', 'Olive Green']),
+      });
+      await db.insert('variation_templates', {
+        'name': 'Storage Capacity',
+        'values_json': jsonEncode(['64GB', '128GB', '256GB', '512GB']),
+      });
+    }
 
     // Seed units if empty
     final unitRes = await db.rawQuery('SELECT COUNT(*) as c FROM units');
@@ -1107,6 +1137,11 @@ class DatabaseService {
     return await db.insert('units', unit.toMap());
   }
 
+  Future<int> updateUnit(Unit unit) async {
+    if (unit.id == null) return 0;
+    return await db.update('units', unit.toMap(), where: 'id = ?', whereArgs: [unit.id]);
+  }
+
   Future<void> deleteUnit(int id) async {
     await db.delete('units', where: 'id = ?', whereArgs: [id]);
   }
@@ -1121,6 +1156,15 @@ class DatabaseService {
     return await db.insert('selling_price_groups', group.toMap());
   }
 
+  Future<int> updateSellingPriceGroup(SellingPriceGroup group) async {
+    if (group.id == null) return 0;
+    return await db.update('selling_price_groups', group.toMap(), where: 'id = ?', whereArgs: [group.id]);
+  }
+
+  Future<void> deleteSellingPriceGroup(int id) async {
+    await db.delete('selling_price_groups', where: 'id = ?', whereArgs: [id]);
+  }
+
   // Warranties
   Future<List<Warranty>> getWarranties() async {
     final rows = await db.query('warranties', orderBy: 'duration ASC');
@@ -1129,6 +1173,34 @@ class DatabaseService {
 
   Future<int> addWarranty(Warranty warranty) async {
     return await db.insert('warranties', warranty.toMap());
+  }
+
+  Future<int> updateWarranty(Warranty warranty) async {
+    if (warranty.id == null) return 0;
+    return await db.update('warranties', warranty.toMap(), where: 'id = ?', whereArgs: [warranty.id]);
+  }
+
+  Future<void> deleteWarranty(int id) async {
+    await db.delete('warranties', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Variation Templates
+  Future<List<VariationTemplate>> getVariationTemplates() async {
+    final rows = await db.query('variation_templates', orderBy: 'name ASC');
+    return rows.map((r) => VariationTemplate.fromMap(r)).toList();
+  }
+
+  Future<int> addVariationTemplate(VariationTemplate template) async {
+    return await db.insert('variation_templates', template.toMap());
+  }
+
+  Future<int> updateVariationTemplate(VariationTemplate template) async {
+    if (template.id == null) return 0;
+    return await db.update('variation_templates', template.toMap(), where: 'id = ?', whereArgs: [template.id]);
+  }
+
+  Future<void> deleteVariationTemplate(int id) async {
+    await db.delete('variation_templates', where: 'id = ?', whereArgs: [id]);
   }
 
   // Product Variations
@@ -1144,6 +1216,16 @@ class DatabaseService {
         await txn.insert('variations', v.toMap(prodId));
       }
       return prodId;
+    });
+  }
+
+  Future<void> updateProductWithVariations(Product product, List<ProductVariation> variations) async {
+    await db.transaction((txn) async {
+      await txn.update('products', product.toMap(), where: 'id = ?', whereArgs: [product.id]);
+      await txn.delete('variations', where: 'product_id = ?', whereArgs: [product.id]);
+      for (var v in variations) {
+        await txn.insert('variations', v.toMap(product.id!));
+      }
     });
   }
 
@@ -1240,6 +1322,15 @@ class DatabaseService {
 
   Future<int> insertCategory(Category cat) => addCategory(cat);
 
+  Future<int> updateCategory(Category cat) async {
+    if (cat.id == null) return 0;
+    return await db.update('categories', cat.toMap(), where: 'id = ?', whereArgs: [cat.id]);
+  }
+
+  Future<int> deleteCategory(int id) async {
+    return await db.delete('categories', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<List<Brand>> getBrands() async {
     final rows = await db.query('brands', orderBy: 'name ASC');
     return rows.map((e) => Brand.fromMap(e)).toList();
@@ -1250,6 +1341,15 @@ class DatabaseService {
   }
 
   Future<int> insertBrand(Brand brand) => addBrand(brand);
+
+  Future<int> updateBrand(Brand brand) async {
+    if (brand.id == null) return 0;
+    return await db.update('brands', brand.toMap(), where: 'id = ?', whereArgs: [brand.id]);
+  }
+
+  Future<int> deleteBrand(int id) async {
+    return await db.delete('brands', where: 'id = ?', whereArgs: [id]);
+  }
 
   // Contacts
   Future<List<Contact>> getContacts({String? type}) async {

@@ -81,6 +81,7 @@ class _UltimateSidebarState extends State<UltimateSidebar> {
           onTap: () {
             if (hasSubmenu && onToggleSubmenu != null) {
               onToggleSubmenu();
+              widget.onSelect(index);
             } else {
               widget.onSelect(index);
             }
@@ -247,7 +248,14 @@ class _UltimateSidebarState extends State<UltimateSidebar> {
                 if (!widget.isCollapsed && _productsExpanded) ...[
                   _subItem(title: 'List Products', index: 2),
                   _subItem(title: 'Add Product', index: 11),
-                  _subItem(title: 'Categories & Brands', index: 3),
+                  _subItem(title: 'Print Labels', index: 17),
+                  _subItem(title: 'Variations', index: 18),
+                  _subItem(title: 'Import Products', index: 23),
+                  _subItem(title: 'Selling Price Group', index: 22),
+                  _subItem(title: 'Units', index: 19),
+                  _subItem(title: 'Categories', index: 3),
+                  _subItem(title: 'Brands', index: 20),
+                  _subItem(title: 'Warranties', index: 21),
                 ],
 
                 // Sell / POS (with dropdown submenus)

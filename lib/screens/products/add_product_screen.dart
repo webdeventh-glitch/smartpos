@@ -5,12 +5,14 @@ import '../../services/database_service.dart';
 
 class AddProductScreen extends StatefulWidget {
   final BusinessSettings settings;
+  final Product? productToEdit;
   final VoidCallback onProductCreated;
   final VoidCallback onCancel;
 
   const AddProductScreen({
     super.key,
     required this.settings,
+    this.productToEdit,
     required this.onProductCreated,
     required this.onCancel,
   });
@@ -39,7 +41,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final List<String> _barcodeTypes = ['Code 128 (C128)', 'Code 39', 'EAN-13', 'UPC-A'];
 
   String _productType = 'single'; // 'single' or 'variable'
-  final List<ProductVariation> _variations = [];
+  List<ProductVariation> _variations = [];
 
   String _selectedUnit = 'Pieces (Pc)';
   final List<String> _units = ['Pieces (Pc)', 'Box', 'Kilogram (Kg)', 'Liter (Ltr)', 'Pack'];
@@ -89,15 +91,41 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final cats = await db.getCategories();
     final brs = await db.getBrands();
     final wars = await db.getWarranties();
+    List<ProductVariation> loadedVars = [];
+    if (widget.productToEdit != null && widget.productToEdit!.id != null) {
+      loadedVars = await db.getProductVariations(widget.productToEdit!.id!);
+    }
 
     if (mounted) {
       setState(() {
         _categories = cats;
         _brands = brs;
         _warranties = wars;
-        if (cats.isNotEmpty) _selectedCategory = cats.first;
-        if (brs.isNotEmpty) _selectedBrand = brs.first;
-        if (wars.isNotEmpty) _selectedWarranty = wars.first;
+        if (widget.productToEdit != null) {
+          final p = widget.productToEdit!;
+          _nameCtrl.text = p.name;
+          _skuCtrl.text = p.sku;
+          _barcodeCtrl.text = p.barcode;
+          _alertQtyCtrl.text = p.alertQuantity.toString();
+          _purchasePriceCtrl.text = p.purchasePrice.toStringAsFixed(2);
+          final margin = p.purchasePrice > 0 ? (((p.sellingPrice - p.purchasePrice) / p.purchasePrice) * 100) : 0.0;
+          _profitMarginCtrl.text = margin.toStringAsFixed(1);
+          _sellingPriceCtrl.text = p.sellingPrice.toStringAsFixed(2);
+          _openingStockCtrl.text = p.stockQuantity.toString();
+          _barcodeType = p.barcodeType;
+          _productType = p.type;
+          _selectedUnit = p.unit;
+          _selectedColor = p.imageColor ?? '#4F46E5';
+          _selectedCategory = cats.where((c) => c.id == p.categoryId).firstOrNull ?? (cats.isNotEmpty ? cats.first : null);
+          _selectedBrand = brs.where((b) => b.id == p.brandId).firstOrNull ?? (brs.isNotEmpty ? brs.first : null);
+          _selectedWarranty = wars.where((w) => w.name == p.warranty).firstOrNull ?? (wars.isNotEmpty ? wars.first : null);
+          _variations = List.from(loadedVars);
+        } else {
+          if (cats.isNotEmpty) _selectedCategory = cats.first;
+          if (brs.isNotEmpty) _selectedBrand = brs.first;
+          if (wars.isNotEmpty) _selectedWarranty = wars.first;
+          _autoGenerateSku();
+        }
         _isLoading = false;
       });
     }
@@ -377,7 +405,32 @@ class _AddProductScreenState extends State<AddProductScreen> {
         warranty: _selectedWarranty?.name,
       );
 
-      if (_productType == 'variable' && _variations.isNotEmpty) {
+      if (widget.productToEdit != null && widget.productToEdit!.id != null) {
+        final toUpdate = Product(
+          id: widget.productToEdit!.id,
+          name: _nameCtrl.text.trim(),
+          sku: _skuCtrl.text.trim(),
+          barcode: _barcodeCtrl.text.trim(),
+          type: _productType,
+          barcodeType: _barcodeType,
+          categoryId: _selectedCategory?.id,
+          categoryName: _selectedCategory?.name ?? 'General',
+          brandId: _selectedBrand?.id,
+          brandName: _selectedBrand?.name ?? 'Standard',
+          unit: _selectedUnit,
+          purchasePrice: _productType == 'variable' && _variations.isNotEmpty ? _variations.first.purchasePrice : purchase,
+          sellingPrice: _productType == 'variable' && _variations.isNotEmpty ? _variations.first.sellingPrice : selling,
+          stockQuantity: _productType == 'variable' ? totalVarStock : stock,
+          alertQuantity: alert,
+          imageColor: _selectedColor,
+          warranty: _selectedWarranty?.name,
+        );
+        if (_productType == 'variable' && _variations.isNotEmpty) {
+          await db.updateProductWithVariations(toUpdate, _variations);
+        } else {
+          await db.updateProduct(toUpdate);
+        }
+      } else if (_productType == 'variable' && _variations.isNotEmpty) {
         await db.addProductWithVariations(product, _variations);
       } else {
         await db.insertProduct(product);
@@ -466,9 +519,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Add new product',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                  Text(
+                    widget.productToEdit != null ? 'Edit product' : 'Add new product',
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
                   ),
                   Row(
                     children: [
@@ -477,6 +530,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           foregroundColor: const Color(0xFF64748B),
                           side: const BorderSide(color: Color(0xFFCBD5E1)),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: widget.onCancel,
                         icon: const Icon(Icons.close, size: 16),
@@ -485,10 +539,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       const SizedBox(width: 10),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF004EEB),
+                          backgroundColor: const Color(0xFF4F46E5),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          elevation: 1,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          elevation: 0,
                         ),
                         onPressed: _isSaving
                             ? null
@@ -505,7 +560,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
                             : const Icon(Icons.check, size: 16),
-                        label: Text(_isSaving ? 'Saving...' : 'Save Product'),
+                        label: Text(_isSaving ? 'Saving...' : (widget.productToEdit != null ? 'Update Product' : 'Save Product')),
                       ),
                     ],
                   ),

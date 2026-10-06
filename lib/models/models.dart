@@ -208,14 +208,16 @@ class Category {
   final String name;
   final String code;
   final String? description;
+  final int? parentId;
 
-  Category({this.id, required this.name, required this.code, this.description});
+  Category({this.id, required this.name, required this.code, this.description, this.parentId});
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
         'name': name,
         'code': code,
         'description': description ?? '',
+        'parent_id': parentId,
       };
 
   factory Category.fromMap(Map<String, dynamic> map) => Category(
@@ -223,7 +225,40 @@ class Category {
         name: map['name'] as String,
         code: map['code'] as String? ?? '',
         description: map['description'] as String?,
+        parentId: map['parent_id'] as int?,
       );
+}
+
+/// Variation Template in Ultimate POS (e.g. Size, Color)
+class VariationTemplate {
+  final int? id;
+  final String name;
+  final List<String> values;
+
+  VariationTemplate({this.id, required this.name, required this.values});
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'values_json': jsonEncode(values),
+      };
+
+  factory VariationTemplate.fromMap(Map<String, dynamic> map) {
+    List<String> parsedValues = [];
+    if (map['values_json'] != null) {
+      try {
+        final decoded = jsonDecode(map['values_json'] as String);
+        if (decoded is List) {
+          parsedValues = decoded.map((e) => e.toString()).toList();
+        }
+      } catch (_) {}
+    }
+    return VariationTemplate(
+      id: map['id'] as int?,
+      name: map['name'] as String,
+      values: parsedValues,
+    );
+  }
 }
 
 /// Brand representation

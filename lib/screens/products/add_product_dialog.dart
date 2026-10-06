@@ -331,8 +331,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           const SizedBox(width: 12),
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF004EEB),
+                              backgroundColor: const Color(0xFF4F46E5),
                               foregroundColor: Colors.white,
+                              elevation: 0,
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),

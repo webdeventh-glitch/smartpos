@@ -8,6 +8,13 @@ import 'pos/pos_terminal_screen.dart';
 import 'products/products_list_screen.dart';
 import 'products/add_product_screen.dart';
 import 'products/categories_screen.dart';
+import 'products/brands_screen.dart';
+import 'products/units_screen.dart';
+import 'products/variation_templates_screen.dart';
+import 'products/print_labels_screen.dart';
+import 'products/warranties_screen.dart';
+import 'products/selling_price_groups_screen.dart';
+import 'products/import_products_screen.dart';
 import 'sales/sales_list_screen.dart';
 import 'purchases/purchases_list_screen.dart';
 import 'contacts/customers_screen.dart';
@@ -42,6 +49,9 @@ class _MainShellState extends State<MainShell> {
     _activeLocationName = _settings.branchName;
   }
 
+  Product? _productToEdit;
+  Product? _productToPrintLabel;
+
   void _onOpenPos() {
     setState(() => _selectedIndex = 1); // Index 1 is POS Terminal
   }
@@ -66,10 +76,21 @@ class _MainShellState extends State<MainShell> {
       case 2:
         return ProductsListScreen(
           settings: _settings,
-          onNavigateToAddProduct: () => setState(() => _selectedIndex = 11),
+          onNavigateToAddProduct: () => setState(() {
+            _productToEdit = null;
+            _selectedIndex = 11;
+          }),
+          onNavigateToEditProduct: (p) => setState(() {
+            _productToEdit = p;
+            _selectedIndex = 11;
+          }),
+          onNavigateToPrintLabels: (p) => setState(() {
+            _productToPrintLabel = p;
+            _selectedIndex = 17;
+          }),
         );
       case 3:
-        return const CategoriesBrandsScreen();
+        return CategoriesScreen(settings: _settings);
       case 4:
         return SalesListScreen(settings: _settings, onOpenPos: _onOpenPos);
       case 5:
@@ -90,8 +111,15 @@ class _MainShellState extends State<MainShell> {
       case 11:
         return AddProductScreen(
           settings: _settings,
-          onProductCreated: () => setState(() => _selectedIndex = 2),
-          onCancel: () => setState(() => _selectedIndex = 2),
+          productToEdit: _productToEdit,
+          onProductCreated: () => setState(() {
+            _productToEdit = null;
+            _selectedIndex = 2;
+          }),
+          onCancel: () => setState(() {
+            _productToEdit = null;
+            _selectedIndex = 2;
+          }),
         );
       case 12:
         return UserManagementScreen(settings: _settings);
@@ -103,6 +131,26 @@ class _MainShellState extends State<MainShell> {
         return PaymentAccountsScreen(settings: _settings);
       case 16:
         return NotificationTemplatesScreen(settings: _settings);
+      case 17:
+        return PrintLabelsScreen(
+          settings: _settings,
+          initialProduct: _productToPrintLabel,
+        );
+      case 18:
+        return VariationTemplatesScreen(settings: _settings);
+      case 19:
+        return UnitsScreen(settings: _settings);
+      case 20:
+        return BrandsScreen(settings: _settings);
+      case 21:
+        return WarrantiesScreen(settings: _settings);
+      case 22:
+        return SellingPriceGroupsScreen(settings: _settings);
+      case 23:
+        return ImportProductsScreen(
+          settings: _settings,
+          onImportSuccess: () => setState(() => _selectedIndex = 2),
+        );
       default:
         return DashboardScreen(
           settings: _settings,
