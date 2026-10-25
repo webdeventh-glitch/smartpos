@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
@@ -86,7 +87,12 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
                     ),
-                    child: Icon(Icons.inventory_2_rounded, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5), size: 24),
+                    child: (p.imageColor != null && File(p.imageColor!).existsSync())
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.file(File(p.imageColor!), fit: BoxFit.cover),
+                          )
+                        : Icon(Icons.inventory_2_rounded, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5), size: 24),
                   ),
                   const SizedBox(width: 14),
                   Expanded(

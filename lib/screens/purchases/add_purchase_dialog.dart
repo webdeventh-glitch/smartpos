@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import 'product_search_dialog.dart';
 
 class AddPurchaseDialog extends StatefulWidget {
   final VoidCallback onPurchaseSaved;
@@ -23,6 +24,7 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
   String _status = 'received';
   bool _loading = true;
   bool _isSaving = false;
+  BusinessSettings? _settings;
 
   late TextEditingController _costController;
   final TextEditingController _qtyController = TextEditingController(text: '10');
@@ -41,12 +43,14 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
     final sups = await db.getContacts(type: 'supplier');
     final prods = await db.getProducts();
     final locs = await db.getBusinessLocations();
+    final settings = await db.getBusinessSettings();
 
     if (mounted) {
       setState(() {
         _suppliers = sups;
         _products = prods;
         _locations = locs;
+        _settings = settings;
         if (locs.isNotEmpty) _selectedLocation = locs.first;
         if (sups.isNotEmpty) _selectedSupplier = sups.first;
         if (prods.isNotEmpty) {
@@ -59,6 +63,24 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
     }
   }
 
+  void _openProductSearchDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => ProductSearchDialog(
+        products: _products,
+        selectedProduct: _selectedProduct,
+        currencySymbol: _settings?.currencySymbol ?? 'Rs',
+        onProductSelected: (p) {
+          setState(() {
+            _selectedProduct = p;
+            _costController.text = p.purchasePrice.toStringAsFixed(2);
+            _recalcTotal();
+          });
+        },
+      ),
+    );
+  }
+
   void _recalcTotal() {
     final cost = double.tryParse(_costController.text.trim()) ?? 0.0;
     final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
@@ -67,7 +89,19 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate() || _selectedSupplier == null || _selectedProduct == null) return;
+    if (_selectedProduct == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please click and select a product to restock'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+    if (_selectedSupplier == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a supplier'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+    if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
     try {
@@ -303,28 +337,68 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                           ),
                           const SizedBox(height: 14),
 
-                          // Product to Restock
+                          // Product to Restock (Searchable)
                           _label(context, 'Product to Restock', isRequired: true),
-                          DropdownButtonFormField<Product>(
-                            dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                            style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                            decoration: inputDecoration,
-                            initialValue: _selectedProduct,
-                            items: _products
-                                .map((p) => DropdownMenuItem(
-                                      value: p,
-                                      child: Text('${p.name} (Current: ${p.stockQuantity.toInt()})', style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                                    ))
-                                .toList(),
-                            onChanged: (val) {
-                              setState(() {
-                                _selectedProduct = val;
-                                if (val != null) {
-                                  _costController.text = val.purchasePrice.toStringAsFixed(2);
-                                  _recalcTotal();
-                                }
-                              });
-                            },
+                          InkWell(
+                            onTap: _openProductSearchDialog,
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.medication_liquid_rounded, size: 20, color: Color(0xFF4F46E5)),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _selectedProduct != null
+                                              ? '${_selectedProduct!.name} (Current: ${_selectedProduct!.stockQuantity.toInt()})'
+                                              : 'Click to search & select product...',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: _selectedProduct != null ? FontWeight.bold : FontWeight.normal,
+                                            color: _selectedProduct != null
+                                                ? (isDark ? Colors.white : const Color(0xFF0F172A))
+                                                : const Color(0xFF94A3B8),
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (_selectedProduct != null)
+                                          Text(
+                                            'SKU: ${_selectedProduct!.sku} • Unit Cost: ${_settings?.currencySymbol ?? 'Rs'}${_selectedProduct!.purchasePrice.toStringAsFixed(2)}',
+                                            style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.search, size: 14, color: Color(0xFF4F46E5)),
+                                        SizedBox(width: 4),
+                                        Text('Search', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 14),
 
@@ -341,7 +415,7 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                                       decoration: inputDecoration.copyWith(
-                                        prefixText: '\$ ',
+                                        prefixText: '${_settings?.currencySymbol ?? 'Rs'} ',
                                         prefixStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                                       ),
                                       onChanged: (_) => setState(_recalcTotal),
@@ -389,7 +463,7 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                   ),
                                 ),
                                 Text(
-                                  '\$${total.toStringAsFixed(2)}',
+                                  '${_settings?.currencySymbol ?? 'Rs'}${total.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,
                                     fontSize: 17,
@@ -414,7 +488,7 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                                       decoration: inputDecoration.copyWith(
-                                        prefixText: '\$ ',
+                                        prefixText: '${_settings?.currencySymbol ?? 'Rs'} ',
                                         prefixStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                                       ),
                                     ),

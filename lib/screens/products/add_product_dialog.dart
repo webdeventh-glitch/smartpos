@@ -137,6 +137,45 @@ class _AddProductDialogState extends State<AddProductDialog> {
     }
   }
 
+  Future<void> _pickExpiryDate() async {
+    DateTime initial = DateTime.now().add(const Duration(days: 365 * 2));
+    final text = _expiryController.text.trim();
+    if (text.isNotEmpty) {
+      try {
+        final clean = text.replaceAll('/', '-');
+        final parts = clean.split('-');
+        if (parts.length == 2) {
+          int m = int.tryParse(parts[0]) ?? 1;
+          int y = int.tryParse(parts[1]) ?? DateTime.now().year;
+          if (parts[0].length == 4) {
+            y = int.tryParse(parts[0]) ?? DateTime.now().year;
+            m = int.tryParse(parts[1]) ?? 1;
+          }
+          if (y < 100) y += 2000;
+          if (m >= 1 && m <= 12) {
+            initial = DateTime(y, m, 1);
+          }
+        }
+      } catch (_) {}
+    }
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2045),
+      initialDatePickerMode: DatePickerMode.year,
+      helpText: 'SELECT EXPIRY DATE',
+    );
+
+    if (picked != null) {
+      final formatted = '${picked.month.toString().padLeft(2, '0')}-${picked.year}';
+      setState(() {
+        _expiryController.text = formatted;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -367,10 +406,15 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           Expanded(
                             child: TextFormField(
                               controller: _expiryController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Expiry Date (MM-YYYY)',
                                 hintText: 'e.g. 12-2028',
                                 isDense: true,
+                                suffixIcon: IconButton(
+                                  icon: const Icon(Icons.calendar_month, size: 18, color: Color(0xFF004EEB)),
+                                  tooltip: 'Select Expiry Date',
+                                  onPressed: _pickExpiryDate,
+                                ),
                               ),
                             ),
                           ),

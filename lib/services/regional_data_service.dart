@@ -300,6 +300,45 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
       return null;
     }
   }
+
+  /// Opens native Windows file dialog to pick a product image file
+  static Future<String?> pickProductImage() async {
+    try {
+      const script = r'''
+Add-Type -AssemblyName System.Windows.Forms
+$dialog = New-Object System.Windows.Forms.OpenFileDialog
+$dialog.Title = "Select Product Image (PNG, JPG, WEBP, JPEG)"
+$dialog.Filter = "Image Files (*.png;*.jpg;*.jpeg;*.webp;*.bmp)|*.png;*.jpg;*.jpeg;*.webp;*.bmp|All Files (*.*)|*.*"
+$dialog.Multiselect = $false
+if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+    [Console]::Write($dialog.FileName)
+}
+''';
+      final res = await Process.run('powershell', ['-NoProfile', '-Command', script]);
+      final pickedPath = (res.stdout as String).trim();
+      if (pickedPath.isEmpty || !File(pickedPath).existsSync()) {
+        return null;
+      }
+
+      // Persistently copy into AppData/Local/SmartPOS/products
+      final base = Platform.environment['LOCALAPPDATA'] ??
+          Platform.environment['APPDATA'] ??
+          Directory.current.path;
+      final prodDir = Directory(p.join(base, 'SmartPOS', 'products'));
+      if (!prodDir.existsSync()) {
+        await prodDir.create(recursive: true);
+      }
+
+      final ext = p.extension(pickedPath);
+      final filename = 'prod_${DateTime.now().millisecondsSinceEpoch}$ext';
+      final destination = p.join(prodDir.path, filename);
+      await File(pickedPath).copy(destination);
+      return destination;
+    } catch (e) {
+      debugPrint('Error picking product image: $e');
+      return null;
+    }
+  }
 }
 
 /// Searchable Currency Selector Dialog

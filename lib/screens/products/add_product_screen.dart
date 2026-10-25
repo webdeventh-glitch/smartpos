@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p_path;
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/regional_data_service.dart';
 
 class AddProductScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -69,6 +72,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String _selectedColor = '#004EEB';
+  String? _pickedImagePath;
 
   @override
   void initState() {
@@ -125,11 +129,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _barcodeType = p.barcodeType;
           _productType = p.type;
           _selectedUnit = p.unit;
-          _selectedColor = p.imageColor ?? '#4F46E5';
+          if (p.imageColor != null && File(p.imageColor!).existsSync()) {
+            _pickedImagePath = p.imageColor;
+            _imageCtrl.text = p_path.basename(p.imageColor!);
+          } else {
+            _selectedColor = p.imageColor ?? '#4F46E5';
+            _imageCtrl.text = 'Badge ($_selectedColor)';
+          }
           _batchCtrl.text = p.batchNumber ?? '';
           _expiryCtrl.text = p.expiryDate ?? '';
-          _bonusQtyCtrl.text = p.bonusQty != null ? p.bonusQty!.toString() : '0';
-          _packSizeCtrl.text = p.packSize != null ? p.packSize!.toString() : '1';
+          _bonusQtyCtrl.text = p.bonusQty.toString();
+          _packSizeCtrl.text = p.packSize.toString();
           _selectedCategory = cats.where((c) => c.id == p.categoryId).firstOrNull ?? (cats.isNotEmpty ? cats.first : null);
           _selectedBrand = brs.where((b) => b.id == p.brandId).firstOrNull ?? (brs.isNotEmpty ? brs.first : null);
           _selectedWarranty = wars.where((w) => w.name == p.warranty).firstOrNull ?? (wars.isNotEmpty ? wars.first : null);
@@ -197,10 +207,88 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  Future<void> _pickProductImage() async {
+    try {
+      final picked = await NativeFileHelper.pickProductImage();
+      if (picked != null) {
+        setState(() {
+          _pickedImagePath = picked;
+          _imageCtrl.text = p_path.basename(picked);
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFF10B981),
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Product image selected: ${p_path.basename(picked)}'),
+                ],
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking product image: $e');
+    }
+  }
+
+  void _removeProductImage() {
+    setState(() {
+      _pickedImagePath = null;
+      _imageCtrl.clear();
+    });
+  }
+
+  Future<void> _pickExpiryDate([TextEditingController? targetCtrl]) async {
+    final ctrl = targetCtrl ?? _expiryCtrl;
+    DateTime initial = DateTime.now().add(const Duration(days: 365 * 2)); // default 2 years ahead
+
+    // Parse existing text if valid
+    final text = ctrl.text.trim();
+    if (text.isNotEmpty) {
+      try {
+        final clean = text.replaceAll('/', '-');
+        final parts = clean.split('-');
+        if (parts.length == 2) {
+          int m = int.tryParse(parts[0]) ?? 1;
+          int y = int.tryParse(parts[1]) ?? DateTime.now().year;
+          if (parts[0].length == 4) {
+            y = int.tryParse(parts[0]) ?? DateTime.now().year;
+            m = int.tryParse(parts[1]) ?? 1;
+          }
+          if (y < 100) y += 2000;
+          if (m >= 1 && m <= 12) {
+            initial = DateTime(y, m, 1);
+          }
+        }
+      } catch (_) {}
+    }
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2045),
+      initialDatePickerMode: DatePickerMode.year,
+      helpText: 'SELECT EXPIRY DATE',
+    );
+
+    if (picked != null) {
+      final formatted = '${picked.month.toString().padLeft(2, '0')}-${picked.year}';
+      setState(() {
+        ctrl.text = formatted;
+      });
+    }
+  }
+
   void _useAiImage() {
     final colors = ['#004EEB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
     final pickedColor = colors[Random().nextInt(colors.length)];
     setState(() {
+      _pickedImagePath = null;
       _selectedColor = pickedColor;
       _imageCtrl.text = 'Generated Badge ($pickedColor)';
     });
@@ -408,12 +496,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
       }
     }
 
-    final expRaw = _expiryCtrl.text.trim();
+    String expRaw = _expiryCtrl.text.trim().replaceAll('/', '-');
     if (expRaw.isNotEmpty) {
+      final parts = expRaw.split('-');
+      if (parts.length == 2) {
+        int? m = int.tryParse(parts[0]);
+        int? y = int.tryParse(parts[1]);
+        if (m != null && y != null && m >= 1 && m <= 12) {
+          if (y < 100) y += 2000;
+          expRaw = '${m.toString().padLeft(2, '0')}-$y';
+          _expiryCtrl.text = expRaw;
+        }
+      }
       final expRegex = RegExp(r'^(0[1-9]|1[0-2])-\d{4}$|^\d{4}-(0[1-9]|1[0-2])(-\d{2})?$');
       if (!expRegex.hasMatch(expRaw)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: Colors.orange, content: Text('Expiry Date format should be MM-YYYY (e.g. 12-2028).')),
+          const SnackBar(backgroundColor: Colors.orange, content: Text('Expiry Date format should be MM-YYYY (e.g. 12-2028). Click calendar to select.')),
         );
         return false;
       }
@@ -458,7 +556,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         sellingPrice: _productType == 'variable' && _variations.isNotEmpty ? _variations.first.sellingPrice : selling,
         stockQuantity: _productType == 'variable' ? totalVarStock : stock,
         alertQuantity: alert,
-        imageColor: _selectedColor,
+        imageColor: _pickedImagePath ?? _selectedColor,
         warranty: _selectedWarranty?.name,
         batchNumber: batchVal,
         expiryDate: expVal,
@@ -483,7 +581,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           sellingPrice: _productType == 'variable' && _variations.isNotEmpty ? _variations.first.sellingPrice : selling,
           stockQuantity: _productType == 'variable' ? totalVarStock : stock,
           alertQuantity: alert,
-          imageColor: _selectedColor,
+          imageColor: _pickedImagePath ?? _selectedColor,
           warranty: _selectedWarranty?.name,
           batchNumber: batchVal,
           expiryDate: expVal,
@@ -1154,11 +1252,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        _buildFieldLabel('Expiry Date', hasInfo: true, info: 'MM-YYYY format e.g. 12-2028'),
+                                        _buildFieldLabel('Expiry Date', hasInfo: true, info: 'MM-YYYY format e.g. 12-2028 (Click calendar to pick)'),
                                         TextFormField(
                                           controller: _expiryCtrl,
                                           decoration: _inputDecor('MM-YYYY (e.g. 12-2028)').copyWith(
-                                            suffixIcon: const Icon(Icons.calendar_month, size: 18, color: Color(0xFF64748B)),
+                                            suffixIcon: IconButton(
+                                              icon: const Icon(Icons.calendar_month, size: 20, color: Color(0xFF004EEB)),
+                                              tooltip: 'Select Expiry Date',
+                                              onPressed: () => _pickExpiryDate(_expiryCtrl),
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -1220,7 +1322,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             _buildFieldLabel('Expiry (MM-YYYY)'),
-                                            TextFormField(controller: _expiryCtrl, decoration: _inputDecor('12-2028')),
+                                            TextFormField(
+                                              controller: _expiryCtrl,
+                                              decoration: _inputDecor('12-2028').copyWith(
+                                                suffixIcon: IconButton(
+                                                  icon: const Icon(Icons.calendar_month, size: 18, color: Color(0xFF004EEB)),
+                                                  tooltip: 'Select Expiry Date',
+                                                  onPressed: () => _pickExpiryDate(_expiryCtrl),
+                                                ),
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -1810,7 +1921,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
             ),
             InkWell(
-              onTap: _useAiImage,
+              onTap: _pickProductImage,
               child: Container(
                 height: 42,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1831,23 +1942,54 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
         const SizedBox(height: 6),
         const Text(
-          'Max File size: 5MB\nAspect ratio should be 1:1',
+          'Max File size: 5MB • Formats: PNG, JPG, JPEG, WEBP\nAspect ratio: 1:1 recommended',
           style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), height: 1.3),
         ),
 
         const SizedBox(height: 12),
-        // Live swatch preview
-        Container(
-          height: 60,
-          width: 60,
-          decoration: BoxDecoration(
-            color: Color(int.parse(_selectedColor.replaceFirst('#', '0xFF'))),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFCBD5E1)),
-          ),
-          child: const Center(
-            child: Icon(Icons.inventory_2, color: Colors.white, size: 28),
-          ),
+        // Live swatch or image preview
+        Row(
+          children: [
+            Container(
+              height: 64,
+              width: 64,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFCBD5E1)),
+              ),
+              child: (_pickedImagePath != null && File(_pickedImagePath!).existsSync())
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        File(_pickedImagePath!),
+                        fit: BoxFit.cover,
+                        width: 64,
+                        height: 64,
+                      ),
+                    )
+                  : Container(
+                      decoration: BoxDecoration(
+                        color: Color(int.tryParse(_selectedColor.replaceFirst('#', '0xFF')) ?? 0xFF004EEB),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.inventory_2, color: Colors.white, size: 28),
+                      ),
+                    ),
+            ),
+            if (_pickedImagePath != null && File(_pickedImagePath!).existsSync()) ...[
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: _removeProductImage,
+                icon: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                label: const Text('Remove Image', style: TextStyle(color: Colors.red, fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.redAccent),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+            ],
+          ],
         ),
       ],
     );

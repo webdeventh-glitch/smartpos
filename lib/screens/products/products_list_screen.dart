@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
@@ -495,7 +496,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                       color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF818CF8), size: 18),
+                                    child: (p.imageColor != null && File(p.imageColor!).existsSync())
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Image.file(File(p.imageColor!), fit: BoxFit.cover),
+                                          )
+                                        : const Icon(Icons.shopping_bag_outlined, color: Color(0xFF818CF8), size: 18),
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
