@@ -128,14 +128,19 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
     super.dispose();
   }
 
-  Widget _label(String text, {bool isRequired = false}) {
+  Widget _label(BuildContext context, String text, {bool isRequired = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 5),
       child: Row(
         children: [
           Text(
             text,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+            ),
           ),
           if (isRequired)
             const Text(
@@ -149,9 +154,19 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final cost = double.tryParse(_costController.text.trim()) ?? 0.0;
     final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
     final total = cost * qty;
+
+    final inputDecoration = InputDecoration(
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      filled: true,
+      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+    );
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -159,8 +174,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
       child: Container(
         width: 560,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           boxShadow: const [
             BoxShadow(color: Color(0x1F000000), blurRadius: 24, offset: Offset(0, 8)),
           ],
@@ -179,8 +195,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                     // Header
                     Container(
                       padding: const EdgeInsets.fromLTRB(22, 18, 16, 16),
-                      decoration: const BoxDecoration(
-                        border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+                      decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9))),
                       ),
                       child: Row(
                         children: [
@@ -188,30 +204,37 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEEF2FF),
+                              color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF4F46E5), size: 22),
+                            child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF818CF8), size: 22),
                           ),
                           const SizedBox(width: 14),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Receive Stock / Add Purchase',
-                                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  ),
                                 ),
-                                SizedBox(height: 2),
+                                const SizedBox(height: 2),
                                 Text(
                                   'Restock product inventories and update supplier payables',
-                                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF94A3B8)),
+                            icon: Icon(Icons.close_rounded, size: 20, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                         ],
@@ -231,18 +254,13 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _label('Receiving Location', isRequired: true),
+                                    _label(context, 'Receiving Location', isRequired: true),
                                     DropdownButtonFormField<BusinessLocation>(
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                                        filled: true,
-                                        fillColor: const Color(0xFFF8FAFC),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                                      ),
+                                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                      decoration: inputDecoration,
                                       initialValue: _selectedLocation,
-                                      items: _locations.map((loc) => DropdownMenuItem(value: loc, child: Text(loc.name, style: const TextStyle(fontSize: 13)))).toList(),
+                                      items: _locations.map((loc) => DropdownMenuItem(value: loc, child: Text(loc.name, style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A))))).toList(),
                                       onChanged: (val) => setState(() => _selectedLocation = val),
                                     ),
                                   ],
@@ -253,21 +271,16 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _label('Purchase Status', isRequired: true),
+                                    _label(context, 'Purchase Status', isRequired: true),
                                     DropdownButtonFormField<String>(
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                                        filled: true,
-                                        fillColor: const Color(0xFFF8FAFC),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                                      ),
+                                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                      decoration: inputDecoration,
                                       initialValue: _status,
-                                      items: const [
-                                        DropdownMenuItem(value: 'received', child: Text('Received (Add to Stock)', style: TextStyle(fontSize: 13))),
-                                        DropdownMenuItem(value: 'pending', child: Text('Pending Approval', style: TextStyle(fontSize: 13))),
-                                        DropdownMenuItem(value: 'ordered', child: Text('Ordered (Awaiting)', style: TextStyle(fontSize: 13))),
+                                      items: [
+                                        DropdownMenuItem(value: 'received', child: Text('Received (Add to Stock)', style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                                        DropdownMenuItem(value: 'pending', child: Text('Pending Approval', style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                                        DropdownMenuItem(value: 'ordered', child: Text('Ordered (Awaiting)', style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)))),
                                       ],
                                       onChanged: (val) => setState(() => _status = val ?? 'received'),
                                     ),
@@ -279,38 +292,28 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                           const SizedBox(height: 14),
 
                           // Supplier
-                          _label('Select Supplier', isRequired: true),
+                          _label(context, 'Select Supplier', isRequired: true),
                           DropdownButtonFormField<Contact>(
-                            decoration: InputDecoration(
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                              filled: true,
-                              fillColor: const Color(0xFFF8FAFC),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                            ),
+                            dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                            decoration: inputDecoration,
                             initialValue: _selectedSupplier,
-                            items: _suppliers.map((s) => DropdownMenuItem(value: s, child: Text(s.name, style: const TextStyle(fontSize: 13)))).toList(),
+                            items: _suppliers.map((s) => DropdownMenuItem(value: s, child: Text(s.name, style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A))))).toList(),
                             onChanged: (val) => setState(() => _selectedSupplier = val),
                           ),
                           const SizedBox(height: 14),
 
                           // Product to Restock
-                          _label('Product to Restock', isRequired: true),
+                          _label(context, 'Product to Restock', isRequired: true),
                           DropdownButtonFormField<Product>(
-                            decoration: InputDecoration(
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                              filled: true,
-                              fillColor: const Color(0xFFF8FAFC),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                            ),
+                            dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                            decoration: inputDecoration,
                             initialValue: _selectedProduct,
                             items: _products
                                 .map((p) => DropdownMenuItem(
                                       value: p,
-                                      child: Text('${p.name} (Current: ${p.stockQuantity.toInt()})', style: const TextStyle(fontSize: 13)),
+                                      child: Text('${p.name} (Current: ${p.stockQuantity.toInt()})', style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A))),
                                     ))
                                 .toList(),
                             onChanged: (val) {
@@ -332,19 +335,14 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _label('Unit Cost Price'),
+                                    _label(context, 'Unit Cost Price'),
                                     TextFormField(
                                       controller: _costController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                                      decoration: InputDecoration(
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                      decoration: inputDecoration.copyWith(
                                         prefixText: '\$ ',
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                                        filled: true,
-                                        fillColor: const Color(0xFFF8FAFC),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                        prefixStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                                       ),
                                       onChanged: (_) => setState(_recalcTotal),
                                     ),
@@ -356,19 +354,12 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _label('Quantity to Receive'),
+                                    _label(context, 'Quantity to Receive'),
                                     TextFormField(
                                       controller: _qtyController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                                        filled: true,
-                                        fillColor: const Color(0xFFF8FAFC),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                                      ),
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                      decoration: inputDecoration,
                                       onChanged: (_) => setState(_recalcTotal),
                                     ),
                                   ],
@@ -382,15 +373,29 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEEF2FF),
+                              color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.3) : const Color(0xFFEEF2FF),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFC7D2FE)),
+                              border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Total Purchase Amount:', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4338CA), fontSize: 13)),
-                                Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF312E81))),
+                                Text(
+                                  'Total Purchase Amount:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  '\$${total.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 17,
+                                    color: isDark ? Colors.white : const Color(0xFF312E81),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -403,19 +408,14 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _label('Amount Paid Now'),
+                                    _label(context, 'Amount Paid Now'),
                                     TextFormField(
                                       controller: _paidController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                                      decoration: InputDecoration(
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                      decoration: inputDecoration.copyWith(
                                         prefixText: '\$ ',
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                                        filled: true,
-                                        fillColor: const Color(0xFFF8FAFC),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                        prefixStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                                       ),
                                     ),
                                   ],
@@ -426,18 +426,13 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _label('Notes / Reference'),
+                                    _label(context, 'Notes / Reference'),
                                     TextFormField(
                                       controller: _noteController,
-                                      style: const TextStyle(fontSize: 13),
-                                      decoration: InputDecoration(
+                                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                      decoration: inputDecoration.copyWith(
                                         hintText: 'e.g. Shipment #12',
-                                        isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                                        filled: true,
-                                        fillColor: const Color(0xFFF8FAFC),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                        hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                                       ),
                                     ),
                                   ],
@@ -452,19 +447,19 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                     // Footer
                     Container(
                       padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-                        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                        border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           OutlinedButton(
                             style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF475569),
-                              side: const BorderSide(color: Color(0xFFCBD5E1)),
+                              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                              foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                              side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),

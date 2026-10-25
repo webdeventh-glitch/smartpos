@@ -15,8 +15,6 @@ class PrintLabelsScreen extends StatefulWidget {
 class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
   List<Product> _allProducts = [];
   final Map<int, int> _selectedProductQuantities = {};
-  String _productSearch = '';
-  bool _loading = true;
 
   // Print Settings
   String _paperSize = '24 Labels per Sheet (A4)';
@@ -37,7 +35,6 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
     if (mounted) {
       setState(() {
         _allProducts = list;
-        _loading = false;
         if (widget.initialProduct != null && widget.initialProduct!.id != null) {
           _selectedProductQuantities[widget.initialProduct!.id!] = 4;
         } else if (list.isNotEmpty) {

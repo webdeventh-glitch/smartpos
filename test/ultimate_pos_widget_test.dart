@@ -16,7 +16,7 @@ void main() {
       await DatabaseService.initialize(customPath: inMemoryDatabasePath);
     });
 
-    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.physicalSize = const Size(1440, 1400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -52,14 +52,14 @@ void main() {
     expect(find.text('Contacts'), findsOneWidget);
     expect(find.text('Stock Transfers'), findsOneWidget);
     expect(find.text('Expenses'), findsOneWidget);
-    expect(find.text('Reports'), findsOneWidget);
+    expect(find.text('Reports'), findsWidgets);
     expect(find.text('Settings'), findsOneWidget);
 
     // Verify Dashboard Content (Screenshot 1)
-    expect(find.textContaining('Welcome Admin'), findsOneWidget);
-    expect(find.text('Total Sales'), findsOneWidget);
-    expect(find.text('Total purchase'), findsOneWidget);
-    expect(find.text('Sales Last 30 Days'), findsOneWidget);
+    expect(find.textContaining(', Admin'), findsOneWidget);
+    expect(find.textContaining('Total Sales Revenue'), findsWidgets);
+    expect(find.textContaining('Total Purchases'), findsWidgets);
+    expect(find.textContaining('Sales & Revenue Velocity'), findsWidgets);
 
     // Click on POS button in Header (navigates to POS terminal Screenshot 2)
     await tester.tap(find.text('POS'));

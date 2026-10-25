@@ -43,15 +43,15 @@ class _CustomersScreenState extends State<CustomersScreen> {
     );
   }
 
-  Widget _fieldLabel(String label) {
+  Widget _fieldLabel(String label, {bool isDark = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF334155),
+          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
         ),
       ),
     );
@@ -66,16 +66,23 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
     if (!mounted) return;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 8,
-          backgroundColor: Colors.white,
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           child: Container(
             width: 480,
             padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,54 +96,58 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD1FAE5),
+                            color: isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.payments_rounded, color: Color(0xFF059669), size: 20),
+                          child: Icon(Icons.payments_rounded, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF059669), size: 20),
                         ),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Receive Due Payment',
-                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              ),
                             ),
                             Text(
                               'Customer: ${customer.name}',
-                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                             ),
                           ],
                         ),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                      icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                       onPressed: () => Navigator.pop(ctx),
                       splashRadius: 18,
                     ),
                   ],
                 ),
-                const Divider(height: 24, color: Color(0xFFE2E8F0)),
+                Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
 
                 // Outstanding Due Card
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
+                    color: isDark ? const Color(0xFF450A0A).withValues(alpha: 0.4) : const Color(0xFFFEF2F2),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFFECACA)),
+                    border: Border.all(color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Total Outstanding Balance Due:',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF991B1B), fontSize: 13),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B), fontSize: 13),
                       ),
                       Text(
                         '${widget.settings.currencySymbol}${customer.balance.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFFDC2626)),
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
                       ),
                     ],
                   ),
@@ -144,42 +155,60 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 const SizedBox(height: 16),
 
                 // Amount
-                _fieldLabel('Payment Amount (${widget.settings.currencySymbol}) *'),
+                _fieldLabel('Payment Amount (${widget.settings.currencySymbol}) *', isDark: isDark),
                 TextField(
                   controller: amountCtrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold),
                   decoration: InputDecoration(
                     prefixText: '${widget.settings.currencySymbol} ',
+                    prefixStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     isDense: true,
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
                   ),
                 ),
                 const SizedBox(height: 14),
 
                 // Method
-                _fieldLabel('Payment Method *'),
+                _fieldLabel('Payment Method *', isDark: isDark),
                 DropdownButtonFormField<String>(
                   value: paymentMethod,
                   isDense: true,
-                  decoration: const InputDecoration(isDense: true),
-                  items: const [
-                    DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                    DropdownMenuItem(value: 'card', child: Text('Card / POS Terminal')),
-                    DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer')),
-                    DropdownMenuItem(value: 'cheque', child: Text('Cheque')),
+                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                  ),
+                  items: [
+                    DropdownMenuItem(value: 'cash', child: Text('Cash', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                    DropdownMenuItem(value: 'card', child: Text('Card / POS Terminal', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                    DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                    DropdownMenuItem(value: 'cheque', child: Text('Cheque', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
                   ],
                   onChanged: (val) => setDlgState(() => paymentMethod = val ?? paymentMethod),
                 ),
                 const SizedBox(height: 14),
 
                 // Note
-                _fieldLabel('Payment Reference / Note'),
+                _fieldLabel('Payment Reference / Note', isDark: isDark),
                 TextField(
                   controller: noteCtrl,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                  decoration: const InputDecoration(
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  decoration: InputDecoration(
                     hintText: 'e.g. Receipt # or Online Txn ID',
+                    hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                     isDense: true,
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -190,8 +219,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   children: [
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF64748B),
-                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
+                        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
@@ -254,15 +283,22 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
     if (!mounted) return;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 8,
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         child: Container(
           width: 680,
           padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,10 +312,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF2FF),
+                          color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF4F46E5), size: 20),
+                        child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF818CF8), size: 20),
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -287,63 +323,69 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         children: [
                           Text(
                             'Account Ledger: ${customer.name}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF0F172A)),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 17,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
                           ),
-                          const Text(
+                          Text(
                             'Complete transaction history, sales orders, and balance settlement',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           ),
                         ],
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                    icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     onPressed: () => Navigator.pop(ctx),
                     splashRadius: 18,
                   ),
                 ],
               ),
-              const Divider(height: 24, color: Color(0xFFE2E8F0)),
+              Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
 
               // Summary Stats Card
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     Column(
                       children: [
-                        const Text('Credit Limit', style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                        Text('Credit Limit', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w500)),
                         const SizedBox(height: 4),
-                        Text('${widget.settings.currencySymbol}${customer.creditLimit.toStringAsFixed(2)}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A))),
+                        Text(
+                          '${widget.settings.currencySymbol}${customer.creditLimit.toStringAsFixed(2)}',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        ),
                       ],
                     ),
-                    Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
+                    Container(height: 30, width: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                     Column(
                       children: [
-                        const Text('Total Invoices', style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                        Text('Total Invoices', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w500)),
                         const SizedBox(height: 4),
-                        Text('${allSales.length}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A))),
+                        Text('${allSales.length}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0F172A))),
                       ],
                     ),
-                    Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
+                    Container(height: 30, width: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                     Column(
                       children: [
-                        const Text('Current Balance Due', style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                        Text('Current Balance Due', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w500)),
                         const SizedBox(height: 4),
                         Text(
                           '${widget.settings.currencySymbol}${customer.balance.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 16,
-                            color: customer.balance > 0 ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                            color: customer.balance > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
                           ),
                         ),
                       ],
@@ -353,13 +395,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
               ),
               const SizedBox(height: 16),
 
-              const Text('Invoices & Payment Transactions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+              Text(
+                'Invoices & Payment Transactions',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+              ),
               const SizedBox(height: 8),
 
               SizedBox(
                 height: 280,
                 child: (allSales.isEmpty && payments.isEmpty)
-                    ? const Center(child: Text('No transaction records found for this customer.', style: TextStyle(color: Color(0xFF94A3B8))))
+                    ? Center(child: Text('No transaction records found for this customer.', style: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8))))
                     : ListView(
                         children: [
                           ...allSales.map((s) => ListTile(
@@ -367,21 +412,29 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                 leading: Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEEF2FF),
+                                    color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Icon(Icons.shopping_cart_checkout, color: Color(0xFF4F46E5), size: 16),
+                                  child: const Icon(Icons.shopping_cart_checkout, color: Color(0xFF818CF8), size: 16),
                                 ),
-                                title: Text('${s.invoiceNo} (${s.paymentStatus.toUpperCase()})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                subtitle: Text(s.createdAt, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                title: Text(
+                                  '${s.invoiceNo} (${s.paymentStatus.toUpperCase()})',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                ),
+                                subtitle: Text(s.createdAt, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                                 trailing: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text('${widget.settings.currencySymbol}${s.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                    Text(
+                                      '${widget.settings.currencySymbol}${s.totalAmount.toStringAsFixed(2)}',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                    ),
                                     if (s.dueAmount > 0)
-                                      Text('Due: ${widget.settings.currencySymbol}${s.dueAmount.toStringAsFixed(2)}',
-                                          style: const TextStyle(fontSize: 11, color: Color(0xFFDC2626))),
+                                      Text(
+                                        'Due: ${widget.settings.currencySymbol}${s.dueAmount.toStringAsFixed(2)}',
+                                        style: const TextStyle(fontSize: 11, color: Color(0xFFEF4444)),
+                                      ),
                                   ],
                                 ),
                               )),
@@ -390,16 +443,22 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                 leading: Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFD1FAE5),
+                                    color: isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 16),
+                                  child: Icon(Icons.check_circle_rounded, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF059669), size: 16),
                                 ),
-                                title: Text('Payment: ${p.refNo} (${p.paymentMethod.toUpperCase()})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                subtitle: Text('${p.date} ${p.note.isNotEmpty ? "- ${p.note}" : ""}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                title: Text(
+                                  'Payment: ${p.refNo} (${p.paymentMethod.toUpperCase()})',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                ),
+                                subtitle: Text(
+                                  '${p.date} ${p.note.isNotEmpty ? "- ${p.note}" : ""}',
+                                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                ),
                                 trailing: Text(
                                   '- ${widget.settings.currencySymbol}${p.amount.toStringAsFixed(2)}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF059669), fontSize: 13),
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669), fontSize: 13),
                                 ),
                               )),
                         ],
@@ -410,8 +469,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 alignment: Alignment.centerRight,
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF64748B),
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                    foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
+                    side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -428,11 +487,12 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currency = widget.settings.currencySymbol;
     final totalReceivable = _customers.fold(0.0, (sum, c) => sum + c.balance);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -444,14 +504,18 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Customers Management',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Manage retail customers, wholesale client accounts, balances, and credit limits.',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -473,33 +537,37 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
             Row(
               children: [
-                _mini('Total Customers', '${_customers.length}', const Color(0xFF4F46E5)),
+                _mini('Total Customers', '${_customers.length}', const Color(0xFF4F46E5), isDark: isDark),
                 const SizedBox(width: 14),
-                _mini('Total Receivables Due', '$currency${totalReceivable.toStringAsFixed(2)}', const Color(0xFFEF4444)),
+                _mini('Total Receivables Due', '$currency${totalReceivable.toStringAsFixed(2)}', const Color(0xFFEF4444), isDark: isDark),
               ],
             ),
             const SizedBox(height: 20),
 
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
               ),
               child: _loading
                   ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
                   : _customers.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(40),
-                          child: Center(child: Text('No customers registered yet.', style: TextStyle(color: Colors.grey))),
+                      ? Padding(
+                          padding: const EdgeInsets.all(40),
+                          child: Center(child: Text('No customers registered yet.', style: TextStyle(color: isDark ? const Color(0xFF64748B) : Colors.grey))),
                         )
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: DataTable(
-                              headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
-                              headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569), fontSize: 12),
+                              headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                              headingTextStyle: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                fontSize: 12,
+                              ),
                               dataRowMinHeight: 52,
                               dataRowMaxHeight: 56,
                               columns: const [
@@ -520,22 +588,47 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                         children: [
                                           CircleAvatar(
                                             radius: 14,
-                                            backgroundColor: const Color(0xFFEEF2FF),
+                                            backgroundColor: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
                                             child: Text(
                                               c.name.isNotEmpty ? c.name[0] : 'C',
-                                              style: const TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 11),
+                                              style: TextStyle(
+                                                color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                              ),
                                             ),
                                           ),
                                           const SizedBox(width: 10),
-                                          Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                          Text(
+                                            c.name,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
-                                    DataCell(Text(c.businessName?.isNotEmpty == true ? c.businessName! : '-', style: const TextStyle(fontSize: 12))),
-                                    DataCell(Text(c.phone.isNotEmpty ? c.phone : '-', style: const TextStyle(fontSize: 12))),
-                                    DataCell(Text(c.email.isNotEmpty ? c.email : '-', style: const TextStyle(fontSize: 12))),
-                                    DataCell(Text(c.address.isNotEmpty ? c.address : '-', style: const TextStyle(fontSize: 12))),
-                                    DataCell(Text('$currency${c.creditLimit.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12))),
+                                    DataCell(Text(
+                                      c.businessName?.isNotEmpty == true ? c.businessName! : '-',
+                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                    )),
+                                    DataCell(Text(
+                                      c.phone.isNotEmpty ? c.phone : '-',
+                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                    )),
+                                    DataCell(Text(
+                                      c.email.isNotEmpty ? c.email : '-',
+                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                    )),
+                                    DataCell(Text(
+                                      c.address.isNotEmpty ? c.address : '-',
+                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                    )),
+                                    DataCell(Text(
+                                      '$currency${c.creditLimit.toStringAsFixed(2)}',
+                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                    )),
                                     DataCell(Text(
                                       c.balance > 0 ? '$currency${c.balance.toStringAsFixed(2)}' : '$currency 0.00',
                                       style: TextStyle(
@@ -563,8 +656,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                           ],
                                           OutlinedButton.icon(
                                             style: OutlinedButton.styleFrom(
-                                              foregroundColor: const Color(0xFF4F46E5),
-                                              side: const BorderSide(color: Color(0xFFC7D2FE)),
+                                              foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                                              side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
                                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                             ),
@@ -588,19 +681,26 @@ class _CustomersScreenState extends State<CustomersScreen> {
     );
   }
 
-  Widget _mini(String label, String value, Color color) {
+  Widget _mini(String label, String value, Color color, {required bool isDark}) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
           ],

@@ -1,5 +1,44 @@
 import 'dart:convert';
 
+int _asInt(dynamic value, [int fallback = 0]) {
+  if (value == null) return fallback;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) {
+    final parsed = num.tryParse(value.trim());
+    if (parsed != null) return parsed.toInt();
+  }
+  return fallback;
+}
+
+double _asDouble(dynamic value, [double fallback = 0.0]) {
+  if (value == null) return fallback;
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  if (value is String) {
+    final parsed = num.tryParse(value.trim());
+    if (parsed != null) return parsed.toDouble();
+  }
+  return fallback;
+}
+
+bool _asBool(dynamic value, [bool fallback = false]) {
+  if (value == null) return fallback;
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final lower = value.toLowerCase().trim();
+    if (lower == 'true' || lower == '1' || lower == 'yes') return true;
+    if (lower == 'false' || lower == '0' || lower == 'no') return false;
+  }
+  return fallback;
+}
+
+String _asString(dynamic value, [String fallback = '']) {
+  if (value == null) return fallback;
+  return value.toString();
+}
+
 /// Business settings and store configuration
 class BusinessSettings {
   final int id;
@@ -13,20 +52,446 @@ class BusinessSettings {
   final String address;
   final String invoicePrefix;
   final String receiptFooter;
+  final String purchaseKey;
+  final String businessType; // 'general', 'pharmacy', 'solar', 'electronics', 'clothing'
+  final String drugLicenseNo;
+  final String dlWarrantor;
+  final String timeZone;
+  final String currencyPlacement; // 'before', 'after'
+  final String financialYearStartMonth;
+  final String stockAccountingMethod; // 'FIFO', 'LIFO', 'Average'
+  final int transactionEditDays;
+  final String dateFormat;
+  final String timeFormat;
+  final int currencyPrecision;
+  final int quantityPrecision;
+  final double defaultProfitPercent;
+  final String startDate;
+  final bool isConfigured;
+  final String logoPath;
+  final String trialStartDate;
+  final String enabledModules;
+  final String syncMode; // 'offline', 'hybrid', 'online'
+  final String syncServerUrl;
+  final String syncApiKey;
+  final int syncBranchId;
+  final int syncAutoIntervalMinutes;
+  final String lastSyncTimestamp;
+  final String loginBannerPath;
+  final String loginSideTitle;
+  final String loginSideSubtitle;
+
+  final String taxNumber;
+  final String hardwareId;
+  final String deploymentMode; // 'offline_server', 'lan_secondary', 'cloud_hybrid'
+  final String serverHost;
+  final int serverPort;
+  final String dbHost;
+  final int dbPort;
+  final String dbName;
+  final String dbUser;
+  final String dbPassword;
+  final String industryPresets;
+  final String primaryDbType; // 'mysql', 'postgresql', 'sqlite'
 
   BusinessSettings({
     this.id = 1,
-    this.businessName = 'Ultimate POS Superstore',
-    this.branchName = 'Main Branch',
-    this.currencySymbol = '\$',
-    this.currencyCode = 'USD',
+    this.businessName = 'Smart POS System',
+    this.branchName = 'Main Branch HQ',
+    this.currencySymbol = 'Rs',
+    this.currencyCode = 'PKR',
     this.defaultTaxRate = 5.0,
-    this.phone = '+1 (800) 555-0199',
-    this.email = 'contact@ultimatepos.com',
-    this.address = 'Suite 400, Commerce Tower, Tech City',
+    this.phone = '+92 300 1234567',
+    this.email = 'contact@smartpos.com',
+    this.address = 'Commercial Plaza, Main Boulevard, Karachi',
     this.invoicePrefix = 'INV-',
-    this.receiptFooter = 'Thank you for shopping with us! Please come again.',
+    this.receiptFooter = 'Thank you for your business! Please visit again.',
+    this.purchaseKey = '',
+    this.businessType = 'general',
+    this.drugLicenseNo = '',
+    this.dlWarrantor = 'Irfan Khan',
+    this.timeZone = 'Asia/Karachi',
+    this.currencyPlacement = 'before',
+    this.financialYearStartMonth = 'January',
+    this.stockAccountingMethod = 'FIFO',
+    this.transactionEditDays = 30,
+    this.dateFormat = 'dd/mm/yyyy',
+    this.timeFormat = '12 Hour',
+    this.currencyPrecision = 2,
+    this.quantityPrecision = 2,
+    this.defaultProfitPercent = 25.0,
+    this.startDate = '01/01/2026',
+    this.isConfigured = false,
+    this.logoPath = '',
+    this.trialStartDate = '',
+    this.enabledModules = '',
+    this.syncMode = 'offline',
+    this.syncServerUrl = '',
+    this.syncApiKey = '',
+    this.syncBranchId = 1,
+    this.syncAutoIntervalMinutes = 5,
+    this.lastSyncTimestamp = '',
+    this.loginBannerPath = '',
+    this.loginSideTitle = '',
+    this.loginSideSubtitle = '',
+    this.taxNumber = '',
+    this.hardwareId = '',
+    this.deploymentMode = 'offline_server',
+    this.serverHost = '127.0.0.1',
+    this.serverPort = 8080,
+    this.primaryDbType = 'mysql',
+    this.dbHost = 'localhost',
+    this.dbPort = 3306,
+    this.dbName = 'smartpos',
+    this.dbUser = 'root',
+    this.dbPassword = '',
+    this.industryPresets = '',
   });
+
+  String get effectiveLoginBanner {
+    if (loginBannerPath.trim().isNotEmpty) {
+      return loginBannerPath.trim();
+    }
+    if (isPharmacy) {
+      return 'assets/images/medicine_agency_banner.jpg';
+    }
+    return '';
+  }
+
+  bool get isHybridSync => syncMode == 'hybrid';
+  bool get isOnlineOnly => syncMode == 'online';
+  bool get isOfflineOnly => syncMode == 'offline' || syncMode.isEmpty;
+  bool get hasOnlineSync => isHybridSync || isOnlineOnly;
+
+  bool get isMySql => primaryDbType.toLowerCase() == 'mysql';
+  bool get isPostgreSql => primaryDbType.toLowerCase() == 'postgresql';
+  bool get isSqlitePrimary => primaryDbType.toLowerCase() == 'sqlite';
+
+  bool get isPharmacy => businessType == 'pharmacy' || isModuleEnabled(presetPharmacy);
+  bool get isSolarOrElectronics => businessType == 'solar' || businessType == 'electronics' || businessType == 'mobile';
+  bool get isGeneral => businessType == 'general' || businessType == 'general_store' || businessType == 'kiryana';
+  bool get isSupermarket => businessType == 'supermarket';
+  bool get isClothing => businessType == 'clothing' || businessType == 'garments';
+  bool get isWholesale => businessType == 'wholesale';
+  bool get isRestaurant => businessType == 'restaurant' || businessType == 'cafe';
+  bool get isRepair => businessType == 'repair' || businessType == 'service';
+  bool get isHotel => businessType == 'hotel';
+  bool get isGym => businessType == 'gym';
+  bool get isManufacturing => businessType == 'manufacturing';
+  bool get isWooCommerce => businessType == 'woocommerce';
+  bool get isHrm => businessType == 'hrm';
+  bool get isAccountingCrm => businessType == 'accounting_crm';
+  bool get isFruitWholesale => businessType == 'fruit_wholesale';
+  bool get isPoultry => businessType == 'poultry';
+
+  // Industry Preset Identifiers (Strictly 1 Active At A Time)
+  static const String presetPharmacy = 'pharmacy';
+  static const String presetRetailSuperStore = 'retail_supermarket';
+  static const String presetMobileElectronics = 'mobile_electronics';
+  static const String presetSolarHardware = 'solar_hardware';
+  static const String presetRestaurantCafe = 'restaurant_cafe';
+
+  bool get isRetailEnabled =>
+      !isPharmacy &&
+      !isRestaurant &&
+      !isSolarOrElectronics &&
+      (isModuleEnabled(presetRetailSuperStore) || isSupermarket || isGeneral);
+
+  bool get isMobileElectronicsEnabled =>
+      !isPharmacy &&
+      !isRestaurant &&
+      (isModuleEnabled(presetMobileElectronics) ||
+          businessType == 'mobile' ||
+          businessType == 'electronics');
+
+  bool get isSolarHardwareEnabled =>
+      !isPharmacy &&
+      !isRestaurant &&
+      (isModuleEnabled(presetSolarHardware) || businessType == 'solar');
+
+  bool get isRestaurantEnabled =>
+      !isPharmacy &&
+      !isSolarOrElectronics &&
+      (isModuleEnabled(presetRestaurantCafe) ||
+          isModuleEnabled(moduleRestaurant) ||
+          isRestaurant);
+
+  bool get isPrimaryServer => deploymentMode == 'offline_server' || deploymentMode.isEmpty;
+  bool get isLanSecondaryTerminal => deploymentMode == 'lan_secondary';
+  bool get isHybridPrimary => deploymentMode == 'cloud_hybrid';
+
+  String get businessTypeDisplayName {
+    switch (businessType.toLowerCase()) {
+      case 'general_store':
+      case 'kiryana':
+        return 'General Store / Kiryana';
+      case 'supermarket':
+        return 'Supermarket / Departmental Store';
+      case 'garments':
+      case 'clothing':
+        return 'Apparel & Garments / Shoes / Boutique';
+      case 'mobile':
+      case 'electronics':
+        return 'Mobile & Electronics Shop';
+      case 'solar':
+        return 'Solar & Inverter Systems';
+      case 'wholesale':
+        return 'Wholesale & Distribution';
+      case 'pharmacy':
+        return 'Pharmacy / Medical Store';
+      case 'restaurant':
+      case 'cafe':
+        return 'Restaurant / Cafe';
+      case 'repair':
+      case 'service':
+        return 'Repairing Shop / Service Center';
+      case 'hotel':
+        return 'Hotel Management';
+      case 'gym':
+        return 'Gym / Fitness Center';
+      case 'manufacturing':
+        return 'Manufacturing / Production';
+      case 'woocommerce':
+        return 'Online Store / WooCommerce';
+      case 'hrm':
+        return 'HR & Employee Management';
+      case 'accounting_crm':
+        return 'Accounting & CRM';
+      case 'fruit_wholesale':
+        return 'Fruit & Sabzi Wholesale / Mandi';
+      case 'poultry':
+        return 'Poultry Farm & Trading';
+      case 'general':
+      default:
+        return 'General Retail / Supermarket / Wholesale';
+    }
+  }
+
+  // ==================== MODULAR ENGINE & FEATURE TOGGLES ====================
+  static const String moduleRestaurant = 'restaurant';
+  static const String moduleRepair = 'repair';
+  static const String moduleHotel = 'hotel';
+  static const String moduleGym = 'gym';
+  static const String moduleManufacturing = 'manufacturing';
+  static const String moduleWooCommerce = 'woocommerce';
+  static const String moduleHrm = 'hrm';
+  static const String moduleAccountingCrm = 'accounting_crm';
+  static const String moduleFruitMandi = 'fruit_mandi';
+  static const String modulePoultry = 'poultry';
+
+  static const String moduleVariations = 'variations';
+  static const String moduleBatchExpiry = 'batch_expiry';
+  static const String moduleStockTransfers = 'stock_transfers';
+  static const String moduleStockAudit = 'stock_audit';
+  static const String moduleExpenses = 'expenses';
+  static const String moduleReturns = 'returns';
+  static const String moduleFiscalClosing = 'fiscal_closing';
+
+  /// Default active modules list tailored specifically for each business type
+  static List<String> defaultModulesForBusinessType(String type) {
+    final base = <String>[
+      moduleExpenses,
+      moduleReturns,
+      moduleStockTransfers,
+      moduleStockAudit,
+    ];
+
+    switch (type.toLowerCase()) {
+      case 'restaurant':
+      case 'cafe':
+        return [...base, moduleRestaurant, moduleHrm, presetRestaurantCafe];
+      case 'repair':
+      case 'service':
+        return [...base, moduleRepair];
+      case 'hotel':
+        return [...base, moduleHotel, moduleHrm, moduleAccountingCrm];
+      case 'gym':
+        return [...base, moduleGym, moduleHrm];
+      case 'manufacturing':
+        return [...base, moduleManufacturing, moduleAccountingCrm, moduleVariations];
+      case 'woocommerce':
+        return [...base, moduleWooCommerce, moduleVariations];
+      case 'hrm':
+        return [...base, moduleHrm, moduleAccountingCrm];
+      case 'accounting_crm':
+        return [...base, moduleAccountingCrm];
+      case 'fruit_wholesale':
+        return [...base, moduleFruitMandi, moduleAccountingCrm];
+      case 'poultry':
+        return [...base, modulePoultry, moduleAccountingCrm];
+      case 'pharmacy':
+        return [...base, moduleBatchExpiry, presetPharmacy];
+      case 'mobile':
+      case 'electronics':
+        return [...base, moduleRepair, moduleVariations, presetMobileElectronics];
+      case 'solar':
+        return [...base, moduleRepair, moduleVariations, presetSolarHardware];
+      case 'clothing':
+      case 'garments':
+        return [...base, moduleVariations];
+      case 'supermarket':
+        return [...base, moduleVariations, moduleBatchExpiry, presetRetailSuperStore];
+      case 'general_store':
+      case 'kiryana':
+      case 'general':
+      default:
+        return [...base, presetRetailSuperStore];
+    }
+  }
+
+  /// Evaluates active modules as a Set.
+  /// Includes enabledModules, industryPresets, and falls back to defaultModulesForBusinessType if empty.
+  Set<String> get activeModules {
+    final modules = <String>{};
+    if (enabledModules.trim().isNotEmpty) {
+      modules.addAll(enabledModules
+          .split(',')
+          .map((s) => s.trim().toLowerCase())
+          .where((s) => s.isNotEmpty));
+    } else {
+      modules.addAll(defaultModulesForBusinessType(businessType));
+    }
+    if (industryPresets.trim().isNotEmpty) {
+      modules.addAll(industryPresets
+          .split(',')
+          .map((s) => s.trim().toLowerCase())
+          .where((s) => s.isNotEmpty));
+    }
+    return modules;
+  }
+
+  /// Checks if a specific feature or industry module is enabled
+  bool isModuleEnabled(String moduleKey) {
+    return activeModules.contains(moduleKey.toLowerCase());
+  }
+
+  /// Returns true if at least one specialized industry module is enabled
+  bool get hasAnyIndustryModuleEnabled {
+    const industryKeys = [
+      moduleRestaurant,
+      moduleRepair,
+      moduleHotel,
+      moduleGym,
+      moduleManufacturing,
+      moduleWooCommerce,
+      moduleHrm,
+      moduleAccountingCrm,
+      moduleFruitMandi,
+      modulePoultry,
+      presetMobileElectronics,
+      presetSolarHardware,
+      presetRestaurantCafe,
+    ];
+    return industryKeys.any((key) => isModuleEnabled(key));
+  }
+
+  BusinessSettings copyWith({
+    int? id,
+    String? businessName,
+    String? branchName,
+    String? currencySymbol,
+    String? currencyCode,
+    double? defaultTaxRate,
+    String? phone,
+    String? email,
+    String? address,
+    String? invoicePrefix,
+    String? receiptFooter,
+    String? purchaseKey,
+    String? businessType,
+    String? drugLicenseNo,
+    String? dlWarrantor,
+    String? timeZone,
+    String? currencyPlacement,
+    String? financialYearStartMonth,
+    String? stockAccountingMethod,
+    int? transactionEditDays,
+    String? dateFormat,
+    String? timeFormat,
+    int? currencyPrecision,
+    int? quantityPrecision,
+    double? defaultProfitPercent,
+    String? startDate,
+    bool? isConfigured,
+    String? logoPath,
+    String? trialStartDate,
+    String? enabledModules,
+    String? syncMode,
+    String? syncServerUrl,
+    String? syncApiKey,
+    int? syncBranchId,
+    int? syncAutoIntervalMinutes,
+    String? lastSyncTimestamp,
+    String? loginBannerPath,
+    String? loginSideTitle,
+    String? loginSideSubtitle,
+    String? taxNumber,
+    String? hardwareId,
+    String? deploymentMode,
+    String? serverHost,
+    int? serverPort,
+    String? dbHost,
+    int? dbPort,
+    String? dbName,
+    String? dbUser,
+    String? dbPassword,
+    String? industryPresets,
+    String? primaryDbType,
+  }) {
+    return BusinessSettings(
+      id: id ?? this.id,
+      businessName: businessName ?? this.businessName,
+      branchName: branchName ?? this.branchName,
+      currencySymbol: currencySymbol ?? this.currencySymbol,
+      currencyCode: currencyCode ?? this.currencyCode,
+      defaultTaxRate: defaultTaxRate ?? this.defaultTaxRate,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      address: address ?? this.address,
+      invoicePrefix: invoicePrefix ?? this.invoicePrefix,
+      receiptFooter: receiptFooter ?? this.receiptFooter,
+      purchaseKey: purchaseKey ?? this.purchaseKey,
+      businessType: businessType ?? this.businessType,
+      drugLicenseNo: drugLicenseNo ?? this.drugLicenseNo,
+      dlWarrantor: dlWarrantor ?? this.dlWarrantor,
+      timeZone: timeZone ?? this.timeZone,
+      currencyPlacement: currencyPlacement ?? this.currencyPlacement,
+      financialYearStartMonth: financialYearStartMonth ?? this.financialYearStartMonth,
+      stockAccountingMethod: stockAccountingMethod ?? this.stockAccountingMethod,
+      transactionEditDays: transactionEditDays ?? this.transactionEditDays,
+      dateFormat: dateFormat ?? this.dateFormat,
+      timeFormat: timeFormat ?? this.timeFormat,
+      currencyPrecision: currencyPrecision ?? this.currencyPrecision,
+      quantityPrecision: quantityPrecision ?? this.quantityPrecision,
+      defaultProfitPercent: defaultProfitPercent ?? this.defaultProfitPercent,
+      startDate: startDate ?? this.startDate,
+      isConfigured: isConfigured ?? this.isConfigured,
+      logoPath: logoPath ?? this.logoPath,
+      trialStartDate: trialStartDate ?? this.trialStartDate,
+      enabledModules: enabledModules ?? this.enabledModules,
+      syncMode: syncMode ?? this.syncMode,
+      syncServerUrl: syncServerUrl ?? this.syncServerUrl,
+      syncApiKey: syncApiKey ?? this.syncApiKey,
+      syncBranchId: syncBranchId ?? this.syncBranchId,
+      syncAutoIntervalMinutes: syncAutoIntervalMinutes ?? this.syncAutoIntervalMinutes,
+      lastSyncTimestamp: lastSyncTimestamp ?? this.lastSyncTimestamp,
+      loginBannerPath: loginBannerPath ?? this.loginBannerPath,
+      loginSideTitle: loginSideTitle ?? this.loginSideTitle,
+      loginSideSubtitle: loginSideSubtitle ?? this.loginSideSubtitle,
+      taxNumber: taxNumber ?? this.taxNumber,
+      hardwareId: hardwareId ?? this.hardwareId,
+      deploymentMode: deploymentMode ?? this.deploymentMode,
+      serverHost: serverHost ?? this.serverHost,
+      serverPort: serverPort ?? this.serverPort,
+      primaryDbType: primaryDbType ?? this.primaryDbType,
+      dbHost: dbHost ?? this.dbHost,
+      dbPort: dbPort ?? this.dbPort,
+      dbName: dbName ?? this.dbName,
+      dbUser: dbUser ?? this.dbUser,
+      dbPassword: dbPassword ?? this.dbPassword,
+      industryPresets: industryPresets ?? this.industryPresets,
+    );
+  }
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -40,25 +505,105 @@ class BusinessSettings {
         'address': address,
         'invoice_prefix': invoicePrefix,
         'receipt_footer': receiptFooter,
+        'purchase_key': purchaseKey,
+        'business_type': businessType,
+        'drug_license_no': drugLicenseNo,
+        'dl_warrantor': dlWarrantor,
+        'time_zone': timeZone,
+        'currency_placement': currencyPlacement,
+        'financial_year_start_month': financialYearStartMonth,
+        'stock_accounting_method': stockAccountingMethod,
+        'transaction_edit_days': transactionEditDays,
+        'date_format': dateFormat,
+        'time_format': timeFormat,
+        'currency_precision': currencyPrecision,
+        'quantity_precision': quantityPrecision,
+        'default_profit_percent': defaultProfitPercent,
+        'start_date': startDate,
+        'is_configured': isConfigured ? 1 : 0,
+        'logo_path': logoPath,
+        'trial_start_date': trialStartDate,
+        'enabled_modules': enabledModules,
+        'sync_mode': syncMode,
+        'sync_server_url': syncServerUrl,
+        'sync_api_key': syncApiKey,
+        'sync_branch_id': syncBranchId,
+        'sync_auto_interval_minutes': syncAutoIntervalMinutes,
+        'last_sync_timestamp': lastSyncTimestamp,
+        'login_banner_path': loginBannerPath,
+        'login_side_title': loginSideTitle,
+        'login_side_subtitle': loginSideSubtitle,
+        'tax_number': taxNumber,
+        'hardware_id': hardwareId,
+        'deployment_mode': deploymentMode,
+        'server_host': serverHost,
+        'server_port': serverPort,
+        'primary_db_type': primaryDbType,
+        'db_host': dbHost,
+        'db_port': dbPort,
+        'db_name': dbName,
+        'db_user': dbUser,
+        'db_password': dbPassword,
+        'industry_presets': industryPresets,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
       BusinessSettings(
-        id: map['id'] as int? ?? 1,
-        businessName: map['business_name'] as String? ?? 'Ultimate POS Superstore',
-        branchName: map['branch_name'] as String? ?? 'Main Branch',
-        currencySymbol: map['currency_symbol'] as String? ?? '\$',
-        currencyCode: map['currency_code'] as String? ?? 'USD',
-        defaultTaxRate: (map['default_tax_rate'] as num?)?.toDouble() ?? 5.0,
-        phone: map['phone'] as String? ?? '',
-        email: map['email'] as String? ?? '',
-        address: map['address'] as String? ?? '',
-        invoicePrefix: map['invoice_prefix'] as String? ?? 'INV-',
-        receiptFooter: map['receipt_footer'] as String? ?? '',
+        id: _asInt(map['id'], 1),
+        businessName: _asString(map['business_name'], 'Smart POS System'),
+        branchName: _asString(map['branch_name'], 'Main Branch HQ'),
+        currencySymbol: _asString(map['currency_symbol'], 'Rs'),
+        currencyCode: _asString(map['currency_code'], 'PKR'),
+        defaultTaxRate: _asDouble(map['default_tax_rate'], 5.0),
+        phone: _asString(map['phone']),
+        email: _asString(map['email']),
+        address: _asString(map['address']),
+        invoicePrefix: _asString(map['invoice_prefix'], 'INV-'),
+        receiptFooter: _asString(map['receipt_footer']),
+        purchaseKey: _asString(map['purchase_key']),
+        businessType: _asString(map['business_type'], 'general'),
+        drugLicenseNo: _asString(map['drug_license_no']),
+        dlWarrantor: _asString(map['dl_warrantor']),
+        timeZone: _asString(map['time_zone'], 'Asia/Karachi'),
+        currencyPlacement: _asString(map['currency_placement'], 'before'),
+        financialYearStartMonth: _asString(map['financial_year_start_month'], 'January'),
+        stockAccountingMethod: _asString(map['stock_accounting_method'], 'FIFO'),
+        transactionEditDays: _asInt(map['transaction_edit_days'], 30),
+        dateFormat: _asString(map['date_format'], 'dd/mm/yyyy'),
+        timeFormat: _asString(map['time_format'], '12 Hour'),
+        currencyPrecision: _asInt(map['currency_precision'], 2),
+        quantityPrecision: _asInt(map['quantity_precision'], 2),
+        defaultProfitPercent: _asDouble(map['default_profit_percent'], 25.0),
+        startDate: _asString(map['start_date'], '01/01/2026'),
+        isConfigured: _asBool(map['is_configured'], false),
+        logoPath: _asString(map['logo_path']),
+        trialStartDate: _asString(map['trial_start_date']),
+        enabledModules: _asString(map['enabled_modules']),
+        syncMode: _asString(map['sync_mode'], 'offline'),
+        syncServerUrl: _asString(map['sync_server_url']),
+        syncApiKey: _asString(map['sync_api_key']),
+        syncBranchId: _asInt(map['sync_branch_id'], 1),
+        syncAutoIntervalMinutes: _asInt(map['sync_auto_interval_minutes'], 5),
+        lastSyncTimestamp: _asString(map['last_sync_timestamp']),
+        loginBannerPath: _asString(map['login_banner_path']),
+        loginSideTitle: _asString(map['login_side_title']),
+        loginSideSubtitle: _asString(map['login_side_subtitle']),
+        taxNumber: _asString(map['tax_number']),
+        hardwareId: _asString(map['hardware_id']),
+        deploymentMode: _asString(map['deployment_mode'], 'offline_server'),
+        serverHost: _asString(map['server_host'], '127.0.0.1'),
+        serverPort: _asInt(map['server_port'], 8080),
+        primaryDbType: _asString(map['primary_db_type'], 'mysql'),
+        dbHost: _asString(map['db_host'], 'localhost'),
+        dbPort: _asInt(map['db_port'], 3306),
+        dbName: _asString(map['db_name'], 'smartpos'),
+        dbUser: _asString(map['db_user'], 'root'),
+        dbPassword: _asString(map['db_password']),
+        industryPresets: _asString(map['industry_presets'], 'retail_supermarket'),
       );
 }
 
-/// Business Location (Branch / Warehouse) in Ultimate POS
+/// Business Location (Branch / Warehouse) in Smart POS
 class BusinessLocation {
   final int? id;
   final String name;
@@ -83,7 +628,7 @@ class BusinessLocation {
     this.country = 'USA',
     this.zipCode = '10001',
     this.mobile = '+1 (800) 555-0199',
-    this.email = 'branch@ultimatepos.com',
+    this.email = 'branch@smartpos.com',
     this.invoiceScheme = 'INV-',
     this.isActive = true,
   });
@@ -119,7 +664,7 @@ class BusinessLocation {
       );
 }
 
-/// Tax Rate representation in Ultimate POS (Single or Tax Group)
+/// Tax Rate representation in Smart POS (Single or Tax Group)
 class TaxRate {
   final int? id;
   final String name;
@@ -148,7 +693,7 @@ class TaxRate {
       );
 }
 
-/// Invoice Scheme configuration in Ultimate POS
+/// Invoice Scheme configuration in Smart POS
 class InvoiceScheme {
   final int? id;
   final String name;
@@ -229,7 +774,7 @@ class Category {
       );
 }
 
-/// Variation Template in Ultimate POS (e.g. Size, Color)
+/// Variation Template in Smart POS (e.g. Size, Color)
 class VariationTemplate {
   final int? id;
   final String name;
@@ -282,7 +827,7 @@ class Brand {
       );
 }
 
-/// Unit representation in Ultimate POS (with sub-unit multipliers)
+/// Unit representation in Smart POS (with sub-unit multipliers)
 class Unit {
   final int? id;
   final String actualName;
@@ -319,7 +864,7 @@ class Unit {
       );
 }
 
-/// Product Variation for Variable Products (Ultimate POS `variations`)
+/// Product Variation for Variable Products (Smart POS `variations`)
 class ProductVariation {
   final int? id;
   final int? productId;
@@ -360,7 +905,7 @@ class ProductVariation {
       );
 }
 
-/// Selling Price Group in Ultimate POS
+/// Selling Price Group in Smart POS
 class SellingPriceGroup {
   final int? id;
   final String name; // e.g. "Wholesale Price", "VIP Retail", "Distributor"
@@ -389,7 +934,7 @@ class SellingPriceGroup {
       );
 }
 
-/// Warranty in Ultimate POS
+/// Warranty in Smart POS
 class Warranty {
   final int? id;
   final String name;
@@ -422,7 +967,7 @@ class Warranty {
       );
 }
 
-/// Product representation in Ultimate POS (Single or Variable)
+/// Product representation in Smart POS (Single or Variable)
 class Product {
   final int? id;
   final String name;
@@ -442,6 +987,10 @@ class Product {
   final String? imageColor; // Hex string for visual tile fallback
   final String? warranty;
   final List<ProductVariation>? variations;
+  final String? batchNumber;
+  final String? expiryDate; // e.g. "04-2028" or "2028-04"
+  final double bonusQty; // Medication/Distributor Bonus free quantity
+  final double packSize; // Units per pack/box
 
   Product({
     this.id,
@@ -462,6 +1011,10 @@ class Product {
     this.imageColor,
     this.warranty,
     this.variations,
+    this.batchNumber,
+    this.expiryDate,
+    this.bonusQty = 0.0,
+    this.packSize = 1.0,
   });
 
   bool get isVariable => type == 'variable';
@@ -486,6 +1039,10 @@ class Product {
         'alert_quantity': alertQuantity,
         'image_color': imageColor ?? '#004EEB',
         'warranty': warranty ?? '',
+        'batch_number': batchNumber ?? '',
+        'expiry_date': expiryDate ?? '',
+        'bonus_qty': bonusQty,
+        'pack_size': packSize,
       };
 
   factory Product.fromMap(Map<String, dynamic> map, {List<ProductVariation>? variations}) => Product(
@@ -507,6 +1064,10 @@ class Product {
         imageColor: map['image_color'] as String?,
         warranty: map['warranty'] as String?,
         variations: variations,
+        batchNumber: map['batch_number'] as String?,
+        expiryDate: map['expiry_date'] as String?,
+        bonusQty: (map['bonus_qty'] as num?)?.toDouble() ?? 0.0,
+        packSize: (map['pack_size'] as num?)?.toDouble() ?? 1.0,
       );
 
   Product copyWith({
@@ -528,6 +1089,10 @@ class Product {
     String? imageColor,
     String? warranty,
     List<ProductVariation>? variations,
+    String? batchNumber,
+    String? expiryDate,
+    double? bonusQty,
+    double? packSize,
   }) =>
       Product(
         id: id ?? this.id,
@@ -548,6 +1113,10 @@ class Product {
         imageColor: imageColor ?? this.imageColor,
         warranty: warranty ?? this.warranty,
         variations: variations ?? this.variations,
+        batchNumber: batchNumber ?? this.batchNumber,
+        expiryDate: expiryDate ?? this.expiryDate,
+        bonusQty: bonusQty ?? this.bonusQty,
+        packSize: packSize ?? this.packSize,
       );
 }
 
@@ -609,15 +1178,43 @@ class CartItem {
   double quantity;
   double unitPrice;
   double discount; // amount in currency
+  String? batchNumber;
+  String? expiryDate;
+  double bonusQuantity;
+  double packDiscount; // percentage or fixed
 
   CartItem({
     required this.product,
     this.quantity = 1.0,
     required this.unitPrice,
     this.discount = 0.0,
-  });
+    this.batchNumber,
+    this.expiryDate,
+    this.bonusQuantity = 0.0,
+    this.packDiscount = 0.0,
+  }) {
+    batchNumber ??= product.batchNumber;
+    expiryDate ??= product.expiryDate;
+  }
 
-  double get subtotal => (unitPrice * quantity) - discount;
+  double get subtotal {
+    final packVal = unitPrice * quantity;
+    if (packDiscount > 0) {
+      // packDiscount as percentage (e.g. 14.50%)
+      final discAmt = (packVal * packDiscount) / 100.0;
+      return packVal - discAmt - discount;
+    }
+    return packVal - discount;
+  }
+
+  double get packValue => unitPrice * quantity;
+
+  double get calculatedDiscount {
+    if (packDiscount > 0) {
+      return (packValue * packDiscount) / 100.0 + discount;
+    }
+    return discount;
+  }
 
   Map<String, dynamic> toMap(int saleId) => {
         'sale_id': saleId,
@@ -626,8 +1223,12 @@ class CartItem {
         'sku': product.sku,
         'unit_price': unitPrice,
         'quantity': quantity,
-        'discount': discount,
+        'discount': calculatedDiscount,
         'subtotal': subtotal,
+        'batch_number': batchNumber ?? '',
+        'expiry_date': expiryDate ?? '',
+        'bonus_quantity': bonusQuantity,
+        'pack_discount': packDiscount,
       };
 
   Map<String, dynamic> toSavedStateMap() => {
@@ -635,6 +1236,10 @@ class CartItem {
         'quantity': quantity,
         'unit_price': unitPrice,
         'discount': discount,
+        'batch_number': batchNumber ?? '',
+        'expiry_date': expiryDate ?? '',
+        'bonus_quantity': bonusQuantity,
+        'pack_discount': packDiscount,
       };
 
   factory CartItem.fromSavedStateMap(Map<String, dynamic> map) => CartItem(
@@ -642,10 +1247,14 @@ class CartItem {
         quantity: (map['quantity'] as num).toDouble(),
         unitPrice: (map['unit_price'] as num).toDouble(),
         discount: (map['discount'] as num?)?.toDouble() ?? 0.0,
+        batchNumber: map['batch_number'] as String?,
+        expiryDate: map['expiry_date'] as String?,
+        bonusQuantity: (map['bonus_quantity'] as num?)?.toDouble() ?? 0.0,
+        packDiscount: (map['pack_discount'] as num?)?.toDouble() ?? 0.0,
       );
 }
 
-/// Sale Invoice in Ultimate POS
+/// Sale Invoice in Smart POS
 class Sale {
   final int? id;
   final String invoiceNo;
@@ -739,6 +1348,10 @@ class SaleItem {
   final double quantity;
   final double discount;
   final double subtotal;
+  final String? batchNumber;
+  final String? expiryDate;
+  final double bonusQuantity;
+  final double packDiscount;
 
   SaleItem({
     this.id,
@@ -750,7 +1363,13 @@ class SaleItem {
     required this.quantity,
     this.discount = 0.0,
     required this.subtotal,
+    this.batchNumber,
+    this.expiryDate,
+    this.bonusQuantity = 0.0,
+    this.packDiscount = 0.0,
   });
+
+  double get packValue => unitPrice * quantity;
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
@@ -762,6 +1381,10 @@ class SaleItem {
         'quantity': quantity,
         'discount': discount,
         'subtotal': subtotal,
+        'batch_number': batchNumber ?? '',
+        'expiry_date': expiryDate ?? '',
+        'bonus_quantity': bonusQuantity,
+        'pack_discount': packDiscount,
       };
 
   factory SaleItem.fromMap(Map<String, dynamic> map) => SaleItem(
@@ -774,6 +1397,10 @@ class SaleItem {
         quantity: (map['quantity'] as num).toDouble(),
         discount: (map['discount'] as num?)?.toDouble() ?? 0.0,
         subtotal: (map['subtotal'] as num).toDouble(),
+        batchNumber: map['batch_number'] as String?,
+        expiryDate: map['expiry_date'] as String?,
+        bonusQuantity: (map['bonus_quantity'] as num?)?.toDouble() ?? 0.0,
+        packDiscount: (map['pack_discount'] as num?)?.toDouble() ?? 0.0,
       );
 }
 
@@ -791,6 +1418,7 @@ class Purchase {
   final String paymentStatus; // 'paid', 'due', 'partial'
   final String createdAt;
   final String note;
+  final String itemsJson;
 
   Purchase({
     this.id,
@@ -805,9 +1433,23 @@ class Purchase {
     this.paymentStatus = 'paid',
     required this.createdAt,
     this.note = '',
+    this.itemsJson = '[]',
   });
 
-  double get dueAmount => totalAmount - paidAmount;
+  double get dueAmount => totalAmount > paidAmount ? totalAmount - paidAmount : 0.0;
+  double get finalTotal => totalAmount;
+  String get referenceNo => refNo;
+
+  List<Map<String, dynamic>> getItems() {
+    try {
+      if (itemsJson.isEmpty || itemsJson == '[]') return [];
+      final list = jsonDecode(itemsJson);
+      if (list is List) {
+        return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
@@ -822,6 +1464,7 @@ class Purchase {
         'payment_status': paymentStatus,
         'created_at': createdAt,
         'note': note,
+        'items_json': itemsJson,
       };
 
   factory Purchase.fromMap(Map<String, dynamic> map) => Purchase(
@@ -837,10 +1480,11 @@ class Purchase {
         paymentStatus: map['payment_status'] as String? ?? 'paid',
         createdAt: map['created_at'] as String,
         note: map['note'] as String? ?? '',
+        itemsJson: map['items_json'] as String? ?? '[]',
       );
 }
 
-/// Expense record in Ultimate POS
+/// Expense record in Smart POS
 class Expense {
   final int? id;
   final String category;
@@ -1329,5 +1973,645 @@ class AccountTransfer {
       );
 }
 
+/// User & Authorization Model
+class User {
+  final int? id;
+  final String name;
+  final String username;
+  final String password;
+  final String email;
+  final String role; // 'superadmin', 'admin', 'salesman', 'cashier'
+  final String status; // 'active', 'inactive'
+  final int branchId;
+  final String branchName;
+  final String phone;
 
+  User({
+    this.id,
+    required this.name,
+    required this.username,
+    required this.password,
+    this.email = '',
+    this.role = 'salesman',
+    this.status = 'active',
+    this.branchId = 1,
+    this.branchName = 'Main Branch HQ',
+    this.phone = '',
+  });
+
+  bool get isSuperAdmin => role.toLowerCase() == 'superadmin' || role.toLowerCase() == 'owner';
+  bool get isAdmin => isSuperAdmin || role.toLowerCase() == 'admin';
+  bool get isSalesman => role.toLowerCase() == 'salesman';
+  bool get isCashier => role.toLowerCase() == 'cashier';
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'username': username,
+        'password': password,
+        'email': email,
+        'role': role,
+        'status': status,
+        'branch_id': branchId,
+        'branch_name': branchName,
+        'phone': phone,
+      };
+
+  factory User.fromMap(Map<String, dynamic> map) => User(
+        id: map['id'] as int?,
+        name: map['name'] as String? ?? '',
+        username: map['username'] as String? ?? '',
+        password: map['password'] as String? ?? '',
+        email: map['email'] as String? ?? '',
+        role: map['role'] as String? ?? 'salesman',
+        status: map['status'] as String? ?? 'active',
+        branchId: map['branch_id'] as int? ?? 1,
+        branchName: map['branch_name'] as String? ?? 'Main Branch HQ',
+        phone: map['phone'] as String? ?? '',
+      );
+}
+
+/// Sales Return Model
+class SaleReturn {
+  final int? id;
+  final String returnNo;
+  final int? saleId;
+  final String invoiceNo;
+  final int? customerId;
+  final String customerName;
+  final String date;
+  final double totalAmount;
+  final double refundAmount;
+  final String refundStatus; // 'completed', 'pending'
+  final String paymentMethod; // 'cash', 'credit_note', 'bank'
+  final String reason;
+  final String note;
+  final String createdBy;
+  final List<SaleReturnItem> items;
+
+  SaleReturn({
+    this.id,
+    required this.returnNo,
+    this.saleId,
+    required this.invoiceNo,
+    this.customerId,
+    required this.customerName,
+    required this.date,
+    required this.totalAmount,
+    required this.refundAmount,
+    this.refundStatus = 'completed',
+    this.paymentMethod = 'cash',
+    this.reason = 'Customer Return',
+    this.note = '',
+    this.createdBy = 'Admin',
+    this.items = const [],
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'return_no': returnNo,
+        'sale_id': saleId,
+        'invoice_no': invoiceNo,
+        'customer_id': customerId,
+        'customer_name': customerName,
+        'date': date,
+        'total_amount': totalAmount,
+        'refund_amount': refundAmount,
+        'refund_status': refundStatus,
+        'payment_method': paymentMethod,
+        'reason': reason,
+        'note': note,
+        'created_by': createdBy,
+      };
+
+  factory SaleReturn.fromMap(Map<String, dynamic> map, {List<SaleReturnItem> items = const []}) => SaleReturn(
+        id: map['id'] as int?,
+        returnNo: map['return_no'] as String? ?? '',
+        saleId: map['sale_id'] as int?,
+        invoiceNo: map['invoice_no'] as String? ?? '',
+        customerId: map['customer_id'] as int?,
+        customerName: map['customer_name'] as String? ?? '',
+        date: map['date'] as String? ?? '',
+        totalAmount: (map['total_amount'] as num?)?.toDouble() ?? 0.0,
+        refundAmount: (map['refund_amount'] as num?)?.toDouble() ?? 0.0,
+        refundStatus: map['refund_status'] as String? ?? 'completed',
+        paymentMethod: map['payment_method'] as String? ?? 'cash',
+        reason: map['reason'] as String? ?? '',
+        note: map['note'] as String? ?? '',
+        createdBy: map['created_by'] as String? ?? 'Admin',
+        items: items,
+      );
+}
+
+class SaleReturnItem {
+  final int? id;
+  final int returnId;
+  final int productId;
+  final String productName;
+  final String sku;
+  final String batchNumber;
+  final double quantity;
+  final double unitPrice;
+  final double subtotal;
+
+  SaleReturnItem({
+    this.id,
+    required this.returnId,
+    required this.productId,
+    required this.productName,
+    this.sku = '',
+    this.batchNumber = '',
+    required this.quantity,
+    required this.unitPrice,
+    required this.subtotal,
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'return_id': returnId,
+        'product_id': productId,
+        'product_name': productName,
+        'sku': sku,
+        'batch_number': batchNumber,
+        'quantity': quantity,
+        'unit_price': unitPrice,
+        'subtotal': subtotal,
+      };
+
+  factory SaleReturnItem.fromMap(Map<String, dynamic> map) => SaleReturnItem(
+        id: map['id'] as int?,
+        returnId: map['return_id'] as int? ?? 0,
+        productId: map['product_id'] as int? ?? 0,
+        productName: map['product_name'] as String? ?? '',
+        sku: map['sku'] as String? ?? '',
+        batchNumber: map['batch_number'] as String? ?? '',
+        quantity: (map['quantity'] as num?)?.toDouble() ?? 0.0,
+        unitPrice: (map['unit_price'] as num?)?.toDouble() ?? 0.0,
+        subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+/// Purchase Return Model
+class PurchaseReturn {
+  final int? id;
+  final String returnNo;
+  final int? purchaseId;
+  final String purchaseRef;
+  final int? supplierId;
+  final String supplierName;
+  final String date;
+  final double totalAmount;
+  final double refundAmount;
+  final String status;
+  final String reason;
+  final String note;
+  final List<PurchaseReturnItem> items;
+
+  PurchaseReturn({
+    this.id,
+    required this.returnNo,
+    this.purchaseId,
+    required this.purchaseRef,
+    this.supplierId,
+    required this.supplierName,
+    required this.date,
+    required this.totalAmount,
+    required this.refundAmount,
+    this.status = 'completed',
+    this.reason = 'Near Expiry / Damaged',
+    this.note = '',
+    this.items = const [],
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'return_no': returnNo,
+        'purchase_id': purchaseId,
+        'purchase_ref': purchaseRef,
+        'supplier_id': supplierId,
+        'supplier_name': supplierName,
+        'date': date,
+        'total_amount': totalAmount,
+        'refund_amount': refundAmount,
+        'status': status,
+        'reason': reason,
+        'note': note,
+      };
+
+  factory PurchaseReturn.fromMap(Map<String, dynamic> map, {List<PurchaseReturnItem> items = const []}) => PurchaseReturn(
+        id: map['id'] as int?,
+        returnNo: map['return_no'] as String? ?? '',
+        purchaseId: map['purchase_id'] as int?,
+        purchaseRef: map['purchase_ref'] as String? ?? '',
+        supplierId: map['supplier_id'] as int?,
+        supplierName: map['supplier_name'] as String? ?? '',
+        date: map['date'] as String? ?? '',
+        totalAmount: (map['total_amount'] as num?)?.toDouble() ?? 0.0,
+        refundAmount: (map['refund_amount'] as num?)?.toDouble() ?? 0.0,
+        status: map['status'] as String? ?? 'completed',
+        reason: map['reason'] as String? ?? '',
+        note: map['note'] as String? ?? '',
+        items: items,
+      );
+}
+
+class PurchaseReturnItem {
+  final int? id;
+  final int returnId;
+  final int productId;
+  final String productName;
+  final String sku;
+  final String batchNumber;
+  final double quantity;
+  final double unitPrice;
+  final double subtotal;
+
+  PurchaseReturnItem({
+    this.id,
+    required this.returnId,
+    required this.productId,
+    required this.productName,
+    this.sku = '',
+    this.batchNumber = '',
+    required this.quantity,
+    required this.unitPrice,
+    required this.subtotal,
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'return_id': returnId,
+        'product_id': productId,
+        'product_name': productName,
+        'sku': sku,
+        'batch_number': batchNumber,
+        'quantity': quantity,
+        'unit_price': unitPrice,
+        'subtotal': subtotal,
+      };
+
+  factory PurchaseReturnItem.fromMap(Map<String, dynamic> map) => PurchaseReturnItem(
+        id: map['id'] as int?,
+        returnId: map['return_id'] as int? ?? 0,
+        productId: map['product_id'] as int? ?? 0,
+        productName: map['product_name'] as String? ?? '',
+        sku: map['sku'] as String? ?? '',
+        batchNumber: map['batch_number'] as String? ?? '',
+        quantity: (map['quantity'] as num?)?.toDouble() ?? 0.0,
+        unitPrice: (map['unit_price'] as num?)?.toDouble() ?? 0.0,
+        subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+/// Financial Year End Closing Model
+class FinancialYear {
+  final int? id;
+  final String yearTitle;
+  final String startDate;
+  final String endDate;
+  final String closingDate;
+  final double totalSales;
+  final double totalPurchases;
+  final double totalExpenses;
+  final double netProfit;
+  final double stockValuation;
+  final double receivables;
+  final double payables;
+  final String closedBy;
+  final String status;
+  final String notes;
+
+  FinancialYear({
+    this.id,
+    required this.yearTitle,
+    required this.startDate,
+    required this.endDate,
+    required this.closingDate,
+    required this.totalSales,
+    required this.totalPurchases,
+    required this.totalExpenses,
+    required this.netProfit,
+    required this.stockValuation,
+    required this.receivables,
+    required this.payables,
+    required this.closedBy,
+    this.status = 'closed',
+    this.notes = '',
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'year_title': yearTitle,
+        'start_date': startDate,
+        'end_date': endDate,
+        'closing_date': closingDate,
+        'total_sales': totalSales,
+        'total_purchases': totalPurchases,
+        'total_expenses': totalExpenses,
+        'net_profit': netProfit,
+        'stock_valuation': stockValuation,
+        'receivables': receivables,
+        'payables': payables,
+        'closed_by': closedBy,
+        'status': status,
+        'notes': notes,
+      };
+
+  factory FinancialYear.fromMap(Map<String, dynamic> map) => FinancialYear(
+        id: map['id'] as int?,
+        yearTitle: map['year_title'] as String? ?? '',
+        startDate: map['start_date'] as String? ?? '',
+        endDate: map['end_date'] as String? ?? '',
+        closingDate: map['closing_date'] as String? ?? '',
+        totalSales: (map['total_sales'] as num?)?.toDouble() ?? 0.0,
+        totalPurchases: (map['total_purchases'] as num?)?.toDouble() ?? 0.0,
+        totalExpenses: (map['total_expenses'] as num?)?.toDouble() ?? 0.0,
+        netProfit: (map['net_profit'] as num?)?.toDouble() ?? 0.0,
+        stockValuation: (map['stock_valuation'] as num?)?.toDouble() ?? 0.0,
+        receivables: (map['receivables'] as num?)?.toDouble() ?? 0.0,
+        payables: (map['payables'] as num?)?.toDouble() ?? 0.0,
+        closedBy: map['closed_by'] as String? ?? 'SuperAdmin',
+        status: map['status'] as String? ?? 'closed',
+        notes: map['notes'] as String? ?? '',
+      );
+}
+
+/// Multi-tender & Split Payment Transaction Ledger Record
+class PaymentTransaction {
+  final int? id;
+  final String transactionType; // 'sale', 'purchase', 'sale_due_collection', 'purchase_due_payment', 'customer_advance', 'supplier_advance'
+  final int? parentId; // sale_id or purchase_id
+  final int? contactId;
+  final String contactName;
+  final String paymentMethod; // 'cash', 'card', 'bank_transfer', 'cheque', 'custom'
+  final double amount;
+  final int? accountId;
+  final String accountName;
+  final String transactionDate;
+  final String refNo;
+  final String note;
+  final String createdBy;
+  final String createdAt;
+
+  PaymentTransaction({
+    this.id,
+    required this.transactionType,
+    this.parentId,
+    this.contactId,
+    required this.contactName,
+    this.paymentMethod = 'cash',
+    required this.amount,
+    this.accountId,
+    this.accountName = 'Cash Till',
+    required this.transactionDate,
+    this.refNo = '',
+    this.note = '',
+    this.createdBy = 'Cashier',
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'transaction_type': transactionType,
+        'parent_id': parentId,
+        'contact_id': contactId,
+        'contact_name': contactName,
+        'payment_method': paymentMethod,
+        'amount': amount,
+        'account_id': accountId,
+        'account_name': accountName,
+        'transaction_date': transactionDate,
+        'ref_no': refNo,
+        'note': note,
+        'created_by': createdBy,
+        'created_at': createdAt,
+      };
+
+  factory PaymentTransaction.fromMap(Map<String, dynamic> map) => PaymentTransaction(
+        id: map['id'] as int?,
+        transactionType: map['transaction_type'] as String? ?? 'sale',
+        parentId: map['parent_id'] as int?,
+        contactId: map['contact_id'] as int?,
+        contactName: map['contact_name'] as String? ?? 'Walk-in Customer',
+        paymentMethod: map['payment_method'] as String? ?? 'cash',
+        amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
+        accountId: map['account_id'] as int?,
+        accountName: map['account_name'] as String? ?? 'Cash Till',
+        transactionDate: map['transaction_date'] as String? ?? '',
+        refNo: map['ref_no'] as String? ?? '',
+        note: map['note'] as String? ?? '',
+        createdBy: map['created_by'] as String? ?? 'System',
+        createdAt: map['created_at'] as String? ?? '',
+      );
+}
+
+/// Serial Number, IMEI & Batch Tracking for Mobile, Electronics & Pharmacy
+class ProductSerialBatch {
+  final int? id;
+  final int productId;
+  final String productName;
+  final String sku;
+  final String serialNumber1; // IMEI 1 / Primary Serial
+  final String serialNumber2; // IMEI 2 / Secondary Serial
+  final String batchNumber;
+  final String manufacturingDate;
+  final String expiryDate;
+  final int warrantyMonths;
+  final String warrantyExpiryDate;
+  final String status; // 'in_stock', 'sold', 'returned', 'defective', 'transferred'
+  final int? purchaseId;
+  final int? saleId;
+  final int locationId;
+  final double purchasePrice;
+  final double sellingPrice;
+  final String notes;
+  final String createdAt;
+
+  ProductSerialBatch({
+    this.id,
+    required this.productId,
+    required this.productName,
+    this.sku = '',
+    this.serialNumber1 = '',
+    this.serialNumber2 = '',
+    this.batchNumber = '',
+    this.manufacturingDate = '',
+    this.expiryDate = '',
+    this.warrantyMonths = 0,
+    this.warrantyExpiryDate = '',
+    this.status = 'in_stock',
+    this.purchaseId,
+    this.saleId,
+    this.locationId = 1,
+    this.purchasePrice = 0.0,
+    this.sellingPrice = 0.0,
+    this.notes = '',
+    required this.createdAt,
+  });
+
+  bool get isInStock => status == 'in_stock';
+  bool get isSold => status == 'sold';
+  bool get isExpired {
+    if (expiryDate.isEmpty) return false;
+    final exp = DateTime.tryParse(expiryDate);
+    if (exp == null) return false;
+    return exp.isBefore(DateTime.now());
+  }
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'product_id': productId,
+        'product_name': productName,
+        'sku': sku,
+        'serial_number_1': serialNumber1,
+        'serial_number_2': serialNumber2,
+        'batch_number': batchNumber,
+        'manufacturing_date': manufacturingDate,
+        'expiry_date': expiryDate,
+        'warranty_months': warrantyMonths,
+        'warranty_expiry_date': warrantyExpiryDate,
+        'status': status,
+        'purchase_id': purchaseId,
+        'sale_id': saleId,
+        'location_id': locationId,
+        'purchase_price': purchasePrice,
+        'selling_price': sellingPrice,
+        'notes': notes,
+        'created_at': createdAt,
+      };
+
+  factory ProductSerialBatch.fromMap(Map<String, dynamic> map) => ProductSerialBatch(
+        id: map['id'] as int?,
+        productId: map['product_id'] as int? ?? 0,
+        productName: map['product_name'] as String? ?? '',
+        sku: map['sku'] as String? ?? '',
+        serialNumber1: map['serial_number_1'] as String? ?? '',
+        serialNumber2: map['serial_number_2'] as String? ?? '',
+        batchNumber: map['batch_number'] as String? ?? '',
+        manufacturingDate: map['manufacturing_date'] as String? ?? '',
+        expiryDate: map['expiry_date'] as String? ?? '',
+        warrantyMonths: (map['warranty_months'] as num?)?.toInt() ?? 0,
+        warrantyExpiryDate: map['warranty_expiry_date'] as String? ?? '',
+        status: map['status'] as String? ?? 'in_stock',
+        purchaseId: map['purchase_id'] as int?,
+        saleId: map['sale_id'] as int?,
+        locationId: (map['location_id'] as num?)?.toInt() ?? 1,
+        purchasePrice: (map['purchase_price'] as num?)?.toDouble() ?? 0.0,
+        sellingPrice: (map['selling_price'] as num?)?.toDouble() ?? 0.0,
+        notes: map['notes'] as String? ?? '',
+        createdAt: map['created_at'] as String? ?? '',
+      );
+}
+
+/// Composite / Bundle Product Bill of Materials (BOM) Item for Solar & Systems
+class ProductBundleItem {
+  final int? id;
+  final int parentProductId;
+  final int subProductId;
+  final String subProductName;
+  final String subSku;
+  final double quantity;
+  final double unitPrice;
+  final bool isOptional;
+  final int sortOrder;
+  final String notes;
+
+  ProductBundleItem({
+    this.id,
+    required this.parentProductId,
+    required this.subProductId,
+    required this.subProductName,
+    this.subSku = '',
+    this.quantity = 1.0,
+    this.unitPrice = 0.0,
+    this.isOptional = false,
+    this.sortOrder = 0,
+    this.notes = '',
+  });
+
+  double get subtotal => quantity * unitPrice;
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'parent_product_id': parentProductId,
+        'sub_product_id': subProductId,
+        'sub_product_name': subProductName,
+        'sub_sku': subSku,
+        'quantity': quantity,
+        'unit_price': unitPrice,
+        'is_optional': isOptional ? 1 : 0,
+        'sort_order': sortOrder,
+        'notes': notes,
+      };
+
+  factory ProductBundleItem.fromMap(Map<String, dynamic> map) => ProductBundleItem(
+        id: map['id'] as int?,
+        parentProductId: map['parent_product_id'] as int? ?? 0,
+        subProductId: map['sub_product_id'] as int? ?? 0,
+        subProductName: map['sub_product_name'] as String? ?? '',
+        subSku: map['sub_sku'] as String? ?? '',
+        quantity: (map['quantity'] as num?)?.toDouble() ?? 1.0,
+        unitPrice: (map['unit_price'] as num?)?.toDouble() ?? 0.0,
+        isOptional: (map['is_optional'] as int? ?? 0) == 1,
+        sortOrder: (map['sort_order'] as num?)?.toInt() ?? 0,
+        notes: map['notes'] as String? ?? '',
+      );
+}
+
+/// Audit Trail Record for Critical POS and Administrative Events
+class AuditLog {
+  final int? id;
+  final String action; // 'item_deleted', 'price_override', 'bill_voided', 'sale_return', 'settings_changed', etc.
+  final String entityType; // 'sale', 'purchase', 'product', 'contact', 'settings', 'auth'
+  final String? entityId;
+  final int? userId;
+  final String userName;
+  final String details;
+  final String oldValues;
+  final String newValues;
+  final String ipAddress;
+  final String timestamp;
+
+  AuditLog({
+    this.id,
+    required this.action,
+    required this.entityType,
+    this.entityId,
+    this.userId,
+    required this.userName,
+    this.details = '',
+    this.oldValues = '',
+    this.newValues = '',
+    this.ipAddress = '',
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'action': action,
+        'entity_type': entityType,
+        'entity_id': entityId,
+        'user_id': userId,
+        'user_name': userName,
+        'details': details,
+        'old_values': oldValues,
+        'new_values': newValues,
+        'ip_address': ipAddress,
+        'timestamp': timestamp,
+      };
+
+  factory AuditLog.fromMap(Map<String, dynamic> map) => AuditLog(
+        id: map['id'] as int?,
+        action: map['action'] as String? ?? '',
+        entityType: map['entity_type'] as String? ?? '',
+        entityId: map['entity_id'] as String?,
+        userId: map['user_id'] as int?,
+        userName: map['user_name'] as String? ?? 'System',
+        details: map['details'] as String? ?? '',
+        oldValues: map['old_values'] as String? ?? '',
+        newValues: map['new_values'] as String? ?? '',
+        ipAddress: map['ip_address'] as String? ?? '',
+        timestamp: map['timestamp'] as String? ?? '',
+      );
+}
 

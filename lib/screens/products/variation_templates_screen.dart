@@ -45,171 +45,188 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => Dialog(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        toEdit == null ? 'Add Variation Template' : 'Edit Variation Template',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _fieldLabel('Variation Name * (e.g. Size, Color, Capacity)'),
-                  const SizedBox(height: 6),
-                  TextField(controller: nameCtrl, decoration: _inputDeco('e.g. Size')),
-                  const SizedBox(height: 16),
-                  _fieldLabel('Add Variation Values (e.g. Small, Medium, Large)'),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: valCtrl,
-                          decoration: _inputDeco('Type a value and click Add'),
-                          onSubmitted: (text) {
-                            final val = text.trim();
+        builder: (ctx, setDlgState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return Dialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          toEdit == null ? 'Add Variation Template' : 'Edit Variation Template',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _fieldLabel('Variation Name * (e.g. Size, Color, Capacity)', isDark: isDark),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameCtrl,
+                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                      decoration: _inputDeco('e.g. Size', isDark: isDark),
+                    ),
+                    const SizedBox(height: 16),
+                    _fieldLabel('Add Variation Values (e.g. Small, Medium, Large)', isDark: isDark),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: valCtrl,
+                            style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                            decoration: _inputDeco('Type a value and click Add', isDark: isDark),
+                            onSubmitted: (text) {
+                              final val = text.trim();
+                              if (val.isNotEmpty && !values.contains(val)) {
+                                setDlgState(() => values.add(val));
+                                valCtrl.clear();
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDark ? const Color(0xFF312E81).withValues(alpha: 0.5) : const Color(0xFFEEF2FF),
+                            foregroundColor: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: const Icon(Icons.add_rounded, size: 16),
+                          label: const Text('Add Value'),
+                          onPressed: () {
+                            final val = valCtrl.text.trim();
                             if (val.isNotEmpty && !values.contains(val)) {
                               setDlgState(() => values.add(val));
                               valCtrl.clear();
                             }
                           },
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEEF2FF),
-                          foregroundColor: const Color(0xFF4F46E5),
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        icon: const Icon(Icons.add_rounded, size: 16),
-                        label: const Text('Add Value'),
-                        onPressed: () {
-                          final val = valCtrl.text.trim();
-                          if (val.isNotEmpty && !values.contains(val)) {
-                            setDlgState(() => values.add(val));
-                            valCtrl.clear();
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Values Tags Container
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    constraints: const BoxConstraints(minHeight: 60),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ],
                     ),
-                    child: values.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No values added yet. Add at least 1 value.',
-                              style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                    const SizedBox(height: 12),
+                    // Values Tags Container
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      constraints: const BoxConstraints(minHeight: 60),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      ),
+                      child: values.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No values added yet. Add at least 1 value.',
+                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                              ),
+                            )
+                          : Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: values
+                                  .map(
+                                    (v) => Chip(
+                                      label: Text(v, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                                      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFC7D2FE)),
+                                      deleteIcon: Icon(Icons.close, size: 14, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                      onDeleted: () => setDlgState(() => values.remove(v)),
+                                    ),
+                                  )
+                                  .toList(),
                             ),
-                          )
-                        : Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: values
-                                .map(
-                                  (v) => Chip(
-                                    label: Text(v, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                                    backgroundColor: Colors.white,
-                                    side: const BorderSide(color: Color(0xFFC7D2FE)),
-                                    deleteIcon: const Icon(Icons.close, size: 14, color: Color(0xFF64748B)),
-                                    onDeleted: () => setDlgState(() => values.remove(v)),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                  ),
-                  const SizedBox(height: 22),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4F46E5),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    const SizedBox(height: 22),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                         ),
-                        onPressed: () async {
-                          final name = nameCtrl.text.trim();
-                          if (name.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please enter variation template name')),
-                            );
-                            return;
-                          }
-                          if (values.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please add at least one value')),
-                            );
-                            return;
-                          }
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F46E5),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () async {
+                            final name = nameCtrl.text.trim();
+                            if (name.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please enter variation template name')),
+                              );
+                              return;
+                            }
+                            if (values.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please add at least one value')),
+                              );
+                              return;
+                            }
 
-                          final db = await DatabaseService.initialize();
-                          if (toEdit == null) {
-                            await db.addVariationTemplate(VariationTemplate(name: name, values: values));
-                          } else {
-                            await db.updateVariationTemplate(VariationTemplate(id: toEdit.id, name: name, values: values));
-                          }
+                            final db = await DatabaseService.initialize();
+                            if (toEdit == null) {
+                              await db.addVariationTemplate(VariationTemplate(name: name, values: values));
+                            } else {
+                              await db.updateVariationTemplate(VariationTemplate(id: toEdit.id, name: name, values: values));
+                            }
 
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          _load();
-                        },
-                        child: Text(toEdit == null ? 'Save Template' : 'Update Template'),
-                      ),
-                    ],
-                  ),
-                ],
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            _load();
+                          },
+                          child: Text(toEdit == null ? 'Save Template' : 'Update Template'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
   Future<void> _deleteTemplate(VariationTemplate tmpl) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Template?'),
-        content: Text('Are you sure you want to delete variation template "${tmpl.name}"?'),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Text('Delete Template?', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A))),
+        content: Text('Are you sure you want to delete variation template "${tmpl.name}"?', style: TextStyle(color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
@@ -226,24 +243,37 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
     }
   }
 
-  Widget _fieldLabel(String label) {
+  Widget _fieldLabel(String label, {bool isDark = false}) {
     return Text(
       label,
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+      ),
     );
   }
 
-  InputDecoration _inputDeco(String hint) {
+  InputDecoration _inputDeco(String hint, {bool isDark = false}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+      hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       isDense: true,
       filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5)),
+      fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: Color(0xFF4F46E5), width: 1.5),
+      ),
     );
   }
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../services/database_service.dart';
+import '../services/qulop_service.dart';
 import '../widgets/ultimate_app_bar.dart';
 import '../widgets/ultimate_sidebar.dart';
 import 'pos/register_details_dialog.dart';
@@ -24,8 +26,25 @@ import 'reports/reports_screen.dart';
 import 'settings/settings_screen.dart';
 import 'users/user_management_screen.dart';
 import 'inventory/stock_transfers_screen.dart';
+import 'inventory/inventory_audit_screen.dart';
 import 'accounts/payment_accounts_screen.dart';
 import 'notifications/notification_templates_screen.dart';
+import 'returns/sales_return_screen.dart';
+import 'returns/purchase_return_screen.dart';
+import 'financial/annual_closing_screen.dart';
+import 'business_modules/business_modules_hub_screen.dart';
+import 'business_modules/restaurant_cafe_screen.dart';
+import 'business_modules/repair_service_screen.dart';
+import 'business_modules/hotel_management_screen.dart';
+import 'business_modules/gym_fitness_screen.dart';
+import 'business_modules/manufacturing_screen.dart';
+import 'business_modules/woocommerce_sync_screen.dart';
+import 'business_modules/hrm_employee_screen.dart';
+import 'business_modules/accounting_crm_screen.dart';
+import 'business_modules/fruit_mandi_screen.dart';
+import 'business_modules/poultry_business_screen.dart';
+import 'settings/module_settings_screen.dart';
+import 'settings/cloud_sync_screen.dart';
 
 class MainShell extends StatefulWidget {
   final BusinessSettings initialSettings;
@@ -53,7 +72,17 @@ class _MainShellState extends State<MainShell> {
   Product? _productToPrintLabel;
 
   void _onOpenPos() {
-    setState(() => _selectedIndex = 1); // Index 1 is POS Terminal
+    if (_settings.isRestaurant) {
+      setState(() => _selectedIndex = 29); // Restaurant Tables & KOT
+    } else if (_settings.isRepair) {
+      setState(() => _selectedIndex = 30); // Repair Job Sheets
+    } else if (_settings.isHotel) {
+      setState(() => _selectedIndex = 31); // Hotel Room Grid
+    } else if (_settings.isGym) {
+      setState(() => _selectedIndex = 32); // Gym Subscriptions
+    } else {
+      setState(() => _selectedIndex = 1); // Standard / Fast POS Terminal
+    }
   }
 
   void _onOpenRegister() {
@@ -61,6 +90,14 @@ class _MainShellState extends State<MainShell> {
       context: context,
       builder: (_) => RegisterDetailsDialog(settings: _settings),
     );
+  }
+
+  Future<void> _reloadSettings() async {
+    final db = await DatabaseService.initialize();
+    final fresh = await db.getBusinessSettings();
+    if (mounted) {
+      setState(() => _settings = fresh);
+    }
   }
 
   Widget _buildBody() {
@@ -151,6 +188,49 @@ class _MainShellState extends State<MainShell> {
           settings: _settings,
           onImportSuccess: () => setState(() => _selectedIndex = 2),
         );
+      case 24:
+        return InventoryAuditScreen(settings: _settings);
+      case 25:
+        return SalesReturnScreen(settings: _settings);
+      case 26:
+        return PurchaseReturnScreen(settings: _settings);
+      case 27:
+        return AnnualClosingScreen(settings: _settings);
+      case 28:
+        return BusinessModulesHubScreen(
+          settings: _settings,
+          onNavigateToTab: (index) => setState(() => _selectedIndex = index),
+        );
+      case 29:
+        return RestaurantCafeScreen(settings: _settings);
+      case 30:
+        return RepairServiceScreen(settings: _settings);
+      case 31:
+        return HotelManagementScreen(settings: _settings);
+      case 32:
+        return GymFitnessScreen(settings: _settings);
+      case 33:
+        return ManufacturingScreen(settings: _settings);
+      case 34:
+        return WooCommerceSyncScreen(settings: _settings);
+      case 35:
+        return HrmEmployeeScreen(settings: _settings);
+      case 36:
+        return AccountingCrmScreen(settings: _settings);
+      case 37:
+        return FruitMandiScreen(settings: _settings);
+      case 38:
+        return PoultryBusinessScreen(settings: _settings);
+      case 39:
+        return ModuleSettingsScreen(
+          settings: _settings,
+          onSettingsUpdated: _reloadSettings,
+        );
+      case 40:
+        return CloudSyncScreen(
+          settings: _settings,
+          onSettingsUpdated: (updated) => setState(() => _settings = updated),
+        );
       default:
         return DashboardScreen(
           settings: _settings,
@@ -165,8 +245,8 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       body: Column(
         children: [
-          // Top Ultimate POS Bar
-          UltimateAppBar(
+          // Top Smart POS Bar
+          SmartAppBar(
             onOpenPos: _onOpenPos,
             onOpenRegisterDetails: _onOpenRegister,
             onToggleSidebar: () => setState(() => _sidebarCollapsed = !_sidebarCollapsed),
@@ -175,14 +255,52 @@ class _MainShellState extends State<MainShell> {
             onLocationChanged: (loc) => setState(() => _activeLocationName = loc),
           ),
 
+          // Impending Qulop License Expiry Warning Banner
+          ValueListenableBuilder<QulopStatus?>(
+            valueListenable: QulopService.qulopNotifier,
+            builder: (context, qulopStatus, _) {
+              if (qulopStatus != null && qulopStatus.isNearExpiry && qulopStatus.isValid) {
+                return Container(
+                  width: double.infinity,
+                  color: const Color(0xFFFEF3C7),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Qulop License Warning: Your Smart POS ${qulopStatus.tierLabel} will expire in ${qulopStatus.remainingDays} days. Please contact vendor (+92 300 1234567) to renew.',
+                          style: const TextStyle(color: Color(0xFF92400E), fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: const Color(0xFFD97706),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        onPressed: () => setState(() => _selectedIndex = 23),
+                        child: const Text('Renew / Activate Key', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+
           // Main Workspace: Sidebar + Dynamic Body
           Expanded(
             child: Row(
               children: [
-                UltimateSidebar(
+                SmartSidebar(
                   selectedIndex: _selectedIndex,
                   onSelect: (idx) => setState(() => _selectedIndex = idx),
                   isCollapsed: _sidebarCollapsed,
+                  settings: _settings,
                 ),
                 Expanded(
                   child: _buildBody(),

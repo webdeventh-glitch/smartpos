@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import 'pos_power_dialogs.dart';
 
 class RegisterDetailsDialog extends StatefulWidget {
   final BusinessSettings settings;
@@ -40,25 +41,34 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
   Future<void> _closeRegister() async {
     if (_register == null) return;
     final closingAmount = double.tryParse(_closingCashController.text.trim()) ?? 0.0;
+    final closeNote = _closeNoteController.text.trim();
     final db = await DatabaseService.initialize();
-    await db.closeRegister(_register!.id!, closingAmount, _closeNoteController.text.trim());
+    await db.closeRegister(_register!.id!, closingAmount, closeNote);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cash register closed successfully!'), backgroundColor: Color(0xFF10B981)),
-      );
+      final reg = _register!;
       Navigator.of(context).pop();
+      showDialog(
+        context: context,
+        builder: (_) => RegisterReportDialog(
+          isZReport: true,
+          register: reg,
+          settings: widget.settings,
+          actualCash: closingAmount,
+          closeNote: closeNote,
+        ),
+      );
     }
   }
 
-  Widget _fieldLabel(String label) {
+  Widget _fieldLabel(String label, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF334155),
+          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
         ),
       ),
     );
@@ -67,11 +77,12 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
   @override
   Widget build(BuildContext context) {
     final currency = widget.settings.currencySymbol;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 8,
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       child: Container(
         width: 500,
         padding: const EdgeInsets.all(24),
@@ -84,18 +95,25 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(Icons.lock_clock_rounded, size: 40, color: Color(0xFF64748B)),
+                        child: Icon(Icons.lock_clock_rounded, size: 40, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                       ),
                       const SizedBox(height: 16),
-                      const Text('No Open Cash Register Session', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A))),
+                      Text(
+                        'No Open Cash Register Session',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'You need to open an active cash register shift before taking terminal payments.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                        style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13),
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton(
@@ -127,52 +145,59 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFD1FAE5),
+                                  color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.5) : const Color(0xFFD1FAE5),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Icon(Icons.point_of_sale_rounded, color: Color(0xFF059669), size: 20),
+                                child: const Icon(Icons.point_of_sale_rounded, color: Color(0xFF10B981), size: 20),
                               ),
                               const SizedBox(width: 12),
-                              const Column(
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Cash Register Shift',
-                                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    ),
                                   ),
                                   Text(
                                     'Active register session balance & reconciliation',
-                                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                    ),
                                   ),
                                 ],
                               ),
                             ],
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                            icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                             onPressed: () => Navigator.of(context).pop(),
                             splashRadius: 18,
                           ),
                         ],
                       ),
-                      const Divider(height: 24, color: Color(0xFFE2E8F0)),
+                      Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
 
                       // Info card
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
+                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                         ),
                         child: Column(
                           children: [
-                            _row('Cashier:', _register!.cashierName),
-                            _row('Opened At:', _register!.openedAt),
-                            _row('Opening Cash in Hand:', '$currency${_register!.openingAmount.toStringAsFixed(2)}'),
-                            _row('Cash Sales:', '$currency${_register!.totalSalesCash.toStringAsFixed(2)}'),
-                            _row('Card Sales:', '$currency${_register!.totalSalesCard.toStringAsFixed(2)}'),
-                            _row('Other / Bank Sales:', '$currency${_register!.totalSalesOther.toStringAsFixed(2)}'),
+                            _row('Cashier:', _register!.cashierName, isDark),
+                            _row('Opened At:', _register!.openedAt, isDark),
+                            _row('Opening Cash in Hand:', '$currency${_register!.openingAmount.toStringAsFixed(2)}', isDark),
+                            _row('Cash Sales:', '$currency${_register!.totalSalesCash.toStringAsFixed(2)}', isDark),
+                            _row('Card Sales:', '$currency${_register!.totalSalesCard.toStringAsFixed(2)}', isDark),
+                            _row('Other / Bank Sales:', '$currency${_register!.totalSalesOther.toStringAsFixed(2)}', isDark),
                           ],
                         ),
                       ),
@@ -181,76 +206,131 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFECFDF5),
+                          color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                          border: Border.all(color: isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'TOTAL CASH IN DRAWER:',
-                              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF065F46), fontSize: 13),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF065F46),
+                                fontSize: 13,
+                              ),
                             ),
                             Text(
                               '$currency${_register!.totalCashInRegister.toStringAsFixed(2)}',
-                              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF065F46), fontSize: 20),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF065F46),
+                                fontSize: 20,
+                              ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 18),
 
-                      const Text('Close Register Form', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                      Text(
+                        'Close Register Form',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
                       const SizedBox(height: 10),
 
-                      _fieldLabel('Actual Closing Cash Counted *'),
+                      _fieldLabel('Actual Closing Cash Counted *', isDark),
                       TextField(
                         controller: _closingCashController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold),
                         decoration: InputDecoration(
                           prefixText: '$currency ',
+                          prefixStyle: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold),
                           isDense: true,
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
 
-                      _fieldLabel('Closing Note (Optional)'),
+                      _fieldLabel('Closing Note (Optional)', isDark),
                       TextField(
                         controller: _closeNoteController,
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                        decoration: const InputDecoration(
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
                           hintText: 'e.g. End of shift, cash balanced with drawer physical count',
+                          hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                           isDense: true,
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          OutlinedButton(
+                          OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF64748B),
-                              side: const BorderSide(color: Color(0xFFCBD5E1)),
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                              foregroundColor: const Color(0xFF004EEB),
+                              side: const BorderSide(color: Color(0xFF004EEB)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                            icon: const Icon(Icons.receipt_long_rounded, size: 16),
+                            label: const Text('View X-Report', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => RegisterReportDialog(
+                                  isZReport: false,
+                                  register: _register!,
+                                  settings: widget.settings,
+                                ),
+                              );
+                            },
                           ),
-                          const SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFEF4444),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            icon: const Icon(Icons.lock_rounded, size: 16),
-                            label: const Text('Close Register & Shift', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            onPressed: _closeRegister,
+                          Row(
+                            children: [
+                              OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                  side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                              ),
+                              const SizedBox(width: 10),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFEF4444),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                icon: const Icon(Icons.lock_rounded, size: 16),
+                                label: const Text('Close Shift (Z-Report)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                onPressed: _closeRegister,
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -260,14 +340,14 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
     );
   }
 
-  Widget _row(String label, String value) {
+  Widget _row(String label, String value, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+          Text(label, style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
         ],
       ),
     );

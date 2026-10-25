@@ -47,6 +47,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final p = widget.product;
     final currency = widget.settings.currencySymbol;
     final margin = p.purchasePrice > 0
@@ -57,10 +58,13 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
     final totalCostValue = p.stockQuantity * p.purchasePrice;
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       surfaceTintColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 780, maxHeight: 720),
         child: Column(
@@ -69,8 +73,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
             // Modal Header
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
               ),
               child: Row(
                 children: [
@@ -78,11 +82,11 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEF2FF),
+                      color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFC7D2FE)),
+                      border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
                     ),
-                    child: const Icon(Icons.inventory_2_rounded, color: Color(0xFF4F46E5), size: 24),
+                    child: Icon(Icons.inventory_2_rounded, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5), size: 24),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -94,10 +98,10 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                             Flexible(
                               child: Text(
                                 p.name,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0F172A),
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -106,10 +110,14 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: p.isVariable ? const Color(0xFFF3E8FF) : const Color(0xFFECFDF5),
+                                color: p.isVariable
+                                    ? (isDark ? const Color(0xFF581C87).withValues(alpha: 0.4) : const Color(0xFFF3E8FF))
+                                    : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5)),
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: p.isVariable ? const Color(0xFFD8B4FE) : const Color(0xFFA7F3D0),
+                                  color: p.isVariable
+                                      ? (isDark ? const Color(0xFF7E22CE) : const Color(0xFFD8B4FE))
+                                      : (isDark ? const Color(0xFF047857) : const Color(0xFFA7F3D0)),
                                 ),
                               ),
                               child: Text(
@@ -117,7 +125,9 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: p.isVariable ? const Color(0xFF7C3AED) : const Color(0xFF059669),
+                                  color: p.isVariable
+                                      ? (isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED))
+                                      : (isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
                                 ),
                               ),
                             ),
@@ -126,13 +136,17 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                         const SizedBox(height: 2),
                         Text(
                           'SKU: ${p.sku}  •  Barcode: ${p.barcode} (${p.barcodeType})',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                    icon: Icon(Icons.close_rounded, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -154,8 +168,9 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                             title: 'Purchase Cost',
                             value: '$currency${p.purchasePrice.toStringAsFixed(2)}',
                             subtitle: 'Default supplier cost',
-                            color: const Color(0xFF0F172A),
-                            bgColor: const Color(0xFFF8FAFC),
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            bgColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            isDark: isDark,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -164,8 +179,9 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                             title: 'Selling Price',
                             value: '$currency${p.sellingPrice.toStringAsFixed(2)}',
                             subtitle: 'Retail list price',
-                            color: const Color(0xFF4F46E5),
-                            bgColor: const Color(0xFFEEF2FF),
+                            color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
+                            bgColor: isDark ? const Color(0xFF312E81).withValues(alpha: 0.3) : const Color(0xFFEEF2FF),
+                            isDark: isDark,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -174,8 +190,9 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                             title: 'Profit Margin',
                             value: '${margin.toStringAsFixed(1)}%',
                             subtitle: '+$currency${unitProfit.toStringAsFixed(2)} profit / unit',
-                            color: const Color(0xFF059669),
-                            bgColor: const Color(0xFFECFDF5),
+                            color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                            bgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFECFDF5),
+                            isDark: isDark,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -187,11 +204,12 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                 ? 'Out of Stock'
                                 : (p.isLowStock ? 'Low Stock Warning' : 'Optimal Inventory'),
                             color: p.isOutOfStock
-                                ? const Color(0xFFDC2626)
-                                : (p.isLowStock ? const Color(0xFFD97706) : const Color(0xFF059669)),
+                                ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                : (p.isLowStock ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)) : (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))),
                             bgColor: p.isOutOfStock
-                                ? const Color(0xFFFEF2F2)
-                                : (p.isLowStock ? const Color(0xFFFFFBEB) : const Color(0xFFF0FDF4)),
+                                ? (isDark ? const Color(0xFF450A0A).withValues(alpha: 0.4) : const Color(0xFFFEF2F2))
+                                : (p.isLowStock ? (isDark ? const Color(0xFF451A03).withValues(alpha: 0.4) : const Color(0xFFFFFBEB)) : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFF0FDF4))),
+                            isDark: isDark,
                           ),
                         ),
                       ],
@@ -202,24 +220,28 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? const Color(0xFF0F172A) : Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'General Specifications',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           Row(
                             children: [
-                              Expanded(child: _specItem('Category', p.categoryName)),
-                              Expanded(child: _specItem('Brand', p.brandName)),
-                              Expanded(child: _specItem('Standard Unit', p.unit)),
-                              Expanded(child: _specItem('Alert Quantity', '${p.alertQuantity} ${p.unit}')),
+                              Expanded(child: _specItem('Category', p.categoryName, isDark)),
+                              Expanded(child: _specItem('Brand', p.brandName, isDark)),
+                              Expanded(child: _specItem('Standard Unit', p.unit, isDark)),
+                              Expanded(child: _specItem('Alert Quantity', '${p.alertQuantity} ${p.unit}', isDark)),
                             ],
                           ),
                           const SizedBox(height: 12),
@@ -229,24 +251,61 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                 child: _specItem(
                                   'Warranty Policy',
                                   p.warranty?.isNotEmpty == true ? p.warranty! : 'No Warranty',
+                                  isDark,
                                 ),
                               ),
                               Expanded(
                                 child: _specItem(
+                                  'Batch / Lot Number',
+                                  p.batchNumber?.isNotEmpty == true ? p.batchNumber! : 'N/A',
+                                  isDark,
+                                ),
+                              ),
+                              Expanded(
+                                child: _specItem(
+                                  'Expiry Date',
+                                  p.expiryDate?.isNotEmpty == true ? p.expiryDate! : 'N/A',
+                                  isDark,
+                                ),
+                              ),
+                              Expanded(
+                                child: _specItem(
+                                  'Bonus Scheme',
+                                  (p.bonusQty > 0) ? '+${p.bonusQty} Free Units' : 'None',
+                                  isDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _specItem(
                                   'Inventory Valuation (Cost)',
                                   '$currency${totalCostValue.toStringAsFixed(2)}',
+                                  isDark,
                                 ),
                               ),
                               Expanded(
                                 child: _specItem(
                                   'Inventory Valuation (Retail)',
                                   '$currency${totalInventoryValue.toStringAsFixed(2)}',
+                                  isDark,
+                                ),
+                              ),
+                              Expanded(
+                                child: _specItem(
+                                  'Pack Multiplier',
+                                  '${p.packSize} units/pack',
+                                  isDark,
                                 ),
                               ),
                               Expanded(
                                 child: _specItem(
                                   'Status',
                                   p.isOutOfStock ? 'Out of Stock' : (p.isLowStock ? 'Low Stock' : 'Active'),
+                                  isDark,
                                 ),
                               ),
                             ],
@@ -258,9 +317,13 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
 
                     // If Variable Product, Show Variations Matrix Table
                     if (p.isVariable) ...[
-                      const Text(
+                      Text(
                         'Product Variations & Sub-SKUs',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       if (_loading)
@@ -269,17 +332,20 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                           ),
-                          child: const Text('No variations recorded yet for this product.'),
+                          child: Text(
+                            'No variations recorded yet for this product.',
+                            style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                          ),
                         )
                       else
                         Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
@@ -293,26 +359,28 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                               },
                               children: [
                                 TableRow(
-                                  decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                  ),
                                   children: [
-                                    _th('Variation / Attribute'),
-                                    _th('Sub-SKU'),
-                                    _th('Cost Price'),
-                                    _th('Selling Price'),
-                                    _th('Stock In Hand'),
+                                    _th('Variation / Attribute', isDark),
+                                    _th('Sub-SKU', isDark),
+                                    _th('Cost Price', isDark),
+                                    _th('Selling Price', isDark),
+                                    _th('Stock In Hand', isDark),
                                   ],
                                 ),
                                 ..._variations.map(
                                   (v) => TableRow(
-                                    decoration: const BoxDecoration(
-                                      border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                                    decoration: BoxDecoration(
+                                      border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
                                     ),
                                     children: [
-                                      _td(v.name, isBold: true),
-                                      _td(v.subSku),
-                                      _td('$currency${v.purchasePrice.toStringAsFixed(2)}'),
-                                      _td('$currency${v.sellingPrice.toStringAsFixed(2)}', isPrimary: true),
-                                      _td('${v.stockQuantity.toStringAsFixed(1)} ${p.unit}'),
+                                      _td(v.name, isBold: true, isDark: isDark),
+                                      _td(v.subSku, isDark: isDark),
+                                      _td('$currency${v.purchasePrice.toStringAsFixed(2)}', isDark: isDark),
+                                      _td('$currency${v.sellingPrice.toStringAsFixed(2)}', isPrimary: true, isDark: isDark),
+                                      _td('${v.stockQuantity.toStringAsFixed(1)} ${p.unit}', isDark: isDark),
                                     ],
                                   ),
                                 ),
@@ -329,9 +397,9 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
             // Modal Footer Buttons
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-                color: Color(0xFFF8FAFC),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -339,8 +407,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                   if (widget.onPrintLabels != null)
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF1E293B),
-                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        foregroundColor: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B),
+                        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
@@ -371,7 +439,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                   const SizedBox(width: 10),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Close', style: TextStyle(color: Color(0xFF64748B))),
+                    child: Text('Close', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                   ),
                 ],
               ),
@@ -388,52 +456,53 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
     required String subtitle,
     required Color color,
     required Color bgColor,
+    required bool isDark,
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.18)),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+          Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade700)),
           const SizedBox(height: 4),
           Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: color)),
           const SizedBox(height: 2),
-          Text(subtitle, style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+          Text(subtitle, style: TextStyle(fontSize: 10, color: isDark ? const Color(0xFF64748B) : Colors.grey.shade600, fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 
-  Widget _specItem(String label, String value) {
+  Widget _specItem(String label, String value, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w600)),
         const SizedBox(height: 2),
         Text(
           value.isNotEmpty ? value : '-',
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B)),
         ),
       ],
     );
   }
 
-  Widget _th(String text) {
+  Widget _th(String text, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
       ),
     );
   }
 
-  Widget _td(String text, {bool isBold = false, bool isPrimary = false}) {
+  Widget _td(String text, {bool isBold = false, bool isPrimary = false, required bool isDark}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Text(
@@ -441,7 +510,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-          color: isPrimary ? const Color(0xFF4F46E5) : const Color(0xFF1E293B),
+          color: isPrimary ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)) : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
         ),
       ),
     );

@@ -25,6 +25,17 @@ void main() {
     expect(pnl.containsKey('netProfit'), isTrue);
 
     // 2. Stock Valuation Report Verification
+    final existingProds = await dbService.getProducts();
+    if (existingProds.isEmpty) {
+      await dbService.addProduct(Product(
+        name: 'Gaming Mouse Pad',
+        sku: 'ACC-PAD-01',
+        barcode: 'ACC-PAD-01',
+        purchasePrice: 20.0,
+        sellingPrice: 50.0,
+        stockQuantity: 10.0,
+      ));
+    }
     final valuation = await dbService.getStockValuationReport();
     expect(valuation.containsKey('totalItems'), isTrue);
     expect(valuation.containsKey('totalQuantity'), isTrue);

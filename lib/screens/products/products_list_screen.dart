@@ -154,6 +154,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currency = widget.settings.currencySymbol;
     final filtered = _getFilteredProducts();
     final totalFiltered = filtered.length;
@@ -168,7 +169,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     final lowStockCount = _allProducts.where((p) => p.isLowStock || p.isOutOfStock).length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
@@ -181,14 +182,23 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Products & Catalog',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.3),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        letterSpacing: -0.3,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Manage your inventory catalog, pricing margins, SKU barcodes, and stock levels.',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -196,8 +206,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   children: [
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF1E293B),
-                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1E293B),
+                        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
@@ -240,7 +250,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _metricCard('Total Products', '${_allProducts.length} SKUs', Icons.inventory_2_outlined, const Color(0xFF4F46E5), const Color(0xFFEEF2FF)),
+                  child: _metricCard('Total Products', '${_allProducts.length} SKUs', Icons.inventory_2_outlined, const Color(0xFF4F46E5), isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF), isDark: isDark),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -249,16 +259,19 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     '$lowStockCount items',
                     Icons.warning_amber_rounded,
                     lowStockCount > 0 ? const Color(0xFFEA580C) : const Color(0xFF059669),
-                    lowStockCount > 0 ? const Color(0xFFFFEDD5) : const Color(0xFFECFDF5),
+                    lowStockCount > 0
+                        ? (isDark ? const Color(0xFF451A03).withValues(alpha: 0.4) : const Color(0xFFFFEDD5))
+                        : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5)),
+                    isDark: isDark,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _metricCard('Total Units in Stock', '${totalUnitsCount.toStringAsFixed(0)} Units', Icons.stacked_bar_chart_rounded, const Color(0xFF0284C7), const Color(0xFFE0F2FE)),
+                  child: _metricCard('Total Units in Stock', '${totalUnitsCount.toStringAsFixed(0)} Units', Icons.stacked_bar_chart_rounded, const Color(0xFF0284C7), isDark ? const Color(0xFF0C4A6E).withValues(alpha: 0.4) : const Color(0xFFE0F2FE), isDark: isDark),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _metricCard('Inventory Retail Value', '$currency${totalInventoryValue.toStringAsFixed(2)}', Icons.account_balance_wallet_outlined, const Color(0xFF059669), const Color(0xFFECFDF5)),
+                  child: _metricCard('Inventory Retail Value', '$currency${totalInventoryValue.toStringAsFixed(2)}', Icons.account_balance_wallet_outlined, const Color(0xFF059669), isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5), isDark: isDark),
                 ),
               ],
             ),
@@ -268,9 +281,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 children: [
@@ -280,18 +293,21 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       Expanded(
                         flex: 3,
                         child: TextField(
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                           onChanged: (val) => setState(() {
                             _search = val.trim();
                             _currentPage = 1;
                           }),
                           decoration: InputDecoration(
                             hintText: 'Search product name, SKU, or barcode...',
-                            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                            prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                            hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                            prefixIcon: Icon(Icons.search, size: 18, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                             isDense: true,
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
                             contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
                           ),
                         ),
                       ),
@@ -302,10 +318,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         flex: 2,
                         child: DropdownButtonFormField<int?>(
                           value: _selectedCategory,
-                          decoration: _dropdownDeco('Category'),
+                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          decoration: _dropdownDeco('Category', isDark: isDark),
                           items: [
-                            const DropdownMenuItem<int?>(value: null, child: Text('All Categories')),
-                            ..._categories.map((c) => DropdownMenuItem<int?>(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))),
+                            DropdownMenuItem<int?>(value: null, child: Text('All Categories', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                            ..._categories.map((c) => DropdownMenuItem<int?>(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A))))),
                           ],
                           onChanged: (val) => setState(() {
                             _selectedCategory = val;
@@ -320,10 +338,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         flex: 2,
                         child: DropdownButtonFormField<int?>(
                           value: _selectedBrand,
-                          decoration: _dropdownDeco('Brand'),
+                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          decoration: _dropdownDeco('Brand', isDark: isDark),
                           items: [
-                            const DropdownMenuItem<int?>(value: null, child: Text('All Brands')),
-                            ..._brands.map((b) => DropdownMenuItem<int?>(value: b.id, child: Text(b.name, overflow: TextOverflow.ellipsis))),
+                            DropdownMenuItem<int?>(value: null, child: Text('All Brands', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                            ..._brands.map((b) => DropdownMenuItem<int?>(value: b.id, child: Text(b.name, overflow: TextOverflow.ellipsis, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A))))),
                           ],
                           onChanged: (val) => setState(() {
                             _selectedBrand = val;
@@ -338,12 +358,14 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         flex: 2,
                         child: DropdownButtonFormField<String>(
                           value: _stockFilter,
-                          decoration: _dropdownDeco('Stock Status'),
-                          items: const [
-                            DropdownMenuItem(value: 'all', child: Text('All Stock Levels')),
-                            DropdownMenuItem(value: 'in_stock', child: Text('In Stock')),
-                            DropdownMenuItem(value: 'low_stock', child: Text('Low Stock Alert')),
-                            DropdownMenuItem(value: 'out_of_stock', child: Text('Out of Stock')),
+                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          decoration: _dropdownDeco('Stock Status', isDark: isDark),
+                          items: [
+                            DropdownMenuItem(value: 'all', child: Text('All Stock Levels', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                            DropdownMenuItem(value: 'in_stock', child: Text('In Stock', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                            DropdownMenuItem(value: 'low_stock', child: Text('Low Stock Alert', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                            DropdownMenuItem(value: 'out_of_stock', child: Text('Out of Stock', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
                           ],
                           onChanged: (val) {
                             if (val != null) {
@@ -361,7 +383,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       if (_selectedCategory != null || _selectedBrand != null || _stockFilter != 'all' || _search.isNotEmpty)
                         IconButton(
                           tooltip: 'Clear Filters',
-                          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF64748B)),
+                          icon: Icon(Icons.refresh_rounded, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           onPressed: () {
                             setState(() {
                               _selectedCategory = null;
@@ -387,26 +409,32 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 padding: const EdgeInsets.all(40),
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade400),
+                    Icon(Icons.inventory_2_outlined, size: 48, color: isDark ? const Color(0xFF64748B) : Colors.grey.shade400),
                     const SizedBox(height: 12),
-                    const Text('No Products Matching Criteria', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(
+                      'No Products Matching Criteria',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    ),
                     const SizedBox(height: 4),
-                    Text('Try adjusting your search filters or click "Add Product" to add items.', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    Text(
+                      'Try adjusting your search filters or click "Add Product" to add items.',
+                      style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600, fontSize: 13),
+                    ),
                   ],
                 ),
               )
             else
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                   boxShadow: const [
                     BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
                   ],
@@ -434,15 +462,15 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                 },
                                 children: [
                                   TableRow(
-                                    decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                                    decoration: BoxDecoration(color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
                                     children: [
-                                      _th('Product Item'),
-                                      _th('SKU / Barcode'),
-                                      _th('Category / Brand'),
-                                      _th('Cost Price'),
-                                      _th('Selling Price'),
-                                      _th('Current Stock'),
-                                      _th('Actions', alignRight: true),
+                                      _th('Product Item', isDark: isDark),
+                                      _th('SKU / Barcode', isDark: isDark),
+                                      _th('Category / Brand', isDark: isDark),
+                                      _th('Cost Price', isDark: isDark),
+                                      _th('Selling Price', isDark: isDark),
+                                      _th('Current Stock', isDark: isDark),
+                                      _th('Actions', alignRight: true, isDark: isDark),
                                     ],
                                   ),
                                   ...paginatedProducts.map((p) {
@@ -451,8 +479,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             : 0.0;
 
                         return TableRow(
-                          decoration: const BoxDecoration(
-                            border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                          decoration: BoxDecoration(
+                            border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
                           ),
                           children: [
                             // Product Item & Type
@@ -464,10 +492,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                     width: 36,
                                     height: 36,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFEEF2FF),
+                                      color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF4F46E5), size: 18),
+                                    child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF818CF8), size: 18),
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
@@ -478,7 +506,11 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                           onTap: () => _viewProductDetails(p),
                                           child: Text(
                                             p.name,
-                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 13,
+                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                            ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
@@ -488,7 +520,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                               decoration: BoxDecoration(
-                                                color: p.isVariable ? const Color(0xFFF3E8FF) : const Color(0xFFF1F5F9),
+                                                color: p.isVariable
+                                                    ? (isDark ? const Color(0xFF581C87).withValues(alpha: 0.4) : const Color(0xFFF3E8FF))
+                                                    : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
                                                 borderRadius: BorderRadius.circular(4),
                                               ),
                                               child: Text(
@@ -496,12 +530,44 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                                 style: TextStyle(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.bold,
-                                                  color: p.isVariable ? const Color(0xFF7C3AED) : const Color(0xFF475569),
+                                                  color: p.isVariable
+                                                      ? (isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED))
+                                                      : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
                                                 ),
                                               ),
                                             ),
                                             const SizedBox(width: 6),
-                                            Text(p.unit, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                            Text(p.unit, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                                            if (p.batchNumber != null && p.batchNumber!.isNotEmpty) ...[
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFEFF6FF),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  border: Border.all(color: isDark ? const Color(0xFF2563EB) : const Color(0xFFBFDBFE)),
+                                                ),
+                                                child: Text(
+                                                  'Batch: ${p.batchNumber}',
+                                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8)),
+                                                ),
+                                              ),
+                                            ],
+                                            if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: isDark ? const Color(0xFF450A0A).withValues(alpha: 0.4) : const Color(0xFFFEF2F2),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  border: Border.all(color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA)),
+                                                ),
+                                                child: Text(
+                                                  'Exp: ${p.expiryDate}',
+                                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+                                                ),
+                                              ),
+                                            ],
                                           ],
                                         ),
                                       ],
@@ -517,8 +583,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(p.sku, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF334155))),
-                                  Text(p.barcode, style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                                  Text(p.sku, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155))),
+                                  Text(p.barcode, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8))),
                                 ],
                               ),
                             ),
@@ -529,8 +595,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(p.categoryName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
-                                  Text(p.brandName, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                  Text(p.categoryName, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1E293B))),
+                                  Text(p.brandName, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                                 ],
                               ),
                             ),
@@ -540,7 +606,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               child: Text(
                                 '$currency${p.purchasePrice.toStringAsFixed(2)}',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
                               ),
                             ),
 
@@ -552,11 +618,11 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                 children: [
                                   Text(
                                     '$currency${p.sellingPrice.toStringAsFixed(2)}',
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF4F46E5)),
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
                                   ),
                                   Text(
                                     '+${margin.toStringAsFixed(1)}% margin',
-                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
                                   ),
                                 ],
                               ),
@@ -569,8 +635,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: p.isOutOfStock
-                                      ? const Color(0xFFFEF2F2)
-                                      : (p.isLowStock ? const Color(0xFFFFFBEB) : const Color(0xFFECFDF5)),
+                                      ? (isDark ? const Color(0xFF450A0A).withValues(alpha: 0.4) : const Color(0xFFFEF2F2))
+                                      : (p.isLowStock
+                                          ? (isDark ? const Color(0xFF451A03).withValues(alpha: 0.4) : const Color(0xFFFFFBEB))
+                                          : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5))),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -579,8 +647,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: p.isOutOfStock
-                                        ? const Color(0xFFDC2626)
-                                        : (p.isLowStock ? const Color(0xFFD97706) : const Color(0xFF059669)),
+                                        ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                        : (p.isLowStock
+                                            ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+                                            : (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))),
                                   ),
                                 ),
                               ),
@@ -594,12 +664,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                 children: [
                                   IconButton(
                                     tooltip: 'View Specs',
-                                    icon: const Icon(Icons.visibility_outlined, size: 18, color: Color(0xFF475569)),
+                                    icon: Icon(Icons.visibility_outlined, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
                                     onPressed: () => _viewProductDetails(p),
                                   ),
                                   IconButton(
                                     tooltip: 'Print Barcode Label',
-                                    icon: const Icon(Icons.qr_code_2_rounded, size: 18, color: Color(0xFF4F46E5)),
+                                    icon: Icon(Icons.qr_code_2_rounded, size: 18, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
                                     onPressed: () {
                                       if (widget.onNavigateToPrintLabels != null) {
                                         widget.onNavigateToPrintLabels!(p);
@@ -615,12 +685,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                   ),
                                   IconButton(
                                     tooltip: 'Edit Product',
-                                    icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
+                                    icon: Icon(Icons.edit_outlined, size: 18, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
                                     onPressed: () => _openAddProduct(p),
                                   ),
                                   IconButton(
                                     tooltip: 'Delete Product',
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
+                                    icon: Icon(Icons.delete_outline_rounded, size: 18, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
                                     onPressed: () => _delete(p),
                                   ),
                                 ],
@@ -655,13 +725,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     );
   }
 
-  Widget _metricCard(String title, String value, IconData icon, Color color, Color bgColor) {
+  Widget _metricCard(String title, String value, IconData icon, Color color, Color bgColor, {required bool isDark}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 4, offset: Offset(0, 1))],
       ),
       child: Row(
@@ -676,9 +746,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+                Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0F172A))),
               ],
             ),
           ),
@@ -687,24 +757,30 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     );
   }
 
-  InputDecoration _dropdownDeco(String label) {
+  InputDecoration _dropdownDeco(String label, {required bool isDark}) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+      labelStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
       isDense: true,
+      filled: true,
+      fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
     );
   }
 
-  Widget _th(String text, {bool alignRight = false}) {
+  Widget _th(String text, {bool alignRight = false, required bool isDark}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Text(
         text,
         textAlign: alignRight ? TextAlign.right : TextAlign.left,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+        ),
       ),
     );
   }

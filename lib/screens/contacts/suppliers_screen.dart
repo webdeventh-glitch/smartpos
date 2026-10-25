@@ -33,15 +33,15 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     }
   }
 
-  Widget _fieldLabel(String label) {
+  Widget _fieldLabel(String label, {bool isDark = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF334155),
+          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
         ),
       ),
     );
@@ -54,15 +54,30 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     final emailCtrl = TextEditingController();
     final addrCtrl = TextEditingController();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final inputDecoration = InputDecoration(
+      isDense: true,
+      filled: true,
+      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+    );
+
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 8,
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         child: Container(
           width: 480,
           padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,57 +91,61 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF2FF),
+                          color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.factory_rounded, color: Color(0xFF4F46E5), size: 20),
+                        child: const Icon(Icons.factory_rounded, color: Color(0xFF818CF8), size: 20),
                       ),
                       const SizedBox(width: 12),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Add Supplier / Vendor',
-                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
                           ),
                           Text(
                             'Register vendor for procurement and purchase orders',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           ),
                         ],
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                    icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     onPressed: () => Navigator.pop(ctx),
                     splashRadius: 18,
                   ),
                 ],
               ),
-              const Divider(height: 24, color: Color(0xFFE2E8F0)),
+              Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
 
-              _fieldLabel('Supplier Contact Person *'),
+              _fieldLabel('Supplier Contact Person *', isDark: isDark),
               TextField(
                 controller: nameCtrl,
                 autofocus: true,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                decoration: const InputDecoration(
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                decoration: inputDecoration.copyWith(
                   hintText: 'e.g. Michael Smith',
-                  prefixIcon: Icon(Icons.person_outline, size: 18, color: Color(0xFF64748B)),
-                  isDense: true,
+                  hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                  prefixIcon: Icon(Icons.person_outline, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                 ),
               ),
               const SizedBox(height: 14),
 
-              _fieldLabel('Company / Business Name *'),
+              _fieldLabel('Company / Business Name *', isDark: isDark),
               TextField(
                 controller: bizCtrl,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                decoration: const InputDecoration(
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                decoration: inputDecoration.copyWith(
                   hintText: 'e.g. Apex Wholesalers Ltd',
-                  prefixIcon: Icon(Icons.business_outlined, size: 18, color: Color(0xFF64748B)),
-                  isDense: true,
+                  hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                  prefixIcon: Icon(Icons.business_outlined, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                 ),
               ),
               const SizedBox(height: 14),
@@ -137,15 +156,15 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _fieldLabel('Phone Number'),
+                        _fieldLabel('Phone Number', isDark: isDark),
                         TextField(
                           controller: phoneCtrl,
                           keyboardType: TextInputType.phone,
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                          decoration: const InputDecoration(
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          decoration: inputDecoration.copyWith(
                             hintText: '+1 (555) 000-0000',
-                            prefixIcon: Icon(Icons.phone_outlined, size: 18, color: Color(0xFF64748B)),
-                            isDense: true,
+                            hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                            prefixIcon: Icon(Icons.phone_outlined, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           ),
                         ),
                       ],
@@ -156,15 +175,15 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _fieldLabel('Email Address'),
+                        _fieldLabel('Email Address', isDark: isDark),
                         TextField(
                           controller: emailCtrl,
                           keyboardType: TextInputType.emailAddress,
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                          decoration: const InputDecoration(
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          decoration: inputDecoration.copyWith(
                             hintText: 'vendor@domain.com',
-                            prefixIcon: Icon(Icons.email_outlined, size: 18, color: Color(0xFF64748B)),
-                            isDense: true,
+                            hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                            prefixIcon: Icon(Icons.email_outlined, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           ),
                         ),
                       ],
@@ -174,14 +193,14 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
               ),
               const SizedBox(height: 14),
 
-              _fieldLabel('Physical Address / Warehouse'),
+              _fieldLabel('Physical Address / Warehouse', isDark: isDark),
               TextField(
                 controller: addrCtrl,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                decoration: const InputDecoration(
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                decoration: inputDecoration.copyWith(
                   hintText: 'Street address, City',
-                  prefixIcon: Icon(Icons.location_on_outlined, size: 18, color: Color(0xFF64748B)),
-                  isDense: true,
+                  hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                  prefixIcon: Icon(Icons.location_on_outlined, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                 ),
               ),
               const SizedBox(height: 24),
@@ -192,8 +211,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                 children: [
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF64748B),
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
+                      side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -243,16 +262,31 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
 
     if (!mounted) return;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final inputDecoration = InputDecoration(
+      isDense: true,
+      filled: true,
+      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+    );
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 8,
-          backgroundColor: Colors.white,
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           child: Container(
             width: 480,
             padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,93 +300,99 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
+                            color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.outbox_rounded, color: Color(0xFF2563EB), size: 20),
+                          child: const Icon(Icons.outbox_rounded, color: Color(0xFF60A5FA), size: 20),
                         ),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Pay Supplier / Vendor',
-                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              ),
                             ),
                             Text(
                               'Supplier: ${supplier.name}',
-                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                             ),
                           ],
                         ),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                      icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                       onPressed: () => Navigator.pop(ctx),
                       splashRadius: 18,
                     ),
                   ],
                 ),
-                const Divider(height: 24, color: Color(0xFFE2E8F0)),
+                Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
 
                 // Outstanding Payable Card
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                    border: Border.all(color: isDark ? const Color(0xFF2563EB) : const Color(0xFFBFDBFE)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Total Outstanding Payable Due:',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E40AF), fontSize: 13),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF), fontSize: 13),
                       ),
                       Text(
                         '${widget.settings.currencySymbol}${supplier.balance.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1D4ED8)),
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8)),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                _fieldLabel('Payment Amount (${widget.settings.currencySymbol}) *'),
+                _fieldLabel('Payment Amount (${widget.settings.currencySymbol}) *', isDark: isDark),
                 TextField(
                   controller: amountCtrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.bold),
-                  decoration: InputDecoration(
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold),
+                  decoration: inputDecoration.copyWith(
                     prefixText: '${widget.settings.currencySymbol} ',
-                    isDense: true,
+                    prefixStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                   ),
                 ),
                 const SizedBox(height: 14),
 
-                _fieldLabel('Payment Method *'),
+                _fieldLabel('Payment Method *', isDark: isDark),
                 DropdownButtonFormField<String>(
                   value: paymentMethod,
                   isDense: true,
-                  decoration: const InputDecoration(isDense: true),
-                  items: const [
-                    DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer')),
-                    DropdownMenuItem(value: 'cash', child: Text('Cash Payout')),
-                    DropdownMenuItem(value: 'cheque', child: Text('Cheque')),
+                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  decoration: inputDecoration,
+                  items: [
+                    DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                    DropdownMenuItem(value: 'cash', child: Text('Cash Payout', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                    DropdownMenuItem(value: 'cheque', child: Text('Cheque', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
                   ],
                   onChanged: (val) => setDlgState(() => paymentMethod = val ?? paymentMethod),
                 ),
                 const SizedBox(height: 14),
 
-                _fieldLabel('Transfer Reference / Check No'),
+                _fieldLabel('Transfer Reference / Check No', isDark: isDark),
                 TextField(
                   controller: noteCtrl,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                  decoration: const InputDecoration(
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  decoration: inputDecoration.copyWith(
                     hintText: 'e.g. Bank Ref # or Cheque #',
-                    isDense: true,
+                    hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -363,8 +403,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                   children: [
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF64748B),
-                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
+                        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
@@ -428,15 +468,22 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
 
     if (!mounted) return;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 8,
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         child: Container(
           width: 680,
           padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,10 +497,10 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF2FF),
+                          color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF4F46E5), size: 20),
+                        child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF818CF8), size: 20),
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -461,47 +508,51 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         children: [
                           Text(
                             'Supplier Ledger: ${supplier.name}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF0F172A)),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 17,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
                           ),
-                          const Text(
+                          Text(
                             'Complete procurement purchase history and outgoing payment vouchers',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           ),
                         ],
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                    icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     onPressed: () => Navigator.pop(ctx),
                     splashRadius: 18,
                   ),
                 ],
               ),
-              const Divider(height: 24, color: Color(0xFFE2E8F0)),
+              Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
 
               // Stats
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     Column(
                       children: [
-                        const Text('Total Purchase Orders', style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                        Text('Total Purchase Orders', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w500)),
                         const SizedBox(height: 4),
-                        Text('${supplierPurchases.length}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A))),
+                        Text('${supplierPurchases.length}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0F172A))),
                       ],
                     ),
-                    Container(height: 30, width: 1, color: const Color(0xFFE2E8F0)),
+                    Container(height: 30, width: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                     Column(
                       children: [
-                        const Text('Current Balance Payable', style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                        Text('Current Balance Payable', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w500)),
                         const SizedBox(height: 4),
                         Text(
                           '${widget.settings.currencySymbol}${supplier.balance.toStringAsFixed(2)}',
@@ -518,13 +569,16 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
               ),
               const SizedBox(height: 16),
 
-              const Text('Purchases & Outgoing Payments', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF334155))),
+              Text(
+                'Purchases & Outgoing Payments',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+              ),
               const SizedBox(height: 8),
 
               SizedBox(
                 height: 280,
                 child: (supplierPurchases.isEmpty && payments.isEmpty)
-                    ? const Center(child: Text('No transaction records found for this supplier.', style: TextStyle(color: Color(0xFF94A3B8))))
+                    ? Center(child: Text('No transaction records found for this supplier.', style: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8))))
                     : ListView(
                         children: [
                           ...supplierPurchases.map((p) => ListTile(
@@ -532,18 +586,18 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                                 leading: Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEEF2FF),
+                                    color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Icon(Icons.local_shipping_outlined, color: Color(0xFF4F46E5), size: 16),
+                                  child: const Icon(Icons.local_shipping_outlined, color: Color(0xFF818CF8), size: 16),
                                 ),
-                                title: Text('${p.refNo} (${p.status.toUpperCase()})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                subtitle: Text('${p.createdAt} - Location: ${p.locationName}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                title: Text('${p.refNo} (${p.status.toUpperCase()})', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                                subtitle: Text('${p.createdAt} - Location: ${p.locationName}', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                                 trailing: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text('${widget.settings.currencySymbol}${p.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                    Text('${widget.settings.currencySymbol}${p.totalAmount.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A))),
                                     if (p.dueAmount > 0)
                                       Text('Due: ${widget.settings.currencySymbol}${p.dueAmount.toStringAsFixed(2)}',
                                           style: const TextStyle(fontSize: 11, color: Color(0xFFDC2626))),
@@ -555,16 +609,16 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                                 leading: Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFD1FAE5),
+                                    color: isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 16),
+                                  child: Icon(Icons.check_circle_rounded, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF059669), size: 16),
                                 ),
-                                title: Text('Payout: ${p.refNo} (${p.paymentMethod.toUpperCase()})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                subtitle: Text('${p.date} ${p.note.isNotEmpty ? "- ${p.note}" : ""}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                title: Text('Payout: ${p.refNo} (${p.paymentMethod.toUpperCase()})', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                                subtitle: Text('${p.date} ${p.note.isNotEmpty ? "- ${p.note}" : ""}', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                                 trailing: Text(
                                   '- ${widget.settings.currencySymbol}${p.amount.toStringAsFixed(2)}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF059669), fontSize: 13),
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669), fontSize: 13),
                                 ),
                               )),
                         ],
@@ -575,8 +629,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                 alignment: Alignment.centerRight,
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF64748B),
-                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                    foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
+                    side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -593,11 +647,12 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currency = widget.settings.currencySymbol;
     final totalPayable = _suppliers.fold(0.0, (sum, s) => sum + s.balance);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -609,14 +664,18 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Suppliers & Vendors',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Manage manufacturers, product distributors, vendor invoices, and outstanding payables.',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -638,33 +697,37 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
 
             Row(
               children: [
-                _mini('Total Suppliers', '${_suppliers.length}', const Color(0xFF4F46E5)),
+                _mini('Total Suppliers', '${_suppliers.length}', const Color(0xFF4F46E5), isDark: isDark),
                 const SizedBox(width: 14),
-                _mini('Total Payables Due', '$currency${totalPayable.toStringAsFixed(2)}', const Color(0xFFEF4444)),
+                _mini('Total Payables Due', '$currency${totalPayable.toStringAsFixed(2)}', const Color(0xFFEF4444), isDark: isDark),
               ],
             ),
             const SizedBox(height: 20),
 
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
               ),
               child: _loading
                   ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
                   : _suppliers.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(40),
-                          child: Center(child: Text('No suppliers recorded yet.', style: TextStyle(color: Colors.grey))),
+                      ? Padding(
+                          padding: const EdgeInsets.all(40),
+                          child: Center(child: Text('No suppliers recorded yet.', style: TextStyle(color: isDark ? const Color(0xFF64748B) : Colors.grey))),
                         )
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: DataTable(
-                              headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
-                              headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569), fontSize: 12),
+                              headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                              headingTextStyle: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                fontSize: 12,
+                              ),
                               dataRowMinHeight: 52,
                               dataRowMaxHeight: 56,
                               columns: const [
@@ -684,21 +747,43 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                                         children: [
                                           CircleAvatar(
                                             radius: 14,
-                                            backgroundColor: const Color(0xFFEEF2FF),
+                                            backgroundColor: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
                                             child: Text(
                                               s.name.isNotEmpty ? s.name[0] : 'S',
-                                              style: const TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 11),
+                                              style: TextStyle(
+                                                color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                              ),
                                             ),
                                           ),
                                           const SizedBox(width: 10),
-                                          Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                          Text(
+                                            s.name,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
-                                    DataCell(Text(s.businessName ?? '-', style: const TextStyle(fontWeight: FontWeight.w600))),
-                                    DataCell(Text(s.phone.isNotEmpty ? s.phone : '-', style: const TextStyle(fontSize: 12))),
-                                    DataCell(Text(s.email.isNotEmpty ? s.email : '-', style: const TextStyle(fontSize: 12))),
-                                    DataCell(Text(s.address.isNotEmpty ? s.address : '-', style: const TextStyle(fontSize: 12))),
+                                    DataCell(Text(
+                                      s.businessName ?? '-',
+                                      style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                    )),
+                                    DataCell(Text(
+                                      s.phone.isNotEmpty ? s.phone : '-',
+                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                    )),
+                                    DataCell(Text(
+                                      s.email.isNotEmpty ? s.email : '-',
+                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                    )),
+                                    DataCell(Text(
+                                      s.address.isNotEmpty ? s.address : '-',
+                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                    )),
                                     DataCell(Text(
                                       s.balance > 0 ? '$currency${s.balance.toStringAsFixed(2)}' : '$currency 0.00',
                                       style: TextStyle(
@@ -726,8 +811,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                                           ],
                                           OutlinedButton.icon(
                                             style: OutlinedButton.styleFrom(
-                                              foregroundColor: const Color(0xFF4F46E5),
-                                              side: const BorderSide(color: Color(0xFFC7D2FE)),
+                                              foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                                              side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
                                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                             ),
@@ -751,19 +836,26 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     );
   }
 
-  Widget _mini(String label, String value, Color color) {
+  Widget _mini(String label, String value, Color color, {required bool isDark}) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
           ],

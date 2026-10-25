@@ -15,8 +15,8 @@ class _NotificationTemplatesScreenState extends State<NotificationTemplatesScree
     {
       'title': 'New Sale / POS Receipt',
       'subject': 'Receipt for invoice {invoice_number}',
-      'sms': 'Dear {customer_name}, thank you for shopping at Awesome Shop! Invoice #{invoice_number} total {total_amount}. Paid by {payment_method}.',
-      'email': 'Hello {customer_name},\n\nThank you for choosing Awesome Shop. Please find attached your digital invoice copy #{invoice_number}.\nTotal: {total_amount}\n\nHave a great day!',
+      'sms': 'Dear {customer_name}, thank you for your order at {business_name}! Invoice #{invoice_number} total {total_amount}. Paid by {payment_method}.',
+      'email': 'Hello {customer_name},\n\nThank you for choosing {business_name}. Please find attached your digital invoice copy #{invoice_number}.\nTotal: {total_amount}\n\nHave a great day!',
     },
     {
       'title': 'Payment Reminder',

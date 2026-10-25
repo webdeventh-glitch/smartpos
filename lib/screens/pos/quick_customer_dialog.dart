@@ -71,26 +71,52 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
     super.dispose();
   }
 
-  Widget _fieldLabel(String label) {
+  Widget _fieldLabel(String label, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF334155),
+          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String hintText,
+    required IconData prefixIcon,
+    required bool isDark,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+      prefixIcon: Icon(prefixIcon, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+      isDense: true,
+      filled: true,
+      fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: Color(0xFF4F46E5), width: 1.5),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 8,
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       child: Container(
         width: 480,
         padding: const EdgeInsets.all(24),
@@ -109,46 +135,53 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF2FF),
+                          color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.person_add_rounded, color: Color(0xFF4F46E5), size: 20),
+                        child: Icon(Icons.person_add_rounded, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 20),
                       ),
                       const SizedBox(width: 12),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Add Quick Customer',
-                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
                           ),
                           Text(
                             'Create new customer and assign to current cart',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                    icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     onPressed: () => Navigator.of(context).pop(),
                     splashRadius: 18,
                   ),
                 ],
               ),
-              const Divider(height: 24, color: Color(0xFFE2E8F0)),
+              Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
 
               // Name
-              _fieldLabel('Customer Name *'),
+              _fieldLabel('Customer Name *', isDark),
               TextFormField(
                 controller: _nameController,
                 autofocus: true,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                decoration: const InputDecoration(
-                  hintText: 'e.g. John Doe / Walk-in Buyer',
-                  prefixIcon: Icon(Icons.person_outline, size: 18, color: Color(0xFF64748B)),
-                  isDense: true,
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                decoration: _inputDecoration(
+                  hintText: 'e.g. Walk-in Customer / Al-Madina Medicos',
+                  prefixIcon: Icons.person_outline,
+                  isDark: isDark,
                 ),
                 validator: (val) => val == null || val.trim().isEmpty ? 'Customer name is required' : null,
               ),
@@ -161,15 +194,15 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _fieldLabel('Mobile Phone'),
+                        _fieldLabel('Mobile Phone', isDark),
                         TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                          decoration: const InputDecoration(
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          decoration: _inputDecoration(
                             hintText: '+1 (555) 000-0000',
-                            prefixIcon: Icon(Icons.phone_outlined, size: 18, color: Color(0xFF64748B)),
-                            isDense: true,
+                            prefixIcon: Icons.phone_outlined,
+                            isDark: isDark,
                           ),
                         ),
                       ],
@@ -180,14 +213,15 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _fieldLabel('Credit Limit'),
+                        _fieldLabel('Credit Limit', isDark),
                         TextFormField(
                           controller: _creditLimitController,
                           keyboardType: TextInputType.number,
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.credit_card_outlined, size: 18, color: Color(0xFF64748B)),
-                            isDense: true,
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          decoration: _inputDecoration(
+                            hintText: '1000.00',
+                            prefixIcon: Icons.credit_card_outlined,
+                            isDark: isDark,
                           ),
                         ),
                       ],
@@ -198,28 +232,28 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
               const SizedBox(height: 14),
 
               // Email
-              _fieldLabel('Email Address'),
+              _fieldLabel('Email Address', isDark),
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                decoration: const InputDecoration(
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                decoration: _inputDecoration(
                   hintText: 'customer@example.com',
-                  prefixIcon: Icon(Icons.email_outlined, size: 18, color: Color(0xFF64748B)),
-                  isDense: true,
+                  prefixIcon: Icons.email_outlined,
+                  isDark: isDark,
                 ),
               ),
               const SizedBox(height: 14),
 
               // Address
-              _fieldLabel('Address / Location'),
+              _fieldLabel('Address / Location', isDark),
               TextFormField(
                 controller: _addressController,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-                decoration: const InputDecoration(
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                decoration: _inputDecoration(
                   hintText: 'Street address, City, State',
-                  prefixIcon: Icon(Icons.location_on_outlined, size: 18, color: Color(0xFF64748B)),
-                  isDense: true,
+                  prefixIcon: Icons.location_on_outlined,
+                  isDark: isDark,
                 ),
               ),
               const SizedBox(height: 24),
@@ -230,8 +264,8 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                 children: [
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF64748B),
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),

@@ -34,7 +34,7 @@ class _PosWorkspaceState extends State<PosWorkspace> {
               Expanded(
                   child: FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Text('NEXUS POS',
+                      child: Text('SMART POS',
                           style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,

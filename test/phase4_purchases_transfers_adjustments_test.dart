@@ -17,7 +17,18 @@ void main() {
     final dbService = await DatabaseService.initialize(customPath: dbPath);
 
     // Initial product stock check
-    final products = await dbService.getProducts();
+    var products = await dbService.getProducts();
+    if (products.isEmpty) {
+      await dbService.addProduct(Product(
+        name: 'Wireless Bluetooth Mouse',
+        sku: 'ACC-001',
+        barcode: 'ACC-001',
+        purchasePrice: 12.0,
+        sellingPrice: 25.0,
+        stockQuantity: 50.0,
+      ));
+      products = await dbService.getProducts();
+    }
     expect(products.isNotEmpty, isTrue);
     final targetProd = products.first;
     final initialStock = targetProd.stockQuantity;

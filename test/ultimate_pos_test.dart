@@ -15,11 +15,12 @@ void main() {
     setUp(() async {
       // Use in-memory SQLite database for isolated test execution
       dbService = await DatabaseService.initialize(customPath: inMemoryDatabasePath);
+      await dbService.seedInitialDataForBusinessType(businessType: 'pharmacy');
     });
 
     test('Initializes schema and seeds realistic demo data', () async {
       final settings = await dbService.getBusinessSettings();
-      expect(settings.businessName, contains('Ultimate POS'));
+      expect(settings.businessName, contains('Smart POS System'));
 
       final categories = await dbService.getCategories();
       expect(categories.length, greaterThanOrEqualTo(5));
@@ -35,13 +36,13 @@ void main() {
     });
 
     test('Barcode and SKU lookup returns correct product', () async {
-      final productBySku = await dbService.getProductByCode('BEV-001');
+      final productBySku = await dbService.getProductByCode('MED-001');
       expect(productBySku, isNotNull);
-      expect(productBySku!.name, contains('Coca Cola'));
+      expect(productBySku!.name, contains('Panadol'));
 
-      final productByBarcode = await dbService.getProductByCode('5449000000996');
+      final productByBarcode = await dbService.getProductByCode('890103000001');
       expect(productByBarcode, isNotNull);
-      expect(productByBarcode!.sku, equals('BEV-001'));
+      expect(productByBarcode!.sku, equals('MED-001'));
     });
 
     test('Add product increments product catalog', () async {
@@ -66,7 +67,7 @@ void main() {
     });
 
     test('Completing a sale atomically creates invoice, deducts inventory and updates register', () async {
-      final product = (await dbService.getProductByCode('BEV-001'))!;
+      final product = (await dbService.getProductByCode('MED-001'))!;
       final initialStock = product.stockQuantity;
 
       final cartItem = CartItem(
@@ -91,7 +92,7 @@ void main() {
       expect(completedSale.id, isNotNull);
 
       // Verify stock deducted
-      final updatedProduct = (await dbService.getProductByCode('BEV-001'))!;
+      final updatedProduct = (await dbService.getProductByCode('MED-001'))!;
       expect(updatedProduct.stockQuantity, equals(initialStock - 3.0));
 
       // Verify sale recorded
@@ -100,7 +101,7 @@ void main() {
     });
 
     test('Stock receiving via purchase increases product inventory and sets supplier balance', () async {
-      final product = (await dbService.getProductByCode('BEV-002'))!;
+      final product = (await dbService.getProductByCode('MED-002'))!;
       final initialStock = product.stockQuantity;
       final supplier = (await dbService.getContacts(type: 'supplier')).first;
 
@@ -126,7 +127,7 @@ void main() {
       );
 
       // Verify stock increased
-      final updatedProduct = (await dbService.getProductByCode('BEV-002'))!;
+      final updatedProduct = (await dbService.getProductByCode('MED-002'))!;
       expect(updatedProduct.stockQuantity, equals(initialStock + 20.0));
     });
 

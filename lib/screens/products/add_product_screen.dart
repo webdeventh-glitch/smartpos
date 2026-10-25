@@ -36,6 +36,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _descCtrl = TextEditingController();
   final _imageCtrl = TextEditingController();
 
+  // Medication / Distribution Specific Controllers
+  final _batchCtrl = TextEditingController();
+  final _expiryCtrl = TextEditingController();
+  final _bonusQtyCtrl = TextEditingController(text: '0');
+  final _packSizeCtrl = TextEditingController(text: '1');
+
   // Dropdown States
   String _barcodeType = 'Code 128 (C128)';
   final List<String> _barcodeTypes = ['Code 128 (C128)', 'Code 39', 'EAN-13', 'UPC-A'];
@@ -56,10 +62,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Warranty? _selectedWarranty;
 
   String? _selectedSubCategory;
-  final List<String> _subCategories = ['Electronics', 'Accessories', 'Groceries', 'Beverages', 'Clothing'];
+  final List<String> _subCategories = ['Antibiotics', 'Analgesics', 'Cardiovascular', 'Gastrointestinal', 'Vitamins'];
 
   bool _manageStock = true;
-  final String _selectedLocation = 'Awesome Shop';
+  final String _selectedLocation = 'Main Branch HQ';
   bool _isLoading = true;
   bool _isSaving = false;
   String _selectedColor = '#004EEB';
@@ -83,6 +89,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _openingStockCtrl.dispose();
     _descCtrl.dispose();
     _imageCtrl.dispose();
+    _batchCtrl.dispose();
+    _expiryCtrl.dispose();
+    _bonusQtyCtrl.dispose();
+    _packSizeCtrl.dispose();
     super.dispose();
   }
 
@@ -116,6 +126,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _productType = p.type;
           _selectedUnit = p.unit;
           _selectedColor = p.imageColor ?? '#4F46E5';
+          _batchCtrl.text = p.batchNumber ?? '';
+          _expiryCtrl.text = p.expiryDate ?? '';
+          _bonusQtyCtrl.text = p.bonusQty != null ? p.bonusQty!.toString() : '0';
+          _packSizeCtrl.text = p.packSize != null ? p.packSize!.toString() : '1';
           _selectedCategory = cats.where((c) => c.id == p.categoryId).firstOrNull ?? (cats.isNotEmpty ? cats.first : null);
           _selectedBrand = brs.where((b) => b.id == p.brandId).firstOrNull ?? (brs.isNotEmpty ? brs.first : null);
           _selectedWarranty = wars.where((w) => w.name == p.warranty).firstOrNull ?? (wars.isNotEmpty ? wars.first : null);
@@ -367,6 +381,44 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Future<bool> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return false;
+
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(backgroundColor: Colors.red, content: Text('Product Name is required.')),
+      );
+      return false;
+    }
+
+    final purchase = double.tryParse(_purchasePriceCtrl.text.trim()) ?? 0.0;
+    final selling = double.tryParse(_sellingPriceCtrl.text.trim()) ?? 0.0;
+
+    if (_productType == 'single') {
+      if (selling <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(backgroundColor: Colors.red, content: Text('Selling Price must be greater than 0.')),
+        );
+        return false;
+      }
+      if (purchase < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(backgroundColor: Colors.red, content: Text('Purchase Price cannot be negative.')),
+        );
+        return false;
+      }
+    }
+
+    final expRaw = _expiryCtrl.text.trim();
+    if (expRaw.isNotEmpty) {
+      final expRegex = RegExp(r'^(0[1-9]|1[0-2])-\d{4}$|^\d{4}-(0[1-9]|1[0-2])(-\d{2})?$');
+      if (!expRegex.hasMatch(expRaw)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(backgroundColor: Colors.orange, content: Text('Expiry Date format should be MM-YYYY (e.g. 12-2028).')),
+        );
+        return false;
+      }
+    }
+
     if (_productType == 'variable' && _variations.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -386,6 +438,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final alert = double.tryParse(_alertQtyCtrl.text.trim()) ?? 5.0;
 
       final totalVarStock = _variations.fold(0.0, (sum, v) => sum + v.stockQuantity);
+      final batchVal = _batchCtrl.text.trim().isNotEmpty ? _batchCtrl.text.trim() : null;
+      final expVal = _expiryCtrl.text.trim().isNotEmpty ? _expiryCtrl.text.trim() : null;
+      final bonusVal = double.tryParse(_bonusQtyCtrl.text.trim()) ?? 0.0;
+      final packVal = double.tryParse(_packSizeCtrl.text.trim()) ?? 1.0;
+
       final product = Product(
         name: _nameCtrl.text.trim(),
         sku: _skuCtrl.text.trim().isEmpty ? 'SKU-${Random().nextInt(99999)}' : _skuCtrl.text.trim(),
@@ -403,6 +460,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
         alertQuantity: alert,
         imageColor: _selectedColor,
         warranty: _selectedWarranty?.name,
+        batchNumber: batchVal,
+        expiryDate: expVal,
+        bonusQty: bonusVal,
+        packSize: packVal,
       );
 
       if (widget.productToEdit != null && widget.productToEdit!.id != null) {
@@ -424,6 +485,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
           alertQuantity: alert,
           imageColor: _selectedColor,
           warranty: _selectedWarranty?.name,
+          batchNumber: batchVal,
+          expiryDate: expVal,
+          bonusQty: bonusVal,
+          packSize: packVal,
         );
         if (_productType == 'variable' && _variations.isNotEmpty) {
           await db.updateProductWithVariations(toUpdate, _variations);
@@ -1010,6 +1075,187 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           ),
                         ],
                       ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Industry & Pharmacy Specific Card: Batch No, Expiry Date, Bonus Qty, Pack Size
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: widget.settings.isPharmacy ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: widget.settings.isPharmacy ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.medication_outlined,
+                                size: 18,
+                                color: widget.settings.isPharmacy ? const Color(0xFF16A34A) : const Color(0xFF0038B8),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                widget.settings.isPharmacy
+                                    ? 'Pharmaceutical Specifications (Batch, Expiry & Bonus Scheme)'
+                                    : 'Extended Product Specifications (Batch, Expiry & Pack Size)',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: widget.settings.isPharmacy ? const Color(0xFF166534) : const Color(0xFF1E293B),
+                                ),
+                              ),
+                              if (widget.settings.isPharmacy) ...[
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFF86EFAC)),
+                                  ),
+                                  child: const Text(
+                                    'Drug Act 1976 Compliant',
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          LayoutBuilder(builder: (context, constraints) {
+                            final isWide = constraints.maxWidth > 800;
+                            if (isWide) {
+                              return Row(
+                                children: [
+                                  // Batch Number
+                                  Expanded(
+                                    flex: 3,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _buildFieldLabel('Batch Number', hasInfo: true, info: 'Manufacturer lot/batch number'),
+                                        TextFormField(
+                                          controller: _batchCtrl,
+                                          decoration: _inputDecor('e.g. 02260 or DW001'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+
+                                  // Expiry Date
+                                  Expanded(
+                                    flex: 3,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _buildFieldLabel('Expiry Date', hasInfo: true, info: 'MM-YYYY format e.g. 12-2028'),
+                                        TextFormField(
+                                          controller: _expiryCtrl,
+                                          decoration: _inputDecor('MM-YYYY (e.g. 12-2028)').copyWith(
+                                            suffixIcon: const Icon(Icons.calendar_month, size: 18, color: Color(0xFF64748B)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+
+                                  // Bonus Quantity
+                                  Expanded(
+                                    flex: 3,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _buildFieldLabel('Bonus Scheme / Free Qty', hasInfo: true, info: 'Free units given per deal'),
+                                        TextFormField(
+                                          controller: _bonusQtyCtrl,
+                                          keyboardType: TextInputType.number,
+                                          decoration: _inputDecor('0'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+
+                                  // Pack Size
+                                  Expanded(
+                                    flex: 3,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _buildFieldLabel('Pack Size / Multiplier', hasInfo: true, info: 'Units per retail pack'),
+                                        TextFormField(
+                                          controller: _packSizeCtrl,
+                                          keyboardType: TextInputType.number,
+                                          decoration: _inputDecor('1'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            _buildFieldLabel('Batch Number'),
+                                            TextFormField(controller: _batchCtrl, decoration: _inputDecor('Batch #')),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            _buildFieldLabel('Expiry (MM-YYYY)'),
+                                            TextFormField(controller: _expiryCtrl, decoration: _inputDecor('12-2028')),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            _buildFieldLabel('Bonus Qty'),
+                                            TextFormField(controller: _bonusQtyCtrl, decoration: _inputDecor('0')),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            _buildFieldLabel('Pack Size'),
+                                            TextFormField(controller: _packSizeCtrl, decoration: _inputDecor('1')),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            }
+                          }),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 24),
 

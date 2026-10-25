@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import 'add_expense_dialog.dart';
 
 class ExpensesScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -34,300 +34,27 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     }
   }
 
-  Widget _fieldLabel(String text, {bool isRequired = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF334155),
-            ),
-          ),
-          if (isRequired)
-            const Text(
-              ' *',
-              style: TextStyle(
-                color: Color(0xFFDC2626),
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   void _openAddExpense() {
-    final catCtrl = TextEditingController(text: 'Store Rent');
-    final amountCtrl = TextEditingController();
-    final refCtrl = TextEditingController(text: 'EXP-${DateTime.now().millisecondsSinceEpoch % 10000}');
-    final noteCtrl = TextEditingController();
-    final currency = widget.settings.currencySymbol;
-
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: Container(
-          width: 480,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x1F000000),
-                blurRadius: 24,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Dialog Header
-              Container(
-                padding: const EdgeInsets.fromLTRB(22, 20, 16, 16),
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF2F2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.receipt_long_rounded, color: Color(0xFFDC2626), size: 22),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Add Store Expense',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Log store rent, electricity, refreshments or petty costs',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF94A3B8)),
-                      onPressed: () => Navigator.pop(ctx),
-                      splashRadius: 18,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Dialog Body Form
-              Padding(
-                padding: const EdgeInsets.all(22),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Expense Category
-                    _fieldLabel('Expense Category', isRequired: true),
-                    DropdownButtonFormField<String>(
-                      initialValue: catCtrl.text,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
-                        ),
-                      ),
-                      items: [
-                        'Store Rent',
-                        'Utilities & Power',
-                        'Staff Refreshments',
-                        'Salaries',
-                        'Supplies & Packaging',
-                        'Marketing',
-                        'Repairs & Maintenance'
-                      ].map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13)))).toList(),
-                      onChanged: (val) => catCtrl.text = val ?? 'Store Rent',
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Expense Amount
-                    _fieldLabel('Expense Amount', isRequired: true),
-                    TextField(
-                      controller: amountCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0F172A)),
-                      decoration: InputDecoration(
-                        hintText: '0.00',
-                        prefixText: '$currency ',
-                        prefixStyle: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF64748B), fontSize: 15),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Reference Number
-                    _fieldLabel('Reference Number'),
-                    TextField(
-                      controller: refCtrl,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                      decoration: InputDecoration(
-                        hintText: 'EXP-1234',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Note / Description
-                    _fieldLabel('Note / Description'),
-                    TextField(
-                      controller: noteCtrl,
-                      maxLines: 2,
-                      style: const TextStyle(fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'Add extra details about this expense...',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.all(12),
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Dialog Footer Actions
-              Container(
-                padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-                  border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF475569),
-                        side: const BorderSide(color: Color(0xFFCBD5E1)),
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4F46E5),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.check_rounded, size: 18),
-                      label: const Text('Save Expense', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      onPressed: () async {
-                        final amount = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
-                        if (amount <= 0) return;
-                        final db = await DatabaseService.initialize();
-                        final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-                        await db.addExpense(Expense(
-                          category: catCtrl.text,
-                          amount: amount,
-                          refNo: refCtrl.text.trim(),
-                          note: noteCtrl.text.trim(),
-                          date: now,
-                        ));
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        _load();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+      builder: (ctx) => AddExpenseDialog(
+        settings: widget.settings,
+        onExpenseAdded: _load,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currency = widget.settings.currencySymbol;
     final totalExpenses = _expenses.fold(0.0, (sum, e) => sum + e.amount);
+
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final inputBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     final filtered = _expenses.where((e) {
       if (_searchQuery.isEmpty) return true;
@@ -338,7 +65,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
@@ -352,19 +79,19 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Store Expenses',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF0F172A),
+                        color: textPrimary,
                         letterSpacing: -0.3,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Track operational store costs, rent, electricity bills, and petty expenses.',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 13, color: textSecondary),
                     ),
                   ],
                 ),
@@ -392,7 +119,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   value: '$currency${totalExpenses.toStringAsFixed(2)}',
                   color: const Color(0xFFDC2626),
                   icon: Icons.receipt_long_rounded,
-                  iconBg: const Color(0xFFFEF2F2),
+                  iconBg: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEF2F2),
+                  isDark: isDark,
+                  cardBg: cardBg,
+                  borderColor: borderColor,
+                  textSecondary: textSecondary,
                 ),
                 const SizedBox(width: 14),
                 _statPill(
@@ -400,7 +131,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   value: '${_expenses.length} entries',
                   color: const Color(0xFF4F46E5),
                   icon: Icons.format_list_bulleted_rounded,
-                  iconBg: const Color(0xFFEEF2FF),
+                  iconBg: isDark ? const Color(0xFF1E1B4B) : const Color(0xFFEEF2FF),
+                  isDark: isDark,
+                  cardBg: cardBg,
+                  borderColor: borderColor,
+                  textSecondary: textSecondary,
                 ),
               ],
             ),
@@ -410,9 +145,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: borderColor),
               ),
               child: Column(
                 children: [
@@ -422,13 +157,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         child: Container(
                           height: 38,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: inputBg,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: borderColor),
                           ),
                           child: TextField(
                             onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                            style: const TextStyle(fontSize: 13),
+                            style: TextStyle(fontSize: 13, color: textPrimary),
                             decoration: const InputDecoration(
                               hintText: 'Search by Ref No, category or note...',
                               hintStyle: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
@@ -447,14 +182,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         height: 38,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
+                          color: inputBg,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: borderColor),
                         ),
                         alignment: Alignment.center,
                         child: Text(
                           '${filtered.length} Results',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary),
                         ),
                       ),
                     ],
@@ -464,7 +199,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   // Data Table
                   Container(
                     decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFF1F5F9)),
+                      border: Border.all(color: borderColor),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: _loading
@@ -473,10 +208,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             child: Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5))),
                           )
                         : filtered.isEmpty
-                            ? const Padding(
-                                padding: EdgeInsets.all(40),
+                            ? Padding(
+                                padding: const EdgeInsets.all(40),
                                 child: Center(
-                                  child: Text('No expense records found matching criteria.', style: TextStyle(color: Colors.grey)),
+                                  child: Text('No expense records found matching criteria.', style: TextStyle(color: textSecondary)),
                                 ),
                               )
                             : ClipRRect(
@@ -484,10 +219,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                 child: SizedBox(
                                   width: double.infinity,
                                   child: DataTable(
-                                    headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
-                                    headingTextStyle: const TextStyle(
+                                    headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                                    headingTextStyle: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF475569),
+                                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
                                       fontSize: 12,
                                     ),
                                     dataRowMinHeight: 52,
@@ -502,33 +237,33 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                     rows: filtered.map((e) {
                                       return DataRow(
                                         cells: [
-                                          DataCell(Text(e.date, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                                          DataCell(Text(e.date, style: TextStyle(fontSize: 12, color: textSecondary))),
                                           DataCell(
                                             Text(
                                               e.refNo,
-                                              style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF4F46E5)),
+                                              style: TextStyle(fontWeight: FontWeight.w700, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
                                             ),
                                           ),
                                           DataCell(
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFFF1F5F9),
+                                                color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
                                                 borderRadius: BorderRadius.circular(6),
                                               ),
                                               child: Text(
                                                 e.category,
-                                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF334155)),
+                                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155)),
                                               ),
                                             ),
                                           ),
                                           DataCell(
                                             Text(
                                               '$currency${e.amount.toStringAsFixed(2)}',
-                                              style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFDC2626)),
+                                              style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
                                             ),
                                           ),
-                                          DataCell(Text(e.note.isNotEmpty ? e.note : '-', style: const TextStyle(fontSize: 12))),
+                                          DataCell(Text(e.note.isNotEmpty ? e.note : '-', style: TextStyle(fontSize: 12, color: textPrimary))),
                                         ],
                                       );
                                     }).toList(),
@@ -551,14 +286,18 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     required Color color,
     required IconData icon,
     required Color iconBg,
+    required bool isDark,
+    required Color cardBg,
+    required Color borderColor,
+    required Color textSecondary,
   }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: borderColor),
         ),
         child: Row(
           children: [
@@ -572,7 +311,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+                Text(label, style: TextStyle(fontSize: 12, color: textSecondary, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
               ],

@@ -40,7 +40,10 @@ class _ParkedSalesDialogState extends State<ParkedSalesDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Dialog(
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 600,
@@ -58,28 +61,35 @@ class _ParkedSalesDialogState extends State<ParkedSalesDialog> {
                     const SizedBox(width: 10),
                     Text(
                       'Parked / Suspended Bills (${_parked.length})',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
-            const Divider(height: 20),
+            Divider(height: 20, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _parked.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.inbox_outlined, size: 48, color: Colors.grey),
-                              SizedBox(height: 12),
-                              Text('No parked bills at this moment', style: TextStyle(color: Colors.grey)),
+                              Icon(Icons.inbox_outlined, size: 48, color: isDark ? const Color(0xFF64748B) : Colors.grey),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No parked bills at this moment',
+                                style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : Colors.grey),
+                              ),
                             ],
                           ),
                         )
@@ -92,17 +102,22 @@ class _ParkedSalesDialogState extends State<ParkedSalesDialog> {
                             return Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
                                 children: [
                                   CircleAvatar(
-                                    backgroundColor: const Color(0xFFFEF3C7),
+                                    backgroundColor: isDark
+                                        ? const Color(0xFF78350F).withValues(alpha: 0.5)
+                                        : const Color(0xFFFEF3C7),
                                     child: Text(
                                       '${items.length}',
-                                      style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                        color: isDark ? const Color(0xFFFCD34D) : const Color(0xFFB45309),
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 14),
@@ -112,18 +127,29 @@ class _ParkedSalesDialogState extends State<ParkedSalesDialog> {
                                       children: [
                                         Text(
                                           p.customerName,
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                          ),
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
                                           '${items.length} items • Parked: ${p.createdAt}',
-                                          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                          ),
                                         ),
                                         if (p.note.isNotEmpty) ...[
                                           const SizedBox(height: 2),
                                           Text(
                                             'Note: ${p.note}',
-                                            style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF475569)),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontStyle: FontStyle.italic,
+                                              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                                            ),
                                           ),
                                         ],
                                       ],
@@ -131,7 +157,11 @@ class _ParkedSalesDialogState extends State<ParkedSalesDialog> {
                                   ),
                                   Text(
                                     '\$${p.total.toStringAsFixed(2)}',
-                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 16,
+                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    ),
                                   ),
                                   const SizedBox(width: 12),
                                   ElevatedButton(

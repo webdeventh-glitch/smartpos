@@ -23,16 +23,17 @@ class DataTablePaginationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (totalItems == 0) return const SizedBox.shrink();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final totalPages = max(1, (totalItems / pageSize).ceil());
     final startItem = (currentPage - 1) * pageSize + 1;
     final endItem = min(totalItems, currentPage * pageSize);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -43,7 +44,11 @@ class DataTablePaginationBar extends StatelessWidget {
             children: [
               Text(
                 'Showing $startItem to $endItem of $totalItems entries',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                ),
               ),
               const SizedBox(width: 14),
               // Page size dropdown
@@ -51,15 +56,20 @@ class DataTablePaginationBar extends StatelessWidget {
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
+                    dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                     value: pageSizeOptions.contains(pageSize) ? pageSize : pageSizeOptions.first,
                     isDense: true,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF334155),
+                    ),
                     items: pageSizeOptions.map((sz) {
                       return DropdownMenuItem<int>(
                         value: sz,
@@ -81,6 +91,7 @@ class DataTablePaginationBar extends StatelessWidget {
             children: [
               // Previous button
               _buildNavButton(
+                context: context,
                 icon: Icons.chevron_left_rounded,
                 tooltip: 'Previous Page',
                 enabled: currentPage > 1,
@@ -89,11 +100,12 @@ class DataTablePaginationBar extends StatelessWidget {
               const SizedBox(width: 4),
 
               // Page pills
-              ..._buildPageNumbers(totalPages),
+              ..._buildPageNumbers(context, totalPages),
 
               const SizedBox(width: 4),
               // Next button
               _buildNavButton(
+                context: context,
                 icon: Icons.chevron_right_rounded,
                 tooltip: 'Next Page',
                 enabled: currentPage < totalPages,
@@ -126,11 +138,13 @@ class DataTablePaginationBar extends StatelessWidget {
   }
 
   Widget _buildNavButton({
+    required BuildContext context,
     required IconData icon,
     required String tooltip,
     required bool enabled,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -141,21 +155,29 @@ class DataTablePaginationBar extends StatelessWidget {
           height: 32,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: enabled ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
+            color: enabled
+                ? (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9))
+                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: enabled ? const Color(0xFFCBD5E1) : const Color(0xFFE2E8F0)),
+            border: Border.all(
+              color: enabled
+                  ? (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1))
+                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+            ),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: enabled ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+            color: enabled
+                ? (isDark ? Colors.white : const Color(0xFF334155))
+                : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
           ),
         ),
       ),
     );
   }
 
-  List<Widget> _buildPageNumbers(int totalPages) {
+  List<Widget> _buildPageNumbers(BuildContext context, int totalPages) {
     final List<Widget> widgets = [];
 
     // Visible window around current page
@@ -163,7 +185,7 @@ class DataTablePaginationBar extends StatelessWidget {
     int end = min(totalPages, currentPage + 2);
 
     if (start > 1) {
-      widgets.add(_buildPagePill(1));
+      widgets.add(_buildPagePill(context, 1));
       if (start > 2) {
         widgets.add(const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4),
@@ -173,7 +195,7 @@ class DataTablePaginationBar extends StatelessWidget {
     }
 
     for (int p = start; p <= end; p++) {
-      widgets.add(_buildPagePill(p));
+      widgets.add(_buildPagePill(context, p));
     }
 
     if (end < totalPages) {
@@ -183,13 +205,14 @@ class DataTablePaginationBar extends StatelessWidget {
           child: Text('...', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
         ));
       }
-      widgets.add(_buildPagePill(totalPages));
+      widgets.add(_buildPagePill(context, totalPages));
     }
 
     return widgets;
   }
 
-  Widget _buildPagePill(int pageNum) {
+  Widget _buildPagePill(BuildContext context, int pageNum) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = pageNum == currentPage;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -203,10 +226,14 @@ class DataTablePaginationBar extends StatelessWidget {
             height: 32,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF4F46E5) : Colors.white,
+              color: isSelected
+                  ? const Color(0xFF4F46E5)
+                  : (isDark ? const Color(0xFF0F172A) : Colors.white),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFFCBD5E1),
+                color: isSelected
+                    ? const Color(0xFF4F46E5)
+                    : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
               ),
             ),
             child: Text(
@@ -214,7 +241,9 @@ class DataTablePaginationBar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF334155),
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
               ),
             ),
           ),

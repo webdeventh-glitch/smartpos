@@ -22,6 +22,10 @@ class _AddProductDialogState extends State<AddProductDialog> {
   late TextEditingController _sellingPriceController;
   late TextEditingController _stockController;
   late TextEditingController _alertController;
+  late TextEditingController _batchController;
+  late TextEditingController _expiryController;
+  late TextEditingController _bonusController;
+  late TextEditingController _packSizeController;
 
   String _selectedUnit = 'Pc';
   Category? _selectedCategory;
@@ -42,6 +46,10 @@ class _AddProductDialogState extends State<AddProductDialog> {
     _sellingPriceController = TextEditingController(text: p != null ? p.sellingPrice.toStringAsFixed(2) : '');
     _stockController = TextEditingController(text: p != null ? p.stockQuantity.toInt().toString() : '20');
     _alertController = TextEditingController(text: p != null ? p.alertQuantity.toInt().toString() : '5');
+    _batchController = TextEditingController(text: p?.batchNumber ?? '');
+    _expiryController = TextEditingController(text: p?.expiryDate ?? '');
+    _bonusController = TextEditingController(text: p?.bonusQty != null ? p!.bonusQty.toString() : '0');
+    _packSizeController = TextEditingController(text: p?.packSize != null ? p!.packSize.toString() : '1');
     if (p != null) _selectedUnit = p.unit;
 
     _loadMeta();
@@ -102,6 +110,10 @@ class _AddProductDialogState extends State<AddProductDialog> {
         stockQuantity: double.tryParse(_stockController.text.trim()) ?? 0.0,
         alertQuantity: double.tryParse(_alertController.text.trim()) ?? 5.0,
         imageColor: widget.productToEdit?.imageColor ?? '#004EEB',
+        batchNumber: _batchController.text.trim().isNotEmpty ? _batchController.text.trim() : null,
+        expiryDate: _expiryController.text.trim().isNotEmpty ? _expiryController.text.trim() : null,
+        bonusQty: double.tryParse(_bonusController.text.trim()) ?? 0.0,
+        packSize: double.tryParse(_packSizeController.text.trim()) ?? 1.0,
       );
 
       if (widget.productToEdit == null) {
@@ -134,16 +146,30 @@ class _AddProductDialogState extends State<AddProductDialog> {
     _sellingPriceController.dispose();
     _stockController.dispose();
     _alertController.dispose();
+    _batchController.dispose();
+    _expiryController.dispose();
+    _bonusController.dispose();
+    _packSizeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+      ),
       child: Container(
         width: 620,
         padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : Form(
@@ -160,23 +186,27 @@ class _AddProductDialogState extends State<AddProductDialog> {
                             children: [
                               Icon(
                                 widget.productToEdit == null ? Icons.add_box_outlined : Icons.edit_note,
-                                color: const Color(0xFF004EEB),
+                                color: isDark ? const Color(0xFF818CF8) : const Color(0xFF004EEB),
                                 size: 24,
                               ),
                               const SizedBox(width: 10),
                               Text(
                                 widget.productToEdit == null ? 'Add New Product' : 'Edit Product',
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                ),
                               ),
                             ],
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close),
+                            icon: Icon(Icons.close, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                         ],
                       ),
-                      const Divider(height: 20),
+                      Divider(height: 20, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
 
                       // Name
                       TextFormField(
@@ -318,6 +348,47 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 14),
+
+                      // Pharma / Distribution: Batch Number & Expiry Date (MM-YYYY)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _batchController,
+                              decoration: const InputDecoration(
+                                labelText: 'Batch No (e.g. 02260)',
+                                hintText: 'Lot number',
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _expiryController,
+                              decoration: const InputDecoration(
+                                labelText: 'Expiry Date (MM-YYYY)',
+                                hintText: 'e.g. 12-2028',
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          SizedBox(
+                            width: 110,
+                            child: TextFormField(
+                              controller: _bonusController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Bonus Free',
+                                hintText: '0',
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 24),
 
                       // Save buttons
@@ -326,7 +397,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
                         children: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+                            child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                           ),
                           const SizedBox(width: 12),
                           ElevatedButton.icon(
