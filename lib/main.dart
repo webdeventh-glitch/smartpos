@@ -87,6 +87,11 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
         if (isConfiguredInMySql) {
           await MySqlService.pullDataFromMySql(settings: settings, localDb: dbService);
           await MySqlService.connectAndSync(settings: settings, localDb: dbService);
+        } else if (MySqlService.isMySqlOnline.value) {
+          // MySQL server is online, but database has 0 tables (wiped/dropped by user or uninitialized)
+          debugPrint('[SmartPOS] MySQL is online but database is uninitialized (0 tables). Launching Setup Wizard.');
+          settings = settings.copyWith(isConfigured: false);
+          await dbService.updateBusinessSettings(settings);
         } else {
           debugPrint('[SmartPOS] MySQL database not yet configured or offline. Operating in resilient local SQLite mode.');
         }
@@ -228,6 +233,9 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
                     settings: settings,
                     onLoginSuccess: () {
                       // AuthService updates currentUserNotifier automatically
+                    },
+                    onReconfigureDatabase: () {
+                      setState(() => _initFuture = _bootstrap());
                     },
                   );
                 }

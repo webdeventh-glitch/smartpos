@@ -2,15 +2,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/auth_service.dart';
+import '../../services/database_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final BusinessSettings settings;
   final VoidCallback onLoginSuccess;
+  final VoidCallback? onReconfigureDatabase;
 
   const LoginScreen({
     super.key,
     required this.settings,
     required this.onLoginSuccess,
+    this.onReconfigureDatabase,
   });
 
   @override
@@ -635,7 +638,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 12),
+
+            // Setup / Reconfigure Wizard trigger
+            Center(
+              child: TextButton.icon(
+                onPressed: () => _handleReconfigureDatabase(context),
+                icon: const Icon(Icons.settings_suggest_rounded, size: 15, color: Color(0xFF64748B)),
+                label: const Text(
+                  'Run Installation & Database Setup Wizard',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
 
             // Footer info
             Center(
@@ -652,6 +672,47 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleReconfigureDatabase(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.tune_rounded, color: Color(0xFF4F46E5), size: 24),
+            SizedBox(width: 8),
+            Text('Database & Setup Wizard'),
+          ],
+        ),
+        content: const Text(
+          'Do you want to re-launch the Guided Setup Wizard to reconfigure your database (MySQL / SQLite), business presets, or admin account?\n\nکیا آپ ڈیٹا بیس اور سسٹم کی تنصیب دوبارہ شروع کرنا چاہتے ہیں؟',
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4F46E5),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.rocket_launch_rounded, size: 16),
+            label: const Text('Launch Setup Wizard'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && context.mounted) {
+      final db = DatabaseService.instance;
+      final current = await db.getBusinessSettings();
+      await db.updateBusinessSettings(current.copyWith(isConfigured: false));
+      if (widget.onReconfigureDatabase != null) {
+        widget.onReconfigureDatabase!();
+      }
+    }
   }
 
   @override
