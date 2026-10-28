@@ -33,14 +33,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _fillCredentials(String user, String pass) {
-    setState(() {
-      _userCtrl.text = user;
-      _passCtrl.text = pass;
-      _errorMessage = null;
-    });
-  }
-
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -588,28 +580,7 @@ class _LoginScreenState extends State<LoginScreen> {
               validator: (v) => v == null || v.isEmpty ? 'Please enter password' : null,
               onFieldSubmitted: (_) => _handleLogin(),
             ),
-            const SizedBox(height: 12),
-
-            // Quick Demo Credentials Fill Chips
-            Text(
-              'Quick Sign In Options (One-Click Fill):',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                _demoChip('Admin', Icons.admin_panel_settings_rounded, 'admin', 'admin', const Color(0xFF4F46E5)),
-                _demoChip('Cashier', Icons.point_of_sale_rounded, 'cashier', 'cashier', const Color(0xFF10B981)),
-                _demoChip('Salesman', Icons.local_shipping_rounded, 'salesman1', 'password', const Color(0xFFF59E0B)),
-              ],
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
             // Remember Station Checkbox
             Row(
@@ -675,36 +646,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
                   fontWeight: FontWeight.w500,
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _demoChip(String label, IconData icon, String user, String pass, Color color) {
-    return InkWell(
-      onTap: () => _fillCredentials(user, pass),
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: color,
               ),
             ),
           ],

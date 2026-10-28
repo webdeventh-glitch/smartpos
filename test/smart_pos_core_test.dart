@@ -9,7 +9,7 @@ void main() {
     sqfliteFfiInit();
   });
 
-  group('Ultimate POS Core Engine Tests', () {
+  group('Smart POS Core Engine Tests', () {
     late DatabaseService dbService;
 
     setUp(() async {

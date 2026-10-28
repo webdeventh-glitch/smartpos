@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import 'sales_return_dialog.dart';
 
 class SalesReturnScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -15,8 +15,6 @@ class SalesReturnScreen extends StatefulWidget {
 class _SalesReturnScreenState extends State<SalesReturnScreen> {
   final ScrollController _hScrollController = ScrollController();
   List<SaleReturn> _returns = [];
-  List<Contact> _customers = [];
-  List<Product> _products = [];
   bool _loading = true;
   String _search = '';
 
@@ -35,287 +33,23 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
   Future<void> _load() async {
     final db = await DatabaseService.initialize();
     final rets = await db.getSaleReturns();
-    final custs = await db.getContacts(type: 'customer');
-    final prods = await db.getProducts();
 
     if (mounted) {
       setState(() {
         _returns = rets;
-        _customers = custs;
-        _products = prods;
         _loading = false;
       });
     }
   }
 
-  Future<void> _openAddReturnDialog() async {
-    final db = await DatabaseService.initialize();
-    final nextRef = await db.generateNextSaleReturnRef();
-
-    final invoiceCtrl = TextEditingController(text: 'INV-1001');
-    final qtyCtrl = TextEditingController(text: '1');
-    final priceCtrl = TextEditingController(text: '100.00');
-    final reasonCtrl = TextEditingController(text: 'Expired / Customer Return');
-
-    Contact? selectedCustomer = _customers.isNotEmpty ? _customers.first : null;
-    Product? selectedProduct = _products.isNotEmpty ? _products.first : null;
-    String refundMethod = 'cash'; // 'cash', 'credit_note'
-
-    if (selectedProduct != null) {
-      priceCtrl.text = selectedProduct.sellingPrice.toStringAsFixed(2);
-    }
-
-    if (!mounted) return;
-
+  void _openAddReturnDialog({Sale? sale}) {
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) {
-          final isDark = Theme.of(ctx).brightness == Brightness.dark;
-          final qty = double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
-          final price = double.tryParse(priceCtrl.text.trim()) ?? 0.0;
-          final total = qty * price;
-          final currency = widget.settings.currencySymbol;
-
-          return Dialog(
-            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Container(
-              width: 580,
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEF2F2),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.assignment_return_rounded, color: Color(0xFFDC2626), size: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Record Sales Return',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                ),
-                              ),
-                              Text(
-                                'Ref: $nextRef (Restocks inventory automatically)',
-                                style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(ctx)),
-                    ],
-                  ),
-                  const Divider(height: 24),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _label('Customer Name *', isDark),
-                            DropdownButtonFormField<Contact>(
-                              value: selectedCustomer,
-                              isExpanded: true,
-                              decoration: const InputDecoration(isDense: true),
-                              items: _customers.map((c) => DropdownMenuItem(value: c, child: Text(c.name, overflow: TextOverflow.ellipsis))).toList(),
-                              onChanged: (v) => setDlgState(() => selectedCustomer = v),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _label('Original Invoice No *', isDark),
-                            TextFormField(controller: invoiceCtrl, decoration: const InputDecoration(isDense: true)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  _label('Select Product to Return *', isDark),
-                  DropdownButtonFormField<Product>(
-                    value: selectedProduct,
-                    isExpanded: true,
-                    decoration: const InputDecoration(isDense: true),
-                    items: _products.take(100).map((p) => DropdownMenuItem(value: p, child: Text('${p.name} (${p.batchNumber ?? "No Batch"}) - Stock: ${p.stockQuantity}'))).toList(),
-                    onChanged: (v) {
-                      setDlgState(() {
-                        selectedProduct = v;
-                        if (v != null) priceCtrl.text = v.sellingPrice.toStringAsFixed(2);
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 14),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _label('Return Quantity *', isDark),
-                            TextFormField(
-                              controller: qtyCtrl,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(isDense: true),
-                              onChanged: (_) => setDlgState(() {}),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _label('Refund Unit Price *', isDark),
-                            TextFormField(
-                              controller: priceCtrl,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(prefixText: '$currency ', isDense: true),
-                              onChanged: (_) => setDlgState(() {}),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _label('Refund Mode', isDark),
-                            DropdownButtonFormField<String>(
-                              value: refundMethod,
-                              decoration: const InputDecoration(isDense: true),
-                              items: const [
-                                DropdownMenuItem(value: 'cash', child: Text('Cash Refund')),
-                                DropdownMenuItem(value: 'credit_note', child: Text('Credit Note (Ledger)')),
-                              ],
-                              onChanged: (v) => setDlgState(() => refundMethod = v ?? 'cash'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  _label('Reason for Return', isDark),
-                  TextFormField(controller: reasonCtrl, decoration: const InputDecoration(hintText: 'e.g. Near expiry, broken seal, client overorder', isDense: true)),
-                  const SizedBox(height: 18),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEF2F2),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFFECACA)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Total Refund Value:', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF991B1B))),
-                        Text('$currency${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFFDC2626))),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFDC2626),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        ),
-                        icon: const Icon(Icons.check_circle_outline, size: 18),
-                        label: const Text('Confirm Return & Restock', style: TextStyle(fontWeight: FontWeight.bold)),
-                        onPressed: () async {
-                          if (selectedProduct == null || qty <= 0) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please select a valid product and quantity'), backgroundColor: Colors.orange),
-                            );
-                            return;
-                          }
-
-                          final sr = SaleReturn(
-                            returnNo: nextRef,
-                            invoiceNo: invoiceCtrl.text.trim(),
-                            customerId: selectedCustomer?.id,
-                            customerName: selectedCustomer?.name ?? 'Walk-in Customer',
-                            date: DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
-                            totalAmount: total,
-                            refundAmount: total,
-                            paymentMethod: refundMethod,
-                            reason: reasonCtrl.text.trim(),
-                            items: [
-                              SaleReturnItem(
-                                returnId: 0,
-                                productId: selectedProduct!.id ?? 1,
-                                productName: selectedProduct!.name,
-                                sku: selectedProduct!.sku,
-                                batchNumber: selectedProduct!.batchNumber ?? '',
-                                quantity: qty,
-                                unitPrice: price,
-                                subtotal: total,
-                              ),
-                            ],
-                          );
-
-                          await db.addSaleReturn(sr);
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          _load();
-
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Sales return $nextRef recorded and stock updated!'), backgroundColor: const Color(0xFF10B981)),
-                            );
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+      builder: (_) => SalesReturnDialog(
+        settings: widget.settings,
+        initialSale: sale,
+        onReturnSuccess: _load,
       ),
-    );
-  }
-
-  Widget _label(String text, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
-      child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155))),
     );
   }
 

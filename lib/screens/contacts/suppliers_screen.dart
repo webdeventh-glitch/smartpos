@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import 'contact_ledger_dialog.dart';
 
 class SuppliersScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -461,186 +462,13 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   }
 
   Future<void> _openSupplierLedgerDialog(Contact supplier) async {
-    final db = await DatabaseService.initialize();
-    final allPurchases = await db.getPurchases();
-    final supplierPurchases = allPurchases.where((p) => p.supplierId == supplier.id || p.supplierName == supplier.name).toList();
-    final payments = await db.getContactPayments(supplier.id!);
-
-    if (!mounted) return;
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 8,
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        child: Container(
-          width: 680,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF818CF8), size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Supplier Ledger: ${supplier.name}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 17,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                            ),
-                          ),
-                          Text(
-                            'Complete procurement purchase history and outgoing payment vouchers',
-                            style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                    onPressed: () => Navigator.pop(ctx),
-                    splashRadius: 18,
-                  ),
-                ],
-              ),
-              Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-
-              // Stats
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Column(
-                      children: [
-                        Text('Total Purchase Orders', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 4),
-                        Text('${supplierPurchases.length}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                      ],
-                    ),
-                    Container(height: 30, width: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                    Column(
-                      children: [
-                        Text('Current Balance Payable', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${widget.settings.currencySymbol}${supplier.balance.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                            color: supplier.balance > 0 ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              Text(
-                'Purchases & Outgoing Payments',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
-              ),
-              const SizedBox(height: 8),
-
-              SizedBox(
-                height: 280,
-                child: (supplierPurchases.isEmpty && payments.isEmpty)
-                    ? Center(child: Text('No transaction records found for this supplier.', style: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8))))
-                    : ListView(
-                        children: [
-                          ...supplierPurchases.map((p) => ListTile(
-                                dense: true,
-                                leading: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Icon(Icons.local_shipping_outlined, color: Color(0xFF818CF8), size: 16),
-                                ),
-                                title: Text('${p.refNo} (${p.status.toUpperCase()})', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                                subtitle: Text('${p.createdAt} - Location: ${p.locationName}', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
-                                trailing: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text('${widget.settings.currencySymbol}${p.totalAmount.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                                    if (p.dueAmount > 0)
-                                      Text('Due: ${widget.settings.currencySymbol}${p.dueAmount.toStringAsFixed(2)}',
-                                          style: const TextStyle(fontSize: 11, color: Color(0xFFDC2626))),
-                                  ],
-                                ),
-                              )),
-                          ...payments.map((p) => ListTile(
-                                dense: true,
-                                leading: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Icon(Icons.check_circle_rounded, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF059669), size: 16),
-                                ),
-                                title: Text('Payout: ${p.refNo} (${p.paymentMethod.toUpperCase()})', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                                subtitle: Text('${p.date} ${p.note.isNotEmpty ? "- ${p.note}" : ""}', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
-                                trailing: Text(
-                                  '- ${widget.settings.currencySymbol}${p.amount.toStringAsFixed(2)}',
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669), fontSize: 13),
-                                ),
-                              )),
-                        ],
-                      ),
-              ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
-                    side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                ),
-              ),
-            ],
-          ),
-        ),
+      builder: (_) => ContactLedgerDialog(
+        contact: supplier,
+        contactType: 'supplier',
+        settings: widget.settings,
+        onPaymentRecorded: () => _load(),
       ),
     );
   }

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:mysql_client_plus/mysql_client_plus.dart';
 import '../models/models.dart';
 import 'database_service.dart';
@@ -7,6 +7,15 @@ import 'database_service.dart';
 class MySqlService {
   static final ValueNotifier<bool> isMySqlOnline = ValueNotifier<bool>(false);
   static final ValueNotifier<String> connectionStatus = ValueNotifier<String>('Disconnected');
+
+  /// Normalizes host address so that 'localhost' or empty strings resolve directly to '127.0.0.1' on Windows
+  static String normalizeHost(String host) {
+    final h = host.trim();
+    if (h.isEmpty || h.toLowerCase() == 'localhost') {
+      return '127.0.0.1';
+    }
+    return h;
+  }
 
   /// Test connection to MySQL server with authentication credentials
   static Future<Map<String, dynamic>> testConnection({
@@ -19,8 +28,9 @@ class MySqlService {
     MySQLConnection? conn;
     try {
       final sw = Stopwatch()..start();
+      final targetHost = normalizeHost(host);
       conn = await MySQLConnection.createConnection(
-        host: host,
+        host: targetHost,
         port: port,
         userName: user,
         password: password,
@@ -72,10 +82,11 @@ class MySqlService {
     MySQLConnection? conn;
     try {
       final safeDbName = databaseName.trim().isEmpty ? 'smartpos' : databaseName.trim();
+      final targetHost = normalizeHost(host);
 
       // Step 1: Connect to server without database to create target DB if missing
       conn = await MySQLConnection.createConnection(
-        host: host,
+        host: targetHost,
         port: port,
         userName: user,
         password: password,
@@ -90,7 +101,7 @@ class MySqlService {
 
       // Step 2: Connect directly to the newly created / existing database
       conn = await MySQLConnection.createConnection(
-        host: host,
+        host: targetHost,
         port: port,
         userName: user,
         password: password,
@@ -151,7 +162,7 @@ class MySqlService {
     try {
       final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
       conn = await MySQLConnection.createConnection(
-        host: settings.dbHost.isNotEmpty ? settings.dbHost : '127.0.0.1',
+        host: normalizeHost(settings.dbHost),
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
         userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
         password: settings.dbPassword,
@@ -168,6 +179,177 @@ class MySqlService {
       isMySqlOnline.value = false;
       connectionStatus.value = 'Offline ($e)';
       debugPrint('MySqlService background connectAndSync notice: $e');
+    } finally {
+      try {
+        await conn?.close();
+      } catch (_) {}
+    }
+  }
+
+  /// Checks whether the selected MySQL database has been provisioned and configured.
+  /// If tables are dropped (e.g. by user in phpMyAdmin), this returns false so the app
+  /// immediately detects the uninitialized state and triggers the setup wizard.
+  static Future<bool> isMySqlDatabaseConfigured(BusinessSettings settings) async {
+    if (!settings.isMySql) return true;
+
+    MySQLConnection? conn;
+    try {
+      final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
+      conn = await MySQLConnection.createConnection(
+        host: normalizeHost(settings.dbHost),
+        port: settings.dbPort > 0 ? settings.dbPort : 3306,
+        userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
+        password: settings.dbPassword,
+        databaseName: safeDbName,
+        secure: false,
+      );
+      await conn.connect();
+
+      // Check if business_settings table exists
+      final res = await conn.execute("SHOW TABLES LIKE 'business_settings'");
+      if (res.rows.isEmpty) {
+        isMySqlOnline.value = true;
+        connectionStatus.value = 'Uninitialized (0 tables in $safeDbName)';
+        return false;
+      }
+
+      final countRows = await conn.execute("SELECT id FROM `business_settings` LIMIT 1");
+      if (countRows.rows.isEmpty) {
+        return false;
+      }
+
+      isMySqlOnline.value = true;
+      connectionStatus.value = 'Active ($safeDbName @ ${settings.dbHost})';
+      return true;
+    } catch (e) {
+      debugPrint('MySqlService isMySqlDatabaseConfigured notice: $e');
+      isMySqlOnline.value = false;
+      connectionStatus.value = 'Offline ($e)';
+      return false;
+    } finally {
+      try {
+        await conn?.close();
+      } catch (_) {}
+    }
+  }
+
+  /// Pulls all active records from MySQL into local SQLite database so that local cache
+  /// is an exact mirror of the authoritative MySQL database.
+  static Future<void> pullDataFromMySql({
+    required BusinessSettings settings,
+    required DatabaseService localDb,
+  }) async {
+    if (!settings.isMySql) return;
+
+    MySQLConnection? conn;
+    try {
+      final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
+      conn = await MySQLConnection.createConnection(
+        host: normalizeHost(settings.dbHost),
+        port: settings.dbPort > 0 ? settings.dbPort : 3306,
+        userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
+        password: settings.dbPassword,
+        databaseName: safeDbName,
+        secure: false,
+      );
+      await conn.connect();
+
+      // Pull products
+      try {
+        final prodRes = await conn.execute("SELECT * FROM `products`");
+        for (final row in prodRes.rows) {
+          final m = row.assoc();
+          final sku = m['sku'] ?? '';
+          final barcode = m['barcode'] ?? '';
+          if (sku.isEmpty && barcode.isEmpty) continue;
+
+          final existing = await localDb.getProductByCode(sku.isNotEmpty ? sku : barcode);
+          final p = Product(
+            id: existing?.id,
+            sku: sku,
+            barcode: barcode,
+            name: m['name'] ?? '',
+            categoryName: m['category_name'] ?? 'General',
+            brandName: m['brand_name'] ?? 'Standard',
+            unit: m['unit'] ?? 'Pc',
+            purchasePrice: double.tryParse(m['purchase_price']?.toString() ?? '0') ?? 0.0,
+            sellingPrice: double.tryParse(m['selling_price']?.toString() ?? '0') ?? 0.0,
+            stockQuantity: double.tryParse(m['stock_quantity']?.toString() ?? '0') ?? 0.0,
+            alertQuantity: double.tryParse(m['alert_quantity']?.toString() ?? '5') ?? 5.0,
+            batchNumber: m['batch_number'] ?? '',
+            expiryDate: m['expiry_date'] ?? '',
+          );
+          if (existing == null) {
+            await localDb.addProduct(p);
+          } else {
+            await localDb.updateProduct(p);
+          }
+        }
+      } catch (_) {}
+
+      // Pull contacts
+      try {
+        final contactRes = await conn.execute("SELECT * FROM `contacts`");
+        for (final row in contactRes.rows) {
+          final m = row.assoc();
+          final name = m['name'] ?? '';
+          if (name.isNotEmpty) {
+            final existingContacts = await localDb.getContacts();
+            if (!existingContacts.any((c) => c.name.toLowerCase() == name.toLowerCase())) {
+              await localDb.addContact(Contact(
+                name: name,
+                type: m['type'] ?? 'customer',
+                phone: m['phone'] ?? '',
+                email: m['email'] ?? '',
+                address: m['address'] ?? '',
+                balance: double.tryParse(m['balance']?.toString() ?? '0') ?? 0.0,
+              ));
+            }
+          }
+        }
+      } catch (_) {}
+
+      // Pull categories
+      try {
+        final catRes = await conn.execute("SELECT * FROM `categories`");
+        for (final row in catRes.rows) {
+          final m = row.assoc();
+          final name = m['name'] ?? '';
+          if (name.isNotEmpty) {
+            final existingCats = await localDb.getCategories();
+            if (!existingCats.any((c) => c.name.toLowerCase() == name.toLowerCase())) {
+              await localDb.addCategory(Category(name: name, code: m['code'] ?? '', description: m['description'] ?? ''));
+            }
+          }
+        }
+      } catch (_) {}
+
+      // Pull users
+      try {
+        final userRes = await conn.execute("SELECT * FROM `users`");
+        for (final row in userRes.rows) {
+          final m = row.assoc();
+          final username = m['username'] ?? '';
+          if (username.isNotEmpty) {
+            final existingUsers = await localDb.getUsers();
+            if (!existingUsers.any((u) => u.username.toLowerCase() == username.toLowerCase())) {
+              await localDb.addUser(User(
+                name: m['name'] ?? 'User',
+                username: username,
+                password: m['password'] ?? '',
+                email: m['email'] ?? '',
+                phone: m['phone'] ?? '',
+                role: m['role'] ?? 'cashier',
+                status: m['status'] ?? 'active',
+                branchId: int.tryParse(m['branch_id']?.toString() ?? '1') ?? 1,
+                branchName: m['branch_name'] ?? 'Main Branch',
+              ));
+            }
+          }
+        }
+      } catch (_) {}
+    } catch (e) {
+      debugPrint('MySqlService pullDataFromMySql error: $e');
     } finally {
       try {
         await conn?.close();
@@ -402,7 +584,7 @@ class MySqlService {
     try {
       final safeDbName = databaseName.trim().isEmpty ? 'smartpos' : databaseName.trim();
       conn = await MySQLConnection.createConnection(
-        host: host,
+        host: normalizeHost(host),
         port: port,
         userName: user,
         password: password,
@@ -501,6 +683,7 @@ class MySqlService {
         `receipt_footer` TEXT NULL,
         `purchase_key` VARCHAR(100) NULL,
         `business_type` VARCHAR(50) DEFAULT 'general',
+        `is_configured` TINYINT(1) DEFAULT 1,
         `sync_mode` VARCHAR(20) DEFAULT 'offline',
         `enabled_modules` TEXT NULL,
         `primary_db_type` VARCHAR(50) DEFAULT 'mysql',
@@ -725,6 +908,560 @@ class MySqlService {
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB;
     ''');
+
+    // 15. tax_rates
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `tax_rates` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(150) NOT NULL,
+        `amount` DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+        `is_tax_group` TINYINT(1) DEFAULT 0,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 16. invoice_schemes
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `invoice_schemes` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(150) NOT NULL,
+        `scheme_type` VARCHAR(50) DEFAULT 'blank',
+        `prefix` VARCHAR(50) DEFAULT 'INV-',
+        `start_number` INT DEFAULT 1,
+        `invoice_count` INT DEFAULT 0,
+        `total_digits` INT DEFAULT 4,
+        `is_default` TINYINT(1) DEFAULT 0,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 17. selling_price_groups
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `selling_price_groups` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(150) NOT NULL,
+        `description` TEXT NULL,
+        `is_active` TINYINT(1) DEFAULT 1,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 18. warranties
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `warranties` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(150) NOT NULL,
+        `description` TEXT NULL,
+        `duration` INT NOT NULL DEFAULT 0,
+        `duration_type` VARCHAR(50) DEFAULT 'months',
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 19. variation_templates
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `variation_templates` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(150) NOT NULL,
+        `values_json` TEXT NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 20. variations
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `variations` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `product_id` INT UNSIGNED NOT NULL,
+        `name` VARCHAR(150) NOT NULL,
+        `sub_sku` VARCHAR(100) NOT NULL,
+        `purchase_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `selling_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `stock_quantity` DECIMAL(12,2) DEFAULT 0.00,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_var_prod` (`product_id`)
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 21. expenses
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `expenses` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `category` VARCHAR(150) NOT NULL,
+        `amount` DECIMAL(12,2) NOT NULL,
+        `ref_no` VARCHAR(100) NULL,
+        `note` TEXT NULL,
+        `date` VARCHAR(50) NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 22. cash_registers
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `cash_registers` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `cashier_name` VARCHAR(150) NOT NULL,
+        `opening_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `closing_amount` DECIMAL(12,2) DEFAULT 0.00,
+        `total_sales_cash` DECIMAL(12,2) DEFAULT 0.00,
+        `total_sales_card` DECIMAL(12,2) DEFAULT 0.00,
+        `total_sales_other` DECIMAL(12,2) DEFAULT 0.00,
+        `status` VARCHAR(50) DEFAULT 'open',
+        `opened_at` VARCHAR(50) NOT NULL,
+        `closed_at` VARCHAR(50) NULL,
+        `note` TEXT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 23. parked_sales
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `parked_sales` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `customer_name` VARCHAR(200) NOT NULL,
+        `note` TEXT NULL,
+        `total` DECIMAL(12,2) NOT NULL,
+        `created_at` VARCHAR(50) NOT NULL,
+        `items_json` LONGTEXT NOT NULL
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 24. stock_transfers
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `stock_transfers` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `ref_no` VARCHAR(100) NOT NULL UNIQUE,
+        `from_location_id` INT UNSIGNED NOT NULL,
+        `from_location_name` VARCHAR(150) NOT NULL,
+        `to_location_id` INT UNSIGNED NOT NULL,
+        `to_location_name` VARCHAR(150) NOT NULL,
+        `status` VARCHAR(50) DEFAULT 'completed',
+        `shipping_charges` DECIMAL(12,2) DEFAULT 0.00,
+        `final_total` DECIMAL(12,2) DEFAULT 0.00,
+        `date` VARCHAR(50) NOT NULL,
+        `note` TEXT NULL,
+        `items_json` LONGTEXT NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 25. stock_adjustments
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `stock_adjustments` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `ref_no` VARCHAR(100) NOT NULL UNIQUE,
+        `location_id` INT UNSIGNED NOT NULL,
+        `location_name` VARCHAR(150) NOT NULL,
+        `adjustment_type` VARCHAR(50) DEFAULT 'normal',
+        `total_amount` DECIMAL(12,2) DEFAULT 0.00,
+        `recovered_amount` DECIMAL(12,2) DEFAULT 0.00,
+        `reason` TEXT NULL,
+        `date` VARCHAR(50) NOT NULL,
+        `items_json` LONGTEXT NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 26. contact_payments
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `contact_payments` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `contact_id` INT UNSIGNED NOT NULL,
+        `contact_name` VARCHAR(200) NOT NULL,
+        `payment_type` VARCHAR(50) NOT NULL,
+        `amount` DECIMAL(12,2) NOT NULL,
+        `payment_method` VARCHAR(50) DEFAULT 'cash',
+        `date` VARCHAR(50) NOT NULL,
+        `ref_no` VARCHAR(100) NULL,
+        `note` TEXT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 27. payment_accounts
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `payment_accounts` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(150) NOT NULL,
+        `account_number` VARCHAR(100) NULL,
+        `account_type` VARCHAR(50) DEFAULT 'bank',
+        `opening_balance` DECIMAL(12,2) DEFAULT 0.00,
+        `current_balance` DECIMAL(12,2) DEFAULT 0.00,
+        `note` TEXT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 28. account_transfers
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `account_transfers` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `from_account_id` INT UNSIGNED NOT NULL,
+        `from_account_name` VARCHAR(150) NOT NULL,
+        `to_account_id` INT UNSIGNED NOT NULL,
+        `to_account_name` VARCHAR(150) NOT NULL,
+        `amount` DECIMAL(12,2) NOT NULL,
+        `date` VARCHAR(50) NOT NULL,
+        `ref_no` VARCHAR(100) NULL,
+        `note` TEXT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 29. sale_returns & sale_return_items
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `sale_returns` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `ref_no` VARCHAR(100) NOT NULL UNIQUE,
+        `sale_id` INT UNSIGNED NOT NULL,
+        `invoice_no` VARCHAR(100) NOT NULL,
+        `customer_id` INT UNSIGNED NULL,
+        `customer_name` VARCHAR(200) NOT NULL,
+        `total_amount` DECIMAL(12,2) NOT NULL,
+        `refund_amount` DECIMAL(12,2) NOT NULL,
+        `refund_method` VARCHAR(50) DEFAULT 'cash',
+        `status` VARCHAR(50) DEFAULT 'completed',
+        `date` VARCHAR(50) NOT NULL,
+        `note` TEXT NULL,
+        `items_json` LONGTEXT NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `sale_return_items` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `return_id` INT UNSIGNED NOT NULL,
+        `product_id` INT UNSIGNED NOT NULL,
+        `product_name` VARCHAR(255) NOT NULL,
+        `sku` VARCHAR(100) NULL,
+        `batch_number` VARCHAR(100) NULL,
+        `quantity` DECIMAL(10,2) NOT NULL,
+        `unit_price` DECIMAL(12,2) NOT NULL,
+        `subtotal` DECIMAL(12,2) NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_sret_ret` (`return_id`)
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 30. purchase_returns & purchase_return_items
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `purchase_returns` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `ref_no` VARCHAR(100) NOT NULL UNIQUE,
+        `purchase_id` INT UNSIGNED NOT NULL,
+        `purchase_ref` VARCHAR(100) NOT NULL,
+        `supplier_id` INT UNSIGNED NULL,
+        `supplier_name` VARCHAR(200) NOT NULL,
+        `total_amount` DECIMAL(12,2) NOT NULL,
+        `refund_amount` DECIMAL(12,2) NOT NULL,
+        `refund_method` VARCHAR(50) DEFAULT 'cash',
+        `status` VARCHAR(50) DEFAULT 'completed',
+        `date` VARCHAR(50) NOT NULL,
+        `note` TEXT NULL,
+        `items_json` LONGTEXT NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `purchase_return_items` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `return_id` INT UNSIGNED NOT NULL,
+        `product_id` INT UNSIGNED NOT NULL,
+        `product_name` VARCHAR(255) NOT NULL,
+        `sku` VARCHAR(100) NULL,
+        `batch_number` VARCHAR(100) NULL,
+        `quantity` DECIMAL(10,2) NOT NULL,
+        `unit_price` DECIMAL(12,2) NOT NULL,
+        `subtotal` DECIMAL(12,2) NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_pret_ret` (`return_id`)
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 31. financial_years
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `financial_years` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `year_name` VARCHAR(100) NOT NULL,
+        `start_date` VARCHAR(50) NOT NULL,
+        `end_date` VARCHAR(50) NOT NULL,
+        `closed_at` VARCHAR(50) NOT NULL,
+        `closed_by` VARCHAR(100) NOT NULL,
+        `total_sales` DECIMAL(14,2) DEFAULT 0.00,
+        `total_purchases` DECIMAL(14,2) DEFAULT 0.00,
+        `total_expenses` DECIMAL(14,2) DEFAULT 0.00,
+        `net_profit` DECIMAL(14,2) DEFAULT 0.00,
+        `closing_stock_value` DECIMAL(14,2) DEFAULT 0.00,
+        `carried_forward_balance` DECIMAL(14,2) DEFAULT 0.00,
+        `status` VARCHAR(50) DEFAULT 'closed',
+        `notes` TEXT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 32. restaurant_tables & kot_orders
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `restaurant_tables` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(100) NOT NULL,
+        `section` VARCHAR(100) DEFAULT 'Main Dining',
+        `capacity` INT DEFAULT 4,
+        `status` VARCHAR(50) DEFAULT 'vacant',
+        `order_total` DECIMAL(12,2) DEFAULT 0.00,
+        `kot_time` VARCHAR(50) NULL,
+        `guests` INT DEFAULT 0,
+        `current_order_id` VARCHAR(100) NULL,
+        `waiter_name` VARCHAR(100) NULL,
+        `waiter_id` INT UNSIGNED NULL,
+        `current_sale_id` INT UNSIGNED NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `restaurant_kot_orders` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `kot_no` VARCHAR(100) NOT NULL,
+        `table_name` VARCHAR(100) NOT NULL,
+        `order_type` VARCHAR(50) DEFAULT 'Dine-In',
+        `items` TEXT NOT NULL,
+        `status` VARCHAR(50) DEFAULT 'Cooking',
+        `time` VARCHAR(50) NULL,
+        `server_name` VARCHAR(100) DEFAULT 'Captain',
+        `items_json` LONGTEXT NULL,
+        `special_notes` TEXT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 33. gym_members
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `gym_members` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `member_id` VARCHAR(50) NULL,
+        `name` VARCHAR(150) NOT NULL,
+        `phone` VARCHAR(50) NULL,
+        `plan` VARCHAR(100) NULL,
+        `fee` DECIMAL(12,2) DEFAULT 0.00,
+        `locker` VARCHAR(50) NULL,
+        `trainer` VARCHAR(100) NULL,
+        `expiry_date` VARCHAR(50) NULL,
+        `days_left` INT DEFAULT 30,
+        `status` VARCHAR(50) DEFAULT 'Active',
+        `created_at` VARCHAR(50) NULL
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 34. hotel_rooms
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `hotel_rooms` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `room` VARCHAR(50) NOT NULL,
+        `type` VARCHAR(100) NOT NULL,
+        `floor` VARCHAR(50) NULL,
+        `rate` DECIMAL(12,2) DEFAULT 0.00,
+        `status` VARCHAR(50) DEFAULT 'available',
+        `guest` VARCHAR(200) NULL,
+        `nights` INT DEFAULT 0,
+        `check_in` VARCHAR(50) NULL,
+        `room_service` DECIMAL(12,2) DEFAULT 0.00,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 35. repair_jobs
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `repair_jobs` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `job_no` VARCHAR(100) NOT NULL,
+        `customer` VARCHAR(200) NOT NULL,
+        `device` VARCHAR(150) NOT NULL,
+        `phone` VARCHAR(50) NULL,
+        `imei` VARCHAR(100) NULL,
+        `fault` TEXT NULL,
+        `technician` VARCHAR(100) NULL,
+        `est_cost` DECIMAL(12,2) DEFAULT 0.00,
+        `advance` DECIMAL(12,2) DEFAULT 0.00,
+        `status` VARCHAR(50) DEFAULT 'Diagnosing',
+        `date` VARCHAR(50) NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 36. product_serials_batches
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `product_serials_batches` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `product_id` INT UNSIGNED NOT NULL,
+        `product_name` VARCHAR(255) NOT NULL,
+        `sku` VARCHAR(100) NULL,
+        `serial_number_1` VARCHAR(100) NULL,
+        `serial_number_2` VARCHAR(100) NULL,
+        `batch_number` VARCHAR(100) NULL,
+        `manufacturing_date` VARCHAR(50) NULL,
+        `expiry_date` VARCHAR(50) NULL,
+        `warranty_months` INT DEFAULT 0,
+        `warranty_expiry_date` VARCHAR(50) NULL,
+        `status` VARCHAR(50) DEFAULT 'in_stock',
+        `purchase_id` INT UNSIGNED NULL,
+        `sale_id` INT UNSIGNED NULL,
+        `location_id` INT UNSIGNED DEFAULT 1,
+        `purchase_price` DECIMAL(12,2) DEFAULT 0.00,
+        `selling_price` DECIMAL(12,2) DEFAULT 0.00,
+        `notes` TEXT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_serial_prod` (`product_id`),
+        INDEX `idx_serial_batch` (`batch_number`)
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 37. product_bundles
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `product_bundles` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `parent_product_id` INT UNSIGNED NOT NULL,
+        `sub_product_id` INT UNSIGNED NOT NULL,
+        `sub_product_name` VARCHAR(255) NOT NULL,
+        `sub_sku` VARCHAR(100) NULL,
+        `quantity` DECIMAL(10,2) NOT NULL DEFAULT 1.00,
+        `unit_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `is_optional` TINYINT(1) DEFAULT 0,
+        `sort_order` INT DEFAULT 0,
+        `notes` TEXT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_bundle_parent` (`parent_product_id`)
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 38. audit_logs
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `audit_logs` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `action` VARCHAR(100) NOT NULL,
+        `entity_type` VARCHAR(100) NOT NULL,
+        `entity_id` VARCHAR(100) NULL,
+        `user_id` INT UNSIGNED NULL,
+        `user_name` VARCHAR(150) NOT NULL,
+        `details` TEXT NULL,
+        `old_values` LONGTEXT NULL,
+        `new_values` LONGTEXT NULL,
+        `ip_address` VARCHAR(50) NULL,
+        `timestamp` VARCHAR(50) NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_audit_entity` (`entity_type`, `entity_id`)
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 39. customer_groups
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `customer_groups` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(191) NOT NULL,
+        `amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `price_calculation_type` VARCHAR(50) DEFAULT 'percentage',
+        `selling_price_group_id` INT UNSIGNED NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 40. cash_denominations
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `cash_denominations` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `cash_register_id` INT UNSIGNED NULL,
+        `d5000` INT DEFAULT 0,
+        `d1000` INT DEFAULT 0,
+        `d500` INT DEFAULT 0,
+        `d100` INT DEFAULT 0,
+        `d50` INT DEFAULT 0,
+        `d20` INT DEFAULT 0,
+        `d10` INT DEFAULT 0,
+        `d5` INT DEFAULT 0,
+        `d2` INT DEFAULT 0,
+        `d1` INT DEFAULT 0,
+        `total_amount` DECIMAL(12,2) DEFAULT 0.00,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 41. product_racks
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `product_racks` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `business_location_id` INT UNSIGNED DEFAULT 1,
+        `product_id` INT UNSIGNED NOT NULL,
+        `rack` VARCHAR(191) NULL,
+        `row` VARCHAR(191) NULL,
+        `position` VARCHAR(191) NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_rack_prod` (`product_id`)
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 42. types_of_services
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `types_of_services` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(191) NOT NULL,
+        `description` TEXT NULL,
+        `location_id` INT UNSIGNED DEFAULT 1,
+        `packing_charge_type` VARCHAR(50) DEFAULT 'fixed',
+        `packing_charge` DECIMAL(10,2) DEFAULT 0.00,
+        `enable_custom_fields` TINYINT(1) DEFAULT 0,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 43. invoice_layouts
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `invoice_layouts` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(191) NOT NULL,
+        `header_text` TEXT NULL,
+        `footer_text` TEXT NULL,
+        `show_logo` TINYINT(1) DEFAULT 1,
+        `show_tax` TINYINT(1) DEFAULT 1,
+        `show_customer` TINYINT(1) DEFAULT 1,
+        `show_barcode` TINYINT(1) DEFAULT 1,
+        `paper_width` VARCHAR(20) DEFAULT '80mm',
+        `is_default` TINYINT(1) DEFAULT 1,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 44. discounts
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `discounts` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(191) NOT NULL,
+        `discount_type` VARCHAR(50) DEFAULT 'percentage',
+        `discount_amount` DECIMAL(10,2) DEFAULT 0.00,
+        `starts_at` VARCHAR(50) NULL,
+        `ends_at` VARCHAR(50) NULL,
+        `brand_id` INT UNSIGNED NULL,
+        `category_id` INT UNSIGNED NULL,
+        `location_id` INT UNSIGNED NULL,
+        `priority` INT DEFAULT 1,
+        `is_active` TINYINT(1) DEFAULT 1,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    ''');
+
+    // 45. document_and_notes
+    await conn.execute('''
+      CREATE TABLE IF NOT EXISTS `document_and_notes` (
+        `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `notable_id` INT UNSIGNED NOT NULL,
+        `notable_type` VARCHAR(100) NOT NULL,
+        `heading` VARCHAR(191) NOT NULL,
+        `description` TEXT NULL,
+        `media_path` TEXT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_note_parent` (`notable_type`, `notable_id`)
+      ) ENGINE=InnoDB;
+    ''');
   }
 
   static Future<void> _seedSettings(MySQLConnection conn, BusinessSettings s) async {
@@ -734,18 +1471,19 @@ class MySqlService {
           `id`, `business_name`, `branch_name`, `currency_symbol`, `currency_code`,
           `default_tax_rate`, `phone`, `email`, `address`, `invoice_prefix`,
           `receipt_footer`, `purchase_key`, `business_type`, `sync_mode`, `enabled_modules`,
-          `primary_db_type`, `db_host`, `db_port`, `db_name`, `db_user`
+          `primary_db_type`, `db_host`, `db_port`, `db_name`, `db_user`, `is_configured`
         ) VALUES (
           1, :bizName, :branchName, :curSym, :curCode,
           :taxRate, :phone, :email, :addr, :invPrefix,
           :rcptFooter, :licKey, :bizType, :syncMode, :mods,
-          :dbType, :dbHost, :dbPort, :dbName, :dbUser
+          :dbType, :dbHost, :dbPort, :dbName, :dbUser, 1
         ) ON DUPLICATE KEY UPDATE
           `business_name` = VALUES(`business_name`),
           `branch_name` = VALUES(`branch_name`),
           `currency_symbol` = VALUES(`currency_symbol`),
           `currency_code` = VALUES(`currency_code`),
           `business_type` = VALUES(`business_type`),
+          `is_configured` = 1,
           `primary_db_type` = VALUES(`primary_db_type`),
           `db_host` = VALUES(`db_host`),
           `db_port` = VALUES(`db_port`),

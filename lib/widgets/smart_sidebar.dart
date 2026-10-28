@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../services/auth_service.dart';
 
 class SmartSidebar extends StatefulWidget {
   final int selectedIndex;
@@ -18,9 +19,6 @@ class SmartSidebar extends StatefulWidget {
   @override
   State<SmartSidebar> createState() => _SmartSidebarState();
 }
-
-/// Backward compatibility alias
-typedef UltimateSidebar = SmartSidebar;
 
 class _SmartSidebarState extends State<SmartSidebar> {
   final TextEditingController _menuSearchCtrl = TextEditingController();
@@ -490,6 +488,14 @@ class _SmartSidebarState extends State<SmartSidebar> {
   }
 
   List<Widget> _buildDefaultModularNavigation() {
+    final user = AuthService.currentUser;
+    final isAdm = user == null || user.isAdmin;
+    final canInventory = isAdm || user.canAccessInventory;
+    final canReports = isAdm || user.canAccessReports;
+    final canKhata = isAdm || user.canAccessKhata;
+    final canManageUsers = isAdm || user.canManageUsers;
+    final canSettings = isAdm || user.canAccessSettings;
+
     return [
       _sectionHeader('OVERVIEW'),
       _navItem(icon: Icons.dashboard_outlined, title: 'Home', index: 0),
@@ -505,12 +511,12 @@ class _SmartSidebarState extends State<SmartSidebar> {
       ),
       if (!widget.isCollapsed && _productsExpanded) ...[
         _subItem(title: 'List Products', index: 2),
-        _subItem(title: 'Add Product', index: 11),
+        if (canInventory) _subItem(title: 'Add Product', index: 11),
         _subItem(title: 'Print Labels', index: 17),
         if (_isModEnabled(BusinessSettings.moduleVariations))
           _subItem(title: 'Variations', index: 18),
-        _subItem(title: 'Import Products', index: 23),
-        _subItem(title: 'Selling Price Group', index: 22),
+        if (canInventory) _subItem(title: 'Import Products', index: 23),
+        if (canSettings) _subItem(title: 'Selling Price Group', index: 22),
         _subItem(title: 'Units', index: 19),
         _subItem(title: 'Categories', index: 3),
         _subItem(title: 'Brands', index: 20),
@@ -535,11 +541,12 @@ class _SmartSidebarState extends State<SmartSidebar> {
       _navItem(icon: Icons.shopping_bag_outlined, title: 'Purchases', index: 5),
       if (_isModEnabled(BusinessSettings.moduleReturns))
         _navItem(icon: Icons.keyboard_return_rounded, title: 'Purchase Returns (Debit Notes)', index: 26),
-      if (_isModEnabled(BusinessSettings.moduleStockAudit))
+      if (canInventory && _isModEnabled(BusinessSettings.moduleStockAudit))
         _navItem(icon: Icons.fact_check_outlined, title: 'Stock & Expiry Audit', index: 24),
-      if (_isModEnabled(BusinessSettings.moduleStockTransfers))
+      if (canInventory && _isModEnabled(BusinessSettings.moduleStockTransfers))
         _navItem(icon: Icons.sync_alt_rounded, title: 'Stock Transfers', index: 13),
-      _navItem(icon: Icons.tune_rounded, title: 'Stock Adjustment', index: 14),
+      if (canInventory)
+        _navItem(icon: Icons.tune_rounded, title: 'Stock Adjustment', index: 14),
 
       if (widget.settings?.hasAnyIndustryModuleEnabled == true) ...[
         _sectionHeader('INDUSTRY MODULES'),
@@ -580,17 +587,22 @@ class _SmartSidebarState extends State<SmartSidebar> {
       if (_isModEnabled(BusinessSettings.moduleExpenses))
         _navItem(icon: Icons.receipt_long_outlined, title: 'Expenses', index: 8),
       _navItem(icon: Icons.account_balance_outlined, title: 'Payment Accounts', index: 15),
-      _navItem(icon: Icons.analytics_outlined, title: 'Reports', index: 9),
-      if (_isModEnabled(BusinessSettings.moduleFiscalClosing))
+      if (canReports)
+        _navItem(icon: Icons.analytics_outlined, title: 'Reports', index: 9),
+      if (canSettings && _isModEnabled(BusinessSettings.moduleFiscalClosing))
         _navItem(icon: Icons.account_balance_wallet_rounded, title: 'Annual Fiscal Closing', index: 27),
 
       _sectionHeader('PEOPLE & SETTINGS'),
-      _navItem(icon: Icons.people_outline, title: 'Contacts', index: 6),
-      _navItem(icon: Icons.badge_outlined, title: 'User Management', index: 12),
-      _navItem(icon: Icons.notifications_none_outlined, title: 'Notification Templates', index: 16),
-      _navItem(icon: Icons.dashboard_customize_outlined, title: 'Modular Features', index: 39),
-      _navItem(icon: Icons.cloud_sync_outlined, title: 'Cloud & MySQL Sync', index: 40),
-      _navItem(icon: Icons.settings_outlined, title: 'Settings', index: 10),
+      if (canKhata)
+        _navItem(icon: Icons.people_outline, title: 'Contacts & Khata', index: 6),
+      if (canManageUsers)
+        _navItem(icon: Icons.badge_outlined, title: 'User Management & Auth', index: 12),
+      if (canSettings) ...[
+        _navItem(icon: Icons.notifications_none_outlined, title: 'Notification Templates', index: 16),
+        _navItem(icon: Icons.dashboard_customize_outlined, title: 'Modular Features', index: 39),
+        _navItem(icon: Icons.cloud_sync_outlined, title: 'Cloud & MySQL Sync', index: 40),
+        _navItem(icon: Icons.settings_outlined, title: 'Settings', index: 10),
+      ],
     ];
   }
 

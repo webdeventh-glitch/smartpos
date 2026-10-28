@@ -3,10 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
 import 'add_product_dialog.dart';
 import 'product_detail_dialog.dart';
 import 'print_labels_screen.dart';
+import '../../services/print_service.dart';
+import '../../widgets/universal_print_preview_dialog.dart';
 
 class ProductsListScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -100,6 +103,24 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             );
           }
         },
+      ),
+    );
+  }
+
+  void _printPriceList(List<Product> prods) {
+    final listToPrint = prods.isNotEmpty ? prods : _allProducts;
+    final html = PrintService.generatePriceListHtml(
+      settings: widget.settings,
+      products: listToPrint,
+      paperSize: widget.settings.receiptPaperSize,
+    );
+    showDialog(
+      context: context,
+      builder: (_) => UniversalPrintPreviewDialog(
+        title: 'Product Price List & Catalog',
+        htmlContent: html,
+        defaultPaperSize: 'a4',
+        settings: widget.settings,
       ),
     );
   }
@@ -227,6 +248,18 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           );
                         }
                       },
+                    ),
+                    const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF0284C7),
+                        side: const BorderSide(color: Color(0xFF0284C7)),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.print_rounded, size: 18),
+                      label: const Text('Print Price List', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: () => _printPriceList(filtered),
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton.icon(
@@ -607,31 +640,50 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               ),
                             ),
 
-                            // Cost Price
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Text(
-                                '$currency${p.purchasePrice.toStringAsFixed(2)}',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
-                              ),
+                            // Cost Price (Owner Authorization Protected)
+                            Builder(
+                              builder: (context) {
+                                final canViewCost = AuthService.currentUser?.canViewCostPrice ?? (AuthService.currentUser?.isAdmin ?? true);
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  child: canViewCost
+                                      ? Text(
+                                          '$currency${p.purchasePrice.toStringAsFixed(2)}',
+                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
+                                        )
+                                      : Tooltip(
+                                          message: 'Cost price masked (Owner Protected)',
+                                          child: Text(
+                                            '••••••',
+                                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2, color: isDark ? const Color(0xFF64748B) : Colors.grey),
+                                          ),
+                                        ),
+                                );
+                              },
                             ),
 
                             // Selling Price & Margin
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '$currency${p.sellingPrice.toStringAsFixed(2)}',
-                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
+                            Builder(
+                              builder: (context) {
+                                final canViewCost = AuthService.currentUser?.canViewCostPrice ?? (AuthService.currentUser?.isAdmin ?? true);
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '$currency${p.sellingPrice.toStringAsFixed(2)}',
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
+                                      ),
+                                      if (canViewCost)
+                                        Text(
+                                          '+${margin.toStringAsFixed(1)}% margin',
+                                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
+                                        ),
+                                    ],
                                   ),
-                                  Text(
-                                    '+${margin.toStringAsFixed(1)}% margin',
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
-                                  ),
-                                ],
-                              ),
+                                );
+                              },
                             ),
 
                             // Stock Quantity & Alert Status

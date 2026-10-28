@@ -91,8 +91,19 @@ class BusinessSettings {
   final String dbName;
   final String dbUser;
   final String dbPassword;
-  final String industryPresets;
   final String primaryDbType; // 'mysql', 'postgresql', 'sqlite'
+  final String industryPresets;
+  final String receiptPaperSize; // '80mm', '58mm', 'a4'
+  final String receiptHeaderTagline;
+  final String receiptHeaderNote;
+  final String receiptReturnPolicy;
+  final bool showLogoOnReceipt;
+  final bool showBarcodeOnReceipt;
+  final bool showQrOnReceipt;
+  final bool showCustomerBalanceOnReceipt;
+  final bool showTaxBreakdownOnReceipt;
+  final bool showCashierNameOnReceipt;
+  final int invoicePrintCopies;
 
   BusinessSettings({
     this.id = 1,
@@ -146,6 +157,17 @@ class BusinessSettings {
     this.dbUser = 'root',
     this.dbPassword = '',
     this.industryPresets = '',
+    this.receiptPaperSize = '80mm',
+    this.receiptHeaderTagline = 'Wholesale & Retail Distributor',
+    this.receiptHeaderNote = 'Welcome to our store!',
+    this.receiptReturnPolicy = 'Goods once sold can only be exchanged within 7 days with original receipt.',
+    this.showLogoOnReceipt = true,
+    this.showBarcodeOnReceipt = true,
+    this.showQrOnReceipt = true,
+    this.showCustomerBalanceOnReceipt = true,
+    this.showTaxBreakdownOnReceipt = true,
+    this.showCashierNameOnReceipt = true,
+    this.invoicePrintCopies = 1,
   });
 
   String get effectiveLoginBanner {
@@ -183,6 +205,16 @@ class BusinessSettings {
   bool get isAccountingCrm => businessType == 'accounting_crm';
   bool get isFruitWholesale => businessType == 'fruit_wholesale';
   bool get isPoultry => businessType == 'poultry';
+  bool get isDairy => businessType == 'dairy_milk' || businessType == 'dairy';
+  bool get isTyres => businessType == 'tyres_battery' || businessType == 'tyres';
+  bool get isHardware => businessType == 'hardware_tools' || businessType == 'hardware';
+  bool get isAutoParts => businessType == 'auto_parts';
+  bool get isMeat => businessType == 'meat_butchery' || businessType == 'meat';
+  bool get isFabrics => businessType == 'fabrics_textile' || businessType == 'fabrics';
+  bool get isLubricants => businessType == 'lubricants_oil' || businessType == 'lubricants';
+  bool get isSanitaryTiles => businessType == 'sanitary_tiles' || businessType == 'sanitary';
+  bool get isUniversal => businessType == 'universal' || businessType == 'all_in_one';
+  bool get isCustomOther => businessType == 'custom_other' || businessType == 'other' || businessType == 'custom';
 
   // Industry Preset Identifiers (Strictly 1 Active At A Time)
   static const String presetPharmacy = 'pharmacy';
@@ -261,6 +293,35 @@ class BusinessSettings {
         return 'Fruit & Sabzi Wholesale / Mandi';
       case 'poultry':
         return 'Poultry Farm & Trading';
+      case 'dairy_milk':
+      case 'dairy':
+        return 'Dairy, Milk & Eggs / دودھ، دہی اور انڈے';
+      case 'tyres_battery':
+      case 'tyres':
+        return 'Tyre Shop, Rims & Battery / ٹائر، رمز اور بیٹری';
+      case 'hardware_tools':
+      case 'hardware':
+        return 'Hardware, Tools & Paint / ہارڈویئر اور اوزار';
+      case 'auto_parts':
+        return 'Auto Spare Parts / آٹو سپیئر پارٹس';
+      case 'meat_butchery':
+      case 'meat':
+        return 'Meat, Butchery & Poultry / گوشت، مرغی اور مچھلی';
+      case 'fabrics_textile':
+      case 'fabrics':
+        return 'Fabrics & Cloth (Meter / Gazz) / کپڑا اور تھان';
+      case 'lubricants_oil':
+      case 'lubricants':
+        return 'Mobile Oil & Lubricants / موبائل آئل اور لبریکنٹس';
+      case 'sanitary_tiles':
+      case 'sanitary':
+        return 'Sanitary, Tiles & Bath / سینیٹری اور ٹائلز';
+      case 'universal':
+        return 'Universal Business (Wholesale & Retail / ہمہ جہت کاروبار - ہول سیل و ریٹیل)';
+      case 'custom_other':
+      case 'other':
+      case 'custom':
+        return 'Other / Custom Business (دیگر کسٹم کاروبار)';
       case 'general':
       default:
         return 'General Retail / Supermarket / Wholesale';
@@ -297,6 +358,22 @@ class BusinessSettings {
     ];
 
     switch (type.toLowerCase()) {
+      case 'universal':
+      case 'all_in_one':
+      case 'custom_other':
+      case 'other':
+      case 'custom':
+      case 'wholesale':
+        // Universal & Unlisted custom businesses get ALL operational modules unlocked with zero restrictions!
+        return [
+          ...base,
+          moduleVariations,
+          moduleBatchExpiry,
+          moduleAccountingCrm,
+          moduleHrm,
+          moduleFiscalClosing,
+          presetRetailSuperStore,
+        ];
       case 'restaurant':
       case 'cafe':
         return [...base, moduleRestaurant, moduleHrm, presetRestaurantCafe];
@@ -319,6 +396,23 @@ class BusinessSettings {
         return [...base, moduleFruitMandi, moduleAccountingCrm];
       case 'poultry':
         return [...base, modulePoultry, moduleAccountingCrm];
+      case 'dairy_milk':
+      case 'dairy':
+      case 'meat_butchery':
+      case 'meat':
+      case 'fabrics_textile':
+      case 'fabrics':
+        return [...base, moduleVariations];
+      case 'tyres_battery':
+      case 'tyres':
+      case 'auto_parts':
+      case 'lubricants_oil':
+      case 'lubricants':
+      case 'hardware_tools':
+      case 'hardware':
+      case 'sanitary_tiles':
+      case 'sanitary':
+        return [...base, moduleRepair, moduleVariations];
       case 'pharmacy':
         return [...base, moduleBatchExpiry, presetPharmacy];
       case 'mobile':
@@ -437,6 +531,17 @@ class BusinessSettings {
     String? dbPassword,
     String? industryPresets,
     String? primaryDbType,
+    String? receiptPaperSize,
+    String? receiptHeaderTagline,
+    String? receiptHeaderNote,
+    String? receiptReturnPolicy,
+    bool? showLogoOnReceipt,
+    bool? showBarcodeOnReceipt,
+    bool? showQrOnReceipt,
+    bool? showCustomerBalanceOnReceipt,
+    bool? showTaxBreakdownOnReceipt,
+    bool? showCashierNameOnReceipt,
+    int? invoicePrintCopies,
   }) {
     return BusinessSettings(
       id: id ?? this.id,
@@ -490,6 +595,17 @@ class BusinessSettings {
       dbUser: dbUser ?? this.dbUser,
       dbPassword: dbPassword ?? this.dbPassword,
       industryPresets: industryPresets ?? this.industryPresets,
+      receiptPaperSize: receiptPaperSize ?? this.receiptPaperSize,
+      receiptHeaderTagline: receiptHeaderTagline ?? this.receiptHeaderTagline,
+      receiptHeaderNote: receiptHeaderNote ?? this.receiptHeaderNote,
+      receiptReturnPolicy: receiptReturnPolicy ?? this.receiptReturnPolicy,
+      showLogoOnReceipt: showLogoOnReceipt ?? this.showLogoOnReceipt,
+      showBarcodeOnReceipt: showBarcodeOnReceipt ?? this.showBarcodeOnReceipt,
+      showQrOnReceipt: showQrOnReceipt ?? this.showQrOnReceipt,
+      showCustomerBalanceOnReceipt: showCustomerBalanceOnReceipt ?? this.showCustomerBalanceOnReceipt,
+      showTaxBreakdownOnReceipt: showTaxBreakdownOnReceipt ?? this.showTaxBreakdownOnReceipt,
+      showCashierNameOnReceipt: showCashierNameOnReceipt ?? this.showCashierNameOnReceipt,
+      invoicePrintCopies: invoicePrintCopies ?? this.invoicePrintCopies,
     );
   }
 
@@ -545,6 +661,17 @@ class BusinessSettings {
         'db_user': dbUser,
         'db_password': dbPassword,
         'industry_presets': industryPresets,
+        'receipt_paper_size': receiptPaperSize,
+        'receipt_header_tagline': receiptHeaderTagline,
+        'receipt_header_note': receiptHeaderNote,
+        'receipt_return_policy': receiptReturnPolicy,
+        'show_logo_on_receipt': showLogoOnReceipt ? 1 : 0,
+        'show_barcode_on_receipt': showBarcodeOnReceipt ? 1 : 0,
+        'show_qr_on_receipt': showQrOnReceipt ? 1 : 0,
+        'show_customer_balance_on_receipt': showCustomerBalanceOnReceipt ? 1 : 0,
+        'show_tax_breakdown_on_receipt': showTaxBreakdownOnReceipt ? 1 : 0,
+        'show_cashier_name_on_receipt': showCashierNameOnReceipt ? 1 : 0,
+        'invoice_print_copies': invoicePrintCopies,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
@@ -600,6 +727,17 @@ class BusinessSettings {
         dbUser: _asString(map['db_user'], 'root'),
         dbPassword: _asString(map['db_password']),
         industryPresets: _asString(map['industry_presets'], 'retail_supermarket'),
+        receiptPaperSize: _asString(map['receipt_paper_size'], '80mm'),
+        receiptHeaderTagline: _asString(map['receipt_header_tagline'], 'Wholesale & Retail Distributor'),
+        receiptHeaderNote: _asString(map['receipt_header_note'], 'Welcome to our store!'),
+        receiptReturnPolicy: _asString(map['receipt_return_policy'], 'Goods once sold can only be exchanged within 7 days with original receipt.'),
+        showLogoOnReceipt: _asBool(map['show_logo_on_receipt'], true),
+        showBarcodeOnReceipt: _asBool(map['show_barcode_on_receipt'], true),
+        showQrOnReceipt: _asBool(map['show_qr_on_receipt'], true),
+        showCustomerBalanceOnReceipt: _asBool(map['show_customer_balance_on_receipt'], true),
+        showTaxBreakdownOnReceipt: _asBool(map['show_tax_breakdown_on_receipt'], true),
+        showCashierNameOnReceipt: _asBool(map['show_cashier_name_on_receipt'], true),
+        invoicePrintCopies: _asInt(map['invoice_print_copies'], 1),
       );
 }
 
@@ -1273,6 +1411,7 @@ class Sale {
   final String note;
   final String createdAt;
   final List<SaleItem>? items;
+  final String? userName;
 
   Sale({
     this.id,
@@ -1292,7 +1431,11 @@ class Sale {
     this.note = '',
     required this.createdAt,
     this.items,
-  });
+    this.userName,
+    String? cashierName,
+  }) : this.cashierName = cashierName ?? userName ?? 'Cashier';
+
+  final String cashierName;
 
   double get dueAmount => totalAmount - paidAmount;
 
@@ -1313,6 +1456,7 @@ class Sale {
         'sale_status': saleStatus,
         'note': note,
         'created_at': createdAt,
+        'user_name': userName ?? cashierName,
       };
 
   factory Sale.fromMap(Map<String, dynamic> map, {List<SaleItem>? items}) =>
@@ -1334,6 +1478,7 @@ class Sale {
         note: map['note'] as String? ?? '',
         createdAt: map['created_at'] as String,
         items: items,
+        userName: map['user_name'] as String?,
       );
 }
 
@@ -1973,6 +2118,59 @@ class AccountTransfer {
       );
 }
 
+/// Modern Double-Entry Ledger Transaction Model
+class LedgerEntry {
+  final String date;
+  final String transactionType; // 'sale_invoice', 'customer_payment', 'purchase_bill', 'supplier_payment', 'sale_return', 'purchase_return', 'expense', 'transfer_in', 'transfer_out', 'opening_balance'
+  final String refNo;
+  final String description;
+  final String paymentMethod;
+  final String accountName;
+  final double debit; // Dr (Money in / Receivable increased / Asset debited)
+  final double credit; // Cr (Money out / Payable increased / Liability credited)
+  final double runningBalance; // Calculated progressive balance
+  final int? parentId;
+
+  LedgerEntry({
+    required this.date,
+    required this.transactionType,
+    required this.refNo,
+    required this.description,
+    this.paymentMethod = 'cash',
+    this.accountName = 'Main Till',
+    this.debit = 0.0,
+    this.credit = 0.0,
+    this.runningBalance = 0.0,
+    this.parentId,
+  });
+
+  Map<String, dynamic> toMap() => {
+        'date': date,
+        'transaction_type': transactionType,
+        'ref_no': refNo,
+        'description': description,
+        'payment_method': paymentMethod,
+        'account_name': accountName,
+        'debit': debit,
+        'credit': credit,
+        'running_balance': runningBalance,
+        if (parentId != null) 'parent_id': parentId,
+      };
+
+  factory LedgerEntry.fromMap(Map<String, dynamic> map) => LedgerEntry(
+        date: map['date'] as String? ?? '',
+        transactionType: map['transaction_type'] as String? ?? 'general',
+        refNo: map['ref_no'] as String? ?? '',
+        description: map['description'] as String? ?? '',
+        paymentMethod: map['payment_method'] as String? ?? 'cash',
+        accountName: map['account_name'] as String? ?? '',
+        debit: (map['debit'] as num?)?.toDouble() ?? 0.0,
+        credit: (map['credit'] as num?)?.toDouble() ?? 0.0,
+        runningBalance: (map['running_balance'] as num?)?.toDouble() ?? 0.0,
+        parentId: map['parent_id'] as int?,
+      );
+}
+
 /// User & Authorization Model
 class User {
   final int? id;
@@ -1980,11 +2178,25 @@ class User {
   final String username;
   final String password;
   final String email;
-  final String role; // 'superadmin', 'admin', 'salesman', 'cashier'
+  final String role; // 'superadmin', 'admin', 'manager', 'salesman', 'cashier'
   final String status; // 'active', 'inactive'
   final int branchId;
   final String branchName;
   final String phone;
+
+  // Granular Operational Authorization Matrix
+  final bool canEditPrice; // Can change unit selling price on POS counter
+  final bool canGiveDiscount; // Can apply discounts on sales
+  final double maxDiscountPercent; // Maximum discount allowed (e.g. 5.0%)
+  final bool canViewCostPrice; // Can view product purchase/cost prices & profit margins
+  final bool canDeleteSale; // Can void or delete past sales invoices
+  final bool canProcessReturn; // Can accept customer returns & issue cash refunds
+  final bool canAccessKhata; // Can access customer credit ledger & khata
+  final bool canAccessInventory; // Can manage stock transfers & adjustments
+  final bool canAccessReports; // Can view sales and profit/loss reports
+  final bool canAccessSettings; // Can modify store configuration & business settings
+  final bool canManageUsers; // Can create or modify salesman authorizations
+  final String permissions; // Raw comma-separated string for custom permissions
 
   User({
     this.id,
@@ -1997,12 +2209,117 @@ class User {
     this.branchId = 1,
     this.branchName = 'Main Branch HQ',
     this.phone = '',
+    this.canEditPrice = false,
+    this.canGiveDiscount = true,
+    this.maxDiscountPercent = 5.0,
+    this.canViewCostPrice = false,
+    this.canDeleteSale = false,
+    this.canProcessReturn = false,
+    this.canAccessKhata = true,
+    this.canAccessInventory = false,
+    this.canAccessReports = false,
+    this.canAccessSettings = false,
+    this.canManageUsers = false,
+    this.permissions = '',
   });
 
   bool get isSuperAdmin => role.toLowerCase() == 'superadmin' || role.toLowerCase() == 'owner';
   bool get isAdmin => isSuperAdmin || role.toLowerCase() == 'admin';
+  bool get isManager => role.toLowerCase() == 'manager' || role.toLowerCase() == 'store manager';
   bool get isSalesman => role.toLowerCase() == 'salesman';
   bool get isCashier => role.toLowerCase() == 'cashier';
+
+  /// Permission checker: Owner & Admin bypass all restrictions
+  bool hasPermission(String perm) {
+    if (isSuperAdmin || isAdmin) return true;
+    final list = permissions.split(',').map((p) => p.trim().toLowerCase()).toList();
+    if (list.contains(perm.toLowerCase())) return true;
+
+    switch (perm.toLowerCase()) {
+      case 'pos.edit_price':
+      case 'edit_price':
+        return canEditPrice;
+      case 'pos.give_discount':
+      case 'give_discount':
+        return canGiveDiscount;
+      case 'products.view_cost':
+      case 'view_cost_price':
+        return canViewCostPrice;
+      case 'sales.delete':
+      case 'delete_sale':
+        return canDeleteSale;
+      case 'sales.returns':
+      case 'process_return':
+        return canProcessReturn;
+      case 'contacts.khata':
+      case 'access_khata':
+        return canAccessKhata;
+      case 'inventory.manage':
+      case 'access_inventory':
+        return canAccessInventory;
+      case 'reports.view':
+      case 'access_reports':
+        return canAccessReports;
+      case 'settings.manage':
+      case 'access_settings':
+        return canAccessSettings;
+      case 'users.manage':
+      case 'manage_users':
+        return canManageUsers;
+      default:
+        return false;
+    }
+  }
+
+  User copyWith({
+    int? id,
+    String? name,
+    String? username,
+    String? password,
+    String? email,
+    String? role,
+    String? status,
+    int? branchId,
+    String? branchName,
+    String? phone,
+    bool? canEditPrice,
+    bool? canGiveDiscount,
+    double? maxDiscountPercent,
+    bool? canViewCostPrice,
+    bool? canDeleteSale,
+    bool? canProcessReturn,
+    bool? canAccessKhata,
+    bool? canAccessInventory,
+    bool? canAccessReports,
+    bool? canAccessSettings,
+    bool? canManageUsers,
+    String? permissions,
+  }) {
+    return User(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      username: username ?? this.username,
+      password: password ?? this.password,
+      email: email ?? this.email,
+      role: role ?? this.role,
+      status: status ?? this.status,
+      branchId: branchId ?? this.branchId,
+      branchName: branchName ?? this.branchName,
+      phone: phone ?? this.phone,
+      canEditPrice: canEditPrice ?? this.canEditPrice,
+      canGiveDiscount: canGiveDiscount ?? this.canGiveDiscount,
+      maxDiscountPercent: maxDiscountPercent ?? this.maxDiscountPercent,
+      canViewCostPrice: canViewCostPrice ?? this.canViewCostPrice,
+      canDeleteSale: canDeleteSale ?? this.canDeleteSale,
+      canProcessReturn: canProcessReturn ?? this.canProcessReturn,
+      canAccessKhata: canAccessKhata ?? this.canAccessKhata,
+      canAccessInventory: canAccessInventory ?? this.canAccessInventory,
+      canAccessReports: canAccessReports ?? this.canAccessReports,
+      canAccessSettings: canAccessSettings ?? this.canAccessSettings,
+      canManageUsers: canManageUsers ?? this.canManageUsers,
+      permissions: permissions ?? this.permissions,
+    );
+  }
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
@@ -2015,20 +2332,49 @@ class User {
         'branch_id': branchId,
         'branch_name': branchName,
         'phone': phone,
+        'can_edit_price': canEditPrice ? 1 : 0,
+        'can_give_discount': canGiveDiscount ? 1 : 0,
+        'max_discount_percent': maxDiscountPercent,
+        'can_view_cost_price': canViewCostPrice ? 1 : 0,
+        'can_delete_sale': canDeleteSale ? 1 : 0,
+        'can_process_return': canProcessReturn ? 1 : 0,
+        'can_access_khata': canAccessKhata ? 1 : 0,
+        'can_access_inventory': canAccessInventory ? 1 : 0,
+        'can_access_reports': canAccessReports ? 1 : 0,
+        'can_access_settings': canAccessSettings ? 1 : 0,
+        'can_manage_users': canManageUsers ? 1 : 0,
+        'permissions': permissions,
       };
 
-  factory User.fromMap(Map<String, dynamic> map) => User(
-        id: map['id'] as int?,
-        name: map['name'] as String? ?? '',
-        username: map['username'] as String? ?? '',
-        password: map['password'] as String? ?? '',
-        email: map['email'] as String? ?? '',
-        role: map['role'] as String? ?? 'salesman',
-        status: map['status'] as String? ?? 'active',
-        branchId: map['branch_id'] as int? ?? 1,
-        branchName: map['branch_name'] as String? ?? 'Main Branch HQ',
-        phone: map['phone'] as String? ?? '',
-      );
+  factory User.fromMap(Map<String, dynamic> map) {
+    final roleStr = (map['role'] as String? ?? 'salesman').toLowerCase();
+    final isAdm = roleStr == 'superadmin' || roleStr == 'admin' || roleStr == 'owner';
+
+    return User(
+      id: map['id'] as int?,
+      name: map['name'] as String? ?? '',
+      username: map['username'] as String? ?? '',
+      password: map['password'] as String? ?? '',
+      email: map['email'] as String? ?? '',
+      role: map['role'] as String? ?? 'salesman',
+      status: map['status'] as String? ?? 'active',
+      branchId: map['branch_id'] as int? ?? 1,
+      branchName: map['branch_name'] as String? ?? 'Main Branch HQ',
+      phone: map['phone'] as String? ?? '',
+      canEditPrice: (map['can_edit_price'] as int? ?? (isAdm ? 1 : 0)) == 1,
+      canGiveDiscount: (map['can_give_discount'] as int? ?? 1) == 1,
+      maxDiscountPercent: (map['max_discount_percent'] as num?)?.toDouble() ?? (isAdm ? 100.0 : 5.0),
+      canViewCostPrice: (map['can_view_cost_price'] as int? ?? (isAdm ? 1 : 0)) == 1,
+      canDeleteSale: (map['can_delete_sale'] as int? ?? (isAdm ? 1 : 0)) == 1,
+      canProcessReturn: (map['can_process_return'] as int? ?? (isAdm ? 1 : 0)) == 1,
+      canAccessKhata: (map['can_access_khata'] as int? ?? 1) == 1,
+      canAccessInventory: (map['can_access_inventory'] as int? ?? (isAdm ? 1 : 0)) == 1,
+      canAccessReports: (map['can_access_reports'] as int? ?? (isAdm ? 1 : 0)) == 1,
+      canAccessSettings: (map['can_access_settings'] as int? ?? (isAdm ? 1 : 0)) == 1,
+      canManageUsers: (map['can_manage_users'] as int? ?? (isAdm ? 1 : 0)) == 1,
+      permissions: map['permissions'] as String? ?? '',
+    );
+  }
 }
 
 /// Sales Return Model
@@ -2067,10 +2413,13 @@ class SaleReturn {
     this.items = const [],
   });
 
+  String get refNo => returnNo;
+
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
         'return_no': returnNo,
-        'sale_id': saleId,
+        'ref_no': returnNo,
+        'sale_id': saleId ?? 0,
         'invoice_no': invoiceNo,
         'customer_id': customerId,
         'customer_name': customerName,
@@ -2078,7 +2427,9 @@ class SaleReturn {
         'total_amount': totalAmount,
         'refund_amount': refundAmount,
         'refund_status': refundStatus,
+        'status': refundStatus,
         'payment_method': paymentMethod,
+        'refund_method': paymentMethod,
         'reason': reason,
         'note': note,
         'created_by': createdBy,
@@ -2086,7 +2437,7 @@ class SaleReturn {
 
   factory SaleReturn.fromMap(Map<String, dynamic> map, {List<SaleReturnItem> items = const []}) => SaleReturn(
         id: map['id'] as int?,
-        returnNo: map['return_no'] as String? ?? '',
+        returnNo: (map['return_no'] ?? map['ref_no']) as String? ?? '',
         saleId: map['sale_id'] as int?,
         invoiceNo: map['invoice_no'] as String? ?? '',
         customerId: map['customer_id'] as int?,
@@ -2094,8 +2445,8 @@ class SaleReturn {
         date: map['date'] as String? ?? '',
         totalAmount: (map['total_amount'] as num?)?.toDouble() ?? 0.0,
         refundAmount: (map['refund_amount'] as num?)?.toDouble() ?? 0.0,
-        refundStatus: map['refund_status'] as String? ?? 'completed',
-        paymentMethod: map['payment_method'] as String? ?? 'cash',
+        refundStatus: (map['refund_status'] ?? map['status']) as String? ?? 'completed',
+        paymentMethod: (map['payment_method'] ?? map['refund_method']) as String? ?? 'cash',
         reason: map['reason'] as String? ?? '',
         note: map['note'] as String? ?? '',
         createdBy: map['created_by'] as String? ?? 'Admin',
@@ -2183,16 +2534,20 @@ class PurchaseReturn {
     this.items = const [],
   });
 
+  String get refNo => returnNo;
+
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
         'return_no': returnNo,
-        'purchase_id': purchaseId,
+        'ref_no': returnNo,
+        'purchase_id': purchaseId ?? 0,
         'purchase_ref': purchaseRef,
         'supplier_id': supplierId,
         'supplier_name': supplierName,
         'date': date,
         'total_amount': totalAmount,
         'refund_amount': refundAmount,
+        'refund_method': 'cash',
         'status': status,
         'reason': reason,
         'note': note,
@@ -2200,7 +2555,7 @@ class PurchaseReturn {
 
   factory PurchaseReturn.fromMap(Map<String, dynamic> map, {List<PurchaseReturnItem> items = const []}) => PurchaseReturn(
         id: map['id'] as int?,
-        returnNo: map['return_no'] as String? ?? '',
+        returnNo: (map['return_no'] ?? map['ref_no']) as String? ?? '',
         purchaseId: map['purchase_id'] as int?,
         purchaseRef: map['purchase_ref'] as String? ?? '',
         supplierId: map['supplier_id'] as int?,

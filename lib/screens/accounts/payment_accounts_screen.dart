@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import 'account_statement_dialog.dart';
 
 class PaymentAccountsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -511,6 +512,18 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
     );
   }
 
+  void _showStatementDialog(PaymentAccount acc) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AccountStatementDialog(
+        account: acc,
+        settings: widget.settings,
+        onAccountUpdated: _load,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currency = widget.settings.currencySymbol;
@@ -618,6 +631,7 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                                       DataColumn(label: Text('OPENING BALANCE', style: TextStyle(fontWeight: FontWeight.bold))),
                                       DataColumn(label: Text('CURRENT BALANCE', style: TextStyle(fontWeight: FontWeight.bold))),
                                       DataColumn(label: Text('NOTE', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold))),
                                     ],
                                     rows: _accounts.map((a) {
                                       final isCash = a.accountType == 'cash';
@@ -643,6 +657,20 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                                           style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A), fontSize: 13),
                                         )),
                                         DataCell(Text(a.note.isNotEmpty ? a.note : '-', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                                        DataCell(
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFFEEF2FF),
+                                              foregroundColor: const Color(0xFF4F46E5),
+                                              elevation: 0,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            ),
+                                            icon: const Icon(Icons.receipt_long_rounded, size: 14),
+                                            label: const Text('Passbook / Statement', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                            onPressed: () => _showStatementDialog(a),
+                                          ),
+                                        ),
                                       ]);
                                     }).toList(),
                                   ),

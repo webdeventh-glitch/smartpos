@@ -21,4 +21,9 @@ Thumbs.db
 
 # Binaries and Distribution
 *.exe
+*.dll
+*.zip
 dist/
+installer_output/
+native_assets.json
+/data/

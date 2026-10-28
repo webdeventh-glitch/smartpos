@@ -124,9 +124,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       _selectedPreset = bType;
     } else if (widget.settings.industryPresets.isNotEmpty) {
       final p = widget.settings.industryPresets.split(',').first.trim().toLowerCase();
-      _selectedPreset = allSupportedIndustries.any((i) => i.key == p) ? p : 'pharmacy';
+      _selectedPreset = allSupportedIndustries.any((i) => i.key == p) ? p : 'universal';
     } else {
-      _selectedPreset = 'pharmacy';
+      _selectedPreset = 'universal';
     }
 
     // Step 3 controllers
@@ -387,6 +387,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       case 'restaurant':
       case 'cafe':
         return 'restaurant';
+      case 'universal':
+        return 'universal';
+      case 'custom_other':
+      case 'other':
+      case 'custom':
+        return 'custom_other';
       case BusinessSettings.presetRetailSuperStore:
       case 'supermarket':
         return 'supermarket';
@@ -416,6 +422,29 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         return 'accounting_crm';
       case 'woocommerce':
         return 'woocommerce';
+      case 'dairy_milk':
+      case 'dairy':
+        return 'dairy_milk';
+      case 'tyres_battery':
+      case 'tyres':
+        return 'tyres_battery';
+      case 'hardware_tools':
+      case 'hardware':
+        return 'hardware_tools';
+      case 'auto_parts':
+        return 'auto_parts';
+      case 'meat_butchery':
+      case 'meat':
+        return 'meat_butchery';
+      case 'fabrics_textile':
+      case 'fabrics':
+        return 'fabrics_textile';
+      case 'lubricants_oil':
+      case 'lubricants':
+        return 'lubricants_oil';
+      case 'sanitary_tiles':
+      case 'sanitary':
+        return 'sanitary_tiles';
       default:
         return _selectedPreset.isNotEmpty ? _selectedPreset : 'supermarket';
     }
@@ -448,106 +477,232 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       _seedStatus = 'Securing environment & initializing Smart POS enterprise database...';
     });
 
-    final primaryType = _determinePrimaryBusinessType();
-    final enabledModsList = _calculateEnabledModules();
+    try {
+      final primaryType = _determinePrimaryBusinessType();
+      final enabledModsList = _calculateEnabledModules();
 
-    final updated = BusinessSettings(
-      id: widget.settings.id,
-      businessName: _bizNameCtrl.text.trim().isNotEmpty ? _bizNameCtrl.text.trim() : 'Smart POS Enterprise',
-      branchName: _branchCtrl.text.trim().isNotEmpty ? _branchCtrl.text.trim() : 'Main Branch HQ',
-      currencySymbol: _currencySymCtrl.text.trim().isNotEmpty ? _currencySymCtrl.text.trim() : 'Rs',
-      currencyCode: _currencyCodeCtrl.text.trim().isNotEmpty ? _currencyCodeCtrl.text.trim() : 'PKR',
-      phone: _phoneCtrl.text.trim(),
-      email: _emailCtrl.text.trim(),
-      address: _addressCtrl.text.trim(),
-      taxNumber: _taxNumberCtrl.text.trim(),
-      receiptFooter: _receiptFooterCtrl.text.trim(),
-      purchaseKey: _licenseKeyCtrl.text.trim(),
-      hardwareId: _hardwareId,
-      businessType: primaryType,
-      industryPresets: _selectedPresets.join(','),
-      enabledModules: enabledModsList.join(','),
-      deploymentMode: _deploymentMode,
-      serverHost: _deploymentMode == 'lan_secondary' ? _lanHostCtrl.text.trim() : '127.0.0.1',
-      serverPort: int.tryParse(_deploymentMode == 'lan_secondary' ? _lanPortCtrl.text.trim() : _serverPortCtrl.text.trim()) ?? 8080,
-      primaryDbType: _primaryDbType,
-      dbHost: _lanHostCtrl.text.trim().isNotEmpty ? _lanHostCtrl.text.trim() : 'localhost',
-      dbPort: int.tryParse(_lanPortCtrl.text.trim()) ?? (_primaryDbType == 'postgresql' ? 5432 : 3306),
-      dbName: _lanDbNameCtrl.text.trim().isNotEmpty ? _lanDbNameCtrl.text.trim() : 'smartpos',
-      dbUser: _lanDbUserCtrl.text.trim().isNotEmpty ? _lanDbUserCtrl.text.trim() : (_primaryDbType == 'postgresql' ? 'postgres' : 'root'),
-      dbPassword: _lanDbPassCtrl.text,
-      syncMode: _deploymentMode == 'cloud_hybrid' ? 'hybrid' : 'offline',
-      syncServerUrl: _cloudUrlCtrl.text.trim(),
-      syncApiKey: _cloudApiKeyCtrl.text.trim(),
-      syncBranchId: int.tryParse(_cloudBranchIdCtrl.text.trim()) ?? 1,
-      timeZone: _timeZone,
-      logoPath: _logoPath ?? '',
-      isConfigured: true,
-    );
+      // Normalize dbHost if localhost or empty on Windows
+      final rawHost = _lanHostCtrl.text.trim();
+      final effectiveDbHost = MySqlService.normalizeHost(rawHost);
 
-    final db = await DatabaseService.initialize();
-    await db.updateBusinessSettings(updated);
-
-    // Save superadmin user with salted SHA-256 password hashing
-    final hashedPassword = AuthService.hashPassword(pass);
-    final adminUser = User(
-      name: _adminNameCtrl.text.trim().isNotEmpty ? _adminNameCtrl.text.trim() : 'Super Administrator',
-      username: _adminUserCtrl.text.trim().isNotEmpty ? _adminUserCtrl.text.trim() : 'superadmin',
-      password: hashedPassword,
-      email: _adminEmailCtrl.text.trim(),
-      phone: _adminPhoneCtrl.text.trim(),
-      role: 'superadmin',
-      status: 'active',
-      branchId: 1,
-      branchName: updated.branchName,
-    );
-    await db.addUser(adminUser);
-
-    // Audit initial setup event
-    await db.logAuditAction(
-      action: 'system_initialized',
-      entityType: 'settings',
-      entityId: '1',
-      userName: adminUser.username,
-      details: 'Smart POS initial installation wizard completed. Presets: ${_selectedPresets.join(", ")}.',
-    );
-
-    // Provision MySQL enterprise schema if MySQL is selected
-    if (_primaryDbType == 'mysql') {
-      setState(() => _seedStatus = 'Provisioning MySQL database "${updated.dbName}" on ${updated.dbHost}:${updated.dbPort}...');
-      final mySqlRes = await MySqlService.initializeDatabaseAndTables(
-        host: updated.dbHost,
-        port: updated.dbPort,
-        user: updated.dbUser,
-        password: updated.dbPassword,
-        databaseName: updated.dbName,
-        initialSettings: updated,
-        initialAdminUser: adminUser,
+      final updated = BusinessSettings(
+        id: widget.settings.id,
+        businessName: _bizNameCtrl.text.trim().isNotEmpty ? _bizNameCtrl.text.trim() : 'Smart POS Enterprise',
+        branchName: _branchCtrl.text.trim().isNotEmpty ? _branchCtrl.text.trim() : 'Main Branch HQ',
+        currencySymbol: _currencySymCtrl.text.trim().isNotEmpty ? _currencySymCtrl.text.trim() : 'Rs',
+        currencyCode: _currencyCodeCtrl.text.trim().isNotEmpty ? _currencyCodeCtrl.text.trim() : 'PKR',
+        phone: _phoneCtrl.text.trim(),
+        email: _emailCtrl.text.trim(),
+        address: _addressCtrl.text.trim(),
+        taxNumber: _taxNumberCtrl.text.trim(),
+        receiptFooter: _receiptFooterCtrl.text.trim(),
+        purchaseKey: _licenseKeyCtrl.text.trim(),
+        hardwareId: _hardwareId,
+        businessType: primaryType,
+        industryPresets: _selectedPresets.join(','),
+        enabledModules: enabledModsList.join(','),
+        deploymentMode: _deploymentMode,
+        serverHost: _deploymentMode == 'lan_secondary' ? effectiveDbHost : '127.0.0.1',
+        serverPort: int.tryParse(_deploymentMode == 'lan_secondary' ? _lanPortCtrl.text.trim() : _serverPortCtrl.text.trim()) ?? 8080,
+        primaryDbType: _primaryDbType,
+        dbHost: effectiveDbHost,
+        dbPort: int.tryParse(_lanPortCtrl.text.trim()) ?? (_primaryDbType == 'postgresql' ? 5432 : 3306),
+        dbName: _lanDbNameCtrl.text.trim().isNotEmpty ? _lanDbNameCtrl.text.trim() : 'smartpos',
+        dbUser: _lanDbUserCtrl.text.trim().isNotEmpty ? _lanDbUserCtrl.text.trim() : (_primaryDbType == 'postgresql' ? 'postgres' : 'root'),
+        dbPassword: _lanDbPassCtrl.text,
+        syncMode: _deploymentMode == 'cloud_hybrid' ? 'hybrid' : 'offline',
+        syncServerUrl: _cloudUrlCtrl.text.trim(),
+        syncApiKey: _cloudApiKeyCtrl.text.trim(),
+        syncBranchId: int.tryParse(_cloudBranchIdCtrl.text.trim()) ?? 1,
+        timeZone: _timeZone,
+        logoPath: _logoPath ?? '',
+        isConfigured: true,
       );
 
-      if (mySqlRes['success'] == true && _seedSampleData) {
-        setState(() => _seedStatus = 'Seeding starter commercial catalog into MySQL...');
-        await MySqlService.seedStarterDataToMySql(
+      setState(() => _seedStatus = 'Writing system configuration and hardware profile...');
+      final db = await DatabaseService.initialize();
+      await db.updateBusinessSettings(updated);
+
+      // Save superadmin user with salted SHA-256 password hashing
+      final hashedPassword = AuthService.hashPassword(pass);
+      final adminUser = User(
+        name: _adminNameCtrl.text.trim().isNotEmpty ? _adminNameCtrl.text.trim() : 'Super Administrator',
+        username: _adminUserCtrl.text.trim().isNotEmpty ? _adminUserCtrl.text.trim() : 'superadmin',
+        password: hashedPassword,
+        email: _adminEmailCtrl.text.trim(),
+        phone: _adminPhoneCtrl.text.trim(),
+        role: 'superadmin',
+        status: 'active',
+        branchId: 1,
+        branchName: updated.branchName,
+      );
+      final savedUserId = await db.addUser(adminUser);
+      final activeUser = adminUser.copyWith(id: savedUserId);
+
+      // Audit initial setup event
+      try {
+        await db.logAuditAction(
+          action: 'system_initialized',
+          entityType: 'settings',
+          entityId: '1',
+          userName: adminUser.username,
+          details: 'Smart POS initial installation wizard completed. Presets: ${_selectedPresets.join(", ")}.',
+        );
+      } catch (e) {
+        debugPrint('Audit logging notice: $e');
+      }
+
+      // Provision MySQL enterprise schema if MySQL is selected
+      if (_primaryDbType == 'mysql') {
+        setState(() => _seedStatus = 'Provisioning MySQL database "${updated.dbName}" on ${updated.dbHost}:${updated.dbPort}...');
+        final mySqlRes = await MySqlService.initializeDatabaseAndTables(
           host: updated.dbHost,
           port: updated.dbPort,
           user: updated.dbUser,
           password: updated.dbPassword,
           databaseName: updated.dbName,
-          businessType: primaryType,
+          initialSettings: updated,
+          initialAdminUser: activeUser,
+        );
+
+        if (mySqlRes['success'] != true) {
+          if (!mounted) throw Exception(mySqlRes['message'] ?? 'Failed to initialize MySQL schema.');
+          
+          final useSqliteFallback = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+                  SizedBox(width: 10),
+                  Text('MySQL Connection Notice'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mySqlRes['message']?.toString() ?? 'Unable to connect to MySQL database server.',
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFA7F3D0)),
+                    ),
+                    child: const Text(
+                      'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF065F46), height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Back to Settings'),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  icon: const Icon(Icons.rocket_launch_rounded, size: 16),
+                  label: const Text('Switch to SQLite & Launch POS'),
+                ),
+              ],
+            ),
+          );
+
+          if (useSqliteFallback == true) {
+            _primaryDbType = 'sqlite';
+            final fallbackUpdated = updated.copyWith(primaryDbType: 'sqlite', isConfigured: true);
+            await db.updateBusinessSettings(fallbackUpdated);
+            if (_seedSampleData) {
+              setState(() => _seedStatus = 'Seeding starter commercial catalog into SQLite...');
+              await db.seedInitialDataForBusinessType(businessType: primaryType);
+            }
+            AuthService.switchUser(activeUser);
+            if (mounted) {
+              setState(() => _isSeeding = false);
+              widget.onSetupComplete(fallbackUpdated);
+            }
+            return;
+          } else {
+            throw Exception(mySqlRes['message'] ?? 'Failed to initialize MySQL schema.');
+          }
+        }
+
+        if (_seedSampleData) {
+          setState(() => _seedStatus = 'Seeding starter commercial catalog into MySQL...');
+          await MySqlService.seedStarterDataToMySql(
+            host: updated.dbHost,
+            port: updated.dbPort,
+            user: updated.dbUser,
+            password: updated.dbPassword,
+            databaseName: updated.dbName,
+            businessType: primaryType,
+          );
+        }
+
+        // Synchronize newly provisioned MySQL database into local cache
+        setState(() => _seedStatus = 'Synchronizing MySQL data with local POS engine...');
+        await MySqlService.pullDataFromMySql(settings: updated, localDb: db);
+      }
+
+      // Optional initial catalog seed locally into SQLite
+      if (_seedSampleData) {
+        setState(() => _seedStatus = 'Seeding starter commercial catalog for selected industries...');
+        await db.seedInitialDataForBusinessType(businessType: primaryType);
+      }
+
+      final finalized = updated.copyWith(isConfigured: true);
+      await db.updateBusinessSettings(finalized);
+      AuthService.switchUser(activeUser);
+
+      if (mounted) {
+        setState(() => _isSeeding = false);
+        widget.onSetupComplete(finalized);
+      }
+    } catch (e, stack) {
+      debugPrint('Setup wizard error: $e\n$stack');
+      if (mounted) {
+        setState(() {
+          _isSeeding = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Installation Failed: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 12),
+            action: SnackBarAction(
+              label: 'Details',
+              textColor: Colors.white,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Installation Error'),
+                    content: SingleChildScrollView(child: Text('$e\n\n$stack')),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         );
       }
-    }
-
-    // Optional initial catalog seed locally into SQLite
-    if (_seedSampleData) {
-      setState(() => _seedStatus = 'Seeding starter commercial catalog for selected industries...');
-      await db.seedInitialDataForBusinessType(businessType: primaryType);
-    }
-
-    AuthService.switchUser(adminUser);
-
-    if (mounted) {
-      widget.onSetupComplete(updated);
     }
   }
 
@@ -760,7 +915,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          const Text('Please wait, high-speed SQLite transaction in progress...', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(
+                            _primaryDbType == 'mysql'
+                                ? 'Please wait, enterprise MySQL configuration & table provisioning in progress...'
+                                : 'Please wait, high-speed database transaction in progress...',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
                         ],
                       ),
                     ),
@@ -1572,7 +1732,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
         // Dropdown Form Field for All 16 Business Models
         DropdownButtonFormField<String>(
-          initialValue: allSupportedIndustries.any((i) => i.key == _selectedPreset) ? _selectedPreset : 'pharmacy',
+          initialValue: allSupportedIndustries.any((i) => i.key == _selectedPreset) ? _selectedPreset : 'universal',
           decoration: InputDecoration(
             labelText: 'Business Industry / Domain Preset *',
             isDense: true,

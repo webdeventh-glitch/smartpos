@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/auth_service.dart';
 import 'quick_customer_dialog.dart';
 import 'customer_search_dialog.dart';
 import '../expenses/add_expense_dialog.dart';
@@ -63,6 +64,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
   // Parked bills count
   int _parkedCount = 0;
+
+  // Wholesale vs Retail Counter Pricing Tier
+  bool _isWholesaleMode = false;
+  final double _wholesaleDiscountPercent = 10.0;
 
   @override
   void initState() {
@@ -176,7 +181,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
             const Icon(Icons.grid_view_outlined, color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
             Text('Filter by Category', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary)),
-            const Spacer(),
+                                   const SizedBox(width: 16),
             IconButton(
               icon: Icon(Icons.close, size: 18, color: textSecondary),
               onPressed: () => Navigator.pop(ctx),
@@ -247,7 +252,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
             const Icon(Icons.branding_watermark_outlined, color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
             Text('Filter by Brand', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary)),
-            const Spacer(),
+                                   const SizedBox(width: 16),
             IconButton(
               icon: Icon(Icons.close, size: 18, color: textSecondary),
               onPressed: () => Navigator.pop(ctx),
@@ -310,6 +315,20 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       return;
     }
 
+    final currentUser = AuthService.currentUser;
+    final canGiveDiscount = currentUser?.canGiveDiscount ?? (currentUser?.isAdmin ?? true);
+    final maxDiscPercent = currentUser?.maxDiscountPercent ?? ((currentUser?.isAdmin == true) ? 100.0 : 5.0);
+
+    if (!canGiveDiscount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Permission Denied: Discounting is disabled for this salesman account by the Owner.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -356,7 +375,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                 ),
                 const SizedBox(width: 10),
                 Text('Order Discount System', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary)),
-                const Spacer(),
+                                   const SizedBox(width: 16),
                 IconButton(
                   icon: Icon(Icons.close, size: 18, color: textSecondary),
                   onPressed: () => Navigator.pop(ctx),
@@ -581,6 +600,30 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                 ),
                 onPressed: () {
                   final parsed = double.tryParse(controller.text.trim()) ?? 0.0;
+
+                  if (tempType == 'percentage' && parsed > maxDiscPercent) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Limit Exceeded: Maximum authorized discount for this salesman is ${maxDiscPercent.toStringAsFixed(0)}%!'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  if (tempType == 'fixed' && _subtotal > 0) {
+                    final effectivePct = (parsed / _subtotal) * 100.0;
+                    if (effectivePct > maxDiscPercent) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Fixed discount exceeds your maximum authorized rate of ${maxDiscPercent.toStringAsFixed(0)}%!'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+                  }
+
                   setState(() {
                     _discountType = tempType;
                     _discountValue = parsed;
@@ -629,6 +672,527 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
+  void _toggleWholesaleMode() {
+    setState(() {
+      _isWholesaleMode = !_isWholesaleMode;
+      for (final item in _cart) {
+        if (_isWholesaleMode) {
+          if (item.packDiscount == 0.0) {
+            item.packDiscount = _wholesaleDiscountPercent;
+          }
+        } else {
+          if (item.packDiscount == _wholesaleDiscountPercent) {
+            item.packDiscount = 0.0;
+          }
+        }
+      }
+    });
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              _isWholesaleMode ? Icons.inventory_2_rounded : Icons.storefront_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _isWholesaleMode
+                    ? 'Wholesale Tier Mode: Activated (${_wholesaleDiscountPercent.toInt()}% Bulk Markdown / ہول سیل ریٹ فعال)'
+                    : 'Retail Mode: Activated (معمول کا ریٹیل ریٹ فعال)',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: _isWholesaleMode ? const Color(0xFF0891B2) : const Color(0xFF1E293B),
+        duration: const Duration(milliseconds: 1400),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _openCustomProductDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
+    final inputBorder = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+
+    final nameCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    final qtyCtrl = TextEditingController(text: '1');
+    String selectedUnit = 'Pc';
+    final currency = widget.settings.currencySymbol;
+
+    final commonUnits = ['Pc', 'Kg', 'Ltr', 'Mtr', 'Box', 'Ctn', 'Pkt', 'Bag', 'Dzn', 'Sq Ft', 'Roll'];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) {
+          return AlertDialog(
+            backgroundColor: cardBg,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0x1F4F46E5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.flash_on_rounded, color: Color(0xFF4F46E5), size: 22),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Add Open / Custom Item (اوپن آئٹم)',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
+                      ),
+                      Text(
+                        'Sell uncataloged walk-in item, loose weight, cut or service directly',
+                        style: TextStyle(fontSize: 11, color: textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, size: 20, color: textSecondary),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 440,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Item Description / Name *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameCtrl,
+                      autofocus: true,
+                      style: TextStyle(fontSize: 14, color: textPrimary),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Loose Sugar, Cut Iron 10m, Labor Charge, Custom Part',
+                        hintStyle: TextStyle(fontSize: 12, color: textSecondary),
+                        filled: true,
+                        fillColor: inputBg,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Unit Price ($currency) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: priceCtrl,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                style: TextStyle(fontSize: 14, color: textPrimary),
+                                decoration: InputDecoration(
+                                  hintText: '0.00',
+                                  hintStyle: TextStyle(fontSize: 12, color: textSecondary),
+                                  filled: true,
+                                  fillColor: inputBg,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Quantity (Decimals OK) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: qtyCtrl,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                style: TextStyle(fontSize: 14, color: textPrimary),
+                                decoration: InputDecoration(
+                                  hintText: '1.0',
+                                  hintStyle: TextStyle(fontSize: 12, color: textSecondary),
+                                  filled: true,
+                                  fillColor: inputBg,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Quick decimal quantity presets
+                    Row(
+                      children: [
+                        Text('Quick Qty: ', style: TextStyle(fontSize: 11, color: textSecondary)),
+                        Wrap(
+                          spacing: 5,
+                          children: [0.25, 0.5, 1.0, 1.5, 2.5, 5.0].map((q) {
+                            return InkWell(
+                              onTap: () {
+                                qtyCtrl.text = q == q.toInt() ? q.toInt().toString() : q.toString();
+                                setDlgState(() {});
+                              },
+                              borderRadius: BorderRadius.circular(4),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: borderColor, width: 0.8),
+                                ),
+                                child: Text(
+                                  q == q.toInt() ? q.toInt().toString() : q.toString(),
+                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: textPrimary),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    Text('Measurement Unit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: commonUnits.map((u) {
+                        final isSel = selectedUnit == u;
+                        return InkWell(
+                          onTap: () => setDlgState(() => selectedUnit = u),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isSel ? const Color(0xFF4F46E5) : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              u,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isSel ? Colors.white : textPrimary,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancel', style: TextStyle(color: textSecondary)),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  final name = nameCtrl.text.trim();
+                  final price = double.tryParse(priceCtrl.text.trim()) ?? 0.0;
+                  final qty = double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
+                  if (name.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter an item description.')),
+                    );
+                    return;
+                  }
+                  if (price <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter a valid price.')),
+                    );
+                    return;
+                  }
+                  Navigator.pop(ctx);
+                  final customProduct = Product(
+                    id: null,
+                    name: name,
+                    sku: 'OPEN-${DateTime.now().millisecondsSinceEpoch % 100000}',
+                    barcode: '',
+                    unit: selectedUnit,
+                    purchasePrice: price,
+                    sellingPrice: price,
+                    stockQuantity: 9999.0,
+                  );
+                  setState(() {
+                    _cart.add(CartItem(
+                      product: customProduct,
+                      quantity: qty,
+                      unitPrice: price,
+                      packDiscount: _isWholesaleMode ? _wholesaleDiscountPercent : 0.0,
+                    ));
+                  });
+                },
+                icon: const Icon(Icons.add_shopping_cart, size: 18),
+                label: const Text('Add to Cart'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _openQuantityDialog(CartItem item, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
+
+    final initialQty = item.quantity == item.quantity.toInt()
+        ? item.quantity.toInt().toString()
+        : item.quantity.toString();
+    final qtyCtrl = TextEditingController(text: initialQty);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) {
+          final curQty = double.tryParse(qtyCtrl.text.trim()) ?? item.quantity;
+          final totalVal = curQty * item.unitPrice;
+
+          return Dialog(
+            backgroundColor: cardBg,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4F46E5).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.scale_rounded, color: Color(0xFF4F46E5), size: 20),
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Adjust Quantity / Weight',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary),
+                                ),
+                                Text(
+                                  'مقدار یا وزن درج کریں • ${item.product.name}',
+                                  style: TextStyle(fontSize: 11, color: textSecondary),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, size: 20, color: textSecondary),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Product & Current Unit
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Unit of Measure', style: TextStyle(fontSize: 10, color: textSecondary)),
+                              Text(item.product.unit.isNotEmpty ? item.product.unit : 'Standard Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('Rate / Unit', style: TextStyle(fontSize: 10, color: textSecondary)),
+                              Text('${widget.settings.currencySymbol} ${item.unitPrice.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF10B981))),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Direct input field
+                    Text('Enter Exact Quantity (Decimals allowed e.g. 1.5, 0.75, 2.25)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: qtyCtrl,
+                      autofocus: true,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: inputBg,
+                        suffixText: item.product.unit,
+                        suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onChanged: (_) => setDlgState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Quick decimal & fraction presets
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        {'label': '0.25 (Pao)', 'val': 0.25},
+                        {'label': '0.50 (Aadha)', 'val': 0.50},
+                        {'label': '0.75 (3 Pao)', 'val': 0.75},
+                        {'label': '1.0', 'val': 1.0},
+                        {'label': '1.5', 'val': 1.5},
+                        {'label': '2.0', 'val': 2.0},
+                        {'label': '2.5 (Suit)', 'val': 2.5},
+                        {'label': '5.0 (Dhari)', 'val': 5.0},
+                        {'label': '10.0', 'val': 10.0},
+                        {'label': '40.0 (Mann)', 'val': 40.0},
+                      ].map((p) {
+                        return InkWell(
+                          onTap: () {
+                            qtyCtrl.text = p['val'].toString();
+                            setDlgState(() {});
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Text(
+                              p['label'] as String,
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Total Calculation Preview
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Calculated Line Total:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: textPrimary)),
+                          Text(
+                            '${widget.settings.currencySymbol} ${totalVal.toStringAsFixed(2)}',
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF059669)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Actions
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text('Cancel', style: TextStyle(color: textSecondary)),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            final newQty = double.tryParse(qtyCtrl.text.trim()) ?? item.quantity;
+                            if (newQty <= 0) {
+                              setState(() => _cart.removeAt(index));
+                            } else {
+                              setState(() => item.quantity = newQty);
+                            }
+                            Navigator.pop(ctx);
+                          },
+                          icon: const Icon(Icons.check, size: 16),
+                          label: const Text('Apply Quantity'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F46E5),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _showItemDiscountDialog(CartItem item, int index) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
@@ -638,6 +1202,11 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
     final inputBorder = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
     final subtleBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+
+    final currentUser = AuthService.currentUser;
+    final canEditPrice = currentUser?.canEditPrice ?? (currentUser?.isAdmin ?? false);
+    final canGiveDiscount = currentUser?.canGiveDiscount ?? (currentUser?.isAdmin ?? true);
+    final maxDiscPercent = currentUser?.maxDiscountPercent ?? ((currentUser?.isAdmin == true) ? 100.0 : 5.0);
 
     String lineDiscType = item.packDiscount > 0 ? 'percentage' : 'fixed';
     final priceCtrl = TextEditingController(text: item.unitPrice.toStringAsFixed(2));
@@ -672,7 +1241,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Item Discount: ${item.product.name}',
+                    'Item Pricing: ${item.product.name}',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -692,15 +1261,34 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Unit Price
-                  Text('Unit Price ($currency)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                  Row(
+                    children: [
+                      Text('Unit Price ($currency)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                                   const SizedBox(width: 16),
+                      if (!canEditPrice)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(4)),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.lock_rounded, size: 10, color: Color(0xFFD97706)),
+                              SizedBox(width: 3),
+                              Text('Locked by Owner', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                   const SizedBox(height: 6),
                   TextField(
                     controller: priceCtrl,
+                    readOnly: !canEditPrice,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: TextStyle(fontSize: 14, color: textPrimary),
+                    style: TextStyle(fontSize: 14, color: !canEditPrice ? const Color(0xFF94A3B8) : textPrimary),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: inputBg,
+                      fillColor: !canEditPrice ? (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)) : inputBg,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
                       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
@@ -709,86 +1297,115 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Discount Type
-                  Text('Discount Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
-                  const SizedBox(height: 6),
-                  Container(
-                    height: 34,
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: inputBorder),
+                  if (!canGiveDiscount) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFECACA)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.lock_outline, color: Colors.red, size: 16),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Discounts are restricted for this account by the Business Owner.',
+                              style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
+                  ] else ...[
+                    // Discount Type
+                    Row(
                       children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => setDlgState(() => lineDiscType = 'percentage'),
-                            child: Container(
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: lineDiscType == 'percentage' ? const Color(0xFF4F46E5) : Colors.transparent,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'Percentage (%)',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: lineDiscType == 'percentage' ? Colors.white : textSecondary,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => setDlgState(() => lineDiscType = 'fixed'),
-                            child: Container(
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: lineDiscType == 'fixed' ? const Color(0xFF4F46E5) : Colors.transparent,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'Fixed ($currency)',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: lineDiscType == 'fixed' ? Colors.white : textSecondary,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                        Text('Discount Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                                   const SizedBox(width: 16),
+                        Text('Max Limit: ${maxDiscPercent.toStringAsFixed(0)}%', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Discount Value
-                  Text(
-                    lineDiscType == 'percentage' ? 'Discount Rate (%)' : 'Discount Amount ($currency)',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: discCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: TextStyle(fontSize: 14, color: textPrimary),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: inputBg,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                      suffixText: lineDiscType == 'percentage' ? '%' : currency,
-                      suffixStyle: TextStyle(fontWeight: FontWeight.bold, color: textSecondary),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 34,
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: inputBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setDlgState(() => lineDiscType = 'percentage'),
+                              child: Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: lineDiscType == 'percentage' ? const Color(0xFF4F46E5) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'Percentage (%)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: lineDiscType == 'percentage' ? Colors.white : textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setDlgState(() => lineDiscType = 'fixed'),
+                              child: Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: lineDiscType == 'fixed' ? const Color(0xFF4F46E5) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'Fixed ($currency)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: lineDiscType == 'fixed' ? Colors.white : textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    onChanged: (_) => setDlgState(() {}),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
+
+                    // Discount Value
+                    Text(
+                      lineDiscType == 'percentage' ? 'Discount Rate (%)' : 'Discount Amount ($currency)',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: discCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: TextStyle(fontSize: 14, color: textPrimary),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: inputBg,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                        suffixText: lineDiscType == 'percentage' ? '%' : currency,
+                        suffixStyle: TextStyle(fontWeight: FontWeight.bold, color: textSecondary),
+                      ),
+                      onChanged: (_) => setDlgState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
 
                   // Preview
                   Container(
@@ -825,6 +1442,38 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                 onPressed: () {
                   final newPrice = double.tryParse(priceCtrl.text.trim()) ?? item.unitPrice;
                   final newDisc = double.tryParse(discCtrl.text.trim()) ?? 0.0;
+
+                  if (newPrice != item.unitPrice && !canEditPrice) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Permission Denied: Changing unit prices is not authorized for this salesman account.'), backgroundColor: Colors.red),
+                    );
+                    return;
+                  }
+
+                  if (newDisc > 0 && !canGiveDiscount) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Permission Denied: Discounts are disabled for this account.'), backgroundColor: Colors.red),
+                    );
+                    return;
+                  }
+
+                  if (lineDiscType == 'percentage' && newDisc > maxDiscPercent) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Limit Exceeded: Maximum authorized discount is ${maxDiscPercent.toStringAsFixed(0)}%!'), backgroundColor: Colors.red),
+                    );
+                    return;
+                  }
+
+                  if (lineDiscType == 'fixed' && item.unitPrice > 0) {
+                    final effective = (newDisc / (item.unitPrice * item.quantity)) * 100.0;
+                    if (effective > maxDiscPercent) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Fixed discount exceeds maximum allowed rate of ${maxDiscPercent.toStringAsFixed(0)}%!'), backgroundColor: Colors.red),
+                      );
+                      return;
+                    }
+                  }
+
                   setState(() {
                     item.unitPrice = newPrice;
                     if (lineDiscType == 'percentage') {
@@ -983,6 +1632,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
           product: product,
           quantity: 1.0,
           unitPrice: product.sellingPrice,
+          packDiscount: _isWholesaleMode ? _wholesaleDiscountPercent : 0.0,
         ));
       }
     });
@@ -1009,6 +1659,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
           product: product,
           quantity: qty,
           unitPrice: product.sellingPrice,
+          packDiscount: _isWholesaleMode ? _wholesaleDiscountPercent : 0.0,
         ));
       }
     });
@@ -1373,6 +2024,20 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
   void _clearCart() {
     if (_cart.isEmpty) return;
+
+    final currentUser = AuthService.currentUser;
+    final canDeleteSale = currentUser?.canDeleteSale ?? (currentUser?.isAdmin ?? true);
+
+    if (!canDeleteSale) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Permission Denied: Discarding active carts requires Manager or Owner authorization.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -1614,6 +2279,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         const SingleActivator(LogicalKeyboardKey.f10): () {
           showDialog(context: context, builder: (_) => RegisterDetailsDialog(settings: widget.settings));
         },
+        const SingleActivator(LogicalKeyboardKey.f11): _openCustomProductDialog,
+        const SingleActivator(LogicalKeyboardKey.f12): _toggleWholesaleMode,
         const SingleActivator(LogicalKeyboardKey.escape): () {
           _searchFocusNode.requestFocus();
         },
@@ -1724,7 +2391,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                       ),
                     ],
 
-                    const Spacer(),
+                                   const SizedBox(width: 16),
 
                     // Header Action icons:
                     Flexible(
@@ -2044,19 +2711,122 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                   ),
                                   const SizedBox(width: 6),
 
-                                  // Blue [ + ]
-                                  Container(
-                                    width: 38,
-                                    height: 38,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF4F46E5),
+                                  // Blue [ + ] -> Add Open / Custom Item on the fly
+                                  Tooltip(
+                                    message: 'Add Open / Custom Item (F11 / اوپن پراڈکٹ)',
+                                    child: InkWell(
+                                      onTap: _openCustomProductDialog,
                                       borderRadius: BorderRadius.circular(6),
+                                      child: Container(
+                                        width: 38,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF4F46E5),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Icon(Icons.add, color: Colors.white, size: 20),
+                                      ),
                                     ),
-                                    child: const Icon(Icons.add, color: Colors.white, size: 20),
                                   ),
                                 ],
                               ),
                             ),
+
+                            // Universal POS Bar: Wholesale/Retail Mode Toggle + Open Item Quick Button
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                border: Border(
+                                  top: BorderSide(color: borderColor, width: 0.8),
+                                  bottom: BorderSide(color: borderColor, width: 0.8),
+                                ),
+                              ),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                  // Retail / Wholesale Pill Toggle
+                                  InkWell(
+                                    onTap: _toggleWholesaleMode,
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: _isWholesaleMode
+                                            ? const Color(0xFF0891B2)
+                                            : (isDark ? const Color(0xFF334155) : Colors.white),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: _isWholesaleMode
+                                              ? const Color(0xFF0891B2)
+                                              : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            _isWholesaleMode ? Icons.inventory_2_rounded : Icons.storefront_rounded,
+                                            size: 14,
+                                            color: _isWholesaleMode ? Colors.white : (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            _isWholesaleMode ? '📦 Wholesale Tier (Active)' : '🛒 Retail Mode (F12)',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: _isWholesaleMode ? Colors.white : textPrimary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+
+                                  // "+ Custom / Open Item" Pill
+                                  InkWell(
+                                    onTap: _openCustomProductDialog,
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.add_circle_outline_rounded, size: 14, color: Color(0xFF4F46E5)),
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            '+ Custom Item (اوپن آئٹم)',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                   const SizedBox(width: 16),
+
+                                  // Universal Tag / Flexible Units Hint
+                                  Text(
+                                    'Multi-Unit & Decimal Scale Enabled',
+                                    style: TextStyle(fontSize: 10, color: textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
 
                             // Cart Table Header
                             Container(
@@ -2209,6 +2979,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                             setState(() {
                                                               if (item.quantity > 1) {
                                                                 item.quantity -= 1;
+                                                              } else if (item.quantity > 0.25) {
+                                                                item.quantity -= 0.25;
                                                               } else {
                                                                 _cart.removeAt(index);
                                                               }
@@ -2225,15 +2997,44 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                           ),
                                                         ),
                                                         Padding(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                                                          child: Text(
-                                                            item.quantity.toStringAsFixed(2),
-                                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                                                          child: InkWell(
+                                                            onTap: () => _openQuantityDialog(item, index),
+                                                            borderRadius: BorderRadius.circular(4),
+                                                            child: Container(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                              decoration: BoxDecoration(
+                                                                color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                                                                borderRadius: BorderRadius.circular(4),
+                                                                border: Border.all(color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1), width: 0.8),
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisSize: MainAxisSize.min,
+                                                                children: [
+                                                                  Text(
+                                                                    item.quantity == item.quantity.toInt()
+                                                                        ? item.quantity.toInt().toString()
+                                                                        : item.quantity.toStringAsFixed(widget.settings.quantityPrecision > 0 ? widget.settings.quantityPrecision : 2),
+                                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
+                                                                  ),
+                                                                  const SizedBox(width: 3),
+                                                                  Icon(Icons.edit_note_rounded, size: 13, color: textSecondary),
+                                                                ],
+                                                              ),
+                                                            ),
                                                           ),
                                                         ),
                                                         // [+] Green button
                                                         InkWell(
-                                                          onTap: () => setState(() => item.quantity += 1),
+                                                          onTap: () {
+                                                            setState(() {
+                                                              if (item.quantity < 1 && item.quantity >= 0.25) {
+                                                                item.quantity += 0.25;
+                                                              } else {
+                                                                item.quantity += 1;
+                                                              }
+                                                            });
+                                                          },
                                                           borderRadius: BorderRadius.circular(4),
                                                           child: Container(
                                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),

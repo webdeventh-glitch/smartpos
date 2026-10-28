@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/qulop_service.dart';
@@ -9,6 +10,8 @@ import '../../services/backup_update_service.dart';
 import '../../services/local_api_service.dart';
 import '../../services/mysql_service.dart';
 import '../../services/regional_data_service.dart';
+import '../../services/print_service.dart';
+import '../../widgets/universal_print_preview_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -98,10 +101,24 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   final TextEditingController _offlinePkgCtrl = TextEditingController(text: r'D:\updates\smartpos_v2.6_update.pkg');
   bool _isStartingApi = false;
 
+  // Bill Customization & Printing State
+  String _receiptPaperSize = '80mm';
+  late TextEditingController _receiptTaglineCtrl;
+  late TextEditingController _receiptNoteCtrl;
+  late TextEditingController _receiptReturnPolicyCtrl;
+  int _invoicePrintCopies = 1;
+  bool _showLogoOnReceipt = true;
+  bool _showBarcodeOnReceipt = true;
+  bool _showQrOnReceipt = true;
+  bool _showCustomerBalanceOnReceipt = true;
+  bool _showTaxBreakdownOnReceipt = true;
+  bool _showCashierNameOnReceipt = true;
+  bool _isSavingReceiptSettings = false;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
     _loadBackups();
     final s = widget.settings;
     _bizNameCtrl = TextEditingController(text: s.businessName);
@@ -139,6 +156,26 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       text: s.dbUser.isNotEmpty ? s.dbUser : (_primaryDbType == 'postgresql' ? 'postgres' : 'root'),
     );
     _dbPassCtrl = TextEditingController(text: s.dbPassword);
+
+    _receiptPaperSize = s.receiptPaperSize.isNotEmpty ? s.receiptPaperSize : '80mm';
+    _receiptTaglineCtrl = TextEditingController(
+      text: s.receiptHeaderTagline.isNotEmpty ? s.receiptHeaderTagline : 'Wholesale & Retail Distributor',
+    );
+    _receiptNoteCtrl = TextEditingController(
+      text: s.receiptHeaderNote.isNotEmpty ? s.receiptHeaderNote : 'Welcome to our store!',
+    );
+    _receiptReturnPolicyCtrl = TextEditingController(
+      text: s.receiptReturnPolicy.isNotEmpty
+          ? s.receiptReturnPolicy
+          : 'Goods once sold can only be exchanged within 7 days with original receipt.',
+    );
+    _invoicePrintCopies = s.invoicePrintCopies > 0 ? s.invoicePrintCopies : 1;
+    _showLogoOnReceipt = s.showLogoOnReceipt;
+    _showBarcodeOnReceipt = s.showBarcodeOnReceipt;
+    _showQrOnReceipt = s.showQrOnReceipt;
+    _showCustomerBalanceOnReceipt = s.showCustomerBalanceOnReceipt;
+    _showTaxBreakdownOnReceipt = s.showTaxBreakdownOnReceipt;
+    _showCashierNameOnReceipt = s.showCashierNameOnReceipt;
 
     _initLicenseInfo();
     _loadSubData();
@@ -182,6 +219,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       _dbNameCtrl.text = s.dbName.isNotEmpty ? s.dbName : 'smartpos';
       _dbUserCtrl.text = s.dbUser.isNotEmpty ? s.dbUser : (_primaryDbType == 'postgresql' ? 'postgres' : 'root');
       _dbPassCtrl.text = s.dbPassword;
+
+      _receiptPaperSize = s.receiptPaperSize.isNotEmpty ? s.receiptPaperSize : '80mm';
+      _receiptTaglineCtrl.text = s.receiptHeaderTagline.isNotEmpty ? s.receiptHeaderTagline : 'Wholesale & Retail Distributor';
+      _receiptNoteCtrl.text = s.receiptHeaderNote.isNotEmpty ? s.receiptHeaderNote : 'Welcome to our store!';
+      _receiptReturnPolicyCtrl.text = s.receiptReturnPolicy.isNotEmpty
+          ? s.receiptReturnPolicy
+          : 'Goods once sold can only be exchanged within 7 days with original receipt.';
+      _invoicePrintCopies = s.invoicePrintCopies > 0 ? s.invoicePrintCopies : 1;
+      _showLogoOnReceipt = s.showLogoOnReceipt;
+      _showBarcodeOnReceipt = s.showBarcodeOnReceipt;
+      _showQrOnReceipt = s.showQrOnReceipt;
+      _showCustomerBalanceOnReceipt = s.showCustomerBalanceOnReceipt;
+      _showTaxBreakdownOnReceipt = s.showTaxBreakdownOnReceipt;
+      _showCashierNameOnReceipt = s.showCashierNameOnReceipt;
 
       _initLicenseInfo();
       _loadDbStats();
@@ -247,6 +298,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _dbNameCtrl.dispose();
     _dbUserCtrl.dispose();
     _dbPassCtrl.dispose();
+    _receiptTaglineCtrl.dispose();
+    _receiptNoteCtrl.dispose();
+    _receiptReturnPolicyCtrl.dispose();
     super.dispose();
   }
 
@@ -532,11 +586,301 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       case 'poultry':
         return '16. Poultry Farm & Trading';
       case 'solar':
-        return '️ Solar & Inverter Systems';
+        return 'Solar & Inverter Systems';
+      case 'dairy_milk':
+      case 'dairy':
+        return 'Dairy, Milk & Eggs / دودھ، دہی، مکھن اور انڈے';
+      case 'tyres_battery':
+      case 'tyres':
+        return 'Tyre Shop, Rims & Battery / ٹائر، رمز اور بیٹری';
+      case 'hardware_tools':
+      case 'hardware':
+        return 'Hardware, Tools & Paint / ہارڈویئر اور اوزار';
+      case 'auto_parts':
+        return 'Auto Spare Parts / آٹو سپیئر پارٹس اور پرزہ جات';
+      case 'meat_butchery':
+      case 'meat':
+        return 'Meat, Butchery & Poultry / گوشت، بیف، مٹن اور چکن';
+      case 'fabrics_textile':
+      case 'fabrics':
+        return 'Fabrics & Cloth (Meter / Gazz) / کپڑا اور تھان';
+      case 'lubricants_oil':
+      case 'lubricants':
+        return 'Mobile Oil & Lubricants / موبائل آئل اور لبریکنٹس';
+      case 'sanitary_tiles':
+      case 'sanitary':
+        return 'Sanitary, Tiles & Bath / سینیٹری اور سیرامک ٹائلز';
+      case 'universal':
+        return 'Universal Business (Wholesale & Retail / ہمہ جہت کاروبار - ہول سیل و ریٹیل)';
+      case 'custom_other':
+      case 'other':
+      case 'custom':
+        return 'Other / Custom Business (دیگر کسٹم کاروبار)';
       case 'general':
       default:
         return 'General Retail / Supermarket / Wholesale';
     }
+  }
+
+  void _openSwitchBusinessProfileDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final searchCtrl = TextEditingController();
+    String query = '';
+    bool seedStarterData = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          final filtered = allSupportedIndustries.where((ind) {
+            if (query.isEmpty) return true;
+            final q = query.toLowerCase();
+            return ind.title.toLowerCase().contains(q) ||
+                ind.category.toLowerCase().contains(q) ||
+                ind.features.toLowerCase().contains(q) ||
+                ind.key.toLowerCase().contains(q);
+          }).toList();
+
+          return Dialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 850, maxHeight: 680),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4F46E5).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.storefront_rounded, color: Color(0xFF4F46E5), size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Switch Business Domain Profile',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  ),
+                                ),
+                                Text(
+                                  'کاروباری ماڈل تبدیل کریں • Adapt software units, categories & POS to your trade',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Search & Options
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: searchCtrl,
+                            onChanged: (val) => setDlgState(() => query = val.trim()),
+                            style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                            decoration: InputDecoration(
+                              hintText: 'Search business (e.g. Doodh, Tyre, Mandi, Hardware, Kapra, Gosht, Oil, Tiles)...',
+                              hintStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                              prefixIcon: const Icon(Icons.search, size: 20),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              isDense: true,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: seedStarterData,
+                              activeColor: const Color(0xFF4F46E5),
+                              onChanged: (val) => setDlgState(() => seedStarterData = val ?? true),
+                            ),
+                            Text(
+                              'Seed starter units & categories',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Grid of businesses
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No matching business found.',
+                                style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                              ),
+                            )
+                          : GridView.builder(
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisExtent: 110,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                              itemCount: filtered.length,
+                              itemBuilder: (context, idx) {
+                                final ind = filtered[idx];
+                                final isSelected = _businessType.toLowerCase() == ind.key.toLowerCase();
+
+                                return InkWell(
+                                  onTap: () async {
+                                    Navigator.pop(ctx);
+                                    setState(() {
+                                      _businessType = ind.key;
+                                      // Suggest precision
+                                      if (ind.key == 'dairy_milk' || ind.key == 'meat_butchery' || ind.key == 'fabrics_textile' || ind.key == 'fruit_wholesale' || ind.key == 'lubricants_oil' || ind.key == 'universal' || ind.key == 'custom_other') {
+                                        _quantityPrecisionCtrl.text = '2';
+                                      } else if (ind.key == 'clothing' || ind.key == 'tyres_battery' || ind.key == 'auto_parts') {
+                                        _quantityPrecisionCtrl.text = '0';
+                                      }
+                                    });
+
+                                    // Save to DB and seed
+                                    final db = await DatabaseService.initialize();
+                                    final updated = widget.settings.copyWith(
+                                      businessType: ind.key,
+                                      enabledModules: BusinessSettings.defaultModulesForBusinessType(ind.key).join(','),
+                                      quantityPrecision: int.tryParse(_quantityPrecisionCtrl.text.trim()) ?? 2,
+                                      isConfigured: true,
+                                    );
+                                    await db.updateBusinessSettings(updated);
+
+                                    if (seedStarterData) {
+                                      await db.seedInitialDataForBusinessType(businessType: ind.key);
+                                    }
+
+                                    widget.onSettingsUpdated(updated);
+
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Switched to ${ind.title} successfully! Units and catalog updated.'),
+                                          backgroundColor: const Color(0xFF10B981),
+                                          duration: const Duration(seconds: 4),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFF4F46E5).withValues(alpha: 0.1)
+                                          : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? const Color(0xFF4F46E5)
+                                            : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                        width: isSelected ? 2 : 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: ind.color.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Center(
+                                            child: FaIcon(ind.icon, color: ind.color, size: 20),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      ind.title,
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 12.5,
+                                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  if (isSelected)
+                                                    const Icon(Icons.check_circle, size: 16, color: Color(0xFF4F46E5)),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                ind.category,
+                                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: ind.color),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                ind.features,
+                                                style: TextStyle(
+                                                  fontSize: 9.5,
+                                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _activatePurchaseKey() async {
@@ -634,6 +978,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         address: _addressCtrl.text.trim(),
         receiptFooter: _footerCtrl.text.trim(),
         purchaseKey: _purchaseKeyCtrl.text.trim(),
+        businessType: _businessType,
         drugLicenseNo: _drugLicenseCtrl.text.trim(),
         dlWarrantor: _dlWarrantorCtrl.text.trim(),
         timeZone: _timeZone,
@@ -1241,6 +1586,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             Tab(icon: Icon(Icons.vpn_key_rounded, size: 18), text: 'Qulop License System'),
             Tab(icon: Icon(Icons.storage_rounded, size: 18), text: 'Purge & Medicine Engine'),
             Tab(icon: Icon(Icons.system_update_alt_rounded, size: 18), text: 'Software Update & Backup'),
+            Tab(icon: Icon(Icons.print_rounded, size: 18), text: 'Bill Customization & Printing'),
           ],
         ),
       ),
@@ -1586,12 +1932,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     Row(
                       children: [
                         Expanded(
-                          flex: 2,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
                               color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
                               ),
@@ -1599,14 +1944,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             child: Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.all(7),
+                                  padding: const EdgeInsets.all(9),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF3C7),
-                                    borderRadius: BorderRadius.circular(6),
+                                    color: const Color(0xFFEEF2FF),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(Icons.lock_rounded, size: 16, color: Color(0xFFB45309)),
+                                  child: const Icon(Icons.business_center_rounded, size: 20, color: Color(0xFF4F46E5)),
                                 ),
-                                const SizedBox(width: 10),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1615,27 +1960,27 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                       Row(
                                         children: [
                                           Text(
-                                            'Industry Model',
+                                            'Active Business Domain Profile',
                                             style: TextStyle(
-                                              fontSize: 10,
+                                              fontSize: 10.5,
                                               fontWeight: FontWeight.w600,
                                               color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                             ),
                                           ),
                                           const SizedBox(width: 6),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFFEE2E2),
+                                              color: const Color(0xFFECFDF5),
                                               borderRadius: BorderRadius.circular(4),
-                                              border: Border.all(color: const Color(0xFFFCA5A5), width: 0.5),
+                                              border: Border.all(color: const Color(0xFFA7F3D0), width: 0.5),
                                             ),
                                             child: const Text(
-                                              'LOCKED',
+                                              'ACTIVE PROFILE',
                                               style: TextStyle(
                                                 fontSize: 8.5,
                                                 fontWeight: FontWeight.w900,
-                                                color: Color(0xFFB91C1C),
+                                                color: Color(0xFF047857),
                                                 letterSpacing: 0.5,
                                               ),
                                             ),
@@ -1646,7 +1991,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                       Text(
                                         _getBusinessTypeName(_businessType),
                                         style: TextStyle(
-                                          fontSize: 12.5,
+                                          fontSize: 13,
                                           fontWeight: FontWeight.bold,
                                           color: isDark ? Colors.white : const Color(0xFF0F172A),
                                         ),
@@ -1655,13 +2000,27 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                       ),
                                       const SizedBox(height: 1),
                                       Text(
-                                        'Configured at installation • Non-switchable',
+                                        'Adapt software units, categories, precision & POS to your business',
                                         style: TextStyle(
                                           fontSize: 9.5,
                                           color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
                                         ),
                                       ),
                                     ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                ElevatedButton.icon(
+                                  onPressed: _openSwitchBusinessProfileDialog,
+                                  icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+                                  label: const Text('Change Business'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF4F46E5),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    elevation: 0,
                                   ),
                                 ),
                               ],
@@ -3884,6 +4243,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ),
             ],
           ),
+
+          // Tab 7: Bill Customization & Universal Printing Setup
+          _buildBillCustomizationTab(isDark, primaryColor),
         ],
       ),
     );
@@ -3971,4 +4333,782 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       ),
     );
   }
+
+  // ==========================================
+  // BILL CUSTOMIZATION & UNIVERSAL PRINT ENGINE
+  // ==========================================
+
+  Future<void> _saveReceiptSettings() async {
+    setState(() => _isSavingReceiptSettings = true);
+    try {
+      final updated = widget.settings.copyWith(
+        receiptPaperSize: _receiptPaperSize,
+        receiptHeaderTagline: _receiptTaglineCtrl.text.trim(),
+        receiptHeaderNote: _receiptNoteCtrl.text.trim(),
+        receiptReturnPolicy: _receiptReturnPolicyCtrl.text.trim(),
+        invoicePrintCopies: _invoicePrintCopies,
+        showLogoOnReceipt: _showLogoOnReceipt,
+        showBarcodeOnReceipt: _showBarcodeOnReceipt,
+        showQrOnReceipt: _showQrOnReceipt,
+        showCustomerBalanceOnReceipt: _showCustomerBalanceOnReceipt,
+        showTaxBreakdownOnReceipt: _showTaxBreakdownOnReceipt,
+        showCashierNameOnReceipt: _showCashierNameOnReceipt,
+      );
+
+      final db = await DatabaseService.initialize();
+      await db.updateBusinessSettings(updated);
+      widget.onSettingsUpdated(updated);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bill Customization & Printing settings saved successfully!'),
+            backgroundColor: Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save receipt settings: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingReceiptSettings = false);
+    }
+  }
+
+  Sale _getSampleSaleForTesting() {
+    return Sale(
+      id: 9999,
+      invoiceNo: 'POS-INV-8821',
+      customerId: 1,
+      customerName: 'Muhammad Tariq (Regular Customer)',
+      subtotal: 1900.0,
+      discount: 50.0,
+      taxAmount: 92.5,
+      paidAmount: 1850.0,
+      totalAmount: 1850.0,
+      paymentMethod: 'cash',
+      paymentStatus: 'paid',
+      createdAt: DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+      cashierName: 'Admin Counter #1',
+      items: [
+        SaleItem(
+          saleId: 9999,
+          productId: 101,
+          productName: 'Panadol Extra 500mg Tablets (Box of 20)',
+          sku: 'MED-PAN-500',
+          quantity: 2,
+          unitPrice: 350.0,
+          subtotal: 700.0,
+          batchNumber: 'BN-9921',
+          expiryDate: '12/2027',
+        ),
+        SaleItem(
+          saleId: 9999,
+          productId: 102,
+          productName: 'Brufen 400mg Suspension Syrup 120ml',
+          sku: 'MED-BRU-120',
+          quantity: 1,
+          unitPrice: 280.0,
+          subtotal: 280.0,
+          batchNumber: 'BN-4412',
+          expiryDate: '08/2026',
+        ),
+        SaleItem(
+          saleId: 9999,
+          productId: 103,
+          productName: 'Surgical Face Masks 3-Ply (Pack of 50)',
+          sku: 'MED-MSK-050',
+          quantity: 1,
+          unitPrice: 870.0,
+          subtotal: 870.0,
+        ),
+      ],
+    );
+  }
+
+  void _testPrintSampleReceipt() {
+    final sampleSale = _getSampleSaleForTesting();
+    final tempSettings = widget.settings.copyWith(
+      receiptPaperSize: _receiptPaperSize,
+      receiptHeaderTagline: _receiptTaglineCtrl.text.trim(),
+      receiptHeaderNote: _receiptNoteCtrl.text.trim(),
+      receiptReturnPolicy: _receiptReturnPolicyCtrl.text.trim(),
+      showLogoOnReceipt: _showLogoOnReceipt,
+      showBarcodeOnReceipt: _showBarcodeOnReceipt,
+      showQrOnReceipt: _showQrOnReceipt,
+      showCustomerBalanceOnReceipt: _showCustomerBalanceOnReceipt,
+      showTaxBreakdownOnReceipt: _showTaxBreakdownOnReceipt,
+      showCashierNameOnReceipt: _showCashierNameOnReceipt,
+    );
+
+    final html = PrintService.generateSaleInvoiceHtml(
+      settings: tempSettings,
+      sale: sampleSale,
+      paperSizeOverride: _receiptPaperSize,
+      tenderedAmount: 2000.0,
+      changeReturn: 150.0,
+    );
+
+    PrintService.openPrintWindow(htmlContent: html, title: 'Sample-Thermal-Receipt');
+  }
+
+  void _openUniversalPreviewDialog() {
+    final sampleSale = _getSampleSaleForTesting();
+    final tempSettings = widget.settings.copyWith(
+      receiptPaperSize: _receiptPaperSize,
+      receiptHeaderTagline: _receiptTaglineCtrl.text.trim(),
+      receiptHeaderNote: _receiptNoteCtrl.text.trim(),
+      receiptReturnPolicy: _receiptReturnPolicyCtrl.text.trim(),
+      showLogoOnReceipt: _showLogoOnReceipt,
+      showBarcodeOnReceipt: _showBarcodeOnReceipt,
+      showQrOnReceipt: _showQrOnReceipt,
+      showCustomerBalanceOnReceipt: _showCustomerBalanceOnReceipt,
+      showTaxBreakdownOnReceipt: _showTaxBreakdownOnReceipt,
+      showCashierNameOnReceipt: _showCashierNameOnReceipt,
+    );
+
+    final html = PrintService.generateSaleInvoiceHtml(
+      settings: tempSettings,
+      sale: sampleSale,
+      paperSizeOverride: _receiptPaperSize,
+      tenderedAmount: 2000.0,
+      changeReturn: 150.0,
+    );
+
+    showDialog(
+      context: context,
+      builder: (_) => UniversalPrintPreviewDialog(
+        title: 'Thermal Bill Live Preview & Customization',
+        htmlContent: html,
+        defaultPaperSize: _receiptPaperSize,
+        settings: tempSettings,
+      ),
+    );
+  }
+
+  Widget _buildBillCustomizationTab(bool isDark, Color primaryColor) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Card
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark ? Colors.black26 : const Color(0x04000000),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.print_rounded, color: primaryColor, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Bill Printing & Receipt Customization Setup',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Configure your thermal slip layout (80mm/58mm/A4), return policy, barcodes, verification QR code, and customer balance.',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: primaryColor,
+                    side: BorderSide(color: primaryColor),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.preview_rounded, size: 18),
+                  label: const Text('Live Preview', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: _openUniversalPreviewDialog,
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0284C7),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.print_outlined, size: 18),
+                  label: const Text('Test Print', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: _testPrintSampleReceipt,
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.save_rounded, size: 18),
+                  label: Text(_isSavingReceiptSettings ? 'Saving...' : 'Save Settings', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: _isSavingReceiptSettings ? null : _saveReceiptSettings,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Two-column layout: Left Controls, Right Live Preview
+          LayoutBuilder(
+            builder: (ctx, constraints) {
+              final isWide = constraints.maxWidth >= 900;
+              final leftControls = _buildReceiptConfigControls(isDark, primaryColor);
+              final rightPreview = _buildLiveReceiptPreview(isDark);
+
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 3, child: leftControls),
+                    const SizedBox(width: 24),
+                    SizedBox(width: 380, child: rightPreview),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    leftControls,
+                    const SizedBox(height: 24),
+                    rightPreview,
+                  ],
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReceiptConfigControls(bool isDark, Color primaryColor) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Paper Size Section
+          const Text(
+            'Receipt Paper Size / Printer Format',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Select the default format supported by your counter POS printer (80mm standard, 58mm portable, or A4 agency invoice).',
+            style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildPaperSizeOption(
+                label: '80mm Thermal',
+                desc: 'Standard Counter Roll',
+                icon: Icons.receipt_long,
+                value: '80mm',
+                isDark: isDark,
+              ),
+              const SizedBox(width: 12),
+              _buildPaperSizeOption(
+                label: '58mm Mini',
+                desc: 'Mobile Bluetooth / USB',
+                icon: Icons.receipt,
+                value: '58mm',
+                isDark: isDark,
+              ),
+              const SizedBox(width: 12),
+              _buildPaperSizeOption(
+                label: 'A4 Standard',
+                desc: 'Wholesale / Laser Page',
+                icon: Icons.description_rounded,
+                value: 'a4',
+                isDark: isDark,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Divider(height: 1),
+          const SizedBox(height: 20),
+
+          // Header Text Inputs
+          const Text('Receipt Header & Sub-title', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _receiptTaglineCtrl,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              labelText: 'Header Tagline / Business Slogan',
+              hintText: 'e.g. Wholesale & Retail Distributor',
+              prefixIcon: Icon(Icons.subtitles_rounded, size: 18),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _receiptNoteCtrl,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              labelText: 'Header Greeting / Welcome Note',
+              hintText: 'e.g. Welcome to our store!',
+              prefixIcon: Icon(Icons.waving_hand_rounded, size: 18),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Divider(height: 1),
+          const SizedBox(height: 20),
+
+          // Return Policy & Copies
+          const Text('Footer Terms & Print Copies', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _receiptReturnPolicyCtrl,
+            maxLines: 2,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              labelText: 'Return & Exchange Policy / Warranty Terms',
+              hintText: 'e.g. Goods once sold can only be exchanged within 7 days with original receipt.',
+              prefixIcon: Icon(Icons.policy_rounded, size: 18),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  value: _invoicePrintCopies,
+                  decoration: const InputDecoration(
+                    labelText: 'Number of Print Copies',
+                    prefixIcon: Icon(Icons.content_copy_rounded, size: 18),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 1, child: Text('1 Copy (Customer Receipt)')),
+                    DropdownMenuItem(value: 2, child: Text('2 Copies (Customer + Store Copy)')),
+                    DropdownMenuItem(value: 3, child: Text('3 Copies (Customer + Store + Accounts)')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _invoicePrintCopies = val);
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Divider(height: 1),
+          const SizedBox(height: 20),
+
+          // Toggles Section
+          const Text('Print Elements & Visibility Toggles', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6),
+          Text(
+            'Turn sections ON or OFF to match your preferred thermal receipt length and detail level.',
+            style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 12),
+          _buildToggleRow(
+            title: 'Show Store Logo & Title',
+            desc: 'Prints business name and visual logo at receipt apex',
+            value: _showLogoOnReceipt,
+            onChanged: (val) => setState(() => _showLogoOnReceipt = val),
+            isDark: isDark,
+          ),
+          _buildToggleRow(
+            title: 'Show Code128 Barcode',
+            desc: 'Prints scannable barcode for instant returns and lookup',
+            value: _showBarcodeOnReceipt,
+            onChanged: (val) => setState(() => _showBarcodeOnReceipt = val),
+            isDark: isDark,
+          ),
+          _buildToggleRow(
+            title: 'Show Verification QR Code',
+            desc: 'Prints QR code for digital validation and electronic invoicing',
+            value: _showQrOnReceipt,
+            onChanged: (val) => setState(() => _showQrOnReceipt = val),
+            isDark: isDark,
+          ),
+          _buildToggleRow(
+            title: 'Show Customer Khata / Previous Dues',
+            desc: 'Displays previous outstanding balance and current total dues',
+            value: _showCustomerBalanceOnReceipt,
+            onChanged: (val) => setState(() => _showCustomerBalanceOnReceipt = val),
+            isDark: isDark,
+          ),
+          _buildToggleRow(
+            title: 'Show Tax Breakdown (GST / VAT)',
+            desc: 'Displays itemized tax calculations and store NTN/STRN',
+            value: _showTaxBreakdownOnReceipt,
+            onChanged: (val) => setState(() => _showTaxBreakdownOnReceipt = val),
+            isDark: isDark,
+          ),
+          _buildToggleRow(
+            title: 'Show Cashier / Operator Name',
+            desc: 'Displays the name of the cashier who billed the transaction',
+            value: _showCashierNameOnReceipt,
+            onChanged: (val) => setState(() => _showCashierNameOnReceipt = val),
+            isDark: isDark,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaperSizeOption({
+    required String label,
+    required String desc,
+    required IconData icon,
+    required String value,
+    required bool isDark,
+  }) {
+    final isSelected = _receiptPaperSize == value;
+    final color = isSelected ? const Color(0xFF0038B8) : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0));
+    final bg = isSelected
+        ? (isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : const Color(0xFFEFF6FF))
+        : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC));
+
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _receiptPaperSize = value),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color, width: isSelected ? 2 : 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 20, color: isSelected ? const Color(0xFF0038B8) : Colors.grey),
+                  const Spacer(),
+                  if (isSelected)
+                    const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF0038B8))
+                  else
+                    const Icon(Icons.radio_button_unchecked, size: 18, color: Colors.grey),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: isSelected ? (isDark ? Colors.white : const Color(0xFF0038B8)) : (isDark ? Colors.white70 : const Color(0xFF334155)),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                desc,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleRow({
+    required String title,
+    required String desc,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required bool isDark,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(
+                  desc,
+                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            activeColor: const Color(0xFF0038B8),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiveReceiptPreview(bool isDark) {
+    final currency = widget.settings.currencySymbol;
+    final bizName = widget.settings.businessName.isNotEmpty ? widget.settings.businessName : 'Smart POS Enterprise';
+    final tagline = _receiptTaglineCtrl.text.trim();
+    final note = _receiptNoteCtrl.text.trim();
+    final returnPolicy = _receiptReturnPolicyCtrl.text.trim();
+    final phone = widget.settings.phone.isNotEmpty ? widget.settings.phone : '+92 300 1234567';
+    final address = widget.settings.address.isNotEmpty ? widget.settings.address : 'Commercial Plaza, Karachi';
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.remove_red_eye_rounded, size: 18, color: Color(0xFF0038B8)),
+              const SizedBox(width: 8),
+              const Text(
+                'Live Thermal Receipt Preview',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0038B8).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  _receiptPaperSize.toUpperCase(),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF0038B8)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Paper styled container
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [
+                BoxShadow(color: Color(0x15000000), blurRadius: 10, offset: Offset(0, 4)),
+              ],
+              border: Border.all(color: const Color(0xFFCBD5E1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (_showLogoOnReceipt) ...[
+                  const Icon(Icons.point_of_sale_rounded, color: Colors.black87, size: 28),
+                  const SizedBox(height: 4),
+                  Text(
+                    bizName,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                      color: Colors.black,
+                    ),
+                  ),
+                  if (tagline.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      tagline,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.black87),
+                    ),
+                  ],
+                ],
+                const SizedBox(height: 4),
+                Text(
+                  address,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black54),
+                ),
+                Text(
+                  'Tel: $phone',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black54),
+                ),
+                if (note.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '*** $note ***',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontFamily: 'monospace', fontStyle: FontStyle.italic, fontSize: 10, color: Colors.black87),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                const Text('--------------------------------------------', style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black54)),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Inv: POS-INV-8821', style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
+                    Text(DateFormat('dd/MM/yy HH:mm').format(DateTime.now()), style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black)),
+                  ],
+                ),
+                if (_showCashierNameOnReceipt)
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Cashier: Admin Counter #1', style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black54)),
+                  ),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Cust: Muhammad Tariq', style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black54)),
+                ),
+                const SizedBox(height: 6),
+                const Text('--------------------------------------------', style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black54)),
+                const SizedBox(height: 4),
+                const Row(
+                  children: [
+                    Expanded(flex: 5, child: Text('Item', style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black))),
+                    Expanded(flex: 2, child: Text('Qty', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black))),
+                    Expanded(flex: 3, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black))),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text('--------------------------------------------', style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black54)),
+                const SizedBox(height: 4),
+                _previewItemRow('Panadol Extra 500mg (20s)', '2', '$currency 700.00'),
+                _previewItemRow('Brufen Syrup 120ml', '1', '$currency 280.00'),
+                _previewItemRow('Face Masks 3-Ply 50s', '1', '$currency 870.00'),
+                const SizedBox(height: 6),
+                const Text('--------------------------------------------', style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black54)),
+                _previewTotalRow('Subtotal:', '$currency 1,850.00'),
+                _previewTotalRow('Discount:', '-$currency 50.00'),
+                if (_showTaxBreakdownOnReceipt) _previewTotalRow('Tax (GST 5%):', '$currency 92.50'),
+                const Text('============================================', style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black)),
+                _previewTotalRow('NET PAYABLE:', '$currency 1,850.00', isBold: true, fontSize: 12),
+                const Text('============================================', style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black)),
+                _previewTotalRow('Cash Paid:', '$currency 2,000.00'),
+                _previewTotalRow('Change Return:', '$currency 150.00'),
+                if (_showCustomerBalanceOnReceipt) ...[
+                  const SizedBox(height: 4),
+                  const Text('--------------------------------------------', style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: Colors.black54)),
+                  _previewTotalRow('Prev Customer Balance:', '$currency 1,450.00'),
+                  _previewTotalRow('TOTAL CURRENT DUE:', '$currency 1,450.00', isBold: true),
+                ],
+                const SizedBox(height: 10),
+                if (_showBarcodeOnReceipt) ...[
+                  Container(
+                    height: 28,
+                    color: Colors.black12,
+                    alignment: Alignment.center,
+                    child: const Text('||||| | |||| ||| |||| | ||||||', style: TextStyle(fontFamily: 'monospace', fontSize: 14, letterSpacing: 2, color: Colors.black)),
+                  ),
+                  const Text('*POS-INV-8821*', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: Colors.black54)),
+                  const SizedBox(height: 8),
+                ],
+                if (_showQrOnReceipt) ...[
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(border: Border.all(color: Colors.black87)),
+                    child: const Icon(Icons.qr_code_2_rounded, size: 40, color: Colors.black),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text('Scan to verify digital invoice', style: TextStyle(fontFamily: 'monospace', fontSize: 8, color: Colors.black54)),
+                  const SizedBox(height: 8),
+                ],
+                if (returnPolicy.isNotEmpty) ...[
+                  Text(
+                    returnPolicy,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                const Text(
+                  'Powered by Smart POS Enterprise',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontFamily: 'monospace', fontSize: 8, color: Colors.black45),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _previewItemRow(String name, String qty, String total) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(flex: 5, child: Text(name, style: const TextStyle(fontFamily: 'monospace', fontSize: 9.5, color: Colors.black87))),
+          Expanded(flex: 2, child: Text(qty, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'monospace', fontSize: 9.5, color: Colors.black87))),
+          Expanded(flex: 3, child: Text(total, textAlign: TextAlign.right, style: const TextStyle(fontFamily: 'monospace', fontSize: 9.5, fontWeight: FontWeight.bold, color: Colors.black))),
+        ],
+      ),
+    );
+  }
+
+  Widget _previewTotalRow(String label, String value, {bool isBold = false, double fontSize = 10}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1.5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontFamily: 'monospace', fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal, color: Colors.black)),
+          Text(value, style: TextStyle(fontFamily: 'monospace', fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal, color: Colors.black)),
+        ],
+      ),
+    );
+  }
 }
+

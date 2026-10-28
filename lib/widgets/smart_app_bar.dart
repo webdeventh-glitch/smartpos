@@ -34,9 +34,6 @@ class SmartAppBar extends StatefulWidget implements PreferredSizeWidget {
   State<SmartAppBar> createState() => _SmartAppBarState();
 }
 
-/// Backward compatibility alias
-typedef UltimateAppBar = SmartAppBar;
-
 class _SmartAppBarState extends State<SmartAppBar> {
   Timer? _clockTimer;
   DateTime _currentTime = DateTime.now();
@@ -330,11 +327,13 @@ class _SmartAppBarState extends State<SmartAppBar> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Flexible(
-                                child: Text(
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
                                   widget.settings.businessName,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
@@ -344,7 +343,6 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                     letterSpacing: -0.2,
                                   ),
                                 ),
-                              ),
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -403,6 +401,7 @@ class _SmartAppBarState extends State<SmartAppBar> {
                               ),
                             ],
                           ),
+                        ),
                           Text(
                             widget.settings.branchName,
                             overflow: TextOverflow.ellipsis,

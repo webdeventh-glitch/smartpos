@@ -29,11 +29,13 @@ if (-not (Test-Path $StarterExe) -and -not (Test-Path $PosExe)) {
     Pop-Location
 }
 
-if ((Test-Path $StarterExe) -and -not (Test-Path $PosExe)) {
+if (Test-Path $StarterExe) {
     Copy-Item $StarterExe $PosExe -Force
+    Copy-Item $StarterExe (Join-Path $ReleaseDir "SmartPOS.exe") -Force
+    Copy-Item $StarterExe (Join-Path $ProjectRoot "SmartPOS.exe") -Force
 }
 
-Write-Host "[1/3] Found Windows Release binary (pos.exe) in build/windows/x64/runner/Release" -ForegroundColor Green
+Write-Host "[1/3] Windows Release binary ready in build/windows/x64/runner/Release" -ForegroundColor Green
 
 # 2. Prepare Dist directory
 if (-not (Test-Path $DistDir)) {

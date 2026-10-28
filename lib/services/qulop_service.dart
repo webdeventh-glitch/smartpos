@@ -49,7 +49,7 @@ class QulopService {
   // Master Secret Key for signing & verifying Qulop SaaS tokens
   static const String _qulopSecretKey = 'QULOP_SMART_POS_MASTER_SECRET_2026_PK';
   static const String _sposSecretKey = 'SMART_POS_SYSTEM_SAAS_MASTER_SECRET_2026_PK';
-  static const String _legacySecretKey = 'NEXUS_ULTIMATE_POS_2026_MASTER_SECRET_9981';
+  static const String _legacySecretKey = 'NEXUS_ENTERPRISE_POS_2026_MASTER_SECRET_9981';
 
   /// Reactive Qulop notifier for real-time app lockout & banners
   static final ValueNotifier<QulopStatus?> qulopNotifier = ValueNotifier<QulopStatus?>(null);

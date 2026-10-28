@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "desktop_starter" "\0"
+            VALUE "CompanyName", "Smart POS Systems" "\0"
+            VALUE "FileDescription", "Smart POS Enterprise - Multi-Industry ERP & Point of Sale System" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "desktop_starter" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "desktop_starter.exe" "\0"
-            VALUE "ProductName", "desktop_starter" "\0"
+            VALUE "InternalName", "SmartPOS" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Smart POS Systems. All rights reserved." "\0"
+            VALUE "OriginalFilename", "SmartPOS.exe" "\0"
+            VALUE "ProductName", "Smart POS Enterprise" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

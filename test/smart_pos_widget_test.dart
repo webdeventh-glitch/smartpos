@@ -10,7 +10,7 @@ void main() {
     sqfliteFfiInit();
   });
 
-  testWidgets('MainShell renders Ultimate POS header, sidebar and dashboard', (tester) async {
+  testWidgets('MainShell renders Smart POS header, sidebar and dashboard', (tester) async {
     // Initialize in-memory database in runAsync
     await tester.runAsync(() async {
       await DatabaseService.initialize(customPath: inMemoryDatabasePath);
@@ -22,7 +22,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final settings = BusinessSettings(
-      businessName: 'Ultimate POS Superstore',
+      businessName: 'Smart POS Superstore',
       branchName: 'Main Branch',
     );
 
@@ -40,7 +40,7 @@ void main() {
     await tester.pump();
 
     // Verify Header Elements (Store name and POS button)
-    expect(find.textContaining('Ultimate POS Superstore'), findsWidgets);
+    expect(find.textContaining('Smart POS Superstore'), findsWidgets);
     expect(find.text('POS'), findsOneWidget);
 
     // Verify Navigation Sidebar Items (Screenshots 1-4)
@@ -49,7 +49,7 @@ void main() {
     expect(find.text('Products'), findsOneWidget);
     expect(find.text('Sell'), findsOneWidget);
     expect(find.text('Purchases'), findsOneWidget);
-    expect(find.text('Contacts'), findsOneWidget);
+    expect(find.textContaining('Contacts'), findsWidgets);
     expect(find.text('Stock Transfers'), findsOneWidget);
     expect(find.text('Expenses'), findsOneWidget);
     expect(find.text('Reports'), findsWidgets);

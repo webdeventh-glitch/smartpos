@@ -77,11 +77,22 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
 
   Future<BusinessSettings> _bootstrap() async {
     final dbService = await DatabaseService.initialize();
-    final settings = await dbService.getBusinessSettings();
-    if (settings.isMySql) {
+    var settings = await dbService.getBusinessSettings();
+
+    // Primary Database Sync:
+    // If configured and MySQL is selected, connect and sync seamlessly without ever wiping local business data
+    if (settings.isConfigured && settings.isMySql) {
       try {
-        await MySqlService.connectAndSync(settings: settings, localDb: dbService);
-      } catch (_) {}
+        final isConfiguredInMySql = await MySqlService.isMySqlDatabaseConfigured(settings);
+        if (isConfiguredInMySql) {
+          await MySqlService.pullDataFromMySql(settings: settings, localDb: dbService);
+          await MySqlService.connectAndSync(settings: settings, localDb: dbService);
+        } else {
+          debugPrint('[SmartPOS] MySQL database not yet configured or offline. Operating in resilient local SQLite mode.');
+        }
+      } catch (e) {
+        debugPrint('[SmartPOS] MySQL sync notice: $e. Operating in local SQLite mode.');
+      }
     }
     await QulopService.checkCurrentQulop(settings);
     await CloudSyncService.initialize(settings);

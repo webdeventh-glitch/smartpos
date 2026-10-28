@@ -1,5 +1,5 @@
 @echo off
-title Smart POS Enterprise System
-cd /d "%~dp0build\windows\x64\runner\Release"
-start "" "SmartPOS.exe"
+title Smart POS System
+cd /d "%~dp0"
+start "" "%~dp0pos.exe"
 exit

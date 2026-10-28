@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/models.dart';
+import '../../services/print_service.dart';
 
 class ReceiptDialog extends StatefulWidget {
   final Sale sale;
@@ -183,13 +184,27 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         ),
                         icon: const Icon(Icons.print_rounded, size: 18),
                         label: Text('Print Document ($_paperSize)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Print command dispatched to system printer for $_paperSize!'),
-                              backgroundColor: const Color(0xFF10B981),
-                            ),
+                        onPressed: () async {
+                          final html = PrintService.generateSaleInvoiceHtml(
+                            sale: widget.sale,
+                            settings: widget.settings,
+                            tenderedAmount: widget.tenderedAmount,
+                            changeReturn: widget.changeReturn,
+                            paperSizeOverride: _paperSize,
                           );
+                          await PrintService.openPrintWindow(
+                            htmlContent: html,
+                            title: 'Invoice_${widget.sale.invoiceNo}',
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Invoice #${widget.sale.invoiceNo} dispatched to Windows Print Manager!'),
+                                backgroundColor: const Color(0xFF10B981),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
                         },
                       ),
                     ),

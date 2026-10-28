@@ -4,6 +4,8 @@ import '../../services/database_service.dart';
 import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import '../pos/receipt_dialog.dart';
+import '../../services/print_service.dart';
+import '../../widgets/universal_print_preview_dialog.dart';
 
 class SalesListScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -59,6 +61,28 @@ class _SalesListScreenState extends State<SalesListScreen> {
           settings: widget.settings,
           tenderedAmount: fullSale.paidAmount,
           changeReturn: 0.0,
+        ),
+      );
+    }
+  }
+
+  void _printQuotation(Sale s) async {
+    final db = await DatabaseService.initialize();
+    final items = await db.getSaleItems(s.id!);
+    final fullSale = Sale.fromMap(s.toMap(), items: items);
+    final html = PrintService.generateQuotationHtml(
+      settings: widget.settings,
+      sale: fullSale,
+      paperSize: widget.settings.receiptPaperSize,
+    );
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (_) => UniversalPrintPreviewDialog(
+          title: 'Quotation / Commercial Estimate - ${s.invoiceNo}',
+          htmlContent: html,
+          defaultPaperSize: 'a4',
+          settings: widget.settings,
         ),
       );
     }
@@ -374,6 +398,8 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                               onSelected: (val) {
                                                 if (val == 'receipt') {
                                                   _printReceipt(s);
+                                                } else if (val == 'quotation') {
+                                                  _printQuotation(s);
                                                 } else if (val == 'pay_due') {
                                                   showDialog(
                                                     context: context,
@@ -394,6 +420,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                               },
                                               itemBuilder: (ctx) => [
                                                 const PopupMenuItem(value: 'receipt', child: Text('Print Receipt')),
+                                                const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
                                                 if (s.dueAmount > 0)
                                                   const PopupMenuItem(
                                                     value: 'pay_due',
