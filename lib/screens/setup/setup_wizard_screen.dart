@@ -54,7 +54,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   String _selectedPreset = BusinessSettings.presetPharmacy;
   Set<String> get _selectedPresets => {_selectedPreset};
 
-  bool _seedSampleData = false;
+  bool _seedSampleData = true;
+  bool _isInstallationComplete = false;
+  BusinessSettings? _finalizedSettings;
 
   // Step 3: Network Topology & Hybrid Database Engine Controllers
   String _deploymentMode = 'offline_server'; // 'offline_server', 'lan_secondary', 'cloud_hybrid'
@@ -552,7 +554,15 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         debugPrint('Audit logging notice: $e');
       }
 
-      // Provision MySQL enterprise schema if MySQL is selected
+      BusinessSettings finalized = updated.copyWith(isConfigured: true);
+
+      // 1. Seed initial data into local SQLite first if sample catalog requested
+      if (_seedSampleData) {
+        setState(() => _seedStatus = 'Seeding starter commercial catalog for "$primaryType" into local database...');
+        await db.seedInitialDataForBusinessType(businessType: primaryType);
+      }
+
+      // 2. Provision MySQL enterprise schema and mirror catalog if MySQL is selected
       if (_primaryDbType == 'mysql') {
         setState(() => _seedStatus = 'Provisioning MySQL database "${updated.dbName}" on ${updated.dbHost}:${updated.dbPort}...');
         final mySqlRes = await MySqlService.initializeDatabaseAndTables(
@@ -625,53 +635,35 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
           if (useSqliteFallback == true) {
             _primaryDbType = 'sqlite';
-            final fallbackUpdated = updated.copyWith(primaryDbType: 'sqlite', isConfigured: true);
-            await db.updateBusinessSettings(fallbackUpdated);
-            if (_seedSampleData) {
-              setState(() => _seedStatus = 'Seeding starter commercial catalog into SQLite...');
-              await db.seedInitialDataForBusinessType(businessType: primaryType);
-            }
-            AuthService.switchUser(activeUser);
-            if (mounted) {
-              setState(() => _isSeeding = false);
-              widget.onSetupComplete(fallbackUpdated);
-            }
-            return;
+            finalized = updated.copyWith(primaryDbType: 'sqlite', isConfigured: true);
+            await db.updateBusinessSettings(finalized);
           } else {
             throw Exception(mySqlRes['message'] ?? 'Failed to initialize MySQL schema.');
           }
+        } else {
+          // MySQL provisioned successfully!
+          // Push starter catalog (products, categories, brands, units, contacts) to MySQL
+          if (_seedSampleData) {
+            setState(() => _seedStatus = 'Synchronizing starter commercial catalog into MySQL tables...');
+            await MySqlService.syncAllLocalCatalogToMySql(
+              settings: updated,
+              localDb: db,
+            );
+          }
         }
-
-        if (_seedSampleData) {
-          setState(() => _seedStatus = 'Seeding starter commercial catalog into MySQL...');
-          await MySqlService.seedStarterDataToMySql(
-            host: updated.dbHost,
-            port: updated.dbPort,
-            user: updated.dbUser,
-            password: updated.dbPassword,
-            databaseName: updated.dbName,
-            businessType: primaryType,
-          );
-        }
-
-        // Synchronize newly provisioned MySQL database into local cache
-        setState(() => _seedStatus = 'Synchronizing MySQL data with local POS engine...');
-        await MySqlService.pullDataFromMySql(settings: updated, localDb: db);
       }
 
-      // Optional initial catalog seed locally into SQLite
-      if (_seedSampleData) {
-        setState(() => _seedStatus = 'Seeding starter commercial catalog for selected industries...');
-        await db.seedInitialDataForBusinessType(businessType: primaryType);
-      }
-
-      final finalized = updated.copyWith(isConfigured: true);
       await db.updateBusinessSettings(finalized);
-      AuthService.switchUser(activeUser);
+
+      // Explicitly ensure user is NOT auto-logged in, ensuring direct landing on Login Screen
+      AuthService.currentUserNotifier.value = null;
 
       if (mounted) {
-        setState(() => _isSeeding = false);
-        widget.onSetupComplete(finalized);
+        setState(() {
+          _isSeeding = false;
+          _isInstallationComplete = true;
+          _finalizedSettings = finalized;
+        });
       }
     } catch (e, stack) {
       debugPrint('Setup wizard error: $e\n$stack');
@@ -925,6 +917,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       ),
                     ),
                   ),
+                ] else if (_isInstallationComplete) ...[
+                  _buildInstallationCompleteScreen(isDark),
                 ] else if (_currentStep == 0) ...[
                   _buildStep1License(isDark),
                 ] else if (_currentStep == 1) ...[
@@ -936,7 +930,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 ],
 
                 // Bottom Action Buttons
-                if (!_isSeeding) ...[
+                if (!_isSeeding && !_isInstallationComplete) ...[
                   const Divider(height: 36),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1798,11 +1792,18 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
         // Sample Data Seed Option
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+            color: _seedSampleData
+                ? (isDark ? const Color(0xFF1E1B4B) : const Color(0xFFEEF2FF))
+                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _seedSampleData
+                  ? const Color(0xFF6366F1)
+                  : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+              width: _seedSampleData ? 1.5 : 1.0,
+            ),
           ),
           child: Row(
             children: [
@@ -1816,10 +1817,30 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Seed Sample Products, Customers & Ledgers (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Row(
+                      children: [
+                        const Text(
+                          'Pre-load Starter Products, Categories & Suppliers',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'RECOMMENDED',
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
                     Text(
-                      'Seeds realistic merchandise for your selected business to test immediately. (Unchecked starts with clean database).',
-                      style: TextStyle(fontSize: 11, color: isDark ? Colors.grey : const Color(0xFF64748B)),
+                      'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing. (تجرباتی اشیاء، کیٹیگریز اور سپلائرز شامل کریں تاکہ سسٹم فوراً تیار ہو)',
+                      style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     ),
                   ],
                 ),
@@ -2708,14 +2729,14 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
   // ================= UI Helper Widgets =================
   Widget _stepPill(int step, String label, IconData icon, bool isDark) {
-    final isActive = _currentStep == step;
-    final isDone = _currentStep > step;
+    final isActive = !_isInstallationComplete && _currentStep == step;
+    final isDone = _isInstallationComplete || _currentStep > step;
 
     return Expanded(
       child: InkWell(
         onTap: () {
-          // Allow jumping back to earlier steps
-          if (step < _currentStep) {
+          // Allow jumping back to earlier steps only before completion
+          if (!_isInstallationComplete && step < _currentStep) {
             setState(() => _currentStep = step);
           }
         },
@@ -2769,6 +2790,200 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildInstallationCompleteScreen(bool isDark) {
+    final primaryType = _selectedPreset.replaceAll('preset_', '').replaceAll('_', ' ').toUpperCase();
+    final dbModeStr = _primaryDbType == 'mysql'
+        ? 'Enterprise Primary Server (MySQL: ${_lanDbNameCtrl.text.trim()} @ ${_lanHostCtrl.text.trim()}:${_lanPortCtrl.text.trim()})'
+        : 'High-Speed Embedded SQLite Database Engine';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Success Icon Badge
+          Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF10B981).withValues(alpha: 0.12),
+              border: Border.all(color: const Color(0xFF10B981), width: 3),
+            ),
+            child: const Center(
+              child: Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 46),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Text(
+            'Installation & Setup Completed!',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              letterSpacing: -0.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'سسٹم کی تنصیب اور ڈیٹا بیس کنفیگریشن کامیابی سے مکمل ہو چکی ہے',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+
+          // Summary details card
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                _buildSummaryRow(
+                  icon: Icons.storefront_rounded,
+                  label: 'Store / Business Name',
+                  value: _bizNameCtrl.text.trim().isNotEmpty ? _bizNameCtrl.text.trim() : 'Smart POS Retail',
+                  isDark: isDark,
+                ),
+                const Divider(height: 18),
+                _buildSummaryRow(
+                  icon: Icons.category_rounded,
+                  label: 'Industry Profile',
+                  value: '$primaryType Presets & Modules',
+                  isDark: isDark,
+                ),
+                const Divider(height: 18),
+                _buildSummaryRow(
+                  icon: Icons.dns_rounded,
+                  label: 'Database Engine',
+                  value: dbModeStr,
+                  isDark: isDark,
+                ),
+                const Divider(height: 18),
+                _buildSummaryRow(
+                  icon: Icons.inventory_2_rounded,
+                  label: 'Commercial Catalog',
+                  value: _seedSampleData
+                      ? 'Starter products, categories & suppliers pre-loaded'
+                      : 'Clean blank database initialized',
+                  isDark: isDark,
+                ),
+                const Divider(height: 18),
+                _buildSummaryRow(
+                  icon: Icons.admin_panel_settings_rounded,
+                  label: 'Master Admin Username',
+                  value: _adminUserCtrl.text.trim().isNotEmpty ? _adminUserCtrl.text.trim() : 'superadmin',
+                  isDark: isDark,
+                  isHighlight: true,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // Security Login Instructions Notice
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4F46E5).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_outline_rounded, color: Color(0xFF4F46E5), size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Direct Login Bypassed for Security',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF4F46E5)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials ("${_adminUserCtrl.text.trim().isNotEmpty ? _adminUserCtrl.text.trim() : "superadmin"}").',
+                        style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Proceed to Login Button
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                AuthService.currentUserNotifier.value = null;
+                if (_finalizedSettings != null) {
+                  widget.onSetupComplete(_finalizedSettings!);
+                }
+              },
+              icon: const Icon(Icons.login_rounded, size: 20),
+              label: const Text(
+                'Proceed to Login Screen (لاگ ان اسکرین پر جائیں)',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4F46E5),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required bool isDark,
+    bool isHighlight = false,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: isHighlight ? const Color(0xFF4F46E5) : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+        ),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
+              color: isHighlight ? const Color(0xFF4F46E5) : (isDark ? Colors.white : const Color(0xFF0F172A)),
+            ),
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 

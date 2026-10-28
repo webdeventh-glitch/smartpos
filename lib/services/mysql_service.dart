@@ -63,6 +63,7 @@ class MySqlService {
         'message': 'MySQL Connection Failed: $errorMsg',
       };
     } finally {
+      DatabaseService.suppressSync = false;
       try {
         await conn?.close();
       } catch (_) {}
@@ -145,6 +146,7 @@ class MySqlService {
         'message': 'MySQL Initialization Failed: $errorMsg',
       };
     } finally {
+      DatabaseService.suppressSync = false;
       try {
         await conn?.close();
       } catch (_) {}
@@ -180,6 +182,7 @@ class MySqlService {
       connectionStatus.value = 'Offline ($e)';
       debugPrint('MySqlService background connectAndSync notice: $e');
     } finally {
+      DatabaseService.suppressSync = false;
       try {
         await conn?.close();
       } catch (_) {}
@@ -227,6 +230,7 @@ class MySqlService {
       connectionStatus.value = 'Offline ($e)';
       return false;
     } finally {
+      DatabaseService.suppressSync = false;
       try {
         await conn?.close();
       } catch (_) {}
@@ -242,6 +246,7 @@ class MySqlService {
     if (!settings.isMySql) return;
 
     MySQLConnection? conn;
+    DatabaseService.suppressSync = true;
     try {
       final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
       conn = await MySQLConnection.createConnection(
@@ -351,6 +356,7 @@ class MySqlService {
     } catch (e) {
       debugPrint('MySqlService pullDataFromMySql error: $e');
     } finally {
+      DatabaseService.suppressSync = false;
       try {
         await conn?.close();
       } catch (_) {}
@@ -409,6 +415,7 @@ class MySqlService {
       debugPrint('Direct MySQL push for $entityType queued to offline buffer: $e');
       isMySqlOnline.value = false;
     } finally {
+      DatabaseService.suppressSync = false;
       try {
         await conn?.close();
       } catch (_) {}
@@ -571,6 +578,196 @@ class MySqlService {
     }
   }
 
+  /// Pushes all locally seeded categories, brands, units, contacts, and products directly to MySQL tables
+  static Future<void> syncAllLocalCatalogToMySql({
+    required BusinessSettings settings,
+    required DatabaseService localDb,
+  }) async {
+    if (!settings.isMySql) return;
+    MySQLConnection? conn;
+    DatabaseService.suppressSync = true;
+    try {
+      final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
+      final targetHost = normalizeHost(settings.dbHost);
+      conn = await MySQLConnection.createConnection(
+        host: targetHost,
+        port: settings.dbPort > 0 ? settings.dbPort : 3306,
+        userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
+        password: settings.dbPassword,
+        databaseName: safeDbName,
+        secure: false,
+      );
+      await conn.connect();
+
+      // 1. Sync Categories
+      try {
+        final categories = await localDb.getCategories();
+        for (final cat in categories) {
+          try {
+            await conn.execute('''
+              INSERT INTO `categories` (`name`, `code`, `description`)
+              VALUES (:name, :code, :description)
+              ON DUPLICATE KEY UPDATE `code` = VALUES(`code`), `description` = VALUES(`description`)
+            ''', {
+              'name': cat.name,
+              'code': cat.code.isNotEmpty ? cat.code : 'CAT',
+              'description': cat.description ?? '',
+            });
+          } catch (e) {
+            debugPrint('Notice syncing category ${cat.name} to MySQL: $e');
+          }
+        }
+      } catch (e) {
+        debugPrint('Category query failed during MySQL seed: $e');
+      }
+
+      // 2. Sync Brands
+      try {
+        final brands = await localDb.getBrands();
+        for (final b in brands) {
+          try {
+            await conn.execute('''
+              INSERT INTO `brands` (`name`, `description`)
+              VALUES (:name, :desc)
+              ON DUPLICATE KEY UPDATE `description` = VALUES(`description`)
+            ''', {
+              'name': b.name,
+              'desc': b.description ?? '',
+            });
+          } catch (e) {
+            debugPrint('Notice syncing brand ${b.name} to MySQL: $e');
+          }
+        }
+      } catch (e) {
+        debugPrint('Brand query failed during MySQL seed: $e');
+      }
+
+      // 3. Sync Units
+      try {
+        final units = await localDb.getUnits();
+        for (final u in units) {
+          try {
+            final existing = await conn.execute(
+              "SELECT id FROM `units` WHERE `short_name` = :short OR `actual_name` = :actual LIMIT 1",
+              {'short': u.shortName, 'actual': u.actualName},
+            );
+            if (existing.rows.isEmpty) {
+              await conn.execute('''
+                INSERT INTO `units` (`actual_name`, `short_name`, `allow_decimal`, `base_unit_multiplier`)
+                VALUES (:actual, :short, :allowDec, :multiplier)
+              ''', {
+                'actual': u.actualName,
+                'short': u.shortName,
+                'allowDec': u.allowDecimal ? 1 : 0,
+                'multiplier': u.baseUnitMultiplier,
+              });
+            }
+          } catch (e) {
+            debugPrint('Notice syncing unit ${u.actualName} to MySQL: $e');
+          }
+        }
+      } catch (e) {
+        debugPrint('Unit query failed during MySQL seed: $e');
+      }
+
+      // 4. Sync Contacts
+      try {
+        final contacts = await localDb.getContacts();
+        for (final c in contacts) {
+          try {
+            final cType = (c.type == 'supplier' || c.type == 'both') ? c.type : 'customer';
+            final existing = await conn.execute(
+              "SELECT id FROM `contacts` WHERE `name` = :name AND `type` = :type LIMIT 1",
+              {'name': c.name, 'type': cType},
+            );
+            if (existing.rows.isEmpty) {
+              await conn.execute('''
+                INSERT INTO `contacts` (
+                  `type`, `name`, `business_name`, `phone`, `email`, `address`, `balance`, `credit_limit`
+                ) VALUES (
+                  :type, :name, :bizName, :phone, :email, :addr, :balance, :creditLimit
+                )
+              ''', {
+                'type': cType,
+                'name': c.name,
+                'bizName': c.businessName ?? '',
+                'phone': c.phone,
+                'email': c.email,
+                'addr': c.address,
+                'balance': c.balance,
+                'creditLimit': c.creditLimit,
+              });
+            }
+          } catch (e) {
+            debugPrint('Notice syncing contact ${c.name} to MySQL: $e');
+          }
+        }
+      } catch (e) {
+        debugPrint('Contact query failed during MySQL seed: $e');
+      }
+
+      // 5. Sync Products
+      try {
+        final products = await localDb.getProducts();
+        for (final p in products) {
+          try {
+            await conn.execute('''
+              INSERT INTO `products` (
+                `sku`, `barcode`, `name`, `category_name`, `brand_name`, `unit`,
+                `purchase_price`, `selling_price`, `stock_quantity`, `alert_quantity`,
+                `batch_number`, `expiry_date`, `pack_size`, `bonus_qty`
+              ) VALUES (
+                :sku, :barcode, :name, :category, :brand, :unit,
+                :purchasePrice, :sellingPrice, :stockQty, :alertQty,
+                :batch, :expiry, :packSize, :bonusQty
+              ) ON DUPLICATE KEY UPDATE
+                `name` = VALUES(`name`),
+                `category_name` = VALUES(`category_name`),
+                `brand_name` = VALUES(`brand_name`),
+                `unit` = VALUES(`unit`),
+                `purchase_price` = VALUES(`purchase_price`),
+                `selling_price` = VALUES(`selling_price`),
+                `stock_quantity` = VALUES(`stock_quantity`),
+                `alert_quantity` = VALUES(`alert_quantity`),
+                `batch_number` = VALUES(`batch_number`),
+                `expiry_date` = VALUES(`expiry_date`),
+                `pack_size` = VALUES(`pack_size`),
+                `bonus_qty` = VALUES(`bonus_qty`),
+                `updated_at` = NOW()
+            ''', {
+              'sku': p.sku,
+              'barcode': p.barcode.isNotEmpty ? p.barcode : p.sku,
+              'name': p.name,
+              'category': p.categoryName,
+              'brand': p.brandName,
+              'unit': p.unit,
+              'purchasePrice': p.purchasePrice,
+              'sellingPrice': p.sellingPrice,
+              'stockQty': p.stockQuantity,
+              'alertQty': p.alertQuantity,
+              'batch': p.batchNumber ?? '',
+              'expiry': p.expiryDate ?? '',
+              'packSize': p.packSize,
+              'bonusQty': p.bonusQty,
+            });
+          } catch (e) {
+            debugPrint('Notice syncing product ${p.name} to MySQL: $e');
+          }
+        }
+        debugPrint('MySqlService syncAllLocalCatalogToMySql completed: ${products.length} products synced to MySQL.');
+      } catch (e) {
+        debugPrint('Product query failed during MySQL seed: $e');
+      }
+    } catch (e) {
+      debugPrint('Failed to sync local catalog to MySQL: $e');
+    } finally {
+      DatabaseService.suppressSync = false;
+      try {
+        await conn?.close();
+      } catch (_) {}
+    }
+  }
+
   /// Seeds realistic initial commercial catalog into MySQL tables
   static Future<void> seedStarterDataToMySql({
     required String host,
@@ -594,52 +791,66 @@ class MySqlService {
       await conn.connect();
 
       // Seed categories
-      await conn.execute('''
-        INSERT IGNORE INTO `categories` (`name`, `code`, `description`) VALUES
-        ('Antibiotics & Medications', 'CAT-MED', 'Prescription pharmaceutical drugs'),
-        ('OTC Medicines', 'CAT-OTC', 'Over the counter healthcare products'),
-        ('General Merchandise', 'CAT-GEN', 'Everyday store goods');
-      ''');
+      try {
+        await conn.execute('''
+          INSERT INTO `categories` (`name`, `code`, `description`) VALUES
+          ('Antibiotics & Medications', 'CAT-MED', 'Prescription pharmaceutical drugs'),
+          ('OTC Medicines', 'CAT-OTC', 'Over the counter healthcare products'),
+          ('General Merchandise', 'CAT-GEN', 'Everyday store goods')
+          ON DUPLICATE KEY UPDATE `code` = VALUES(`code`)
+        ''');
+      } catch (_) {}
 
       // Seed brands
-      await conn.execute('''
-        INSERT IGNORE INTO `brands` (`name`, `description`) VALUES
-        ('GSK', 'GlaxoSmithKline Pharmaceuticals'),
-        ('Abbott', 'Abbott Healthcare'),
-        ('Getz Pharma', 'Getz Formulations');
-      ''');
+      try {
+        await conn.execute('''
+          INSERT INTO `brands` (`name`, `description`) VALUES
+          ('GSK', 'GlaxoSmithKline Pharmaceuticals'),
+          ('Abbott', 'Abbott Healthcare'),
+          ('Getz Pharma', 'Getz Formulations')
+          ON DUPLICATE KEY UPDATE `description` = VALUES(`description`)
+        ''');
+      } catch (_) {}
 
       // Seed units
-      await conn.execute('''
-        INSERT IGNORE INTO `units` (`actual_name`, `short_name`, `allow_decimal`, `base_unit_multiplier`) VALUES
-        ('Piece', 'Pc', 0, 1.00),
-        ('Box', 'Box', 0, 10.00),
-        ('Strip', 'Strip', 0, 1.00);
-      ''');
+      try {
+        await conn.execute('''
+          INSERT INTO `units` (`actual_name`, `short_name`, `allow_decimal`, `base_unit_multiplier`) VALUES
+          ('Piece', 'Pc', 0, 1.00),
+          ('Box', 'Box', 0, 10.00),
+          ('Strip', 'Strip', 0, 1.00)
+        ''');
+      } catch (_) {}
 
       // Seed starter products
-      await conn.execute('''
-        INSERT IGNORE INTO `products` (
-          `sku`, `barcode`, `name`, `category_name`, `brand_name`, `unit`,
-          `purchase_price`, `selling_price`, `stock_quantity`, `alert_quantity`,
-          `batch_number`, `expiry_date`, `pack_size`
-        ) VALUES
-        ('MED-PAN-500', '896400010011', 'Panadol 500mg Tablets (Box of 200)', 'OTC Medicines', 'GSK', 'Box', 480.00, 600.00, 50.00, 10.00, 'B-9281', '2027-12-31', 1.0),
-        ('MED-AUG-625', '896400010022', 'Augmentin 625mg Tablets', 'Antibiotics & Medications', 'GSK', 'Strip', 210.00, 260.00, 80.00, 15.00, 'B-4819', '2028-06-30', 1.0),
-        ('MED-DIS-300', '896400010033', 'Disprin Soluble 300mg', 'OTC Medicines', 'Reckitt', 'Strip', 45.00, 60.00, 120.00, 20.00, 'B-7712', '2027-09-30', 1.0),
-        ('MED-BRU-400', '896400010044', 'Brufen 400mg Tablets', 'Antibiotics & Medications', 'Abbott', 'Box', 180.00, 230.00, 65.00, 12.00, 'B-3321', '2027-11-30', 1.0);
-      ''');
+      try {
+        await conn.execute('''
+          INSERT INTO `products` (
+            `sku`, `barcode`, `name`, `category_name`, `brand_name`, `unit`,
+            `purchase_price`, `selling_price`, `stock_quantity`, `alert_quantity`,
+            `batch_number`, `expiry_date`, `pack_size`
+          ) VALUES
+          ('MED-PAN-500', '896400010011', 'Panadol 500mg Tablets (Box of 200)', 'OTC Medicines', 'GSK', 'Box', 480.00, 600.00, 50.00, 10.00, 'B-9281', '2027-12-31', 1.0),
+          ('MED-AUG-625', '896400010022', 'Augmentin 625mg Tablets', 'Antibiotics & Medications', 'GSK', 'Strip', 210.00, 260.00, 80.00, 15.00, 'B-4819', '2028-06-30', 1.0),
+          ('MED-DIS-300', '896400010033', 'Disprin Soluble 300mg', 'OTC Medicines', 'Reckitt', 'Strip', 45.00, 60.00, 120.00, 20.00, 'B-7712', '2027-09-30', 1.0),
+          ('MED-BRU-400', '896400010044', 'Brufen 400mg Tablets', 'Antibiotics & Medications', 'Abbott', 'Box', 180.00, 230.00, 65.00, 12.00, 'B-3321', '2027-11-30', 1.0)
+          ON DUPLICATE KEY UPDATE `name` = VALUES(`name`)
+        ''');
+      } catch (_) {}
 
       // Seed starter walk-in customer
-      await conn.execute('''
-        INSERT IGNORE INTO `contacts` (`type`, `name`, `business_name`, `phone`, `email`, `balance`)
-        VALUES ('customer', 'Walk-in Customer', 'Cash Retail Customer', '+92 300 0000000', 'walkin@smartpos.com', 0.00);
-      ''');
+      try {
+        await conn.execute('''
+          INSERT INTO `contacts` (`type`, `name`, `business_name`, `phone`, `email`, `balance`)
+          VALUES ('customer', 'Walk-in Customer', 'Cash Retail Customer', '+92 300 0000000', 'walkin@smartpos.com', 0.00)
+        ''');
+      } catch (_) {}
 
       debugPrint('MySqlService starter catalog seeded successfully!');
     } catch (e) {
       debugPrint('Failed to seed starter data to MySQL: $e');
     } finally {
+      DatabaseService.suppressSync = false;
       try {
         await conn?.close();
       } catch (_) {}

@@ -16,6 +16,7 @@ class DatabaseService {
   static DatabaseService get instance =>
       _instance ?? (throw StateError('DatabaseService not initialized. Call initialize() first.'));
   static VoidCallback? onSyncQueueUpdated;
+  static bool suppressSync = false;
 
   static Future<DatabaseService> initialize({String? customPath}) async {
     if (customPath == null && _instance != null && _instance!.db.isOpen) return _instance!;
@@ -55,6 +56,7 @@ class DatabaseService {
 
   /// Triggers background synchronization of queued records into MySQL
   void triggerAsyncMySqlSync() {
+    if (suppressSync) return;
     getBusinessSettings().then((s) {
       if (s.isMySql) {
         MySqlService.connectAndSync(settings: s, localDb: this);
@@ -2043,7 +2045,10 @@ class DatabaseService {
       // Lock business type permanently to the first-installation configuration
       map['business_type'] = current.businessType;
     }
-    await db.update('business_settings', map, where: 'id = ?', whereArgs: [settings.id]);
+    final count = await db.update('business_settings', map, where: 'id = ?', whereArgs: [settings.id]);
+    if (count == 0) {
+      await db.insert('business_settings', map, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
     triggerAsyncMySqlSync();
   }
 

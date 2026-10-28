@@ -39,10 +39,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-; Copy all build release output files
+; Copy all build release output files (including SmartPOS.exe, sqlite3.dll, data/app.so)
 Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; Copy the direct SmartPOS.exe as the primary launcher
-Source: "..\SmartPOS.exe"; DestDir: "{app}"; DestName: "SmartPOS.exe"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"

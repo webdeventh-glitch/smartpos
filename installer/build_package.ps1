@@ -7,6 +7,10 @@
     3. Builds installer using Inno Setup (ISCC.exe) if available.
 #>
 
+param(
+    [switch]$SkipBuild
+)
+
 $ErrorActionPreference = "Stop"
 
 $ProjectRoot = Resolve-Path "$PSScriptRoot\.."
@@ -18,21 +22,33 @@ Write-Host "==========================================================" -Foregro
 Write-Host "       Smart POS System - Release Packaging Pipeline      " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-# 1. Ensure Release directory exists
+# 1. Compile or verify Release directory
 $StarterExe = Join-Path $ReleaseDir "desktop_starter.exe"
 $PosExe = Join-Path $ReleaseDir "pos.exe"
 
-if (-not (Test-Path $StarterExe) -and -not (Test-Path $PosExe)) {
-    Write-Host "[1/3] Building Flutter Windows Release binary..." -ForegroundColor Yellow
+if (-not $SkipBuild) {
+    Write-Host "[1/3] Building fresh Flutter Windows Release binary..." -ForegroundColor Yellow
     Push-Location $ProjectRoot
     flutter build windows --release
     Pop-Location
+} else {
+    Write-Host "[1/3] Skipping Flutter build (-SkipBuild specified)..." -ForegroundColor Yellow
 }
 
 if (Test-Path $StarterExe) {
+    $now = Get-Date
+    (Get-Item $StarterExe).LastWriteTime = $now
+
     Copy-Item $StarterExe $PosExe -Force
-    Copy-Item $StarterExe (Join-Path $ReleaseDir "SmartPOS.exe") -Force
-    Copy-Item $StarterExe (Join-Path $ProjectRoot "SmartPOS.exe") -Force
+    (Get-Item $PosExe).LastWriteTime = $now
+
+    $SmartPosExe = Join-Path $ReleaseDir "SmartPOS.exe"
+    Copy-Item $StarterExe $SmartPosExe -Force
+    (Get-Item $SmartPosExe).LastWriteTime = $now
+
+    $RootSmartPos = Join-Path $ProjectRoot "SmartPOS.exe"
+    Copy-Item $StarterExe $RootSmartPos -Force
+    (Get-Item $RootSmartPos).LastWriteTime = $now
 }
 
 Write-Host "[1/3] Windows Release binary ready in build/windows/x64/runner/Release" -ForegroundColor Green
