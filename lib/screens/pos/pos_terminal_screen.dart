@@ -13,6 +13,7 @@ import 'receipt_dialog.dart';
 import 'parked_sales_dialog.dart';
 import 'register_details_dialog.dart';
 import 'pos_power_dialogs.dart';
+import 'recent_transactions_dialog.dart';
 import '../../widgets/calculator_dialog.dart';
 
 class PosTerminalScreen extends StatefulWidget {
@@ -2084,6 +2085,13 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
+  void _openRecentTransactionsModal() {
+    showDialog(
+      context: context,
+      builder: (_) => RecentTransactionsDialog(settings: widget.settings),
+    );
+  }
+
   void _openCustomerSearchModal() {
     showDialog(
       context: context,
@@ -3268,7 +3276,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                       ),
                                       icon: const Icon(Icons.access_time_rounded, size: 16),
                                       label: const Text('Recent Transactions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                      onPressed: () {},
+                                      onPressed: _openRecentTransactionsModal,
                                     ),
                                   ],
                                 ),

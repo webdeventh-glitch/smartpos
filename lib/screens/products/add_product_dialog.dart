@@ -19,6 +19,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
   late TextEditingController _skuController;
   late TextEditingController _barcodeController;
   late TextEditingController _purchasePriceController;
+  late TextEditingController _marginController;
   late TextEditingController _sellingPriceController;
   late TextEditingController _stockController;
   late TextEditingController _alertController;
@@ -32,6 +33,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
   Brand? _selectedBrand;
   List<Category> _categories = [];
   List<Brand> _brands = [];
+  BusinessSettings? _settings;
   bool _loading = true;
   bool _isSaving = false;
 
@@ -44,6 +46,12 @@ class _AddProductDialogState extends State<AddProductDialog> {
     _barcodeController = TextEditingController(text: p?.barcode ?? '');
     _purchasePriceController = TextEditingController(text: p != null ? p.purchasePrice.toStringAsFixed(2) : '');
     _sellingPriceController = TextEditingController(text: p != null ? p.sellingPrice.toStringAsFixed(2) : '');
+    
+    final cost = p != null && p.purchasePrice > 0 ? p.purchasePrice : 100.0;
+    final sell = p != null && p.sellingPrice > 0 ? p.sellingPrice : 125.0;
+    final margin = cost > 0 ? ((sell - cost) / cost) * 100 : 25.0;
+    _marginController = TextEditingController(text: p != null ? margin.toStringAsFixed(1) : '25.0');
+
     _stockController = TextEditingController(text: p != null ? p.stockQuantity.toInt().toString() : '20');
     _alertController = TextEditingController(text: p != null ? p.alertQuantity.toInt().toString() : '5');
     _batchController = TextEditingController(text: p?.batchNumber ?? '');
@@ -55,15 +63,44 @@ class _AddProductDialogState extends State<AddProductDialog> {
     _loadMeta();
   }
 
+  void _onCostChanged(String val) {
+    final cost = double.tryParse(val.trim()) ?? 0.0;
+    final margin = double.tryParse(_marginController.text.trim()) ?? 0.0;
+    if (cost > 0 && margin > 0) {
+      final sell = cost * (1 + (margin / 100));
+      _sellingPriceController.text = sell.toStringAsFixed(2);
+    }
+  }
+
+  void _onMarginChanged(String val) {
+    final margin = double.tryParse(val.trim()) ?? 0.0;
+    final cost = double.tryParse(_purchasePriceController.text.trim()) ?? 0.0;
+    if (cost > 0) {
+      final sell = cost * (1 + (margin / 100));
+      _sellingPriceController.text = sell.toStringAsFixed(2);
+    }
+  }
+
+  void _onSellingChanged(String val) {
+    final sell = double.tryParse(val.trim()) ?? 0.0;
+    final cost = double.tryParse(_purchasePriceController.text.trim()) ?? 0.0;
+    if (cost > 0 && sell > cost) {
+      final margin = ((sell - cost) / cost) * 100;
+      _marginController.text = margin.toStringAsFixed(1);
+    }
+  }
+
   Future<void> _loadMeta() async {
     final db = await DatabaseService.initialize();
     final cats = await db.getCategories();
     final brs = await db.getBrands();
+    final settings = await db.getBusinessSettings();
 
     if (mounted) {
       setState(() {
         _categories = cats;
         _brands = brs;
+        _settings = settings;
         if (cats.isNotEmpty) {
           _selectedCategory = widget.productToEdit?.categoryId != null
               ? cats.firstWhere((c) => c.id == widget.productToEdit!.categoryId, orElse: () => cats.first)
@@ -182,6 +219,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
     _skuController.dispose();
     _barcodeController.dispose();
     _purchasePriceController.dispose();
+    _marginController.dispose();
     _sellingPriceController.dispose();
     _stockController.dispose();
     _alertController.dispose();
@@ -195,6 +233,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currency = _settings?.currencySymbol ?? 'Rs';
     return Dialog(
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       surfaceTintColor: Colors.transparent,
@@ -329,29 +368,48 @@ class _AddProductDialogState extends State<AddProductDialog> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Pricing: Purchase Price & Selling Price
+                      // Pricing: Purchase Price, Profit Margin %, Selling Price
                       Row(
                         children: [
                           Expanded(
+                            flex: 4,
                             child: TextFormField(
                               controller: _purchasePriceController,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(
-                                labelText: 'Purchase / Cost Price *',
-                                prefixText: '\$ ',
+                              onChanged: _onCostChanged,
+                              decoration: InputDecoration(
+                                labelText: 'Cost Price *',
+                                prefixText: '$currency ',
                                 isDense: true,
                               ),
                               validator: (v) => v == null || v.trim().isEmpty ? 'Cost price is required' : null,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Expanded(
+                            flex: 3,
+                            child: TextFormField(
+                              controller: _marginController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: _onMarginChanged,
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                              decoration: const InputDecoration(
+                                labelText: 'Margin %',
+                                suffixText: '%',
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 4,
                             child: TextFormField(
                               controller: _sellingPriceController,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(
+                              onChanged: _onSellingChanged,
+                              decoration: InputDecoration(
                                 labelText: 'Selling Price *',
-                                prefixText: '\$ ',
+                                prefixText: '$currency ',
                                 isDense: true,
                               ),
                               validator: (v) => v == null || v.trim().isEmpty ? 'Selling price is required' : null,
@@ -389,50 +447,55 @@ class _AddProductDialogState extends State<AddProductDialog> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Pharma / Distribution: Batch Number & Expiry Date (MM-YYYY)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _batchController,
-                              decoration: const InputDecoration(
-                                labelText: 'Batch No (e.g. 02260)',
-                                hintText: 'Lot number',
-                                isDense: true,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _expiryController,
-                              decoration: InputDecoration(
-                                labelText: 'Expiry Date (MM-YYYY)',
-                                hintText: 'e.g. 12-2028',
-                                isDense: true,
-                                suffixIcon: IconButton(
-                                  icon: const Icon(Icons.calendar_month, size: 18, color: Color(0xFF004EEB)),
-                                  tooltip: 'Select Expiry Date',
-                                  onPressed: _pickExpiryDate,
+                      // Optional: Batch Number & Expiry Date (ONLY if enabled in settings)
+                      if (_settings?.isBatchExpiryEnabled == true || _settings?.isPharmacy == true) ...[
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _batchController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Batch / Lot No',
+                                  hintText: 'e.g. 02260',
+                                  isDense: true,
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          SizedBox(
-                            width: 110,
-                            child: TextFormField(
-                              controller: _bonusController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Bonus Free',
-                                hintText: '0',
-                                isDense: true,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                controller: _expiryController,
+                                decoration: InputDecoration(
+                                  labelText: 'Expiry Date (MM-YYYY)',
+                                  hintText: 'e.g. 12-2028',
+                                  isDense: true,
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.calendar_month, size: 18, color: Color(0xFF004EEB)),
+                                    tooltip: 'Select Expiry Date',
+                                    onPressed: _pickExpiryDate,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                            if (_settings?.isPharmacy == true) ...[
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 110,
+                                child: TextFormField(
+                                  controller: _bonusController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Bonus Free',
+                                    hintText: '0',
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 24),
 
                       // Save buttons

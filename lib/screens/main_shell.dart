@@ -253,6 +253,7 @@ class _MainShellState extends State<MainShell> {
             settings: _settings,
             activeLocationName: _activeLocationName,
             onLocationChanged: (loc) => setState(() => _activeLocationName = loc),
+            onOpenSettings: () => setState(() => _selectedIndex = 10),
           ),
 
           // Impending Qulop License Expiry Warning Banner

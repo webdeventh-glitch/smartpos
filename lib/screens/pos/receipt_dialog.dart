@@ -22,47 +22,119 @@ class ReceiptDialog extends StatefulWidget {
 }
 
 class _ReceiptDialogState extends State<ReceiptDialog> {
-  String _paperSize = 'A4 Agency'; // 'A4 Agency', '80mm', '58mm'
+  late String _paperSize;
+
+  @override
+  void initState() {
+    super.initState();
+    _paperSize = widget.settings.isPharmacy ? 'A4 Agency' : '80mm';
+  }
+
+  String _numberToWords(double amount) {
+    if (amount <= 0) return 'Zero';
+    final units = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    final tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    String convertBelowThousand(int n) {
+      if (n == 0) return '';
+      if (n < 20) return units[n];
+      if (n < 100) return '${tens[n ~/ 10]}${n % 10 != 0 ? ' ${units[n % 10]}' : ''}';
+      return '${units[n ~/ 100]} Hundred${n % 100 != 0 ? ' and ${convertBelowThousand(n % 100)}' : ''}';
+    }
+
+    int intPart = amount.floor();
+    if (intPart == 0) return 'Zero';
+
+    final parts = <String>[];
+    if (intPart >= 10000000) {
+      parts.add('${convertBelowThousand(intPart ~/ 10000000)} Crore');
+      intPart %= 10000000;
+    }
+    if (intPart >= 100000) {
+      parts.add('${convertBelowThousand(intPart ~/ 100000)} Lakh');
+      intPart %= 100000;
+    }
+    if (intPart >= 1000) {
+      parts.add('${convertBelowThousand(intPart ~/ 1000)} Thousand');
+      intPart %= 1000;
+    }
+    if (intPart > 0) {
+      parts.add(convertBelowThousand(intPart));
+    }
+    return '${parts.join(' ')} Only';
+  }
 
   String _generatePlainTextReceipt() {
     final currency = widget.settings.currencySymbol;
+    final isPharma = widget.settings.isPharmacy;
+    final isRest = widget.settings.isRestaurant;
     final buffer = StringBuffer();
     buffer.writeln('========================================================================');
     buffer.writeln(widget.settings.businessName.toUpperCase());
-    buffer.writeln('DISTRIBUTOR & WHOLESALER - ${widget.settings.branchName}');
+    if (isPharma) {
+      buffer.writeln('DISTRIBUTOR & WHOLESALER - ${widget.settings.branchName}');
+    } else if (isRest) {
+      buffer.writeln('RESTAURANT & CAFE - ${widget.settings.branchName}');
+    } else {
+      buffer.writeln('RETAIL & POINT OF SALE - ${widget.settings.branchName}');
+    }
     buffer.writeln(widget.settings.address);
     if (widget.settings.phone.isNotEmpty) buffer.writeln('CELL NO: ${widget.settings.phone}');
     buffer.writeln('------------------------------------------------------------------------');
     buffer.writeln('INVOICE NO:  ${widget.sale.invoiceNo}    DATE: ${widget.sale.createdAt}');
-    buffer.writeln('PARTY NAME:  ${widget.sale.customerName}');
-    buffer.writeln('------------------------------------------------------------------------');
-    buffer.writeln('DESCRIPTION           BATCH    EXP-DATE   QTY  BONUS   RATE     DISC%    NET TOTAL');
+    buffer.writeln('CUSTOMER:    ${widget.sale.customerName}    PAY: ${widget.sale.paymentMethod.toUpperCase()}');
     buffer.writeln('------------------------------------------------------------------------');
 
-    if (widget.sale.items != null) {
-      for (final item in widget.sale.items!) {
-        final name = item.productName.length > 20 ? item.productName.substring(0, 20) : item.productName.padRight(20);
-        final batch = (item.batchNumber ?? '-').padRight(8);
-        final exp = (item.expiryDate ?? '-').padRight(10);
-        final qty = item.quantity.toStringAsFixed(0).padLeft(3);
-        final bonus = item.bonusQuantity.toStringAsFixed(0).padLeft(5);
-        final rate = item.unitPrice.toStringAsFixed(2).padLeft(8);
-        final disc = (item.packDiscount > 0 ? '${item.packDiscount}%' : '0.00').padLeft(7);
-        final total = item.subtotal.toStringAsFixed(2).padLeft(10);
-        buffer.writeln('$name $batch $exp $qty $bonus $rate $disc $total');
+    if (isPharma) {
+      buffer.writeln('DESCRIPTION           BATCH    EXP-DATE   QTY  BONUS   RATE     DISC%    NET TOTAL');
+      buffer.writeln('------------------------------------------------------------------------');
+      if (widget.sale.items != null) {
+        for (final item in widget.sale.items!) {
+          final name = item.productName.length > 20 ? item.productName.substring(0, 20) : item.productName.padRight(20);
+          final batch = (item.batchNumber ?? '-').padRight(8);
+          final exp = (item.expiryDate ?? '-').padRight(10);
+          final qty = item.quantity.toStringAsFixed(0).padLeft(3);
+          final bonus = item.bonusQuantity.toStringAsFixed(0).padLeft(5);
+          final rate = item.unitPrice.toStringAsFixed(2).padLeft(8);
+          final disc = (item.packDiscount > 0 ? '${item.packDiscount}%' : '0.00').padLeft(7);
+          final total = item.subtotal.toStringAsFixed(2).padLeft(10);
+          buffer.writeln('$name $batch $exp $qty $bonus $rate $disc $total');
+        }
+      }
+    } else {
+      buffer.writeln('ITEM DESCRIPTION                       QTY    UNIT PRICE     DISC       TOTAL');
+      buffer.writeln('------------------------------------------------------------------------');
+      if (widget.sale.items != null) {
+        for (final item in widget.sale.items!) {
+          final name = item.productName.length > 35 ? item.productName.substring(0, 35) : item.productName.padRight(35);
+          final qty = item.quantity.toStringAsFixed(0).padLeft(5);
+          final rate = item.unitPrice.toStringAsFixed(2).padLeft(13);
+          final disc = (item.discount > 0 ? item.discount.toStringAsFixed(2) : '-').padLeft(9);
+          final total = item.subtotal.toStringAsFixed(2).padLeft(11);
+          buffer.writeln('$name $qty $rate $disc $total');
+        }
       }
     }
 
     buffer.writeln('------------------------------------------------------------------------');
     buffer.writeln('SUBTOTAL:                 $currency${widget.sale.subtotal.toStringAsFixed(2)}');
-    if (widget.sale.discount > 0) buffer.writeln('PACK DISCOUNT:           -$currency${widget.sale.discount.toStringAsFixed(2)}');
-    if (widget.sale.taxAmount > 0) buffer.writeln('ADVANCE TAX (SEC 236H):  +$currency${widget.sale.taxAmount.toStringAsFixed(2)}');
+    if (widget.sale.discount > 0) {
+      buffer.writeln('${isPharma ? "PACK DISCOUNT:" : "DISCOUNT:     "}           -$currency${widget.sale.discount.toStringAsFixed(2)}');
+    }
+    if (widget.sale.taxAmount > 0) {
+      buffer.writeln('${isPharma ? "ADVANCE TAX (SEC 236H):" : "TAX:                   "}  +$currency${widget.sale.taxAmount.toStringAsFixed(2)}');
+    }
     buffer.writeln('TOTAL AMOUNT:             $currency${widget.sale.totalAmount.toStringAsFixed(2)}');
     buffer.writeln('PAID AMOUNT:              $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
     if (widget.sale.dueAmount > 0) buffer.writeln('BALANCE DUE:              $currency${widget.sale.dueAmount.toStringAsFixed(2)}');
     buffer.writeln('========================================================================');
-    buffer.writeln('FORM 2A (SEE RULES 19 & 30). WARRANTY UNDER SECTION 23(i) OF DRUG ACT, 1976');
-    buffer.writeln('Note: Expiry claim must be reported 6 months prior to expiry date with original bill.');
+    if (isPharma) {
+      buffer.writeln('FORM 2A (SEE RULES 19 & 30). WARRANTY UNDER SECTION 23(i) OF DRUG ACT, 1976');
+      buffer.writeln('Note: Expiry claim must be reported 6 months prior to expiry date with original bill.');
+    } else {
+      buffer.writeln('Thank you for shopping with us! Please retain this receipt for returns/exchange.');
+    }
     buffer.writeln('========================================================================');
     return buffer.toString();
   }
@@ -400,7 +472,11 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Advance Tax Under Section(236H)= 0.50%    ${currency}179.70',
+                widget.sale.taxAmount > 0
+                    ? (widget.settings.isPharmacy
+                        ? 'Advance Tax Under Section(236H)= 0.50%    $currency${widget.sale.taxAmount.toStringAsFixed(2)}'
+                        : 'Tax Amount: $currency${widget.sale.taxAmount.toStringAsFixed(2)}')
+                    : 'Tax: Exempt (0.00%)',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
               ),
               Row(
@@ -424,7 +500,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             const SizedBox(width: 20),
             Expanded(
               child: Text(
-                'Rupees: Thirty Thousand Seven Hundred and Twenty-Eight Only',
+                'Amount in Words: ${_numberToWords(widget.sale.totalAmount)}',
                 style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -433,47 +509,80 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         ),
         const SizedBox(height: 8),
 
-        // Legal Warranty Section (Form 2A Drug Act 1976)
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            border: Border.all(color: const Color(0xFFCBD5E1)),
-            borderRadius: BorderRadius.circular(4),
+        if (widget.settings.isPharmacy) ...[
+          // Legal Warranty Section (Form 2A Drug Act 1976)
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              border: Border.all(color: const Color(0xFFCBD5E1)),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'WARRANTY :-',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'FORM 2A (SEE RULES 19 & 30). WARRANTY UNDER SECTION 23(i) OF DRUG ACT, 1976.\n'
+                  'I am being a resident of Pakistan carrying on business at Khuzdar. Do hereby give this warranty that the drug contained in this invoice, described as sold by us do not contravene in any way the provision of section 23 of the Drug Act, 1976.\n'
+                  'Note: This Warranty does not apply to Unani, Homeopathic, Bio Chemic, System of Medicine, Herbal and General Item.',
+                  style: TextStyle(fontSize: 9, color: Color(0xFF475569), height: 1.3),
+                ),
+              ],
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
-              Text(
-                'WARRANTY :-',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-              ),
-              SizedBox(height: 2),
-              Text(
-                'FORM 2A (SEE RULES 19 & 30). WARRANTY UNDER SECTION 23(i) OF DRUG ACT, 1976.\n'
-                'I am being a resident of Pakistan carrying on business at Khuzdar. Do hereby give this warranty that the drug contained in this invoice, described as sold by us do not contravene in any way the provision of section 23 of the Drug Act, 1976.\n'
-                'Note: This Warranty does not apply to Unani, Homeopathic, Bio Chemic, System of Medicine, Herbal and General Item.',
-                style: TextStyle(fontSize: 9, color: Color(0xFF475569), height: 1.3),
+              Text('Checked By _______________________', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+              Directionality(
+                textDirection: TextDirection.rtl,
+                child: Text(
+                  'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFB91C1C)),
+                ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 12),
-
-        // Checked by & Urdu Expiry Note
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: const [
-            Text('Checked By _______________________', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-            Directionality(
-              textDirection: TextDirection.rtl,
-              child: Text(
-                'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFB91C1C)),
-              ),
+        ] else ...[
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              border: Border.all(color: const Color(0xFFCBD5E1)),
+              borderRadius: BorderRadius.circular(4),
             ),
-          ],
-        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'TERMS & CONDITIONS :-',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '1. Goods once sold can be exchanged within 7 days upon presentation of original bill.\n'
+                  '2. Altered, damaged, or clearance sale items are non-refundable.\n'
+                  '3. Thank you for choosing ${widget.settings.businessName}!',
+                  style: const TextStyle(fontSize: 9, color: Color(0xFF475569), height: 1.3),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text('Authorized Signature: _______________________', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+              Text('Customer Receipt Copy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF4F46E5))),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -608,9 +717,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
 
         _calcRow('Subtotal', '$currency${widget.sale.subtotal.toStringAsFixed(2)}'),
         if (widget.sale.discount > 0)
-          _calcRow('Pack Discount', '-$currency${widget.sale.discount.toStringAsFixed(2)}'),
+          _calcRow(widget.settings.isPharmacy ? 'Pack Discount' : 'Discount', '-$currency${widget.sale.discount.toStringAsFixed(2)}'),
         if (widget.sale.taxAmount > 0)
-          _calcRow('Advance Tax (236H)', '+$currency${widget.sale.taxAmount.toStringAsFixed(2)}'),
+          _calcRow(widget.settings.isPharmacy ? 'Advance Tax (236H)' : 'Tax', '+$currency${widget.sale.taxAmount.toStringAsFixed(2)}'),
 
         const SizedBox(height: 6),
         _dottedDivider(),
@@ -621,12 +730,21 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         if (widget.sale.dueAmount > 0)
           _calcRow('Balance Due', '$currency${widget.sale.dueAmount.toStringAsFixed(2)}', isBold: true),
 
-        const SizedBox(height: 14),
-        const Text(
-          'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
-        ),
+        if (widget.settings.isPharmacy) ...[
+          const SizedBox(height: 14),
+          const Text(
+            'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
+          ),
+        ] else ...[
+          const SizedBox(height: 12),
+          const Text(
+            'Thank you for shopping with us!\nPlease retain this receipt for returns/exchange.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+          ),
+        ],
       ],
     );
   }

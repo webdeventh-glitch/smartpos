@@ -51,7 +51,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   CurrencyInfo? _selectedCurrency;
 
   // Selected Industry Preset (Strict Single Business Mode - ایک وقت میں صرف ایک کاروبار)
-  String _selectedPreset = BusinessSettings.presetPharmacy;
+  String _selectedPreset = 'universal';
   Set<String> get _selectedPresets => {_selectedPreset};
 
   bool _seedSampleData = true;

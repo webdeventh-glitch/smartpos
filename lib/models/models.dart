@@ -248,6 +248,11 @@ class BusinessSettings {
           isModuleEnabled(moduleRestaurant) ||
           isRestaurant);
 
+  bool get isBatchExpiryEnabled => isPharmacy || isModuleEnabled(moduleBatchExpiry);
+  bool get isVariationsEnabled => isClothing || isModuleEnabled(moduleVariations);
+  bool get isWarrantyEnabled => isSolarOrElectronics || isModuleEnabled('warranty');
+  bool get isImeiSerialEnabled => isMobileElectronicsEnabled || isModuleEnabled('imei_serial');
+
   bool get isPrimaryServer => deploymentMode == 'offline_server' || deploymentMode.isEmpty;
   bool get isLanSecondaryTerminal => deploymentMode == 'lan_secondary';
   bool get isHybridPrimary => deploymentMode == 'cloud_hybrid';

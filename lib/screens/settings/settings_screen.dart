@@ -46,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   late TextEditingController _currencyPrecisionCtrl;
   late TextEditingController _quantityPrecisionCtrl;
 
-  String _businessType = 'pharmacy';
+  String _businessType = 'universal';
   String _currencyPlacement = 'before';
   String _timeZone = 'Asia/Karachi';
   String? _logoPath;
@@ -131,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _addressCtrl = TextEditingController(text: s.address);
     _footerCtrl = TextEditingController(text: s.receiptFooter);
     _purchaseKeyCtrl = TextEditingController(text: s.purchaseKey);
-    _businessType = s.businessType.isNotEmpty ? s.businessType : 'pharmacy';
+    _businessType = s.businessType.isNotEmpty ? s.businessType : 'universal';
     _drugLicenseCtrl = TextEditingController(text: s.drugLicenseNo);
     _dlWarrantorCtrl = TextEditingController(text: s.dlWarrantor);
     _startDateCtrl = TextEditingController(text: s.startDate);
@@ -197,7 +197,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       _addressCtrl.text = s.address;
       _footerCtrl.text = s.receiptFooter;
       _purchaseKeyCtrl.text = s.purchaseKey;
-      _businessType = s.businessType.isNotEmpty ? s.businessType : 'pharmacy';
+      _businessType = s.businessType.isNotEmpty ? s.businessType : 'universal';
       _drugLicenseCtrl.text = s.drugLicenseNo;
       _dlWarrantorCtrl.text = s.dlWarrantor;
       _startDateCtrl.text = s.startDate;

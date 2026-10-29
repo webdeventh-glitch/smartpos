@@ -3408,11 +3408,25 @@ class DatabaseService {
       for (var item in items) {
         final productId = item['product_id'] as int?;
         final qty = (item['quantity'] as num).toDouble();
+        final unitCost = (item['purchase_price'] as num?)?.toDouble() ?? (item['unit_cost'] as num?)?.toDouble();
+        final sellingPrice = (item['selling_price'] as num?)?.toDouble();
         if (productId != null) {
-          await txn.rawUpdate(
-            'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
-            [qty, productId],
-          );
+          if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+            await txn.rawUpdate(
+              'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ?, selling_price = ? WHERE id = ?',
+              [qty, unitCost, sellingPrice, productId],
+            );
+          } else if (unitCost != null) {
+            await txn.rawUpdate(
+              'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ? WHERE id = ?',
+              [qty, unitCost, productId],
+            );
+          } else {
+            await txn.rawUpdate(
+              'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+              [qty, productId],
+            );
+          }
         }
       }
 

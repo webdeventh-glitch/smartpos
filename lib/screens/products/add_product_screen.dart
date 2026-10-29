@@ -1176,8 +1176,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Industry & Pharmacy Specific Card: Batch No, Expiry Date, Bonus Qty, Pack Size
-                    Container(
+                    // Industry & Pharmacy Specific Card: Batch No, Expiry Date, Bonus Qty, Pack Size (Conditional)
+                    if (widget.settings.isBatchExpiryEnabled || widget.settings.isPharmacy) ...[
+                      const SizedBox(height: 20),
+                      Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: widget.settings.isPharmacy ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
@@ -1369,6 +1371,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                  ],
 
                     // ROW 5: Product Description (with AI + WYSIWYG) & Product Image
                     LayoutBuilder(builder: (context, constraints) {

@@ -16,6 +16,7 @@ class SmartAppBar extends StatefulWidget implements PreferredSizeWidget {
   final BusinessSettings settings;
   final String? activeLocationName;
   final Function(String)? onLocationChanged;
+  final VoidCallback? onOpenSettings;
 
   const SmartAppBar({
     super.key,
@@ -25,6 +26,7 @@ class SmartAppBar extends StatefulWidget implements PreferredSizeWidget {
     required this.settings,
     this.activeLocationName,
     this.onLocationChanged,
+    this.onOpenSettings,
   });
 
   @override
@@ -785,6 +787,10 @@ class _SmartAppBarState extends State<SmartAppBar> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 onSelected: (val) async {
+                  if (val == 'business_settings') {
+                    widget.onOpenSettings?.call();
+                    return;
+                  }
                   if (val == 'logout') {
                     final confirm = await showDialog<bool>(
                       context: context,
@@ -830,6 +836,16 @@ class _SmartAppBarState extends State<SmartAppBar> {
                     ),
                   ),
                   const PopupMenuDivider(),
+                  PopupMenuItem<String>(
+                    value: 'business_settings',
+                    child: Row(
+                      children: [
+                        Icon(Icons.storefront_outlined, size: 18, color: isDark ? Colors.white70 : const Color(0xFF475569)),
+                        const SizedBox(width: 10),
+                        Text('Business: ${widget.settings.businessTypeDisplayName.split("/").first.trim()}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
                   PopupMenuItem<String>(
                     value: 'profile',
                     child: Row(
