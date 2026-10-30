@@ -2033,7 +2033,7 @@ class DatabaseService {
 
   // Settings
   Future<BusinessSettings> getBusinessSettings() async {
-    final rows = await db.query('business_settings', limit: 1);
+    final rows = await db.query('business_settings', orderBy: 'id DESC', limit: 1);
     if (rows.isNotEmpty) return BusinessSettings.fromMap(rows.first);
     return BusinessSettings();
   }
@@ -2045,7 +2045,9 @@ class DatabaseService {
       // Lock business type permanently to the first-installation configuration
       map['business_type'] = current.businessType;
     }
-    final count = await db.update('business_settings', map, where: 'id = ?', whereArgs: [settings.id]);
+    final targetId = settings.id ?? current.id ?? 1;
+    map['id'] = targetId;
+    final count = await db.update('business_settings', map, where: 'id = ?', whereArgs: [targetId]);
     if (count == 0) {
       await db.insert('business_settings', map, conflictAlgorithm: ConflictAlgorithm.replace);
     }

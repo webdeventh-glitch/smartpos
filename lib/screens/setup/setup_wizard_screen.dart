@@ -2933,9 +2933,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             child: ElevatedButton.icon(
               onPressed: () {
                 AuthService.currentUserNotifier.value = null;
-                if (_finalizedSettings != null) {
-                  widget.onSetupComplete(_finalizedSettings!);
-                }
+                final targetSettings = (_finalizedSettings ?? widget.settings).copyWith(isConfigured: true);
+                widget.onSetupComplete(targetSettings);
               },
               icon: const Icon(Icons.login_rounded, size: 20),
               label: const Text(

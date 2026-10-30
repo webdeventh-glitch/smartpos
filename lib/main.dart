@@ -88,10 +88,21 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
           await MySqlService.pullDataFromMySql(settings: settings, localDb: dbService);
           await MySqlService.connectAndSync(settings: settings, localDb: dbService);
         } else if (MySqlService.isMySqlOnline.value) {
-          // MySQL server is online, but database has 0 tables (wiped/dropped by user or uninitialized)
-          debugPrint('[SmartPOS] MySQL is online but database is uninitialized (0 tables). Launching Setup Wizard.');
-          settings = settings.copyWith(isConfigured: false);
-          await dbService.updateBusinessSettings(settings);
+          debugPrint('[SmartPOS] MySQL is online but uninitialized. Syncing local configuration to MySQL...');
+          try {
+            await MySqlService.initializeDatabaseAndTables(
+              host: settings.dbHost,
+              port: settings.dbPort > 0 ? settings.dbPort : 3306,
+              user: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
+              password: settings.dbPassword,
+              databaseName: settings.dbName,
+              initialSettings: settings,
+            );
+            await MySqlService.syncAllLocalCatalogToMySql(settings: settings, localDb: dbService);
+            await MySqlService.connectAndSync(settings: settings, localDb: dbService);
+          } catch (e) {
+            debugPrint('[SmartPOS] Failed to auto-provision MySQL: $e. Operating in resilient local SQLite mode.');
+          }
         } else {
           debugPrint('[SmartPOS] MySQL database not yet configured or offline. Operating in resilient local SQLite mode.');
         }
