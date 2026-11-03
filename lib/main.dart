@@ -133,20 +133,24 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 64,
-                    height: 64,
+                    width: 72,
+                    height: 72,
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0038B8), Color(0xFF4F46E5)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(18),
                       boxShadow: const [
                         BoxShadow(color: Color(0x660038B8), blurRadius: 20, offset: Offset(0, 8)),
                       ],
+                      border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.3)),
                     ),
-                    child: const Icon(Icons.point_of_sale_rounded, color: Colors.white, size: 36),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        'assets/images/smartpos_icon.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   const CircularProgressIndicator(color: Color(0xFF0038B8), strokeWidth: 3),

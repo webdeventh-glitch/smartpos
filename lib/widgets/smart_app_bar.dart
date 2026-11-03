@@ -306,22 +306,26 @@ class _SmartAppBarState extends State<SmartAppBar> {
                     Container(
                       width: 32,
                       height: 32,
+                      padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         boxShadow: const [
                           BoxShadow(
-                            color: Color(0x334F46E5),
+                            color: Color(0x224F46E5),
                             blurRadius: 6,
                             offset: Offset(0, 2),
                           ),
                         ],
+                        border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.25)),
                       ),
-                      child: const Icon(Icons.point_of_sale_rounded, color: Colors.white, size: 18),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset(
+                          'assets/images/smartpos_icon.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Flexible(
