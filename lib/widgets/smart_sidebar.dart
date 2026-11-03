@@ -24,10 +24,58 @@ class _SmartSidebarState extends State<SmartSidebar> {
   final TextEditingController _menuSearchCtrl = TextEditingController();
   String _filter = '';
 
-  // Expandable sections
+  // Expandable sections matching Ultimate POS structure
+  bool _userMgmtExpanded = false;
+  bool _contactsExpanded = false;
   bool _productsExpanded = false;
+  bool _purchasesExpanded = false;
   bool _sellExpanded = false;
+  bool _transfersExpanded = false;
+  bool _adjustmentsExpanded = false;
+  bool _expensesExpanded = false;
+  bool _reportsExpanded = false;
+  bool _settingsExpanded = false;
   bool _industryExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncActiveSection(widget.selectedIndex);
+  }
+
+  @override
+  void didUpdateWidget(SmartSidebar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _syncActiveSection(widget.selectedIndex);
+    }
+  }
+
+  void _syncActiveSection(int index) {
+    if (index == 12) {
+      _userMgmtExpanded = true;
+    } else if (index == 6 || index == 7) {
+      _contactsExpanded = true;
+    } else if ([2, 3, 11, 17, 18, 19, 20, 21, 22, 23].contains(index)) {
+      _productsExpanded = true;
+    } else if ([5, 26].contains(index)) {
+      _purchasesExpanded = true;
+    } else if ([1, 4, 25].contains(index)) {
+      _sellExpanded = true;
+    } else if (index == 13) {
+      _transfersExpanded = true;
+    } else if (index == 14) {
+      _adjustmentsExpanded = true;
+    } else if (index == 8) {
+      _expensesExpanded = true;
+    } else if ([9, 24].contains(index)) {
+      _reportsExpanded = true;
+    } else if ([10, 15, 27, 39, 40].contains(index)) {
+      _settingsExpanded = true;
+    } else if (index >= 28 && index <= 38) {
+      _industryExpanded = true;
+    }
+  }
 
   bool _isModEnabled(String key) {
     if (widget.settings == null) return true;
@@ -43,32 +91,49 @@ class _SmartSidebarState extends State<SmartSidebar> {
   Widget _navItem({
     required IconData icon,
     required String title,
+    String? urduSubtitle,
     required int index,
     bool hasSubmenu = false,
     bool isExpanded = false,
+    bool isActiveParent = false,
     VoidCallback? onToggleSubmenu,
+    VoidCallback? onTapDirect,
   }) {
-    if (_filter.isNotEmpty && !title.toLowerCase().contains(_filter)) {
+    final matchesFilter = _filter.isEmpty ||
+        title.toLowerCase().contains(_filter) ||
+        (urduSubtitle != null && urduSubtitle.toLowerCase().contains(_filter));
+
+    if (!matchesFilter) {
       return const SizedBox.shrink();
     }
-    final isSelected = widget.selectedIndex == index;
+
+    final isSelected = widget.selectedIndex == index || isActiveParent;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (widget.isCollapsed) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 8),
         child: Tooltip(
-          message: title,
+          message: '$title ${urduSubtitle ?? ''}',
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => widget.onSelect(index),
+              onTap: () {
+                if (hasSubmenu && onToggleSubmenu != null) {
+                  onToggleSubmenu();
+                }
+                if (onTapDirect != null) {
+                  onTapDirect();
+                } else {
+                  widget.onSelect(index);
+                }
+              },
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 height: 40,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? (isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF))
+                      ? (isDark ? const Color(0xFF1E3A8A) : const Color(0xFFE8F0FE))
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -77,7 +142,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
                     icon,
                     size: 20,
                     color: isSelected
-                        ? (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5))
+                        ? (isDark ? const Color(0xFF93C5FD) : const Color(0xFF1A73E8))
                         : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                   ),
                 ),
@@ -96,7 +161,9 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTap: () {
             if (hasSubmenu && onToggleSubmenu != null) {
               onToggleSubmenu();
-              widget.onSelect(index);
+              if (onTapDirect != null) {
+                onTapDirect();
+              }
             } else {
               widget.onSelect(index);
             }
@@ -106,11 +173,11 @@ class _SmartSidebarState extends State<SmartSidebar> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
               color: isSelected
-                  ? (isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF))
+                  ? (isDark ? const Color(0xFF1E3A8A) : const Color(0xFFE8F0FE))
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: isSelected
-                  ? Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE), width: 1)
+                  ? Border.all(color: isDark ? const Color(0xFF2563EB) : const Color(0xFFC7D2FE), width: 1)
                   : null,
             ),
             child: Row(
@@ -119,7 +186,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
                   icon,
                   size: 18,
                   color: isSelected
-                      ? (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5))
+                      ? (isDark ? const Color(0xFF93C5FD) : const Color(0xFF1A73E8))
                       : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                 ),
                 const SizedBox(width: 10),
@@ -130,18 +197,18 @@ class _SmartSidebarState extends State<SmartSidebar> {
                       fontSize: 13,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       color: isSelected
-                          ? (isDark ? const Color(0xFFE0E7FF) : const Color(0xFF4F46E5))
+                          ? (isDark ? Colors.white : const Color(0xFF1A73E8))
                           : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
                     ),
                   ),
                 ),
                 if (hasSubmenu)
                   Icon(
-                    isExpanded ? Icons.keyboard_arrow_down_rounded : Icons.chevron_right_rounded,
+                    isExpanded ? Icons.keyboard_arrow_down_rounded : Icons.chevron_left_rounded,
                     size: 16,
                     color: isSelected
-                        ? (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5))
-                        : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                        ? (isDark ? const Color(0xFF93C5FD) : const Color(0xFF1A73E8))
+                        : (isDark ? const Color(0xFF64748B) : const Color(0xFF9CA3AF)),
                   ),
               ],
             ),
@@ -151,10 +218,19 @@ class _SmartSidebarState extends State<SmartSidebar> {
     );
   }
 
-  Widget _subItem({required String title, required int index}) {
-    if (_filter.isNotEmpty && !title.toLowerCase().contains(_filter)) {
+  Widget _subItem({
+    required String title,
+    String? urduSubtitle,
+    required int index,
+  }) {
+    final matchesFilter = _filter.isEmpty ||
+        title.toLowerCase().contains(_filter) ||
+        (urduSubtitle != null && urduSubtitle.toLowerCase().contains(_filter));
+
+    if (!matchesFilter) {
       return const SizedBox.shrink();
     }
+
     final isSelected = widget.selectedIndex == index;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -166,34 +242,36 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTap: () => widget.onSelect(index),
           borderRadius: BorderRadius.circular(6),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
               color: isSelected
-                  ? (isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF))
+                  ? (isDark ? const Color(0xFF1E3A8A) : const Color(0xFFE8F0FE))
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 4,
-                  height: 4,
+                  width: 5,
+                  height: 5,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isSelected
-                        ? (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5))
+                        ? (isDark ? const Color(0xFF93C5FD) : const Color(0xFF1A73E8))
                         : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected
-                        ? (isDark ? const Color(0xFFE0E7FF) : const Color(0xFF4F46E5))
-                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? (isDark ? Colors.white : const Color(0xFF1A73E8))
+                          : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                    ),
                   ),
                 ),
               ],
@@ -204,290 +282,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
     );
   }
 
-  Widget _sectionHeader(String title) {
-    if (widget.isCollapsed || _filter.isNotEmpty) return const SizedBox.shrink();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-          letterSpacing: 0.8,
-        ),
-      ),
-    );
-  }
-
   List<Widget> _buildMenuItems() {
-    final s = widget.settings;
-    if (s != null) {
-      if (s.isRestaurant) return _buildRestaurantNavigation();
-      if (s.isPharmacy) return _buildPharmacyNavigation();
-      if (s.isSupermarket) return _buildSupermarketNavigation();
-      if (s.isRepair) return _buildRepairNavigation();
-      if (s.isHotel) return _buildHotelNavigation();
-      if (s.isGym) return _buildGymNavigation();
-    }
-    return _buildDefaultModularNavigation();
-  }
-
-  List<Widget> _buildRestaurantNavigation() {
-    return [
-      _sectionHeader('OVERVIEW'),
-      _navItem(icon: Icons.dashboard_outlined, title: 'Home', index: 0),
-
-      _sectionHeader('DINING & KITCHEN'),
-      _navItem(icon: Icons.table_restaurant_rounded, title: 'Tables & Floor Plan', index: 29),
-      _navItem(icon: Icons.soup_kitchen_rounded, title: 'Live KOT Queue', index: 29),
-      _navItem(icon: Icons.receipt_outlined, title: 'Dining Orders & Bills', index: 4),
-      if (_isModEnabled(BusinessSettings.moduleReturns))
-        _navItem(icon: Icons.assignment_return_outlined, title: 'Order Voids & Returns', index: 25),
-
-      _sectionHeader('MENU & RECIPES'),
-      _navItem(
-        icon: Icons.restaurant_menu_rounded,
-        title: 'Menu Dishes',
-        index: 2,
-        hasSubmenu: true,
-        isExpanded: _productsExpanded,
-        onToggleSubmenu: () => setState(() => _productsExpanded = !_productsExpanded),
-      ),
-      if (!widget.isCollapsed && _productsExpanded) ...[
-        _subItem(title: 'All Dishes', index: 2),
-        _subItem(title: 'Add New Dish', index: 11),
-        _subItem(title: 'Menu Categories', index: 3),
-        _subItem(title: 'Price Groups / Portions', index: 22),
-      ],
-      _navItem(icon: Icons.shopping_bag_outlined, title: 'Kitchen Raw Stock (Purchases)', index: 5),
-      if (_isModEnabled(BusinessSettings.moduleStockTransfers))
-        _navItem(icon: Icons.sync_alt_rounded, title: 'Stock Transfers', index: 13),
-      _navItem(icon: Icons.tune_rounded, title: 'Stock Waste / Adjustment', index: 14),
-
-      _sectionHeader('STAFF & MANAGEMENT'),
-      _navItem(icon: Icons.badge_outlined, title: 'Waiters & Kitchen Staff', index: 12),
-      if (_isModEnabled(BusinessSettings.moduleExpenses))
-        _navItem(icon: Icons.receipt_long_outlined, title: 'Restaurant Expenses', index: 8),
-      _navItem(icon: Icons.analytics_outlined, title: 'Sales & Revenue Reports', index: 9),
-      _navItem(icon: Icons.cloud_sync_outlined, title: 'Cloud & MySQL Sync', index: 40),
-      _navItem(icon: Icons.dashboard_customize_outlined, title: 'Modular Features', index: 39),
-      _navItem(icon: Icons.settings_outlined, title: 'Restaurant Settings', index: 10),
-    ];
-  }
-
-  List<Widget> _buildPharmacyNavigation() {
-    return [
-      _sectionHeader('OVERVIEW'),
-      _navItem(icon: Icons.dashboard_outlined, title: 'Home', index: 0),
-
-      _sectionHeader('DISPENSING & SALES'),
-      _navItem(
-        icon: Icons.point_of_sale_outlined,
-        title: 'Dispensing POS',
-        index: 4,
-        hasSubmenu: true,
-        isExpanded: _sellExpanded,
-        onToggleSubmenu: () => setState(() => _sellExpanded = !_sellExpanded),
-      ),
-      if (!widget.isCollapsed && _sellExpanded) ...[
-        _subItem(title: 'Pharmacy Terminal (F1)', index: 1),
-        _subItem(title: 'Sales & Wholesale Invoices', index: 4),
-        if (_isModEnabled(BusinessSettings.moduleReturns))
-          _subItem(title: 'Medicine Returns', index: 25),
-      ],
-
-      _sectionHeader('MEDICINES & INVENTORY'),
-      _navItem(
-        icon: Icons.medication_outlined,
-        title: 'Medicines',
-        index: 2,
-        hasSubmenu: true,
-        isExpanded: _productsExpanded,
-        onToggleSubmenu: () => setState(() => _productsExpanded = !_productsExpanded),
-      ),
-      if (!widget.isCollapsed && _productsExpanded) ...[
-        _subItem(title: 'Medicines Catalog', index: 2),
-        _subItem(title: 'Add Medicine', index: 11),
-        _subItem(title: 'Salt Formulations', index: 3),
-        _subItem(title: 'Pharma Companies / Brands', index: 20),
-        _subItem(title: 'Print Expiry / Strip Labels', index: 17),
-        _subItem(title: 'Units / Strip Packs', index: 19),
-        _subItem(title: 'Price Groups (Trade/Retail)', index: 22),
-      ],
-      _navItem(icon: Icons.shopping_bag_outlined, title: 'Medicine Purchases', index: 5),
-      if (_isModEnabled(BusinessSettings.moduleReturns))
-        _navItem(icon: Icons.keyboard_return_rounded, title: 'Purchase Returns (Debit)', index: 26),
-      if (_isModEnabled(BusinessSettings.moduleStockAudit))
-        _navItem(icon: Icons.fact_check_outlined, title: 'Batch & Expiry Audit', index: 24),
-      if (_isModEnabled(BusinessSettings.moduleStockTransfers))
-        _navItem(icon: Icons.sync_alt_rounded, title: 'Branch Stock Transfers', index: 13),
-      _navItem(icon: Icons.tune_rounded, title: 'Stock Adjustments', index: 14),
-
-      _sectionHeader('PHARMA NETWORK & FINANCE'),
-      _navItem(icon: Icons.local_hospital_outlined, title: 'Pharmacies & Clinics (Clients)', index: 6),
-      _navItem(icon: Icons.local_shipping_outlined, title: 'Distributors & Suppliers', index: 7),
-      _navItem(icon: Icons.badge_outlined, title: 'Salesmen & Operators', index: 12),
-      if (_isModEnabled(BusinessSettings.moduleExpenses))
-        _navItem(icon: Icons.receipt_long_outlined, title: 'Agency Expenses', index: 8),
-      _navItem(icon: Icons.account_balance_outlined, title: 'Payment Accounts', index: 15),
-      _navItem(icon: Icons.analytics_outlined, title: 'Tax & Sales Reports', index: 9),
-      if (_isModEnabled(BusinessSettings.moduleFiscalClosing))
-        _navItem(icon: Icons.account_balance_wallet_rounded, title: 'Annual Fiscal Closing', index: 27),
-      _navItem(icon: Icons.cloud_sync_outlined, title: 'Cloud & MySQL Sync', index: 40),
-      _navItem(icon: Icons.dashboard_customize_outlined, title: 'Modular Features', index: 39),
-      _navItem(icon: Icons.settings_outlined, title: 'Pharmacy & Drug License Settings', index: 10),
-    ];
-  }
-
-  List<Widget> _buildSupermarketNavigation() {
-    return [
-      _sectionHeader('OVERVIEW'),
-      _navItem(icon: Icons.dashboard_outlined, title: 'Home', index: 0),
-
-      _sectionHeader('CHECKOUT & BILLING'),
-      _navItem(
-        icon: Icons.point_of_sale_outlined,
-        title: 'Checkout Counter',
-        index: 4,
-        hasSubmenu: true,
-        isExpanded: _sellExpanded,
-        onToggleSubmenu: () => setState(() => _sellExpanded = !_sellExpanded),
-      ),
-      if (!widget.isCollapsed && _sellExpanded) ...[
-        _subItem(title: 'Rapid Barcode POS (F1)', index: 1),
-        _subItem(title: 'Cashier Sales Orders', index: 4),
-        if (_isModEnabled(BusinessSettings.moduleReturns))
-          _subItem(title: 'Customer Returns', index: 25),
-      ],
-
-      _sectionHeader('GROCERY & INVENTORY'),
-      _navItem(
-        icon: Icons.inventory_2_outlined,
-        title: 'FMCG Products',
-        index: 2,
-        hasSubmenu: true,
-        isExpanded: _productsExpanded,
-        onToggleSubmenu: () => setState(() => _productsExpanded = !_productsExpanded),
-      ),
-      if (!widget.isCollapsed && _productsExpanded) ...[
-        _subItem(title: 'Products List', index: 2),
-        _subItem(title: 'Add Product', index: 11),
-        _subItem(title: 'Print Shelf Labels', index: 17),
-        _subItem(title: 'Grocery Categories', index: 3),
-        _subItem(title: 'FMCG Brands', index: 20),
-        _subItem(title: 'Selling Price Groups', index: 22),
-      ],
-      _navItem(icon: Icons.shopping_bag_outlined, title: 'Wholesale Purchases', index: 5),
-      if (_isModEnabled(BusinessSettings.moduleStockTransfers))
-        _navItem(icon: Icons.sync_alt_rounded, title: 'Stock Transfers', index: 13),
-      _navItem(icon: Icons.tune_rounded, title: 'Stock Adjustments', index: 14),
-
-      _sectionHeader('PEOPLE & FINANCE'),
-      _navItem(icon: Icons.people_outline, title: 'Loyalty Customers', index: 6),
-      _navItem(icon: Icons.local_shipping_outlined, title: 'Vendors & Suppliers', index: 7),
-      _navItem(icon: Icons.badge_outlined, title: 'Cashiers & Staff', index: 12),
-      if (_isModEnabled(BusinessSettings.moduleExpenses))
-        _navItem(icon: Icons.receipt_long_outlined, title: 'Expenses', index: 8),
-      _navItem(icon: Icons.analytics_outlined, title: 'Reports', index: 9),
-      _navItem(icon: Icons.cloud_sync_outlined, title: 'Cloud & MySQL Sync', index: 40),
-      _navItem(icon: Icons.dashboard_customize_outlined, title: 'Modular Features', index: 39),
-      _navItem(icon: Icons.settings_outlined, title: 'Store Settings', index: 10),
-    ];
-  }
-
-  List<Widget> _buildRepairNavigation() {
-    return [
-      _sectionHeader('OVERVIEW'),
-      _navItem(icon: Icons.dashboard_outlined, title: 'Home', index: 0),
-
-      _sectionHeader('REPAIR OPERATIONS'),
-      _navItem(icon: Icons.build_circle_outlined, title: 'Diagnostics & Job Sheets', index: 30),
-      _navItem(icon: Icons.point_of_sale_outlined, title: 'Service Billing POS', index: 1),
-      _navItem(icon: Icons.receipt_outlined, title: 'Invoices & Device History', index: 4),
-
-      _sectionHeader('SPARE PARTS & STOCK'),
-      _navItem(
-        icon: Icons.inventory_2_outlined,
-        title: 'Spare Parts',
-        index: 2,
-        hasSubmenu: true,
-        isExpanded: _productsExpanded,
-        onToggleSubmenu: () => setState(() => _productsExpanded = !_productsExpanded),
-      ),
-      if (!widget.isCollapsed && _productsExpanded) ...[
-        _subItem(title: 'Parts List', index: 2),
-        _subItem(title: 'Add Spare Part', index: 11),
-        _subItem(title: 'Categories', index: 3),
-      ],
-      _navItem(icon: Icons.shopping_bag_outlined, title: 'Parts Purchases', index: 5),
-
-      _sectionHeader('PEOPLE & ACCOUNTS'),
-      _navItem(icon: Icons.people_outline, title: 'Device Owners', index: 6),
-      _navItem(icon: Icons.badge_outlined, title: 'Technicians', index: 12),
-      if (_isModEnabled(BusinessSettings.moduleExpenses))
-        _navItem(icon: Icons.receipt_long_outlined, title: 'Expenses', index: 8),
-      _navItem(icon: Icons.analytics_outlined, title: 'Reports', index: 9),
-      _navItem(icon: Icons.cloud_sync_outlined, title: 'Cloud & MySQL Sync', index: 40),
-      _navItem(icon: Icons.dashboard_customize_outlined, title: 'Modular Features', index: 39),
-      _navItem(icon: Icons.settings_outlined, title: 'Service Settings', index: 10),
-    ];
-  }
-
-  List<Widget> _buildHotelNavigation() {
-    return [
-      _sectionHeader('OVERVIEW'),
-      _navItem(icon: Icons.dashboard_outlined, title: 'Home', index: 0),
-
-      _sectionHeader('FRONT DESK & ROOMS'),
-      _navItem(icon: Icons.hotel_rounded, title: 'Room Grid & Check-In', index: 31),
-      _navItem(icon: Icons.room_service_outlined, title: 'Room Service Billing', index: 1),
-      _navItem(icon: Icons.receipt_outlined, title: 'Folio Invoices & Billings', index: 4),
-
-      _sectionHeader('AMENITIES & INVENTORY'),
-      _navItem(icon: Icons.inventory_2_outlined, title: 'Amenities & Mini-Bar', index: 2),
-      _navItem(icon: Icons.shopping_bag_outlined, title: 'Hotel Purchases & Linen', index: 5),
-
-      _sectionHeader('GUESTS & STAFF'),
-      _navItem(icon: Icons.people_outline, title: 'Guests Register', index: 6),
-      _navItem(icon: Icons.badge_outlined, title: 'Staff Management', index: 12),
-      if (_isModEnabled(BusinessSettings.moduleExpenses))
-        _navItem(icon: Icons.receipt_long_outlined, title: 'Hotel Expenses', index: 8),
-      _navItem(icon: Icons.analytics_outlined, title: 'Occupancy Reports', index: 9),
-      _navItem(icon: Icons.cloud_sync_outlined, title: 'Cloud & MySQL Sync', index: 40),
-      _navItem(icon: Icons.dashboard_customize_outlined, title: 'Modular Features', index: 39),
-      _navItem(icon: Icons.settings_outlined, title: 'Hotel Settings', index: 10),
-    ];
-  }
-
-  List<Widget> _buildGymNavigation() {
-    return [
-      _sectionHeader('OVERVIEW'),
-      _navItem(icon: Icons.dashboard_outlined, title: 'Home', index: 0),
-
-      _sectionHeader('MEMBERSHIP & CHECK-IN'),
-      _navItem(icon: Icons.fitness_center_rounded, title: 'Member Directory & Biometrics', index: 32),
-      _navItem(icon: Icons.point_of_sale_outlined, title: 'Supplements POS', index: 1),
-      _navItem(icon: Icons.receipt_outlined, title: 'Dues & Subscription Billing', index: 4),
-
-      _sectionHeader('SUPPLEMENTS & MERCHANDISE'),
-      _navItem(icon: Icons.inventory_2_outlined, title: 'Supplements Catalog', index: 2),
-      _navItem(icon: Icons.shopping_bag_outlined, title: 'Purchases & Supplies', index: 5),
-
-      _sectionHeader('COACHES & ADMIN'),
-      _navItem(icon: Icons.people_outline, title: 'Members', index: 6),
-      _navItem(icon: Icons.badge_outlined, title: 'Coaches & Trainers', index: 12),
-      if (_isModEnabled(BusinessSettings.moduleExpenses))
-        _navItem(icon: Icons.receipt_long_outlined, title: 'Gym Expenses', index: 8),
-      _navItem(icon: Icons.analytics_outlined, title: 'Retention Reports', index: 9),
-      _navItem(icon: Icons.cloud_sync_outlined, title: 'Cloud & MySQL Sync', index: 40),
-      _navItem(icon: Icons.dashboard_customize_outlined, title: 'Modular Features', index: 39),
-      _navItem(icon: Icons.settings_outlined, title: 'Gym Club Settings', index: 10),
-    ];
-  }
-
-  List<Widget> _buildDefaultModularNavigation() {
     final user = AuthService.currentUser;
     final isAdm = user == null || user.isAdmin;
     final canInventory = isAdm || user.canAccessInventory;
@@ -496,78 +291,266 @@ class _SmartSidebarState extends State<SmartSidebar> {
     final canManageUsers = isAdm || user.canManageUsers;
     final canSettings = isAdm || user.canAccessSettings;
 
-    return [
-      _sectionHeader('OVERVIEW'),
-      _navItem(icon: Icons.dashboard_outlined, title: 'Home', index: 0),
+    // Check if parent sections are active
+    final isProductsActive = [2, 3, 11, 17, 18, 19, 20, 21, 22, 23].contains(widget.selectedIndex);
+    final isPurchasesActive = [5, 26].contains(widget.selectedIndex);
+    final isSellActive = [1, 4, 25].contains(widget.selectedIndex);
+    final isContactsActive = [6, 7].contains(widget.selectedIndex);
+    final isTransfersActive = widget.selectedIndex == 13;
+    final isAdjustmentsActive = widget.selectedIndex == 14;
+    final isExpensesActive = widget.selectedIndex == 8;
+    final isReportsActive = [9, 24].contains(widget.selectedIndex);
+    final isSettingsActive = [10, 15, 27, 39, 40].contains(widget.selectedIndex);
+    final isIndustryActive = widget.selectedIndex >= 28 && widget.selectedIndex <= 38;
 
-      _sectionHeader('INVENTORY & SALES'),
+    return [
+      // 1. Home (Dashboard)
+      _navItem(
+        icon: Icons.home_outlined,
+        title: 'Home',
+        urduSubtitle: 'ڈیش بورڈ',
+        index: 0,
+      ),
+
+      // 2. User Management
+      if (canManageUsers)
+        _navItem(
+          icon: Icons.group_outlined,
+          title: 'User Management',
+          urduSubtitle: 'صارفین',
+          index: 12,
+          hasSubmenu: true,
+          isExpanded: _userMgmtExpanded,
+          isActiveParent: widget.selectedIndex == 12,
+          onToggleSubmenu: () => setState(() => _userMgmtExpanded = !_userMgmtExpanded),
+          onTapDirect: () => widget.onSelect(12),
+        ),
+      if (!widget.isCollapsed && _userMgmtExpanded && canManageUsers) ...[
+        _subItem(title: 'Users (صارفین کی فہرست)', index: 12),
+        _subItem(title: 'Roles & Permissions (اختیارات)', index: 12),
+        _subItem(title: 'Sales Commission Agents', index: 12),
+      ],
+
+      // 3. Contacts (Suppliers & Customers)
+      if (canKhata)
+        _navItem(
+          icon: Icons.contacts_outlined,
+          title: 'Contacts',
+          urduSubtitle: 'کھاتہ اور پارٹیز',
+          index: 6,
+          hasSubmenu: true,
+          isExpanded: _contactsExpanded,
+          isActiveParent: isContactsActive,
+          onToggleSubmenu: () => setState(() => _contactsExpanded = !_contactsExpanded),
+          onTapDirect: () => widget.onSelect(7),
+        ),
+      if (!widget.isCollapsed && _contactsExpanded && canKhata) ...[
+        _subItem(title: 'Suppliers (سپلائرز / وینڈرز)', index: 7),
+        _subItem(title: 'Customers (گاہک / کسٹمرز)', index: 6),
+        _subItem(title: 'Customer Groups (کسٹمر گروپس)', index: 6),
+      ],
+
+      // 4. Products
       _navItem(
         icon: Icons.inventory_2_outlined,
         title: 'Products',
+        urduSubtitle: 'پروڈکٹس اور سٹاک',
         index: 2,
         hasSubmenu: true,
         isExpanded: _productsExpanded,
+        isActiveParent: isProductsActive,
         onToggleSubmenu: () => setState(() => _productsExpanded = !_productsExpanded),
+        onTapDirect: () => widget.onSelect(2),
       ),
       if (!widget.isCollapsed && _productsExpanded) ...[
-        _subItem(title: 'List Products', index: 2),
-        if (canInventory) _subItem(title: 'Add Product', index: 11),
-        _subItem(title: 'Print Labels', index: 17),
+        _subItem(title: 'List Products (پروڈکٹس لسٹ)', index: 2),
+        if (canInventory) _subItem(title: 'Add Product (نیا پروڈکٹ شامل کریں)', index: 11),
+        _subItem(title: 'Print Labels (بارکوڈ لیبل پرنٹنگ)', index: 17),
         if (_isModEnabled(BusinessSettings.moduleVariations))
-          _subItem(title: 'Variations', index: 18),
-        if (canInventory) _subItem(title: 'Import Products', index: 23),
-        if (canSettings) _subItem(title: 'Selling Price Group', index: 22),
-        _subItem(title: 'Units', index: 19),
-        _subItem(title: 'Categories', index: 3),
-        _subItem(title: 'Brands', index: 20),
-        _subItem(title: 'Warranties', index: 21),
+          _subItem(title: 'Variations (ویرینٹس)', index: 18),
+        if (canInventory) _subItem(title: 'Import Products (پروڈکٹس امپورٹ)', index: 23),
+        if (canSettings) _subItem(title: 'Selling Price Group (قیمت کے گروپس)', index: 22),
+        _subItem(title: 'Units (پیمائش کے یونٹس)', index: 19),
+        _subItem(title: 'Categories (کیٹیگریز)', index: 3),
+        _subItem(title: 'Brands (برانڈز)', index: 20),
+        _subItem(title: 'Warranties (وارنٹیز)', index: 21),
       ],
 
+      // 5. Purchases
       _navItem(
-        icon: Icons.point_of_sale_outlined,
+        icon: Icons.arrow_circle_down_outlined,
+        title: 'Purchases',
+        urduSubtitle: 'خریداری / سٹاک ان',
+        index: 5,
+        hasSubmenu: true,
+        isExpanded: _purchasesExpanded,
+        isActiveParent: isPurchasesActive,
+        onToggleSubmenu: () => setState(() => _purchasesExpanded = !_purchasesExpanded),
+        onTapDirect: () => widget.onSelect(5),
+      ),
+      if (!widget.isCollapsed && _purchasesExpanded) ...[
+        _subItem(title: 'List Purchases (خریداریوں کی لسٹ)', index: 5),
+        _subItem(title: 'Add Purchase (نئی خریداری درج کریں)', index: 5),
+        if (_isModEnabled(BusinessSettings.moduleReturns))
+          _subItem(title: 'Purchase Return (خریداری واپسی)', index: 26),
+      ],
+
+      // 6. Sell
+      _navItem(
+        icon: Icons.arrow_circle_up_outlined,
         title: 'Sell',
+        urduSubtitle: 'سیل / بلنگ',
         index: 4,
         hasSubmenu: true,
         isExpanded: _sellExpanded,
+        isActiveParent: isSellActive,
         onToggleSubmenu: () => setState(() => _sellExpanded = !_sellExpanded),
+        onTapDirect: () => widget.onSelect(4),
       ),
       if (!widget.isCollapsed && _sellExpanded) ...[
-        _subItem(title: 'POS Terminal (F1)', index: 1),
-        _subItem(title: 'All Sales Orders', index: 4),
+        _subItem(title: 'All Sales (تمام سیل انوائسز)', index: 4),
+        _subItem(title: 'POS Terminal (F1) (فوری کاؤنٹر سیل)', index: 1),
+        _subItem(title: 'List POS (پی او ایس بلز)', index: 4),
         if (_isModEnabled(BusinessSettings.moduleReturns))
-          _subItem(title: 'Sales Returns (Credit Notes)', index: 25),
+          _subItem(title: 'Sales Return (سیلز ریٹرن)', index: 25),
       ],
 
-      _navItem(icon: Icons.shopping_bag_outlined, title: 'Purchases', index: 5),
-      if (_isModEnabled(BusinessSettings.moduleReturns))
-        _navItem(icon: Icons.keyboard_return_rounded, title: 'Purchase Returns (Debit Notes)', index: 26),
-      if (canInventory && _isModEnabled(BusinessSettings.moduleStockAudit))
-        _navItem(icon: Icons.fact_check_outlined, title: 'Stock & Expiry Audit', index: 24),
-      if (canInventory && _isModEnabled(BusinessSettings.moduleStockTransfers))
-        _navItem(icon: Icons.sync_alt_rounded, title: 'Stock Transfers', index: 13),
-      if (canInventory)
-        _navItem(icon: Icons.tune_rounded, title: 'Stock Adjustment', index: 14),
-
-      if (widget.settings?.hasAnyIndustryModuleEnabled == true) ...[
-        _sectionHeader('INDUSTRY MODULES'),
+      // 7. Stock Transfers
+      if (canInventory && _isModEnabled(BusinessSettings.moduleStockTransfers)) ...[
         _navItem(
-          icon: Icons.hub_rounded,
-          title: 'Industry Hub',
+          icon: Icons.local_shipping_outlined,
+          title: 'Stock Transfers',
+          urduSubtitle: 'برانچوں میں ٹرانسفر',
+          index: 13,
+          hasSubmenu: true,
+          isExpanded: _transfersExpanded,
+          isActiveParent: isTransfersActive,
+          onToggleSubmenu: () => setState(() => _transfersExpanded = !_transfersExpanded),
+          onTapDirect: () => widget.onSelect(13),
+        ),
+        if (!widget.isCollapsed && _transfersExpanded) ...[
+          _subItem(title: 'List Stock Transfers (تمام ٹرانسفرز)', index: 13),
+          _subItem(title: 'Add Stock Transfer (نیا ٹرانسفر بھیجیں)', index: 13),
+        ],
+      ],
+
+      // 8. Stock Adjustment
+      if (canInventory) ...[
+        _navItem(
+          icon: Icons.tune_outlined,
+          title: 'Stock Adjustment',
+          urduSubtitle: 'سٹاک درستگی / ضیاع',
+          index: 14,
+          hasSubmenu: true,
+          isExpanded: _adjustmentsExpanded,
+          isActiveParent: isAdjustmentsActive,
+          onToggleSubmenu: () => setState(() => _adjustmentsExpanded = !_adjustmentsExpanded),
+          onTapDirect: () => widget.onSelect(14),
+        ),
+        if (!widget.isCollapsed && _adjustmentsExpanded) ...[
+          _subItem(title: 'List Stock Adjustments (ایڈجسٹمنٹ لسٹ)', index: 14),
+          _subItem(title: 'Add Stock Adjustment (سٹاک درست کریں)', index: 14),
+        ],
+      ],
+
+      // 9. Expenses
+      if (_isModEnabled(BusinessSettings.moduleExpenses)) ...[
+        _navItem(
+          icon: Icons.attach_money_rounded,
+          title: 'Expenses',
+          urduSubtitle: 'دکان کے اخراجات',
+          index: 8,
+          hasSubmenu: true,
+          isExpanded: _expensesExpanded,
+          isActiveParent: isExpensesActive,
+          onToggleSubmenu: () => setState(() => _expensesExpanded = !_expensesExpanded),
+          onTapDirect: () => widget.onSelect(8),
+        ),
+        if (!widget.isCollapsed && _expensesExpanded) ...[
+          _subItem(title: 'List Expenses (تمام اخراجات)', index: 8),
+          _subItem(title: 'Add Expense (نیا خرچہ شامل کریں)', index: 8),
+        ],
+      ],
+
+      // 10. Reports
+      if (canReports) ...[
+        _navItem(
+          icon: Icons.assessment_outlined,
+          title: 'Reports',
+          urduSubtitle: 'کاروباری رپورٹس',
+          index: 9,
+          hasSubmenu: true,
+          isExpanded: _reportsExpanded,
+          isActiveParent: isReportsActive,
+          onToggleSubmenu: () => setState(() => _reportsExpanded = !_reportsExpanded),
+          onTapDirect: () => widget.onSelect(9),
+        ),
+        if (!widget.isCollapsed && _reportsExpanded) ...[
+          _subItem(title: 'Profit / Loss Report (نفع و نقصان رپورٹ)', index: 9),
+          _subItem(title: 'Purchase & Sale (خرید و فروخت رپورٹ)', index: 9),
+          _subItem(title: 'Tax Report (ٹیکس رپورٹ)', index: 9),
+          _subItem(title: 'Supplier & Customer Report (کھاتہ رپورٹ)', index: 9),
+          if (_isModEnabled(BusinessSettings.moduleStockAudit))
+            _subItem(title: 'Stock & Expiry Audit (سٹاک و ایکسپائری آڈٹ)', index: 24),
+          _subItem(title: 'Trending Products (زیادہ بکنے والا مال)', index: 9),
+        ],
+      ],
+
+      // 11. Notification Templates
+      _navItem(
+        icon: Icons.mail_outline_rounded,
+        title: 'Notification Templates',
+        urduSubtitle: 'اطلاعات کے ٹیمپلیٹس',
+        index: 16,
+      ),
+
+      // 12. Settings
+      if (canSettings) ...[
+        _navItem(
+          icon: Icons.settings_outlined,
+          title: 'Settings',
+          urduSubtitle: 'سسٹم سیٹنگز',
+          index: 10,
+          hasSubmenu: true,
+          isExpanded: _settingsExpanded,
+          isActiveParent: isSettingsActive,
+          onToggleSubmenu: () => setState(() => _settingsExpanded = !_settingsExpanded),
+          onTapDirect: () => widget.onSelect(10),
+        ),
+        if (!widget.isCollapsed && _settingsExpanded) ...[
+          _subItem(title: 'Business Settings (کاروباری سیٹنگز)', index: 10),
+          _subItem(title: 'Business Locations (برانچز / لوکیشنز)', index: 10),
+          _subItem(title: 'Payment Accounts (بینک و کیش اکاؤنٹس)', index: 15),
+          if (_isModEnabled(BusinessSettings.moduleFiscalClosing))
+            _subItem(title: 'Annual Fiscal Closing (سالانہ اختتامی کلوزنگ)', index: 27),
+          _subItem(title: 'Cloud & MySQL Sync (کلاؤڈ سنک)', index: 40),
+          _subItem(title: 'Modular Features (اضافی فیچرز)', index: 39),
+        ],
+      ],
+
+      // 13. Industry Modules Hub (Optional for niche businesses)
+      if (widget.settings?.hasAnyIndustryModuleEnabled == true) ...[
+        _navItem(
+          icon: Icons.widgets_outlined,
+          title: 'Industry Modules',
+          urduSubtitle: 'خصوصی ماڈیولز',
           index: 28,
           hasSubmenu: true,
           isExpanded: _industryExpanded,
+          isActiveParent: isIndustryActive,
           onToggleSubmenu: () => setState(() => _industryExpanded = !_industryExpanded),
+          onTapDirect: () => widget.onSelect(28),
         ),
         if (!widget.isCollapsed && _industryExpanded) ...[
           _subItem(title: 'All Modules Hub', index: 28),
           if (_isModEnabled(BusinessSettings.moduleRestaurant))
-            _subItem(title: '️ Restaurant / Cafe', index: 29),
+            _subItem(title: 'Restaurant / Cafe', index: 29),
           if (_isModEnabled(BusinessSettings.moduleRepair))
             _subItem(title: 'Repair Shop / Service', index: 30),
           if (_isModEnabled(BusinessSettings.moduleHotel))
             _subItem(title: 'Hotel Management', index: 31),
           if (_isModEnabled(BusinessSettings.moduleGym))
-            _subItem(title: '️ Gym & Fitness Center', index: 32),
+            _subItem(title: 'Gym & Fitness Center', index: 32),
           if (_isModEnabled(BusinessSettings.moduleManufacturing))
             _subItem(title: 'Manufacturing / BOM', index: 33),
           if (_isModEnabled(BusinessSettings.moduleWooCommerce))
@@ -581,27 +564,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           if (_isModEnabled(BusinessSettings.modulePoultry))
             _subItem(title: 'Poultry Farm & Trading', index: 38),
         ],
-      ],
-
-      _sectionHeader('FINANCE & ACCOUNTS'),
-      if (_isModEnabled(BusinessSettings.moduleExpenses))
-        _navItem(icon: Icons.receipt_long_outlined, title: 'Expenses', index: 8),
-      _navItem(icon: Icons.account_balance_outlined, title: 'Payment Accounts', index: 15),
-      if (canReports)
-        _navItem(icon: Icons.analytics_outlined, title: 'Reports', index: 9),
-      if (canSettings && _isModEnabled(BusinessSettings.moduleFiscalClosing))
-        _navItem(icon: Icons.account_balance_wallet_rounded, title: 'Annual Fiscal Closing', index: 27),
-
-      _sectionHeader('PEOPLE & SETTINGS'),
-      if (canKhata)
-        _navItem(icon: Icons.people_outline, title: 'Contacts & Khata', index: 6),
-      if (canManageUsers)
-        _navItem(icon: Icons.badge_outlined, title: 'User Management & Auth', index: 12),
-      if (canSettings) ...[
-        _navItem(icon: Icons.notifications_none_outlined, title: 'Notification Templates', index: 16),
-        _navItem(icon: Icons.dashboard_customize_outlined, title: 'Modular Features', index: 39),
-        _navItem(icon: Icons.cloud_sync_outlined, title: 'Cloud & MySQL Sync', index: 40),
-        _navItem(icon: Icons.settings_outlined, title: 'Settings', index: 10),
       ],
     ];
   }
@@ -648,7 +610,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
               ),
             ),
 
-          // Dynamic Menu Items List by Industry Persona
+          // Menu Items List matching Ultimate POS
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 4),

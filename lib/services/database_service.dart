@@ -3721,12 +3721,26 @@ class DatabaseService {
     final customerCount = (contactResult.first['customer_count'] as int?) ?? 0;
     final supplierCount = (contactResult.first['supplier_count'] as int?) ?? 0;
 
+    double totalSellReturn = 0.0;
+    try {
+      final sRetRes = await db.rawQuery("SELECT SUM(total_return_amount) as total FROM sale_returns");
+      totalSellReturn = (sRetRes.first['total'] as num?)?.toDouble() ?? 0.0;
+    } catch (_) {}
+
+    double totalPurchaseReturn = 0.0;
+    try {
+      final pRetRes = await db.rawQuery("SELECT SUM(total_return_amount) as total FROM purchase_returns");
+      totalPurchaseReturn = (pRetRes.first['total'] as num?)?.toDouble() ?? 0.0;
+    } catch (_) {}
+
     return {
       'totalSales': totalSales,
       'invoiceDue': invoiceDue,
       'totalPurchases': totalPurchases,
       'purchaseDue': purchaseDue,
       'totalExpenses': totalExpenses,
+      'totalSellReturn': totalSellReturn,
+      'totalPurchaseReturn': totalPurchaseReturn,
       'netProfit': totalSales - (totalPurchases * 0.7) - totalExpenses,
       'totalProducts': totalProducts,
       'lowStockCount': lowStockCount,

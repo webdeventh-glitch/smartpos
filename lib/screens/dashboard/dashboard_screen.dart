@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
+import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../widgets/status_pill.dart';
 import '../pos/receipt_dialog.dart';
@@ -54,7 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final db = await DatabaseService.initialize();
       final metrics = await db.getDashboardMetrics();
       final todayMetrics = await db.getTodaySalesMetrics();
-      final trend = await db.getDailySalesTrend(days: 7);
+      final trend = await db.getDailySalesTrend(days: 30);
       final paymentBreakdown = await db.getPaymentMethodBreakdown();
       final topProducts = await db.getTopSellingProducts(limit: 5);
       final lowStock = await db.getLowStockProducts();
@@ -94,6 +95,121 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showDialog(
       context: context,
       builder: (_) => RegisterDetailsDialog(settings: widget.settings),
+    );
+  }
+
+  // ================= ULTIMATE POS STAT CARD =================
+  Widget _ultimatePosCard({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBg,
+    required String title,
+    String? subtitle,
+    required String value,
+    bool showInfo = false,
+    String? tooltip,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: isDark ? const Color(0xFF334155).withValues(alpha: 0.3) : const Color(0xFFF8FAFC),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isDark ? iconColor.withValues(alpha: 0.15) : iconBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Icon(icon, color: iconColor, size: 22),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                        if (showInfo) ...[
+                          const SizedBox(width: 4),
+                          Tooltip(
+                            message: tooltip ?? title,
+                            child: const Icon(
+                              Icons.info_outline_rounded,
+                              size: 14,
+                              color: Color(0xFF0EA5E9),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -374,18 +490,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final totalSales = (_metrics['totalSales'] as double?) ?? 0.0;
     final netProfit = (_metrics['netProfit'] as double?) ?? 0.0;
     final invoiceDue = (_metrics['invoiceDue'] as double?) ?? 0.0;
+    final totalSellReturn = (_metrics['totalSellReturn'] as double?) ?? 0.0;
     final totalPurchases = (_metrics['totalPurchases'] as double?) ?? 0.0;
     final purchaseDue = (_metrics['purchaseDue'] as double?) ?? 0.0;
+    final totalPurchaseReturn = (_metrics['totalPurchaseReturn'] as double?) ?? 0.0;
     final totalExpenses = (_metrics['totalExpenses'] as double?) ?? 0.0;
-    final totalProducts = (_metrics['totalProducts'] as int?) ?? 0;
-    final lowStockCount = (_metrics['lowStockCount'] as int?) ?? 0;
 
-    final todaySales = (_todayMetrics['todaySales'] as double?) ?? 0.0;
-    final todayCash = (_todayMetrics['todayCash'] as double?) ?? 0.0;
-    final todayOrders = (_todayMetrics['todayOrders'] as int?) ?? 0;
-
-    final netMarginPercent = totalSales > 0 ? ((netProfit / totalSales) * 100).clamp(-100.0, 100.0) : 0.0;
-    final nowFormatted = DateFormat('EEEE, d MMMM yyyy').format(DateTime.now());
+    final currentUser = AuthService.currentUser;
+    final userName = (currentUser != null && currentUser.name.isNotEmpty)
+        ? currentUser.name.split(' ').first
+        : (widget.settings.businessName.isNotEmpty ? widget.settings.businessName.split(' ').first : 'Waseem');
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
@@ -394,190 +508,214 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ================= 1. EXECUTIVE TOP BAR & GREETING =================
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 800;
-
-                final leftGreeting = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${_getTimeOfDayGreeting()}, Admin',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
-                            letterSpacing: -0.5,
+            // ================= 1. ULTIMATE POS HERO BANNER =================
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0F56B3), Color(0xFF1E60C2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1F0F56B3),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Welcome $userName, Admin',
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('👋', style: TextStyle(fontSize: 26)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      // Filter by date dropdown
+                      Container(
+                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [BoxShadow(color: Color(0x15000000), blurRadius: 4)],
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _dateFilter,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF334155)),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E293B),
+                            ),
+                            items: ['Today', 'This Week', 'This Month', 'This Quarter', 'This Year']
+                                .map((f) => DropdownMenuItem(value: f, child: Text(f)))
+                                .toList(),
+                            onChanged: (val) {
+                              if (val != null) setState(() => _dateFilter = val);
+                            },
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        const Text('', style: TextStyle(fontSize: 22)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          nowFormatted,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0),
+                      ),
+                      const SizedBox(width: 8),
+                      // Refresh button
+                      Tooltip(
+                        message: 'Refresh live dashboard data',
+                        child: InkWell(
+                          onTap: _refreshing ? null : () => _loadDashboardData(isRefresh: true),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [BoxShadow(color: Color(0x15000000), blurRadius: 4)],
+                            ),
+                            child: Center(
+                              child: _refreshing
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F56B3)),
+                                    )
+                                  : const Icon(Icons.refresh_rounded, size: 18, color: Color(0xFF0F56B3)),
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF10B981)),
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                '${widget.settings.branchName} • Online',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF10B981),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-
-                final rightControls = Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Date Filter
-                    Container(
-                      height: 38,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                        boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 4)],
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _dateFilter,
-                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white : const Color(0xFF1E293B),
-                          ),
-                          items: ['Today', 'This Week', 'This Month', 'This Quarter', 'This Year']
-                              .map((f) => DropdownMenuItem(value: f, child: Text(f)))
-                              .toList(),
-                          onChanged: (val) {
-                            if (val != null) setState(() => _dateFilter = val);
-                          },
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Refresh Button
-                    Tooltip(
-                      message: 'Refresh live dashboard data',
-                      child: InkWell(
-                        onTap: _refreshing ? null : () => _loadDashboardData(isRefresh: true),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                          ),
-                          child: Center(
-                            child: _refreshing
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4F46E5)),
-                                  )
-                                : Icon(Icons.refresh_rounded, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-
-                    // Primary POS Button
-                    ElevatedButton.icon(
-                      onPressed: widget.onNavigateToPos,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4F46E5),
-                        foregroundColor: Colors.white,
-                        elevation: 1,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      icon: const Icon(Icons.bolt_rounded, size: 18, color: Colors.amberAccent),
-                      label: const Text(
-                        'POS Terminal (F1)',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                );
-
-                if (isNarrow) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      leftGreeting,
-                      const SizedBox(height: 14),
-                      rightControls,
                     ],
-                  );
-                }
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
 
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+            // ================= 2. ULTIMATE POS 8 KPI METRIC CARDS =================
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final cols = width > 1150 ? 4 : (width > 650 ? 2 : 1);
+
+                return GridView.count(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: width > 1150 ? 2.6 : 3.0,
                   children: [
-                    leftGreeting,
-                    rightControls,
+                    // 1. Total Sales
+                    _ultimatePosCard(
+                      icon: Icons.shopping_cart_outlined,
+                      iconColor: const Color(0xFF0284C7),
+                      iconBg: const Color(0xFFE0F2FE),
+                      title: 'Total Sales',
+                      subtitle: 'Total Sales Revenue',
+                      value: '$currency ${totalSales.toStringAsFixed(2)}',
+                      onTap: () => widget.onNavigateToTab(4),
+                    ),
+
+                    // 2. Net
+                    _ultimatePosCard(
+                      icon: Icons.payments_outlined,
+                      iconColor: const Color(0xFF16A34A),
+                      iconBg: const Color(0xFFDCFCE7),
+                      title: 'Net',
+                      value: '$currency ${netProfit.toStringAsFixed(2)}',
+                      showInfo: true,
+                      tooltip: 'Net Profit = Total Sales - Cost of Goods - Expenses',
+                      onTap: () => widget.onNavigateToTab(9),
+                    ),
+
+                    // 3. Invoice due
+                    _ultimatePosCard(
+                      icon: Icons.description_outlined,
+                      iconColor: const Color(0xFFD97706),
+                      iconBg: const Color(0xFFFEF3C7),
+                      title: 'Invoice due',
+                      value: '$currency ${invoiceDue.toStringAsFixed(2)}',
+                      onTap: () => widget.onNavigateToTab(6),
+                    ),
+
+                    // 4. Total Sell Return
+                    _ultimatePosCard(
+                      icon: Icons.swap_horiz_rounded,
+                      iconColor: const Color(0xFFDC2626),
+                      iconBg: const Color(0xFFFEE2E2),
+                      title: 'Total Sell Return',
+                      value: '$currency ${totalSellReturn.toStringAsFixed(2)}',
+                      showInfo: true,
+                      tooltip: 'Total customer product sales returns',
+                      onTap: () => widget.onNavigateToTab(25),
+                    ),
+
+                    // 5. Total purchase
+                    _ultimatePosCard(
+                      icon: Icons.arrow_circle_down_outlined,
+                      iconColor: const Color(0xFF00ACC1),
+                      iconBg: const Color(0xFFE0F7FA),
+                      title: 'Total purchase',
+                      subtitle: 'Total Purchases',
+                      value: '$currency ${totalPurchases.toStringAsFixed(2)}',
+                      onTap: () => widget.onNavigateToTab(5),
+                    ),
+
+                    // 6. Purchase due
+                    _ultimatePosCard(
+                      icon: Icons.warning_amber_rounded,
+                      iconColor: const Color(0xFFD97706),
+                      iconBg: const Color(0xFFFEF3C7),
+                      title: 'Purchase due',
+                      value: '$currency ${purchaseDue.toStringAsFixed(2)}',
+                      onTap: () => widget.onNavigateToTab(7),
+                    ),
+
+                    // 7. Total Purchase Return
+                    _ultimatePosCard(
+                      icon: Icons.assignment_return_outlined,
+                      iconColor: const Color(0xFFDC2626),
+                      iconBg: const Color(0xFFFEE2E2),
+                      title: 'Total Purchase Return',
+                      value: '$currency ${totalPurchaseReturn.toStringAsFixed(2)}',
+                      showInfo: true,
+                      tooltip: 'Total supplier purchase returns',
+                      onTap: () => widget.onNavigateToTab(26),
+                    ),
+
+                    // 8. Expense
+                    _ultimatePosCard(
+                      icon: Icons.money_outlined,
+                      iconColor: const Color(0xFFDC2626),
+                      iconBg: const Color(0xFFFEE2E2),
+                      title: 'Expense',
+                      value: '$currency ${totalExpenses.toStringAsFixed(2)}',
+                      onTap: () => widget.onNavigateToTab(8),
+                    ),
                   ],
                 );
               },
             ),
             const SizedBox(height: 18),
 
-            // ================= 2. QUICK ACTIONS RIBBON =================
+            // ================= 3. QUICK ACTIONS RIBBON =================
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -598,6 +736,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onTap: () => widget.onNavigateToTab(5),
                 ),
                 _actionPill(
+                  icon: Icons.people_outline,
+                  label: 'Customers / گاہکوں کا کھاتہ',
+                  onTap: () => widget.onNavigateToTab(6),
+                ),
+                _actionPill(
+                  icon: Icons.local_shipping_outlined,
+                  label: 'Suppliers / سپلائرز کھاتہ',
+                  onTap: () => widget.onNavigateToTab(7),
+                ),
+                _actionPill(
                   icon: Icons.point_of_sale_outlined,
                   label: 'Cash Register (F2)',
                   onTap: _openRegisterDialog,
@@ -613,178 +761,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onTap: () => widget.onNavigateToTab(9),
                 ),
               ],
-            ),
-            const SizedBox(height: 20),
-
-            // ================= 3. TOP 4 HERO KPI CARDS =================
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                final cols = width > 1150 ? 4 : (width > 650 ? 2 : 1);
-
-                return GridView.count(
-                  crossAxisCount: cols,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: width > 1150 ? 1.7 : 2.1,
-                  children: [
-                    // Total Sales Revenue
-                    _heroStatCard(
-                      icon: Icons.payments_outlined,
-                      iconColor: const Color(0xFF4F46E5),
-                      iconBg: const Color(0xFFEEF2FF),
-                      title: 'Total Sales Revenue',
-                      value: '$currency ${totalSales.toStringAsFixed(2)}',
-                      subtitle: 'Store Invoiced',
-                      badgeText: '+14.8%',
-                      badgeIcon: Icons.arrow_upward_rounded,
-                      badgeBg: const Color(0xFFECFDF5),
-                      badgeTextColor: const Color(0xFF059669),
-                      onTap: () => widget.onNavigateToTab(4),
-                    ),
-
-                    // Net Operating Profit
-                    _heroStatCard(
-                      icon: Icons.trending_up_rounded,
-                      iconColor: const Color(0xFF059669),
-                      iconBg: const Color(0xFFECFDF5),
-                      title: 'Net Operating Profit',
-                      value: '$currency ${netProfit.toStringAsFixed(2)}',
-                      subtitle: 'Revenue - COGS - Exp',
-                      badgeText: '${netMarginPercent.toStringAsFixed(1)}% Margin',
-                      badgeBg: const Color(0xFFF0FDF4),
-                      badgeTextColor: const Color(0xFF16A34A),
-                      onTap: () => widget.onNavigateToTab(9),
-                    ),
-
-                    // Outstanding Invoices (Due)
-                    _heroStatCard(
-                      icon: Icons.pending_actions_rounded,
-                      iconColor: const Color(0xFFD97706),
-                      iconBg: const Color(0xFFFEF3C7),
-                      title: 'Customer Receivables',
-                      value: '$currency ${invoiceDue.toStringAsFixed(2)}',
-                      subtitle: 'Pending Collection',
-                      badgeText: invoiceDue > 0 ? 'Dues Pending' : 'Clean',
-                      badgeBg: invoiceDue > 0 ? const Color(0xFFFFFBEB) : const Color(0xFFF1F5F9),
-                      badgeTextColor: invoiceDue > 0 ? const Color(0xFFB45309) : const Color(0xFF64748B),
-                      onTap: () => widget.onNavigateToTab(6),
-                    ),
-
-                    // Today's Turnover & Drawer Cash
-                    _heroStatCard(
-                      icon: Icons.point_of_sale_rounded,
-                      iconColor: const Color(0xFF0284C7),
-                      iconBg: const Color(0xFFE0F2FE),
-                      title: "Today's POS Sales",
-                      value: '$currency ${todaySales.toStringAsFixed(2)}',
-                      subtitle: '$todayOrders orders today',
-                      badgeText: 'Cash: $currency${todayCash.toStringAsFixed(0)}',
-                      badgeBg: const Color(0xFFF0F9FF),
-                      badgeTextColor: const Color(0xFF0369A1),
-                      onTap: _openRegisterDialog,
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 14),
-
-            // ================= 4. SECONDARY 4-METRIC STRIP =================
-            LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth < 900) {
-                  return Column(
-                    children: [
-                      Row(
-                        children: [
-                          _compactMetricItem(
-                            icon: Icons.inventory_2_outlined,
-                            color: const Color(0xFF7C3AED),
-                            label: 'Total Purchases',
-                            value: '$currency ${totalPurchases.toStringAsFixed(2)}',
-                            note: 'Stock Inflow',
-                            onTap: () => widget.onNavigateToTab(5),
-                          ),
-                          const SizedBox(width: 10),
-                          _compactMetricItem(
-                            icon: Icons.warning_amber_rounded,
-                            color: const Color(0xFFEA580C),
-                            label: 'Vendor Payables',
-                            value: '$currency ${purchaseDue.toStringAsFixed(2)}',
-                            note: 'Due to pay',
-                            onTap: () => widget.onNavigateToTab(7),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          _compactMetricItem(
-                            icon: Icons.receipt_long_outlined,
-                            color: const Color(0xFFDC2626),
-                            label: 'Store Expenses',
-                            value: '$currency ${totalExpenses.toStringAsFixed(2)}',
-                            note: 'Overheads',
-                            onTap: () => widget.onNavigateToTab(8),
-                          ),
-                          const SizedBox(width: 10),
-                          _compactMetricItem(
-                            icon: Icons.category_outlined,
-                            color: const Color(0xFF0284C7),
-                            label: 'Catalog Health',
-                            value: '$totalProducts Items',
-                            note: lowStockCount > 0 ? '$lowStockCount Low!' : 'Healthy',
-                            onTap: () => widget.onNavigateToTab(2),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                }
-
-                return Row(
-                  children: [
-                    _compactMetricItem(
-                      icon: Icons.inventory_2_outlined,
-                      color: const Color(0xFF7C3AED),
-                      label: 'Total Purchases',
-                      value: '$currency ${totalPurchases.toStringAsFixed(2)}',
-                      note: 'Stock Inflow',
-                      onTap: () => widget.onNavigateToTab(5),
-                    ),
-                    const SizedBox(width: 12),
-                    _compactMetricItem(
-                      icon: Icons.warning_amber_rounded,
-                      color: const Color(0xFFEA580C),
-                      label: 'Vendor Payables',
-                      value: '$currency ${purchaseDue.toStringAsFixed(2)}',
-                      note: 'Due to pay',
-                      onTap: () => widget.onNavigateToTab(7),
-                    ),
-                    const SizedBox(width: 12),
-                    _compactMetricItem(
-                      icon: Icons.receipt_long_outlined,
-                      color: const Color(0xFFDC2626),
-                      label: 'Store Expenses',
-                      value: '$currency ${totalExpenses.toStringAsFixed(2)}',
-                      note: 'Overheads',
-                      onTap: () => widget.onNavigateToTab(8),
-                    ),
-                    const SizedBox(width: 12),
-                    _compactMetricItem(
-                      icon: Icons.category_outlined,
-                      color: const Color(0xFF0284C7),
-                      label: 'Catalog Health',
-                      value: '$totalProducts Items',
-                      note: lowStockCount > 0 ? '$lowStockCount Low Stock' : 'Optimal',
-                      onTap: () => widget.onNavigateToTab(2),
-                    ),
-                  ],
-                );
-              },
             ),
             const SizedBox(height: 24),
 
@@ -973,54 +949,96 @@ class _DashboardScreenState extends State<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header with switch
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 10,
             children: [
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(9),
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                      borderRadius: BorderRadius.circular(10),
+                      color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFE0F2FE),
+                      shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.show_chart_rounded, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 20),
+                    child: Center(
+                      child: Icon(Icons.shopping_cart_outlined, color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF0284C7), size: 20),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Sales & Revenue Velocity',
+                        'Sales Last 30 Days',
                         style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
                           color: isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
                       ),
                       Text(
-                        _chartMode == 0 ? 'Daily revenue over the past 7 days' : 'Daily completed transactions count',
-                        style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8)),
+                        _chartMode == 0 ? 'Daily sales turnover (Sales & Revenue Velocity)' : 'Daily completed transactions count',
+                        style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                       ),
                     ],
                   ),
                 ],
               ),
 
-              // Mode toggle (Revenue vs Orders)
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _toggleBtn('Revenue', 0, isDark),
-                    _toggleBtn('Orders', 1, isDark),
-                  ],
-                ),
+              // Legend + Mode toggle (Revenue vs Orders)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF0F56B3),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${widget.settings.businessName} (BL0001)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _toggleBtn('Revenue', 0, isDark),
+                        _toggleBtn('Orders', 1, isDark),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1050,6 +1068,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       getTitlesWidget: (val, meta) {
                         final idx = val.toInt();
                         if (idx >= 0 && idx < _salesTrend.length) {
+                          if (_salesTrend.length > 10 && idx % 4 != 0 && idx != _salesTrend.length - 1) {
+                            return const SizedBox.shrink();
+                          }
                           return Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
@@ -1058,7 +1079,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           );
                         }
-                        return const Text('');
+                        return const SizedBox.shrink();
                       },
                     ),
                   ),
@@ -1068,10 +1089,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       reservedSize: 48,
                       getTitlesWidget: (val, meta) {
                         if (val == meta.max || val == meta.min) return const Text('');
-                        final prefix = _chartMode == 0 ? currency : '';
+                        if (val >= 1000) {
+                          final kVal = (val / 1000).toStringAsFixed(0);
+                          return Text(
+                            '${kVal}k',
+                            style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+                          );
+                        }
                         return Text(
-                          '$prefix${val.toInt()}',
-                          style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                          val.toInt().toString(),
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
                         );
                       },
                     ),
@@ -1087,7 +1114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     spots: spots,
                     isCurved: true,
                     curveSmoothness: 0.35,
-                    color: const Color(0xFF4F46E5),
+                    color: const Color(0xFF0F56B3),
                     barWidth: 3.2,
                     isStrokeCapRound: true,
                     dotData: FlDotData(
@@ -1096,15 +1123,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         radius: 4,
                         color: isDark ? const Color(0xFF1E293B) : Colors.white,
                         strokeWidth: 2.5,
-                        strokeColor: const Color(0xFF4F46E5),
+                        strokeColor: const Color(0xFF0F56B3),
                       ),
                     ),
                     belowBarData: BarAreaData(
                       show: true,
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFF4F46E5).withValues(alpha: 0.25),
-                          const Color(0xFF4F46E5).withValues(alpha: 0.0),
+                          const Color(0xFF0F56B3).withValues(alpha: 0.2),
+                          const Color(0xFF0F56B3).withValues(alpha: 0.0),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
