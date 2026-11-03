@@ -26,6 +26,8 @@ class AddProductScreen extends StatefulWidget {
 
 class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _nameFocusNode = FocusNode();
 
   // Text Controllers
   final _nameCtrl = TextEditingController();
@@ -83,6 +85,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
+    _nameFocusNode.dispose();
     _nameCtrl.dispose();
     _skuCtrl.dispose();
     _barcodeCtrl.dispose();
@@ -375,6 +379,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
       await _loadMetadata();
       setState(() {
         _selectedBrand = _brands.firstWhere((b) => b.id == id, orElse: () => _brands.last);
+        if (_nameCtrl.text.trim().isEmpty && _selectedBrand != null) {
+          _nameCtrl.text = _selectedBrand!.name;
+        }
       });
     }
   }
@@ -468,62 +475,121 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Future<bool> _saveProduct() async {
-    // Auto-generate SKU if left empty
+    // 1. If Product Name is empty, but user selected Brand or Category, auto-fill
+    if (_nameCtrl.text.trim().isEmpty) {
+      if (_selectedBrand != null && _selectedBrand!.name.isNotEmpty && _selectedBrand!.name != 'Standard') {
+        final catPart = (_selectedCategory != null && _selectedCategory!.name.isNotEmpty && _selectedCategory!.name != 'General')
+            ? ' ${_selectedCategory!.name}'
+            : '';
+        _nameCtrl.text = '${_selectedBrand!.name}$catPart'.trim();
+      }
+    }
+
+    // 2. Auto-generate SKU if left empty
     if (_skuCtrl.text.trim().isEmpty) {
       _autoGenerateSku();
     }
-    // Default purchase price to 0 if left empty
+    // 3. Sync barcode if empty
+    if (_barcodeCtrl.text.trim().isEmpty) {
+      _barcodeCtrl.text = _skuCtrl.text.trim();
+    }
+    // 4. Default purchase price to 0 if left empty
     if (_purchasePriceCtrl.text.trim().isEmpty) {
       _purchasePriceCtrl.text = '0.00';
     }
-    // Default opening stock to 0 if left empty
+    // 5. Default opening stock to 0 if left empty
     if (_openingStockCtrl.text.trim().isEmpty) {
       _openingStockCtrl.text = '0';
     }
+    // 6. Default selling price if empty
+    if (_sellingPriceCtrl.text.trim().isEmpty) {
+      _recalcSellingPrice();
+      if (_sellingPriceCtrl.text.trim().isEmpty || _sellingPriceCtrl.text.trim() == '0.00') {
+        _sellingPriceCtrl.text = _purchasePriceCtrl.text.trim();
+      }
+    }
 
-    if (!_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate() || _nameCtrl.text.trim().isEmpty) {
+      // Smoothly scroll to the top so the user instantly sees the missing fields
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOut,
+        );
+      }
+      _nameFocusNode.requestFocus();
+
       final missing = <String>[];
       if (_nameCtrl.text.trim().isEmpty) missing.add('Product Name (پروڈکٹ کا نام)');
-      if (_sellingPriceCtrl.text.trim().isEmpty) missing.add('Selling Price (فروخت کی قیمت)');
+      final sellingVal = double.tryParse(_sellingPriceCtrl.text.trim()) ?? 0.0;
+      if (sellingVal <= 0 && _productType == 'single') missing.add('Selling Price (فروخت کی قیمت)');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-          content: Text(
-            missing.isNotEmpty
-                ? 'براہ کرم ضروری خانے پر کریں: ${missing.join(", ")}'
-                : 'براہ کرم سرخ نشان والے خانے درست کریں (Please fill required fields)',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+                SizedBox(width: 10),
+                Text('Required Fields Missing', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+              ],
+            ),
+            content: Text(
+              missing.isNotEmpty
+                  ? 'براہ کرم درج ذیل خانے پر کریں تاکہ پروڈکٹ محفوظ ہو سکے:\n\n• ${missing.join("\n• ")}'
+                  : 'براہ کرم سرخ نشان والے تمام ضروری خانے درست کریں۔',
+              style: const TextStyle(fontSize: 14, height: 1.5),
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF004EEB),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _nameFocusNode.requestFocus();
+                },
+                child: const Text('OK / ٹھیک ہے'),
+              ),
+            ],
           ),
-        ),
-      );
+        );
+      }
       return false;
     }
 
     final name = _nameCtrl.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: Colors.red, content: Text('Product Name is required / پروڈکٹ کا نام ضروری ہے')),
-      );
-      return false;
-    }
-
     final purchase = double.tryParse(_purchasePriceCtrl.text.trim()) ?? 0.0;
     final selling = double.tryParse(_sellingPriceCtrl.text.trim()) ?? 0.0;
 
     if (_productType == 'single') {
       if (selling <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: Colors.red, content: Text('Selling Price must be greater than 0 / فروخت قیمت 0 سے زیادہ ہونی چاہیے')),
-        );
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(backgroundColor: Colors.red, content: Text('Selling Price must be greater than 0 / فروخت قیمت 0 سے زیادہ ہونی چاہیے')),
+          );
+        }
         return false;
       }
       if (purchase < 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: Colors.red, content: Text('Purchase Price cannot be negative.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(backgroundColor: Colors.red, content: Text('Purchase Price cannot be negative.')),
+          );
+        }
         return false;
       }
     }
@@ -542,28 +608,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
       }
       final expRegex = RegExp(r'^(0[1-9]|1[0-2])-\d{4}$|^\d{4}-(0[1-9]|1[0-2])(-\d{2})?$');
       if (!expRegex.hasMatch(expRaw)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: Colors.orange, content: Text('Expiry Date format should be MM-YYYY (e.g. 12-2028). Click calendar to select.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(backgroundColor: Colors.orange, content: Text('Expiry Date format should be MM-YYYY (e.g. 12-2028). Click calendar to select.')),
+          );
+        }
         return false;
       }
     }
 
     if (_productType == 'variable' && _variations.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.orange,
-          content: Text('Please add at least one variation (e.g. Small, Medium) for variable product.'),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.orange,
+            content: Text('Please add at least one variation (e.g. Small, Medium) for variable product.'),
+          ),
+        );
+      }
       return false;
     }
 
     setState(() => _isSaving = true);
     try {
       final db = await DatabaseService.initialize();
-      final purchase = double.tryParse(_purchasePriceCtrl.text.trim()) ?? 0.0;
-      final selling = double.tryParse(_sellingPriceCtrl.text.trim()) ?? 0.0;
       final stock = _manageStock ? (double.tryParse(_openingStockCtrl.text.trim()) ?? 0.0) : 999.0;
       final alert = double.tryParse(_alertQtyCtrl.text.trim()) ?? 5.0;
 
@@ -574,7 +642,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final packVal = double.tryParse(_packSizeCtrl.text.trim()) ?? 1.0;
 
       final product = Product(
-        name: _nameCtrl.text.trim(),
+        name: name,
         sku: _skuCtrl.text.trim().isEmpty ? 'SKU-${Random().nextInt(99999)}' : _skuCtrl.text.trim(),
         barcode: _barcodeCtrl.text.trim().isEmpty ? _skuCtrl.text.trim() : _barcodeCtrl.text.trim(),
         type: _productType,
@@ -599,7 +667,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (widget.productToEdit != null && widget.productToEdit!.id != null) {
         final toUpdate = Product(
           id: widget.productToEdit!.id,
-          name: _nameCtrl.text.trim(),
+          name: name,
           sku: _skuCtrl.text.trim(),
           barcode: _barcodeCtrl.text.trim(),
           type: _productType,
@@ -655,10 +723,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
         );
       }
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('Error saving product: $e\n$stack');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(backgroundColor: Colors.red, content: Text('Error saving product: $e')),
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: const Row(
+              children: [
+                Icon(Icons.error_outline_rounded, color: Colors.red, size: 28),
+                SizedBox(width: 10),
+                Text('Save Failed', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+              ],
+            ),
+            content: Text('پروڈکٹ محفوظ نہیں ہو سکی:\n\n$e', style: const TextStyle(fontSize: 14)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         );
       }
       return false;
@@ -728,6 +814,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
+        controller: _scrollController,
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
@@ -821,6 +908,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   _buildFieldLabel('Product Name / پروڈکٹ کا نام', isRequired: true),
                                   TextFormField(
                                     controller: _nameCtrl,
+                                    focusNode: _nameFocusNode,
                                     decoration: _inputDecor('e.g. Pepsi 500ml, Panadol 500mg, Cotton T-Shirt'),
                                     validator: (val) => val == null || val.trim().isEmpty ? 'Product Name is required / پروڈکٹ کا نام درج کریں' : null,
                                   ),
@@ -883,6 +971,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 _buildFieldLabel('Product Name / پروڈکٹ کا نام', isRequired: true),
                                 TextFormField(
                                   controller: _nameCtrl,
+                                  focusNode: _nameFocusNode,
                                   decoration: _inputDecor('e.g. Pepsi 500ml, Panadol 500mg'),
                                   validator: (val) => val == null || val.trim().isEmpty ? 'Product Name is required / پروڈکٹ کا نام درج کریں' : null,
                                 ),
@@ -893,7 +982,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _buildFieldLabel('SKU', hasInfo: true, info: 'Stock Keeping Unit'),
-                                TextFormField(controller: _skuCtrl, decoration: _inputDecor('SKU')),
+                                TextFormField(
+                                  controller: _skuCtrl,
+                                  decoration: _inputDecor('SKU').copyWith(
+                                    suffixIcon: IconButton(
+                                      icon: const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF004EEB)),
+                                      tooltip: 'Auto-generate SKU',
+                                      onPressed: _autoGenerateSku,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 16),
@@ -977,7 +1075,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                           items: _brands
                                               .map((b) => DropdownMenuItem(value: b, child: Text(b.name, style: const TextStyle(fontSize: 13))))
                                               .toList(),
-                                          onChanged: (val) => setState(() => _selectedBrand = val),
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _selectedBrand = val;
+                                              if (_nameCtrl.text.trim().isEmpty && val != null && val.name != 'Standard') {
+                                                _nameCtrl.text = val.name;
+                                              }
+                                            });
+                                          },
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -1747,21 +1852,26 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       side: const BorderSide(color: Color(0xFF004EEB)),
                       foregroundColor: const Color(0xFF004EEB),
                     ),
-                    onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final success = await _saveProduct();
-                      if (!mounted) return;
-                      if (success) {
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            backgroundColor: Color(0xFF10B981),
-                            content: Text('Product added successfully! Enter next product.'),
-                          ),
-                        );
-                        _nameCtrl.clear();
-                        _autoGenerateSku();
-                      }
-                    },
+                    onPressed: _isSaving
+                        ? null
+                        : () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            final success = await _saveProduct();
+                            if (!mounted) return;
+                            if (success) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  backgroundColor: Color(0xFF10B981),
+                                  content: Text('Product added successfully! Enter next product.'),
+                                ),
+                              );
+                              _nameCtrl.clear();
+                              _autoGenerateSku();
+                              if (_scrollController.hasClients) {
+                                _scrollController.animateTo(0.0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+                              }
+                            }
+                          },
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Save & Add Another', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
@@ -1781,8 +1891,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               widget.onProductCreated();
                             }
                           },
-                    icon: const Icon(Icons.check, size: 18),
-                    label: const Text('Save Product', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    icon: _isSaving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.check, size: 18),
+                    label: Text(
+                      _isSaving ? 'Saving Product...' : (widget.productToEdit != null ? 'Update Product' : 'Save Product'),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),

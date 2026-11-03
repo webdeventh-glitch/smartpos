@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' hide Category;
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -2045,7 +2046,7 @@ class DatabaseService {
       // Lock business type permanently to the first-installation configuration
       map['business_type'] = current.businessType;
     }
-    final targetId = settings.id ?? current.id ?? 1;
+    final targetId = settings.id ?? current.id;
     map['id'] = targetId;
     final count = await db.update('business_settings', map, where: 'id = ?', whereArgs: [targetId]);
     if (count == 0) {
@@ -2217,9 +2218,28 @@ class DatabaseService {
 
   Future<int> addProductWithVariations(Product product, List<ProductVariation> variations) async {
     return await db.transaction((txn) async {
-      final prodId = await txn.insert('products', product.toMap());
+      String uniqueSku = product.sku.trim();
+      if (uniqueSku.isEmpty) {
+        uniqueSku = 'PRD-${DateTime.now().millisecondsSinceEpoch % 1000000}';
+      }
+      final existingSku = await txn.query('products', where: 'sku = ? COLLATE NOCASE', whereArgs: [uniqueSku], limit: 1);
+      if (existingSku.isNotEmpty) {
+        uniqueSku = '$uniqueSku-${Random().nextInt(900) + 100}';
+      }
+
+      String uniqueBarcode = product.barcode.trim();
+      if (uniqueBarcode.isEmpty) {
+        uniqueBarcode = uniqueSku;
+      }
+      final existingBarcode = await txn.query('products', where: 'barcode = ? COLLATE NOCASE', whereArgs: [uniqueBarcode], limit: 1);
+      if (existingBarcode.isNotEmpty) {
+        uniqueBarcode = '$uniqueBarcode-${Random().nextInt(900) + 100}';
+      }
+
+      final pToSave = product.copyWith(sku: uniqueSku, barcode: uniqueBarcode);
+      final prodId = await txn.insert('products', pToSave.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
       for (var v in variations) {
-        await txn.insert('variations', v.toMap(prodId));
+        await txn.insert('variations', v.toMap(prodId), conflictAlgorithm: ConflictAlgorithm.replace);
       }
       return prodId;
     });
@@ -2227,10 +2247,10 @@ class DatabaseService {
 
   Future<void> updateProductWithVariations(Product product, List<ProductVariation> variations) async {
     await db.transaction((txn) async {
-      await txn.update('products', product.toMap(), where: 'id = ?', whereArgs: [product.id]);
+      await txn.update('products', product.toMap(), where: 'id = ?', whereArgs: [product.id], conflictAlgorithm: ConflictAlgorithm.replace);
       await txn.delete('variations', where: 'product_id = ?', whereArgs: [product.id]);
       for (var v in variations) {
-        await txn.insert('variations', v.toMap(product.id!));
+        await txn.insert('variations', v.toMap(product.id!), conflictAlgorithm: ConflictAlgorithm.replace);
       }
     });
   }
@@ -2291,15 +2311,38 @@ class DatabaseService {
   }
 
   Future<int> addProduct(Product product) async {
-    final id = await db.insert('products', product.toMap());
-    final pMap = product.toMap()..['id'] = id;
-    await queueSyncItem(
-      entityType: 'product',
-      entityId: id.toString(),
-      action: 'create',
-      payload: pMap,
-    );
-    triggerAsyncMySqlSync();
+    String uniqueSku = product.sku.trim();
+    if (uniqueSku.isEmpty) {
+      uniqueSku = 'PRD-${DateTime.now().millisecondsSinceEpoch % 1000000}';
+    }
+    final existingSku = await db.query('products', where: 'sku = ? COLLATE NOCASE', whereArgs: [uniqueSku], limit: 1);
+    if (existingSku.isNotEmpty) {
+      uniqueSku = '$uniqueSku-${Random().nextInt(900) + 100}';
+    }
+
+    String uniqueBarcode = product.barcode.trim();
+    if (uniqueBarcode.isEmpty) {
+      uniqueBarcode = uniqueSku;
+    }
+    final existingBarcode = await db.query('products', where: 'barcode = ? COLLATE NOCASE', whereArgs: [uniqueBarcode], limit: 1);
+    if (existingBarcode.isNotEmpty) {
+      uniqueBarcode = '$uniqueBarcode-${Random().nextInt(900) + 100}';
+    }
+
+    final pToSave = product.copyWith(sku: uniqueSku, barcode: uniqueBarcode);
+    final id = await db.insert('products', pToSave.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    final pMap = pToSave.toMap()..['id'] = id;
+    try {
+      await queueSyncItem(
+        entityType: 'product',
+        entityId: id.toString(),
+        action: 'create',
+        payload: pMap,
+      );
+      triggerAsyncMySqlSync();
+    } catch (e) {
+      debugPrint('Sync queue non-fatal notice: $e');
+    }
     return id;
   }
 
@@ -2314,14 +2357,18 @@ class DatabaseService {
 
   Future<int> updateProduct(Product product) async {
     final res = await db.update('products', product.toMap(),
-        where: 'id = ?', whereArgs: [product.id]);
-    await queueSyncItem(
-      entityType: 'product',
-      entityId: (product.id ?? 0).toString(),
-      action: 'update',
-      payload: product.toMap(),
-    );
-    triggerAsyncMySqlSync();
+        where: 'id = ?', whereArgs: [product.id], conflictAlgorithm: ConflictAlgorithm.replace);
+    try {
+      await queueSyncItem(
+        entityType: 'product',
+        entityId: (product.id ?? 0).toString(),
+        action: 'update',
+        payload: product.toMap(),
+      );
+      triggerAsyncMySqlSync();
+    } catch (e) {
+      debugPrint('Sync queue non-fatal notice: $e');
+    }
     return res;
   }
 

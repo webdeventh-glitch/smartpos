@@ -136,6 +136,12 @@ class _AddProductDialogState extends State<AddProductDialog> {
     if (_stockController.text.trim().isEmpty) {
       _stockController.text = '0';
     }
+    if (_nameController.text.trim().isEmpty && _selectedBrand != null && _selectedBrand!.name.isNotEmpty && _selectedBrand!.name != 'Standard') {
+      final catPart = (_selectedCategory != null && _selectedCategory!.name.isNotEmpty && _selectedCategory!.name != 'General')
+          ? ' ${_selectedCategory!.name}'
+          : '';
+      _nameController.text = '${_selectedBrand!.name}$catPart'.trim();
+    }
 
     if (!_formKey.currentState!.validate()) {
       final missing = <String>[];
