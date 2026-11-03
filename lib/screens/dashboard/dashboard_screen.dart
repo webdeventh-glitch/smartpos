@@ -98,8 +98,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ================= ULTIMATE POS STAT CARD =================
-  Widget _ultimatePosCard({
+  // ================= SMART POS STAT CARD =================
+  Widget _smartPosCard({
     required IconData icon,
     required Color iconColor,
     required Color iconBg,
@@ -508,7 +508,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ================= 1. ULTIMATE POS HERO BANNER =================
+            // ================= 1. SMART POS HERO BANNER =================
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -608,7 +608,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 18),
 
-            // ================= 2. ULTIMATE POS 8 KPI METRIC CARDS =================
+            // ================= 2. SMART POS 8 KPI METRIC CARDS =================
             LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
@@ -623,7 +623,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   childAspectRatio: width > 1150 ? 2.6 : 3.0,
                   children: [
                     // 1. Total Sales
-                    _ultimatePosCard(
+                    _smartPosCard(
                       icon: Icons.shopping_cart_outlined,
                       iconColor: const Color(0xFF0284C7),
                       iconBg: const Color(0xFFE0F2FE),
@@ -634,7 +634,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     // 2. Net
-                    _ultimatePosCard(
+                    _smartPosCard(
                       icon: Icons.payments_outlined,
                       iconColor: const Color(0xFF16A34A),
                       iconBg: const Color(0xFFDCFCE7),
@@ -646,7 +646,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     // 3. Invoice due
-                    _ultimatePosCard(
+                    _smartPosCard(
                       icon: Icons.description_outlined,
                       iconColor: const Color(0xFFD97706),
                       iconBg: const Color(0xFFFEF3C7),
@@ -656,7 +656,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     // 4. Total Sell Return
-                    _ultimatePosCard(
+                    _smartPosCard(
                       icon: Icons.swap_horiz_rounded,
                       iconColor: const Color(0xFFDC2626),
                       iconBg: const Color(0xFFFEE2E2),
@@ -668,7 +668,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     // 5. Total purchase
-                    _ultimatePosCard(
+                    _smartPosCard(
                       icon: Icons.arrow_circle_down_outlined,
                       iconColor: const Color(0xFF00ACC1),
                       iconBg: const Color(0xFFE0F7FA),
@@ -679,7 +679,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     // 6. Purchase due
-                    _ultimatePosCard(
+                    _smartPosCard(
                       icon: Icons.warning_amber_rounded,
                       iconColor: const Color(0xFFD97706),
                       iconBg: const Color(0xFFFEF3C7),
@@ -689,7 +689,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     // 7. Total Purchase Return
-                    _ultimatePosCard(
+                    _smartPosCard(
                       icon: Icons.assignment_return_outlined,
                       iconColor: const Color(0xFFDC2626),
                       iconBg: const Color(0xFFFEE2E2),
@@ -701,7 +701,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
 
                     // 8. Expense
-                    _ultimatePosCard(
+                    _smartPosCard(
                       icon: Icons.money_outlined,
                       iconColor: const Color(0xFFDC2626),
                       iconBg: const Color(0xFFFEE2E2),

@@ -24,7 +24,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
   final TextEditingController _menuSearchCtrl = TextEditingController();
   String _filter = '';
 
-  // Expandable sections matching Ultimate POS structure
+  // Expandable sections matching Smart POS structure
   bool _userMgmtExpanded = false;
   bool _contactsExpanded = false;
   bool _productsExpanded = false;
@@ -610,7 +610,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
               ),
             ),
 
-          // Menu Items List matching Ultimate POS
+          // Menu Items List matching Smart POS standard hierarchy
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 4),
