@@ -51,6 +51,18 @@ if (Test-Path $StarterExe) {
     (Get-Item $RootSmartPos).LastWriteTime = $now
 }
 
+# Compile and ensure SmartPicker.exe is present in Release & Runner
+$PickerCs = Join-Path $PSScriptRoot "tools\SmartPicker.cs"
+$CscExe = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+if ((Test-Path $PickerCs) -and (Test-Path $CscExe)) {
+    $ToolsPicker = Join-Path $PSScriptRoot "tools\SmartPicker.exe"
+    & $CscExe /nologo /target:winexe /out:$ToolsPicker /reference:System.Windows.Forms.dll /reference:System.dll $PickerCs
+    if (Test-Path $ToolsPicker) {
+        Copy-Item $ToolsPicker (Join-Path $ReleaseDir "SmartPicker.exe") -Force
+        Copy-Item $ToolsPicker (Join-Path $ProjectRoot "windows\runner\SmartPicker.exe") -Force
+    }
+}
+
 Write-Host "[1/3] Windows Release binary ready in build/windows/x64/runner/Release" -ForegroundColor Green
 
 # 2. Prepare Dist directory

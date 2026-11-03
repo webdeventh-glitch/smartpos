@@ -262,24 +262,88 @@ class RegionalDataService {
 
 /// Helper to pick files and manage persistent logos on Windows
 class NativeFileHelper {
+  static String? _findSmartPickerExe() {
+    final candidatePaths = [
+      p.join(p.dirname(Platform.resolvedExecutable), 'SmartPicker.exe'),
+      p.join(Directory.current.path, 'SmartPicker.exe'),
+      p.join(Directory.current.path, 'build', 'windows', 'x64', 'runner', 'Release', 'SmartPicker.exe'),
+      p.join(Directory.current.path, 'installer', 'tools', 'SmartPicker.exe'),
+      p.join(Directory.current.path, 'windows', 'runner', 'SmartPicker.exe'),
+    ];
+    for (final path in candidatePaths) {
+      if (File(path).existsSync()) {
+        return path;
+      }
+    }
+    return null;
+  }
+
+  static Future<String?> _runNativeDialog({required String title, required String filter}) async {
+    // 1. Try native ultra-fast C# picker first (no PowerShell overhead, instant STA thread)
+    final pickerExe = _findSmartPickerExe();
+    if (pickerExe != null) {
+      try {
+        final res = await Process.run(
+          pickerExe,
+          [title, filter],
+        ).timeout(const Duration(seconds: 45), onTimeout: () {
+          return ProcessResult(0, -1, '', 'Timed out');
+        });
+        final picked = (res.stdout as String).trim();
+        if (picked.isNotEmpty && File(picked).existsSync()) {
+          return picked;
+        }
+        return null;
+      } catch (e) {
+        debugPrint('SmartPicker.exe failed, falling back to PowerShell: $e');
+      }
+    }
+
+    // 2. High-performance STA PowerShell fallback with TopMost foreground form
+    try {
+      final script = '''
+Add-Type -AssemblyName System.Windows.Forms
+\$form = New-Object System.Windows.Forms.Form
+\$form.TopMost = \$true
+\$form.TopLevel = \$true
+\$form.WindowState = [System.Windows.Forms.FormWindowState]::Minimized
+\$form.Show()
+\$form.Activate()
+\$dialog = New-Object System.Windows.Forms.OpenFileDialog
+\$dialog.Title = "$title"
+\$dialog.Filter = "$filter"
+\$dialog.Multiselect = \$false
+\$dialog.RestoreDirectory = \$true
+if (\$dialog.ShowDialog(\$form) -eq [System.Windows.Forms.DialogResult]::OK) {
+    [Console]::Write(\$dialog.FileName)
+}
+\$form.Dispose()
+''';
+      final res = await Process.run(
+        'powershell',
+        ['-STA', '-NoProfile', '-Command', script],
+      ).timeout(const Duration(seconds: 45), onTimeout: () {
+        return ProcessResult(0, -1, '', 'Timed out');
+      });
+
+      final picked = (res.stdout as String).trim();
+      if (picked.isNotEmpty && File(picked).existsSync()) {
+        return picked;
+      }
+    } catch (e) {
+      debugPrint('PowerShell fallback file picker error: $e');
+    }
+    return null;
+  }
+
   /// Opens native Windows file dialog to pick an image file
   static Future<String?> pickBusinessLogo() async {
     try {
-      const script = r'''
-Add-Type -AssemblyName System.Windows.Forms
-$dialog = New-Object System.Windows.Forms.OpenFileDialog
-$dialog.Title = "Select Business Logo (PNG, JPG, WEBP)"
-$dialog.Filter = "Image Files (*.png;*.jpg;*.jpeg;*.webp;*.bmp)|*.png;*.jpg;*.jpeg;*.webp;*.bmp|All Files (*.*)|*.*"
-$dialog.Multiselect = $false
-if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-    [Console]::Write($dialog.FileName)
-}
-''';
-      final res = await Process.run('powershell', ['-NoProfile', '-Command', script]);
-      final pickedPath = (res.stdout as String).trim();
-      if (pickedPath.isEmpty || !File(pickedPath).existsSync()) {
-        return null;
-      }
+      final pickedPath = await _runNativeDialog(
+        title: 'Select Business Logo (PNG, JPG, WEBP)',
+        filter: 'Image Files (*.png;*.jpg;*.jpeg;*.webp;*.bmp)|*.png;*.jpg;*.jpeg;*.webp;*.bmp|All Files (*.*)|*.*',
+      );
+      if (pickedPath == null) return null;
 
       // Persistently copy into AppData/Local/SmartPOS/logos
       final base = Platform.environment['LOCALAPPDATA'] ??
@@ -304,21 +368,11 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
   /// Opens native Windows file dialog to pick a product image file
   static Future<String?> pickProductImage() async {
     try {
-      const script = r'''
-Add-Type -AssemblyName System.Windows.Forms
-$dialog = New-Object System.Windows.Forms.OpenFileDialog
-$dialog.Title = "Select Product Image (PNG, JPG, WEBP, JPEG)"
-$dialog.Filter = "Image Files (*.png;*.jpg;*.jpeg;*.webp;*.bmp)|*.png;*.jpg;*.jpeg;*.webp;*.bmp|All Files (*.*)|*.*"
-$dialog.Multiselect = $false
-if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-    [Console]::Write($dialog.FileName)
-}
-''';
-      final res = await Process.run('powershell', ['-NoProfile', '-Command', script]);
-      final pickedPath = (res.stdout as String).trim();
-      if (pickedPath.isEmpty || !File(pickedPath).existsSync()) {
-        return null;
-      }
+      final pickedPath = await _runNativeDialog(
+        title: 'Select Product Image (PNG, JPG, WEBP, JPEG)',
+        filter: 'Image Files (*.png;*.jpg;*.jpeg;*.webp;*.bmp)|*.png;*.jpg;*.jpeg;*.webp;*.bmp|All Files (*.*)|*.*',
+      );
+      if (pickedPath == null) return null;
 
       // Persistently copy into AppData/Local/SmartPOS/products
       final base = Platform.environment['LOCALAPPDATA'] ??

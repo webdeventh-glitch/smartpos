@@ -73,6 +73,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final String _selectedLocation = 'Main Branch HQ';
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isPickingImage = false;
   String _selectedColor = '#004EEB';
   String? _pickedImagePath;
 
@@ -212,6 +213,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Future<void> _pickProductImage() async {
+    if (_isPickingImage) return;
+    setState(() => _isPickingImage = true);
     try {
       final picked = await NativeFileHelper.pickProductImage();
       if (picked != null) {
@@ -236,6 +239,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       }
     } catch (e) {
       debugPrint('Error picking product image: $e');
+    } finally {
+      if (mounted) setState(() => _isPickingImage = false);
     }
   }
 
@@ -2109,19 +2114,29 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
             ),
             InkWell(
-              onTap: _pickProductImage,
+              onTap: _isPickingImage ? null : _pickProductImage,
               child: Container(
                 height: 42,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF004EEB),
-                  borderRadius: BorderRadius.horizontal(right: Radius.circular(6)),
+                decoration: BoxDecoration(
+                  color: _isPickingImage ? const Color(0xFF64748B) : const Color(0xFF004EEB),
+                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(6)),
                 ),
                 child: Row(
-                  children: const [
-                    Icon(Icons.folder_open, size: 16, color: Colors.white),
-                    SizedBox(width: 6),
-                    Text('Browse..', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                  children: [
+                    if (_isPickingImage) ...[
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Selecting...', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ] else ...[
+                      const Icon(Icons.folder_open, size: 16, color: Colors.white),
+                      const SizedBox(width: 6),
+                      const Text('Browse..', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ],
                   ],
                 ),
               ),
