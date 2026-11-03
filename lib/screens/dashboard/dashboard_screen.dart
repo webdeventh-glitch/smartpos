@@ -584,22 +584,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 _actionPill(
                   icon: Icons.point_of_sale_rounded,
-                  label: 'Point of Sale (F1)',
+                  label: 'Point of Sale (F1) / نئی سیل',
                   onTap: widget.onNavigateToPos,
                 ),
                 _actionPill(
                   icon: Icons.add_box_outlined,
-                  label: 'Add Product',
+                  label: '+ Add Product / نیا پروڈکٹ',
                   onTap: () => widget.onNavigateToTab(11),
                 ),
                 _actionPill(
-                  icon: Icons.receipt_long_outlined,
-                  label: 'Record Expense',
-                  onTap: () => widget.onNavigateToTab(8),
-                ),
-                _actionPill(
-                  icon: Icons.shopping_bag_outlined,
-                  label: 'Log Purchase',
+                  icon: Icons.add_shopping_cart_rounded,
+                  label: '+ Stock In / Purchase (خریداری)',
                   onTap: () => widget.onNavigateToTab(5),
                 ),
                 _actionPill(

@@ -10,6 +10,7 @@ import 'product_detail_dialog.dart';
 import 'print_labels_screen.dart';
 import '../../services/print_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
+import '../purchases/add_purchase_dialog.dart';
 
 class ProductsListScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -103,6 +104,224 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             );
           }
         },
+      ),
+    );
+  }
+
+  void _openQuickStockIn(Product product) async {
+    final db = await DatabaseService.initialize();
+    final suppliers = await db.getContacts(type: 'supplier');
+    final qtyCtrl = TextEditingController(text: '10');
+    final costCtrl = TextEditingController(text: product.purchasePrice.toStringAsFixed(2));
+    Contact? selectedSup = suppliers.isNotEmpty ? suppliers.first : null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currency = widget.settings.currencySymbol;
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF059669).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.add_business_rounded, color: Color(0xFF059669), size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quick Stock In / سٹاک شامل کریں',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                    Text(
+                      '${product.name} (Current: ${product.stockQuantity.toStringAsFixed(1)} ${product.unit})',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Color(0xFF059669), size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'اضافی سٹاک درج کریں۔ یہ خود بخود انوینٹری اور خریداری کے کھاتے میں اپ ڈیٹ ہو جائے گا۔',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF065F46), fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('Quantity to Add / شامل کرنے والی تعداد (${product.unit})*',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: qtyCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. 20',
+                    prefixIcon: const Icon(Icons.exposure_plus_1_rounded, size: 18),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text('Purchase Cost per Unit / فی یونٹ خریداری قیمت ($currency)',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: costCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    prefixIcon: const Icon(Icons.attach_money_rounded, size: 18),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                if (suppliers.isNotEmpty) ...[
+                  const Text('Supplier / سپلائر (اختیاری)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<Contact?>(
+                    initialValue: selectedSup,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('Direct / Walk-in Stock In')),
+                      ...suppliers.map((s) => DropdownMenuItem(value: s, child: Text(s.name, overflow: TextOverflow.ellipsis))),
+                    ],
+                    onChanged: (val) => setDialogState(() => selectedSup = val),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              icon: const Icon(Icons.check, size: 16),
+              label: const Text('Add Stock / سٹاک شامل کریں', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () async {
+                final qty = double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
+                final cost = double.tryParse(costCtrl.text.trim()) ?? product.purchasePrice;
+                if (qty <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(backgroundColor: Colors.red, content: Text('Please enter a quantity greater than 0')),
+                  );
+                  return;
+                }
+
+                Navigator.pop(ctx);
+
+                try {
+                  await db.createPurchase(
+                    purchase: Purchase(
+                      refNo: 'STK-${DateTime.now().millisecondsSinceEpoch % 1000000}',
+                      supplierName: selectedSup?.name ?? 'Direct Stock In',
+                      supplierId: selectedSup?.id,
+                      locationId: 1,
+                      locationName: widget.settings.branchName.isNotEmpty ? widget.settings.branchName : 'Main Branch HQ',
+                      totalAmount: qty * cost,
+                      paidAmount: qty * cost,
+                      status: 'received',
+                      paymentStatus: 'paid',
+                      createdAt: DateTime.now().toIso8601String(),
+                      note: 'Quick Stock In for ${product.name}',
+                    ),
+                    items: [
+                      {
+                        'product_id': product.id,
+                        'quantity': qty,
+                        'purchase_price': cost,
+                        'selling_price': product.sellingPrice,
+                      }
+                    ],
+                  );
+
+                  await _load();
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xFF059669),
+                        behavior: SnackBarBehavior.floating,
+                        content: Row(
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'کامیابی: ${product.name} میں $qty ${product.unit} نیا سٹاک شامل کر دیا گیا! (نیا ٹوٹل: ${(product.stockQuantity + qty).toStringAsFixed(1)})',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(backgroundColor: Colors.red, content: Text('Error adding stock: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -260,6 +479,24 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       icon: const Icon(Icons.print_rounded, size: 18),
                       label: const Text('Print Price List', style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () => _printPriceList(filtered),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
+                      label: const Text('Stock In / Purchase (خریداری)', style: TextStyle(fontWeight: FontWeight.w700)),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => AddPurchaseDialog(onPurchaseSaved: _load),
+                        );
+                      },
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton.icon(
@@ -689,28 +926,54 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             // Stock Quantity & Alert Status
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: p.isOutOfStock
-                                      ? (isDark ? const Color(0xFF450A0A).withValues(alpha: 0.4) : const Color(0xFFFEF2F2))
-                                      : (p.isLowStock
-                                          ? (isDark ? const Color(0xFF451A03).withValues(alpha: 0.4) : const Color(0xFFFFFBEB))
-                                          : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5))),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '${p.stockQuantity.toStringAsFixed(1)} ${p.unit}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: p.isOutOfStock
-                                        ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                        : (p.isLowStock
-                                            ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
-                                            : (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: p.isOutOfStock
+                                          ? (isDark ? const Color(0xFF450A0A).withValues(alpha: 0.4) : const Color(0xFFFEF2F2))
+                                          : (p.isLowStock
+                                              ? (isDark ? const Color(0xFF451A03).withValues(alpha: 0.4) : const Color(0xFFFFFBEB))
+                                              : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5))),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      '${p.stockQuantity.toStringAsFixed(1)} ${p.unit}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: p.isOutOfStock
+                                            ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                            : (p.isLowStock
+                                                ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+                                                : (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 8),
+                                  InkWell(
+                                    onTap: () => _openQuickStockIn(p),
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF059669).withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.4)),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.add_rounded, size: 12, color: Color(0xFF059669)),
+                                          SizedBox(width: 2),
+                                          Text('+ Stock', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
 
@@ -720,6 +983,11 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
+                                  IconButton(
+                                    tooltip: 'Quick Stock In / سٹاک شامل کریں',
+                                    icon: const Icon(Icons.add_business_rounded, size: 18, color: Color(0xFF059669)),
+                                    onPressed: () => _openQuickStockIn(p),
+                                  ),
                                   IconButton(
                                     tooltip: 'View Specs',
                                     icon: Icon(Icons.visibility_outlined, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),

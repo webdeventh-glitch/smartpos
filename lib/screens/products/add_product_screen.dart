@@ -468,12 +468,44 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Future<bool> _saveProduct() async {
-    if (!_formKey.currentState!.validate()) return false;
+    // Auto-generate SKU if left empty
+    if (_skuCtrl.text.trim().isEmpty) {
+      _autoGenerateSku();
+    }
+    // Default purchase price to 0 if left empty
+    if (_purchasePriceCtrl.text.trim().isEmpty) {
+      _purchasePriceCtrl.text = '0.00';
+    }
+    // Default opening stock to 0 if left empty
+    if (_openingStockCtrl.text.trim().isEmpty) {
+      _openingStockCtrl.text = '0';
+    }
+
+    if (!_formKey.currentState!.validate()) {
+      final missing = <String>[];
+      if (_nameCtrl.text.trim().isEmpty) missing.add('Product Name (پروڈکٹ کا نام)');
+      if (_sellingPriceCtrl.text.trim().isEmpty) missing.add('Selling Price (فروخت کی قیمت)');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          content: Text(
+            missing.isNotEmpty
+                ? 'براہ کرم ضروری خانے پر کریں: ${missing.join(", ")}'
+                : 'براہ کرم سرخ نشان والے خانے درست کریں (Please fill required fields)',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+      return false;
+    }
 
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: Colors.red, content: Text('Product Name is required.')),
+        const SnackBar(backgroundColor: Colors.red, content: Text('Product Name is required / پروڈکٹ کا نام ضروری ہے')),
       );
       return false;
     }
@@ -484,7 +516,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (_productType == 'single') {
       if (selling <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(backgroundColor: Colors.red, content: Text('Selling Price must be greater than 0.')),
+          const SnackBar(backgroundColor: Colors.red, content: Text('Selling Price must be greater than 0 / فروخت قیمت 0 سے زیادہ ہونی چاہیے')),
         );
         return false;
       }
@@ -597,6 +629,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
         await db.addProductWithVariations(product, _variations);
       } else {
         await db.insertProduct(product);
+      }
+
+      if (mounted) {
+        final savedName = widget.productToEdit != null ? widget.productToEdit!.name : product.name;
+        final savedStock = _productType == 'variable' ? totalVarStock : stock;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'کامیابی: پروڈکٹ "$savedName" اور ${savedStock.toInt()} یونٹ سٹاک محفوظ ہو گیا!',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }
       return true;
     } catch (e) {
@@ -762,11 +818,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildFieldLabel('Product Name', isRequired: true),
+                                  _buildFieldLabel('Product Name / پروڈکٹ کا نام', isRequired: true),
                                   TextFormField(
                                     controller: _nameCtrl,
-                                    decoration: _inputDecor('Product Name'),
-                                    validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
+                                    decoration: _inputDecor('e.g. Pepsi 500ml, Panadol 500mg, Cotton T-Shirt'),
+                                    validator: (val) => val == null || val.trim().isEmpty ? 'Product Name is required / پروڈکٹ کا نام درج کریں' : null,
                                   ),
                                 ],
                               ),
@@ -824,11 +880,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildFieldLabel('Product Name', isRequired: true),
+                                _buildFieldLabel('Product Name / پروڈکٹ کا نام', isRequired: true),
                                 TextFormField(
                                   controller: _nameCtrl,
-                                  decoration: _inputDecor('Product Name'),
-                                  validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
+                                  decoration: _inputDecor('e.g. Pepsi 500ml, Panadol 500mg'),
+                                  validator: (val) => val == null || val.trim().isEmpty ? 'Product Name is required / پروڈکٹ کا نام درج کریں' : null,
                                 ),
                               ],
                             ),
@@ -1499,13 +1555,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildFieldLabel('Purchase Price ($currency)*', isRequired: true),
+                                _buildFieldLabel('Purchase Price ($currency) / لاگت'),
                                 TextFormField(
                                   controller: _purchasePriceCtrl,
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                   decoration: _inputDecor('0.00'),
                                   onChanged: (_) => _recalcSellingPrice(),
-                                  validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
+                                  validator: (val) {
+                                    if (val != null && val.trim().isNotEmpty && double.tryParse(val.trim()) == null) {
+                                      return 'Must be a number';
+                                    }
+                                    return null;
+                                  },
                                 ),
                               ],
                             ),
@@ -1534,13 +1595,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildFieldLabel('Selling Price ($currency)*', isRequired: true),
+                                _buildFieldLabel('Selling Price ($currency)* / فروخت قیمت', isRequired: true),
                                 TextFormField(
                                   controller: _sellingPriceCtrl,
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                   decoration: _inputDecor('0.00'),
                                   onChanged: (_) => _recalcMargin(),
-                                  validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
+                                  validator: (val) {
+                                    if (val == null || val.trim().isEmpty) return 'Selling Price required';
+                                    final num = double.tryParse(val.trim());
+                                    if (num == null || num <= 0) return 'Must be > 0';
+                                    return null;
+                                  },
                                 ),
                               ],
                             ),
@@ -1553,7 +1619,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildFieldLabel('Opening Stock (Units)'),
+                                  _buildFieldLabel('Opening Stock (Units) / ابتدائی سٹاک'),
                                   TextFormField(
                                     controller: _openingStockCtrl,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),

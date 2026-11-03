@@ -15,6 +15,7 @@ import 'register_details_dialog.dart';
 import 'pos_power_dialogs.dart';
 import 'recent_transactions_dialog.dart';
 import '../../widgets/calculator_dialog.dart';
+import '../products/add_product_dialog.dart';
 
 class PosTerminalScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -3461,7 +3462,79 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                               child: _loadingCatalog
                                   ? const Center(child: CircularProgressIndicator())
                                   : _products.isEmpty
-                                      ? Center(child: Text('No products found matching criteria', style: TextStyle(color: textSecondary)))
+                                      ? Center(
+                                          child: Container(
+                                            constraints: const BoxConstraints(maxWidth: 450),
+                                            padding: const EdgeInsets.all(28),
+                                            decoration: BoxDecoration(
+                                              color: cardBg,
+                                              borderRadius: BorderRadius.circular(16),
+                                              border: Border.all(color: borderColor),
+                                            ),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  width: 60,
+                                                  height: 60,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: const Icon(Icons.point_of_sale_rounded, color: Color(0xFF4F46E5), size: 30),
+                                                ),
+                                                const SizedBox(height: 14),
+                                                Text(
+                                                  'No Products in Catalog Yet',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w900,
+                                                    color: textPrimary,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'کیٹلاگ میں ابھی کوئی پروڈکٹ موجود نہیں ہے',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: textSecondary,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 10),
+                                                Text(
+                                                  'Add products with selling price and initial stock to start billing immediately!',
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(fontSize: 12, color: textSecondary, height: 1.4),
+                                                ),
+                                                const SizedBox(height: 18),
+                                                ElevatedButton.icon(
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: const Color(0xFF4F46E5),
+                                                    foregroundColor: Colors.white,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                  ),
+                                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                                  label: const Text(
+                                                    '+ Add First Product (پروڈکٹ بنائیں)',
+                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                                  ),
+                                                  onPressed: () {
+                                                    showDialog(
+                                                      context: context,
+                                                      builder: (_) => AddProductDialog(
+                                                        onProductSaved: () async {
+                                                          await _loadInitialData();
+                                                        },
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        )
                                       : _isGridView
                                           ? GridView.builder(
                                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

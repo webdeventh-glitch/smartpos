@@ -27,6 +27,9 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _rememberMe = true;
   bool _isLoading = false;
+  bool _isAuthenticating = false;
+  String _loginStatusMessage = '';
+  double _loginProgress = 0.0;
   String? _errorMessage;
 
   @override
@@ -47,6 +50,28 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final success = await AuthService.login(_userCtrl.text.trim(), _passCtrl.text.trim());
       if (success) {
+        if (!mounted) return;
+        setState(() {
+          _isAuthenticating = true;
+          _loginStatusMessage = 'Verifying security credentials... / سیکورٹی تصدیق جاری ہے';
+          _loginProgress = 0.35;
+        });
+
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (!mounted) return;
+        setState(() {
+          _loginStatusMessage = 'Initializing POS Engine & Data Cache... / ڈیٹا بیس اور ٹرمینل کیشے لوڈ ہو رہا ہے';
+          _loginProgress = 0.75;
+        });
+
+        await Future.delayed(const Duration(milliseconds: 900));
+        if (!mounted) return;
+        setState(() {
+          _loginStatusMessage = 'Access Granted! Launching Smart POS... / خوش آمدید! رسائی منظور ہو گئی';
+          _loginProgress = 1.0;
+        });
+
+        await Future.delayed(const Duration(milliseconds: 600));
         if (mounted) {
           widget.onLoginSuccess();
         }
@@ -55,6 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
           setState(() {
             _errorMessage = 'Invalid username or password. Please verify credentials.';
             _isLoading = false;
+            _isAuthenticating = false;
           });
         }
       }
@@ -63,6 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() {
           _errorMessage = 'System authentication error: $e';
           _isLoading = false;
+          _isAuthenticating = false;
         });
       }
     }
@@ -498,6 +525,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 6),
             TextFormField(
               controller: _userCtrl,
+              enabled: !_isLoading && !_isAuthenticating,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -548,6 +576,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 6),
             TextFormField(
               controller: _passCtrl,
+              enabled: !_isLoading && !_isAuthenticating,
               obscureText: _obscurePassword,
               style: TextStyle(
                 fontSize: 13,
@@ -620,34 +649,98 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Submit Button
-            ElevatedButton(
-              onPressed: _isLoading ? null : _handleLogin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4F46E5),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+            // Submit Button or Authentication Progress Sequence
+            if (_isAuthenticating)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _loginProgress == 1.0
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFF6366F1).withValues(alpha: 0.5),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_loginProgress == 1.0 ? const Color(0xFF10B981) : const Color(0xFF4F46E5))
+                          .withValues(alpha: 0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
                       children: [
-                        Icon(Icons.login_rounded, size: 18),
-                        SizedBox(width: 8),
-                        Text(
-                          'Sign In to Terminal',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: _loginProgress == 1.0
+                              ? const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 22)
+                              : const CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Color(0xFF4F46E5),
+                                ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _loginStatusMessage,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: _loginProgress == 1.0
+                                  ? const Color(0xFF059669)
+                                  : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-            ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: _loginProgress,
+                        backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                        color: _loginProgress == 1.0 ? const Color(0xFF10B981) : const Color(0xFF4F46E5),
+                        minHeight: 5,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ElevatedButton(
+                onPressed: _isLoading ? null : _handleLogin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.login_rounded, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Sign In to Terminal',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ],
+                      ),
+              ),
             const SizedBox(height: 12),
 
             // Setup / Reconfigure Wizard trigger

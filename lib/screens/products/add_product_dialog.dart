@@ -44,7 +44,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
     _nameController = TextEditingController(text: p?.name ?? '');
     _skuController = TextEditingController(text: p?.sku ?? '');
     _barcodeController = TextEditingController(text: p?.barcode ?? '');
-    _purchasePriceController = TextEditingController(text: p != null ? p.purchasePrice.toStringAsFixed(2) : '');
+    _purchasePriceController = TextEditingController(text: p != null ? p.purchasePrice.toStringAsFixed(2) : '0.00');
     _sellingPriceController = TextEditingController(text: p != null ? p.sellingPrice.toStringAsFixed(2) : '');
     
     final cost = p != null && p.purchasePrice > 0 ? p.purchasePrice : 100.0;
@@ -127,7 +127,34 @@ class _AddProductDialogState extends State<AddProductDialog> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_skuController.text.trim().isEmpty) {
+      _generateSku();
+    }
+    if (_purchasePriceController.text.trim().isEmpty) {
+      _purchasePriceController.text = '0.00';
+    }
+    if (_stockController.text.trim().isEmpty) {
+      _stockController.text = '0';
+    }
+
+    if (!_formKey.currentState!.validate()) {
+      final missing = <String>[];
+      if (_nameController.text.trim().isEmpty) missing.add('Product Name (پروڈکٹ کا نام)');
+      if (_sellingPriceController.text.trim().isEmpty) missing.add('Selling Price (فروخت قیمت)');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            missing.isNotEmpty
+                ? 'براہ کرم ضروری خانے پر کریں: ${missing.join(", ")}'
+                : 'براہ کرم سرخ نشان والے خانے درست کریں (Please fill required fields)',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+      return;
+    }
     setState(() => _isSaving = true);
 
     try {
@@ -160,6 +187,24 @@ class _AddProductDialogState extends State<AddProductDialog> {
       }
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'کامیابی: پروڈکٹ "${product.name}" اور ${product.stockQuantity.toInt()} یونٹ سٹاک کامیابی سے شامل ہو گیا!',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
         widget.onProductSaved();
         Navigator.of(context).pop();
       }
@@ -378,11 +423,16 @@ class _AddProductDialogState extends State<AddProductDialog> {
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
                               onChanged: _onCostChanged,
                               decoration: InputDecoration(
-                                labelText: 'Cost Price *',
+                                labelText: 'Cost Price',
                                 prefixText: '$currency ',
                                 isDense: true,
                               ),
-                              validator: (v) => v == null || v.trim().isEmpty ? 'Cost price is required' : null,
+                              validator: (v) {
+                                if (v != null && v.trim().isNotEmpty && double.tryParse(v.trim()) == null) {
+                                  return 'Invalid cost';
+                                }
+                                return null;
+                              },
                             ),
                           ),
                           const SizedBox(width: 10),
