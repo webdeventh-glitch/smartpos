@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import 'contact_ledger_screen.dart';
 import 'payment_reminder_dialog.dart';
 
 class ContactLedgerDialog extends StatefulWidget {
@@ -380,6 +381,26 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                       ),
                     ],
                     const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: 'Open Full Page / مکمل فل پیج پر کھولیں',
+                      icon: const Icon(Icons.fullscreen_rounded),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ContactLedgerScreen(
+                              contact: _updatedContact ?? widget.contact,
+                              contactType: widget.contactType,
+                              settings: widget.settings,
+                              onPaymentRecorded: widget.onPaymentRecorded,
+                            ),
+                          ),
+                        );
+                      },
+                      splashRadius: 20,
+                    ),
+                    const SizedBox(width: 4),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(context),

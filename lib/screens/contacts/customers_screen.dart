@@ -5,6 +5,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../pos/quick_customer_dialog.dart';
 import 'contact_ledger_dialog.dart';
+import 'contact_ledger_screen.dart';
 import 'payment_reminder_dialog.dart';
 import '../../services/print_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
@@ -291,15 +292,18 @@ class _CustomersScreenState extends State<CustomersScreen> {
   }
 
   Future<void> _openLedgerDialog(Contact customer) async {
-    showDialog(
-      context: context,
-      builder: (_) => ContactLedgerDialog(
-        contact: customer,
-        contactType: 'customer',
-        settings: widget.settings,
-        onPaymentRecorded: () => _load(),
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ContactLedgerScreen(
+          contact: customer,
+          contactType: 'customer',
+          settings: widget.settings,
+          onPaymentRecorded: () => _load(),
+        ),
       ),
     );
+    _load();
   }
 
   void _openReminderDialog(Contact customer) {

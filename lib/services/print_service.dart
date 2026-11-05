@@ -1099,6 +1099,320 @@ class PrintService {
     ''';
   }
 
+  /// Generates Official A4 Account Ledger Statement for Customers and Suppliers
+  static String generateOfficialLedgerHtml({
+    required BusinessSettings settings,
+    required Contact contact,
+    required String contactType,
+    required double openingBalance,
+    required double totalDebit,
+    required double totalCredit,
+    required double closingBalance,
+    required List<LedgerEntry> entries,
+    required String periodText,
+  }) {
+    final cur = settings.currencySymbol;
+    final isCustomer = contactType.toLowerCase() == 'customer';
+    final nowFormatted = DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.now());
+
+    final statusText = closingBalance > 0
+        ? (isCustomer ? 'Net Receivable / واجب الادا (Customer Owes)' : 'Net Payable / واجب الادا (You Owe Supplier)')
+        : (closingBalance < 0 ? 'Advance Balance / پیشگی جمع' : 'Balanced / Cleared (کھاتہ بے باق)');
+
+    final statusColor = closingBalance > 0 ? '#dc2626' : (closingBalance < 0 ? '#059669' : '#0f172a');
+
+    final rowsHtml = StringBuffer();
+    for (int i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      final isDebit = e.debit > 0;
+      final isCredit = e.credit > 0;
+      final dateClean = e.date.length > 16 ? e.date.substring(0, 16) : e.date;
+      final balType = e.runningBalance > 0
+          ? (isCustomer ? "Dr (واجب)" : "Cr (واجب)")
+          : (e.runningBalance < 0 ? "Adv (جمع)" : "Nil");
+      final balColor = e.runningBalance > 0 ? "#dc2626" : (e.runningBalance < 0 ? "#059669" : "#334155");
+
+      String typeLabel = e.transactionType.toUpperCase().replaceAll('_', ' ');
+      if (e.transactionType.contains('payment')) {
+        typeLabel = 'PAYMENT / وصولی';
+      } else if (e.transactionType.contains('sale')) {
+        typeLabel = 'INVOICE / بل';
+      } else if (e.transactionType.contains('purchase')) {
+        typeLabel = 'PURCHASE / خریداری';
+      } else if (e.transactionType.contains('return')) {
+        typeLabel = 'RETURN / واپسی';
+      }
+
+      rowsHtml.writeln('''
+      <tr>
+        <td style="text-align: center; font-size: 10px;">\${i + 1}</td>
+        <td style="font-size: 10px; white-space: nowrap;">\$dateClean</td>
+        <td style="font-weight: bold; color: #4338ca; font-size: 10.5px;">\${_escape(e.refNo)}</td>
+        <td style="font-size: 10px; font-weight: 600;">\$typeLabel</td>
+        <td style="font-size: 10px;">\${_escape(e.description)}</td>
+        <td style="text-align: right; font-weight: bold; color: \${isDebit ? '#1e40af' : '#94a3b8'}; font-size: 10.5px;">\${isDebit ? '\$cur\${e.debit.toStringAsFixed(2)}' : '-'}</td>
+        <td style="text-align: right; font-weight: bold; color: \${isCredit ? '#047857' : '#94a3b8'}; font-size: 10.5px;">\${isCredit ? '\$cur\${e.credit.toStringAsFixed(2)}' : '-'}</td>
+        <td style="text-align: right; font-weight: 900; color: \$balColor; font-size: 11px;">\$cur\${e.runningBalance.abs().toStringAsFixed(2)} <span style="font-size: 9px; font-weight: bold;">\$balType</span></td>
+      </tr>
+      ''');
+    }
+
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>\${_escape(contact.name)} - Official Ledger Statement</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 10mm 10mm 12mm 10mm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.35;
+      color: #0f172a;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+    .ledger-container {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+    .header-table {
+      width: 100%;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .biz-title {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: #0f172a;
+      text-transform: uppercase;
+    }
+    .biz-sub {
+      font-size: 10.5px;
+      color: #475569;
+      font-weight: 600;
+    }
+    .doc-badge {
+      display: inline-block;
+      background: #0f172a;
+      color: #fff;
+      padding: 4px 10px;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 0.8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .party-card {
+      border: 1px solid #000;
+      background: #f8fafc;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .party-col {
+      flex: 1;
+    }
+    .party-name {
+      font-size: 15px;
+      font-weight: 900;
+      color: #0f172a;
+    }
+    .meta-line {
+      font-size: 10px;
+      color: #334155;
+      margin-top: 2px;
+    }
+    .summary-grid {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .summary-box {
+      flex: 1;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      padding: 8px 10px;
+      border-radius: 4px;
+    }
+    .summary-box.highlight {
+      border: 2px solid \$statusColor;
+      background: #fef2f2;
+    }
+    .summary-label {
+      font-size: 9px;
+      font-weight: bold;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .summary-val {
+      font-size: 14px;
+      font-weight: 900;
+      color: #0f172a;
+      margin-top: 3px;
+    }
+    .summary-val.highlight {
+      color: \$statusColor;
+    }
+    table.ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+    table.ledger-table th {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-size: 9.5px;
+      font-weight: bold;
+      text-transform: uppercase;
+      padding: 6px 5px;
+      border: 1px solid #0f172a;
+    }
+    table.ledger-table td {
+      padding: 5px 5px;
+      border: 1px solid #cbd5e1;
+      font-size: 10px;
+    }
+    table.ledger-table tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    .totals-row td {
+      background-color: #f1f5f9 !important;
+      font-weight: 900;
+      border-top: 2px solid #0f172a !important;
+      border-bottom: 2px solid #0f172a !important;
+    }
+    .sign-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+      padding-top: 10px;
+    }
+    .sign-box {
+      width: 28%;
+      text-align: center;
+      border-top: 1px dashed #475569;
+      padding-top: 6px;
+      font-size: 9.5px;
+      font-weight: bold;
+      color: #334155;
+    }
+    .notice-box {
+      margin-top: 14px;
+      padding: 6px 10px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      font-size: 9px;
+      color: #475569;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <div class="ledger-container">
+    <table class="header-table">
+      <tr>
+        <td style="vertical-align: top;">
+          <div class="biz-title">\${_escape(settings.businessName)}</div>
+          <div class="biz-sub">\${_escape(settings.businessType.toUpperCase())} &bull; MAIN BRANCH HQ</div>
+          <div class="biz-sub">Cell / WhatsApp: +92 300 1234567 &bull; Commercial Market</div>
+        </td>
+        <td style="text-align: right; vertical-align: top;">
+          <div class="doc-badge">OFFICIAL ACCOUNT STATEMENT</div>
+          <div style="font-size: 10px; color: #64748b; margin-top: 5px; font-weight: 600;">Statement Period: \${_escape(periodText)}</div>
+          <div style="font-size: 10px; color: #64748b; font-weight: 600;">Printed: \$nowFormatted</div>
+        </td>
+      </tr>
+    </table>
+
+    <div class="party-card">
+      <div class="party-col">
+        <div style="font-size: 9.5px; font-weight: bold; color: #4338ca; text-transform: uppercase;">\${isCustomer ? "CUSTOMER / کھاتہ دار گاہک" : "SUPPLIER / وینڈر یا سپلائر"}</div>
+        <div class="party-name">\${_escape(contact.name)}</div>
+        <div class="meta-line"><strong>Business:</strong> \${_escape((contact.businessName != null && contact.businessName!.isNotEmpty) ? contact.businessName! : "N/A")}</div>
+        <div class="meta-line"><strong>Phone / Mobile:</strong> \${_escape(contact.phone.isNotEmpty ? contact.phone : "N/A")}</div>
+        <div class="meta-line"><strong>Address:</strong> \${_escape(contact.address.isNotEmpty ? contact.address : "Main City Market")}</div>
+      </div>
+      <div class="party-col" style="text-align: right;">
+        <div style="font-size: 9.5px; font-weight: bold; color: #64748b; text-transform: uppercase;">ACCOUNT STATUS &bull; کھاتہ کی حیثیت</div>
+        <div style="font-size: 13px; font-weight: 900; color: \$statusColor; margin-top: 3px;">\$statusText</div>
+        <div class="meta-line" style="margin-top: 5px;"><strong>Credit Limit:</strong> \$cur\${contact.creditLimit.toStringAsFixed(2)}</div>
+        <div class="meta-line"><strong>Party Code / ID:</strong> #CON-\${contact.id ?? 1}</div>
+      </div>
+    </div>
+
+    <!-- 4 Summary KPI Boxes -->
+    <div class="summary-grid">
+      <div class="summary-box">
+        <div class="summary-label">Opening Balance / سابقہ بقایا</div>
+        <div class="summary-val">\$cur\${openingBalance.toStringAsFixed(2)}</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">\${isCustomer ? "Total Invoices (Dr) / بنام کل مال" : "Total Purchases (Cr) / کل خریداری"}</div>
+        <div class="summary-val" style="color: #1e40af;">\$cur\${(isCustomer ? totalDebit : totalCredit).toStringAsFixed(2)}</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">\${isCustomer ? "Total Received (Cr) / جمع کل وصولی" : "Total Payments (Dr) / کل ادا شدہ"}</div>
+        <div class="summary-val" style="color: #047857;">\$cur\${(isCustomer ? totalCredit : totalDebit).toStringAsFixed(2)}</div>
+      </div>
+      <div class="summary-box highlight">
+        <div class="summary-label" style="color: \$statusColor;">Net Closing Balance / خالص بقایا رقم</div>
+        <div class="summary-val highlight">\$cur\${closingBalance.toStringAsFixed(2)}</div>
+      </div>
+    </div>
+
+    <!-- Ledger Table -->
+    <table class="ledger-table">
+      <thead>
+        <tr>
+          <th style="width: 25px; text-align: center;">#</th>
+          <th style="width: 105px;">Date &amp; Time / تاریخ</th>
+          <th style="width: 85px;">Ref # / واؤچر</th>
+          <th style="width: 80px;">Type / قسم</th>
+          <th>Narration &amp; Details / مال کی تفصیل</th>
+          <th style="width: 85px; text-align: right;">Debit (Dr) / بنام</th>
+          <th style="width: 85px; text-align: right;">Credit (Cr) / جمع</th>
+          <th style="width: 100px; text-align: right;">Balance / بقایا</th>
+        </tr>
+      </thead>
+      <tbody>
+        \${entries.isEmpty ? '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #64748b;">No ledger records found for this period.</td></tr>' : rowsHtml.toString()}
+        <tr class="totals-row">
+          <td colspan="5" style="text-align: right; padding-right: 12px;">TOTALS / کل میزان:</td>
+          <td style="text-align: right; color: #1e40af;">\$cur\${totalDebit.toStringAsFixed(2)}</td>
+          <td style="text-align: right; color: #047857;">\$cur\${totalCredit.toStringAsFixed(2)}</td>
+          <td style="text-align: right; color: \$statusColor;">\$cur\${closingBalance.toStringAsFixed(2)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Notice -->
+    <div class="notice-box">
+      <div>Note: This is an official computer-generated account statement. Any discrepancy must be reported within 7 days.</div>
+      <div style="direction: rtl; font-weight: bold;">نوٹ: یہ کمپیوٹر کا تیار کردہ سرکاری کھاتہ ہے۔ کسی بھی غلطی کی صورت میں 7 یوم کے اندر مطلع فرمائیں۔</div>
+    </div>
+
+    <!-- Signatures -->
+    <div class="sign-row">
+      <div class="sign-box">Prepared By (تیار کنندہ / اکاؤنٹنٹ)</div>
+      <div class="sign-box">Audited &amp; Verified By (تصدیق کنندہ)</div>
+      <div class="sign-box">Customer / Party Signature (دستخط کھاتہ دار)</div>
+    </div>
+  </div>
+</body>
+</html>
+    ''';
+  }
+
   static String _escape(String input) {
     return input
         .replaceAll('&', '&amp;')

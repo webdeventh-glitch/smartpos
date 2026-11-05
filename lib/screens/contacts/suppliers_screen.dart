@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import 'contact_ledger_dialog.dart';
+import 'contact_ledger_screen.dart';
 
 class SuppliersScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -462,15 +463,18 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   }
 
   Future<void> _openSupplierLedgerDialog(Contact supplier) async {
-    showDialog(
-      context: context,
-      builder: (_) => ContactLedgerDialog(
-        contact: supplier,
-        contactType: 'supplier',
-        settings: widget.settings,
-        onPaymentRecorded: () => _load(),
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ContactLedgerScreen(
+          contact: supplier,
+          contactType: 'supplier',
+          settings: widget.settings,
+          onPaymentRecorded: () => _load(),
+        ),
       ),
     );
+    _load();
   }
 
   @override
