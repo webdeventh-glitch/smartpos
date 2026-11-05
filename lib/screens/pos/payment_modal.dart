@@ -460,7 +460,15 @@ class _PaymentModalState extends State<PaymentModal> {
                     ),
                     Expanded(
                       child: InkWell(
-                        onTap: () => setState(() => _isSplitMode = true),
+                        onTap: () {
+                          if (widget.isWalkIn) {
+                            setState(() {
+                              _validationError = 'Strict Walk-in Rule: واک اِن کسٹمر کے لیے اسپلٹ / ملٹیپل پیمنٹ کی اجازت نہیں ہے۔ واک اِن کسٹمر مکمل کیش ادا کرتے ہیں۔';
+                            });
+                            return;
+                          }
+                          setState(() => _isSplitMode = true);
+                        },
                         borderRadius: BorderRadius.circular(8),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -477,16 +485,24 @@ class _PaymentModalState extends State<PaymentModal> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.call_split_rounded, size: 16),
+                                Icon(
+                                  widget.isWalkIn ? Icons.lock_outline_rounded : Icons.call_split_rounded,
+                                  size: 16,
+                                  color: widget.isWalkIn ? Colors.grey : null,
+                                ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'Split Tender (Cash + Card/Bank)',
+                                  widget.isWalkIn
+                                      ? 'Split Tender (Account Only)'
+                                      : 'Split Tender (Cash + Card/Bank)',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
-                                    color: _isSplitMode
-                                        ? (isDark ? Colors.white : const Color(0xFF1E293B))
-                                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                    color: widget.isWalkIn
+                                        ? Colors.grey
+                                        : (_isSplitMode
+                                            ? (isDark ? Colors.white : const Color(0xFF1E293B))
+                                            : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                                   ),
                                 ),
                               ],
@@ -545,8 +561,10 @@ class _PaymentModalState extends State<PaymentModal> {
                     _methodTile('bank_transfer', 'Bank', Icons.account_balance_outlined, isDark),
                     const SizedBox(width: 8),
                     _methodTile('cheque', 'Cheque', Icons.article_outlined, isDark),
-                    const SizedBox(width: 8),
-                    _methodTile('credit', 'Due/Credit', Icons.pending_actions_outlined, isDark),
+                    if (!widget.isWalkIn) ...[
+                      const SizedBox(width: 8),
+                      _methodTile('credit', 'Due/Credit', Icons.pending_actions_outlined, isDark),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 16),

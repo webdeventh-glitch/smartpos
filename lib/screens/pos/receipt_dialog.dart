@@ -8,6 +8,7 @@ class ReceiptDialog extends StatefulWidget {
   final BusinessSettings settings;
   final double tenderedAmount;
   final double changeReturn;
+  final double? customerPreviousBalance;
 
   const ReceiptDialog({
     super.key,
@@ -15,6 +16,7 @@ class ReceiptDialog extends StatefulWidget {
     required this.settings,
     required this.tenderedAmount,
     required this.changeReturn,
+    this.customerPreviousBalance,
   });
 
   @override
@@ -27,7 +29,10 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
   @override
   void initState() {
     super.initState();
-    _paperSize = widget.settings.isPharmacy ? 'A4 Agency' : '80mm';
+    final name = widget.sale.customerName.toLowerCase().trim();
+    final isWalkIn = name.contains('walk-in') || name.contains('walk in') || name == 'cash customer' || name.contains('walkin');
+    // Retail counter walk-in defaults to 80mm POS slip; Registered account holder defaults to A4 Agency invoice
+    _paperSize = isWalkIn ? '80mm POS' : 'A4 Agency';
   }
 
   String _numberToWords(double amount) {
@@ -142,8 +147,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
   @override
   Widget build(BuildContext context) {
     final currency = widget.settings.currencySymbol;
-    final isA4 = _paperSize == 'A4 Agency';
-    final is58mm = _paperSize == '58mm';
+    final isA4 = _paperSize == 'A4 Agency' || _paperSize == 'A4';
+    final is58mm = _paperSize == '58mm Thermal' || _paperSize == '58mm';
     final dialogWidth = isA4 ? 780.0 : (is58mm ? 330.0 : 430.0);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -196,7 +201,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                       children: [
                         _formatChip('A4 Agency', isA4),
                         const SizedBox(width: 6),
-                        _formatChip('80mm POS', _paperSize == '80mm'),
+                        _formatChip('80mm POS', _paperSize == '80mm POS' || _paperSize == '80mm'),
                         const SizedBox(width: 6),
                         _formatChip('58mm Thermal', is58mm),
                         const SizedBox(width: 12),
@@ -263,6 +268,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                             tenderedAmount: widget.tenderedAmount,
                             changeReturn: widget.changeReturn,
                             paperSizeOverride: _paperSize,
+                            customerPreviousBalance: widget.customerPreviousBalance,
                           );
                           await PrintService.openPrintWindow(
                             htmlContent: html,
@@ -509,6 +515,33 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         ),
         const SizedBox(height: 8),
 
+        // Customer Khata Ledger Box for Regular Account Customers
+        if (!widget.sale.customerName.toLowerCase().contains('walk-in') &&
+            !widget.sale.customerName.toLowerCase().contains('walk in') &&
+            !widget.sale.customerName.toLowerCase().contains('walkin')) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              border: Border.all(color: Colors.black, width: 1.0),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _ledgerItem('PREVIOUS BALANCE (پچھلا بقایا)', '$currency${(widget.customerPreviousBalance ?? 0.0).toStringAsFixed(2)}'),
+                _ledgerItem('CURRENT INVOICE (موجودہ بل)', '$currency${widget.sale.totalAmount.toStringAsFixed(2)}'),
+                _ledgerItem('RECEIVED TODAY (آج وصولی)', '$currency${widget.sale.paidAmount.toStringAsFixed(2)}'),
+                _ledgerItem(
+                  'NET CLOSING KHATA (کل واجب الادا)',
+                  '$currency${((widget.customerPreviousBalance ?? 0.0) + widget.sale.totalAmount - widget.sale.paidAmount).toStringAsFixed(2)}',
+                  isBoldRed: true,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+
         if (widget.settings.isPharmacy) ...[
           // Legal Warranty Section (Form 2A Drug Act 1976)
           Container(
@@ -583,6 +616,27 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             ],
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _ledgerItem(String label, String value, {bool isBoldRed = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            color: isBoldRed ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
+          ),
+        ),
       ],
     );
   }

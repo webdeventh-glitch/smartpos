@@ -87,46 +87,39 @@ class PrintService {
     double tenderedAmount = 0.0,
     double changeReturn = 0.0,
     String? paperSizeOverride,
+    double? customerPreviousBalance,
   }) {
     final cur = settings.currencySymbol;
     final paperSize = (paperSizeOverride ?? settings.receiptPaperSize).toLowerCase();
     final isA4 = paperSize == 'a4' || paperSize == 'a4 agency';
+    if (isA4) {
+      return generateA4AgencyInvoiceHtml(
+        sale: sale,
+        settings: settings,
+        customerPreviousBalance: customerPreviousBalance,
+      );
+    }
     final is58mm = paperSize == '58mm';
-    final pageSizeCss = isA4 ? 'A4 portrait' : (is58mm ? '58mm auto' : '80mm auto');
-    final maxWidthCss = isA4 ? '780px' : (is58mm ? '48mm' : '72mm');
-    final fontSizeCss = isA4 ? '13px' : (is58mm ? '10px' : '12px');
+    final pageSizeCss = is58mm ? '58mm auto' : '80mm auto';
+    final maxWidthCss = is58mm ? '48mm' : '72mm';
+    final fontSizeCss = is58mm ? '10px' : '12px';
 
     final itemsHtml = StringBuffer();
     if (sale.items != null) {
       for (int i = 0; i < sale.items!.length; i++) {
         final item = sale.items![i];
-        if (isA4) {
-          itemsHtml.writeln('''
-            <tr>
-              <td style="text-align:center;">${i + 1}</td>
-              <td style="font-weight:bold;">${_escape(item.productName)}</td>
-              <td>${_escape(item.batchNumber ?? '-')}</td>
-              <td>${_escape(item.expiryDate ?? '-')}</td>
-              <td style="text-align:center;">${item.quantity.toStringAsFixed(0)}</td>
-              <td style="text-align:right;">$cur${item.unitPrice.toStringAsFixed(2)}</td>
-              <td style="text-align:right;">${item.packDiscount > 0 ? '${item.packDiscount}%' : '-'}</td>
-              <td style="text-align:right; font-weight:bold;">$cur${item.subtotal.toStringAsFixed(2)}</td>
-            </tr>
-          ''');
-        } else {
-          // Thermal Slip Layout
-          itemsHtml.writeln('''
-            <tr style="border-bottom: 1px dashed #ccc;">
-              <td colspan="4" style="padding-top: 4px; font-weight: bold;">${_escape(item.productName)}</td>
-            </tr>
-            <tr style="border-bottom: 1px dotted #ddd;">
-              <td style="padding-bottom: 4px;">${item.quantity.toStringAsFixed(0)} x $cur${item.unitPrice.toStringAsFixed(2)}</td>
-              <td style="padding-bottom: 4px; text-align:center;">${item.batchNumber != null && item.batchNumber!.isNotEmpty ? 'B:${item.batchNumber}' : ''}</td>
-              <td style="padding-bottom: 4px; text-align:right;">${item.packDiscount > 0 ? '-${item.packDiscount}%' : ''}</td>
-              <td style="padding-bottom: 4px; text-align:right; font-weight: bold;">$cur${item.subtotal.toStringAsFixed(2)}</td>
-            </tr>
-          ''');
-        }
+        // Thermal Slip Layout
+        itemsHtml.writeln('''
+          <tr style="border-bottom: 1px dashed #ccc;">
+            <td colspan="4" style="padding-top: 4px; font-weight: bold;">${_escape(item.productName)}</td>
+          </tr>
+          <tr style="border-bottom: 1px dotted #ddd;">
+            <td style="padding-bottom: 4px;">${item.quantity.toStringAsFixed(0)} x $cur${item.unitPrice.toStringAsFixed(2)}</td>
+            <td style="padding-bottom: 4px; text-align:center;">${item.batchNumber != null && item.batchNumber!.isNotEmpty ? 'B:${item.batchNumber}' : ''}</td>
+            <td style="padding-bottom: 4px; text-align:right;">${item.packDiscount > 0 ? '-${item.packDiscount}%' : ''}</td>
+            <td style="padding-bottom: 4px; text-align:right; font-weight: bold;">$cur${item.subtotal.toStringAsFixed(2)}</td>
+          </tr>
+        ''');
       }
     }
 
@@ -746,6 +739,364 @@ class PrintService {
 </body>
 </html>
 ''';
+  }
+
+  /// Converts numeric amounts into Pakistani English Rupee words (Crore, Lakh, Thousand)
+  static String numberToWords(double amount) {
+    if (amount <= 0) return 'Zero';
+    final units = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    final tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    String convertBelowThousand(int n) {
+      if (n == 0) return '';
+      if (n < 20) return units[n];
+      if (n < 100) return '${tens[n ~/ 10]}${n % 10 != 0 ? ' ${units[n % 10]}' : ''}';
+      return '${units[n ~/ 100]} Hundred${n % 100 != 0 ? ' and ${convertBelowThousand(n % 100)}' : ''}';
+    }
+
+    int intPart = amount.floor();
+    if (intPart == 0) return 'Zero';
+
+    final parts = <String>[];
+    if (intPart >= 10000000) {
+      parts.add('${convertBelowThousand(intPart ~/ 10000000)} Crore');
+      intPart %= 10000000;
+    }
+    if (intPart >= 100000) {
+      parts.add('${convertBelowThousand(intPart ~/ 100000)} Lakh');
+      intPart %= 100000;
+    }
+    if (intPart >= 1000) {
+      parts.add('${convertBelowThousand(intPart ~/ 1000)} Thousand');
+      intPart %= 1000;
+    }
+    if (intPart > 0) {
+      parts.add(convertBelowThousand(intPart));
+    }
+    return '${parts.join(' ')} Only';
+  }
+
+  /// Full 9-Column Boxed A4 Agency Invoice (Pixel-perfect match with Preview dialog)
+  static String generateA4AgencyInvoiceHtml({
+    required Sale sale,
+    required BusinessSettings settings,
+    double? customerPreviousBalance,
+  }) {
+    final cur = settings.currencySymbol;
+    final items = sale.items ?? [];
+    final itemsHtml = StringBuffer();
+
+    for (var it in items) {
+      final packVal = it.unitPrice * it.quantity;
+      final discVal = it.discount > 0 ? it.discount : (it.packDiscount > 0 ? (packVal * it.packDiscount / 100) : 0.0);
+      itemsHtml.writeln('''
+        <tr>
+          <td style="border: 1px solid #000; padding: 4px 6px; font-weight: bold; text-align: left;">${_escape(it.productName)}</td>
+          <td style="border: 1px solid #000; padding: 4px; text-align: center;">${_escape(it.batchNumber ?? '02260')}</td>
+          <td style="border: 1px solid #000; padding: 4px; text-align: center; color: #d97706; font-weight: bold;">${_escape(it.expiryDate ?? '12-2028')}</td>
+          <td style="border: 1px solid #000; padding: 4px; text-align: center;">${it.quantity.toInt()}</td>
+          <td style="border: 1px solid #000; padding: 4px; text-align: center; color: #059669; font-weight: bold;">${it.bonusQuantity > 0 ? it.bonusQuantity.toInt() : 0}</td>
+          <td style="border: 1px solid #000; padding: 4px; text-align: right;">${it.unitPrice.toStringAsFixed(2)}</td>
+          <td style="border: 1px solid #000; padding: 4px; text-align: right;">${packVal.toStringAsFixed(2)}</td>
+          <td style="border: 1px solid #000; padding: 4px; text-align: right;">${discVal > 0 ? discVal.toStringAsFixed(2) : '0.00'}</td>
+          <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">${it.subtotal.toStringAsFixed(2)}</td>
+        </tr>
+      ''');
+    }
+
+    final dateStr = sale.createdAt.split(' ').first;
+    final timeStr = sale.createdAt.contains(' ') ? sale.createdAt.split(' ').last : '11:38:27';
+    final isWalkIn = sale.customerName.toLowerCase().contains('walk-in') ||
+        sale.customerName.toLowerCase().contains('walk in') ||
+        sale.customerName.toLowerCase() == 'cash customer' ||
+        sale.customerName.toLowerCase().contains('walkin');
+
+    final prevBal = customerPreviousBalance ?? 0.0;
+    final currentBill = sale.totalAmount;
+    final paidToday = sale.paidAmount;
+    final netClosing = prevBal + currentBill - paidToday;
+
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invoice - ${sale.invoiceNo}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #000;
+      background: #fff;
+      font-size: 11px;
+      line-height: 1.3;
+    }
+    .a4-container {
+      width: 100%;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .bold { font-weight: bold; }
+    .biz-header {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .biz-title {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      margin: 0;
+      text-transform: uppercase;
+      color: #0f172a;
+    }
+    .biz-sub {
+      font-size: 11px;
+      font-weight: bold;
+      color: #334155;
+      margin-top: 2px;
+    }
+    .biz-meta {
+      font-size: 11px;
+      color: #64748b;
+    }
+    .biz-cell {
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
+    }
+    .meta-box {
+      border: 1.2px solid #000;
+      padding: 8px 10px;
+      margin: 10px 0;
+      display: flex;
+      justify-content: space-between;
+    }
+    .meta-col {
+      width: 48%;
+    }
+    .meta-row {
+      display: flex;
+      margin-bottom: 3px;
+      font-size: 11px;
+    }
+    .meta-label {
+      width: 100px;
+      font-weight: bold;
+      color: #000;
+    }
+    .meta-val {
+      flex: 1;
+      color: #000;
+    }
+    table.a4-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #000;
+      font-size: 11px;
+    }
+    table.a4-table th {
+      border: 1px solid #000;
+      background-color: #f1f5f9;
+      padding: 5px 3px;
+      font-weight: bold;
+      font-size: 10.5px;
+      text-align: center;
+    }
+    .subtotals-bar {
+      border-left: 1px solid #000;
+      border-right: 1px solid #000;
+      border-bottom: 1px solid #000;
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      font-size: 11px;
+    }
+    .words-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin: 8px 0;
+    }
+    .ledger-box {
+      border: 1px solid #000;
+      background-color: #f8fafc;
+      padding: 6px 10px;
+      margin: 8px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ledger-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .ledger-label {
+      font-size: 9.5px;
+      font-weight: bold;
+      color: #475569;
+    }
+    .ledger-val {
+      font-size: 12px;
+      font-weight: 900;
+      color: #0f172a;
+    }
+    .ledger-val.highlight {
+      color: #dc2626;
+    }
+    .warranty-box {
+      border: 1px solid #cbd5e1;
+      background-color: #f8fafc;
+      padding: 6px 8px;
+      margin: 8px 0;
+      font-size: 9px;
+      color: #475569;
+      line-height: 1.35;
+      border-radius: 4px;
+    }
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .urdu-notice {
+      color: #b91c1c;
+      font-weight: bold;
+      font-size: 12px;
+      direction: rtl;
+    }
+    @media print {
+      body { margin: 0; }
+      .no-print { display: none !important; }
+    }
+  </style>
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() { window.print(); }, 250);
+    });
+  </script>
+</head>
+<body>
+  <div class="a4-container">
+    <!-- Header -->
+    <div class="biz-header">
+      <div class="biz-title">${_escape(settings.businessName.toUpperCase())}</div>
+      <div class="biz-sub">DISTRIBUTOR AND WHOLESALER - ${_escape(settings.branchName.toUpperCase())}</div>
+      <div class="biz-meta">${_escape(settings.address)}</div>
+      ${settings.phone.isNotEmpty ? '<div class="biz-cell">CELL NO: ' + _escape(settings.phone) + (settings.taxNumber.isNotEmpty ? ' &bull; NTN/GST: ' + _escape(settings.taxNumber) : '') + '</div>' : ''}
+    </div>
+
+    <!-- Boxed Party and Invoice Info -->
+    <div class="meta-box">
+      <div class="meta-col">
+        <div class="meta-row"><span class="meta-label">INVOICE NO:</span><span class="meta-val">${_escape(sale.invoiceNo)}</span></div>
+        <div class="meta-row"><span class="meta-label">PARTY CODE:</span><span class="meta-val">${sale.customerId ?? 1}</span></div>
+        <div class="meta-row"><span class="meta-label">PARTY NAME:</span><span class="meta-val bold">${_escape(sale.customerName)}</span></div>
+        <div class="meta-row"><span class="meta-label">ADDRESS:</span><span class="meta-val">${_escape(settings.address.split(',').first)}</span></div>
+      </div>
+      <div class="meta-col">
+        <div class="meta-row"><span class="meta-label">DATE:</span><span class="meta-val">${_escape(dateStr)}</span></div>
+        <div class="meta-row"><span class="meta-label">S/MAN.CODE:</span><span class="meta-val">02</span></div>
+        <div class="meta-row"><span class="meta-label">NAME:</span><span class="meta-val bold">${_escape(sale.userName ?? 'NASIR MENGAL')}</span></div>
+        <div class="meta-row"><span class="meta-label">TIME:</span><span class="meta-val">${_escape(timeStr)}</span></div>
+      </div>
+    </div>
+
+    <!-- 9-Column Products Table -->
+    <table class="a4-table">
+      <thead>
+        <tr>
+          <th style="width: 32%; text-align: left; padding-left: 6px;">DESCRIPTION</th>
+          <th style="width: 9%;">BATCH</th>
+          <th style="width: 10%;">EXP-DATE</th>
+          <th style="width: 6%;">QTY</th>
+          <th style="width: 7%;">BONUS</th>
+          <th style="width: 9%; text-align: right;">RATE+GST</th>
+          <th style="width: 10%; text-align: right;">PACK VALUE</th>
+          <th style="width: 8%; text-align: right;">PACK DISC</th>
+          <th style="width: 9%; text-align: right; padding-right: 6px;">NET TOTAL</th>
+        </tr>
+      </thead>
+      <tbody>
+        $itemsHtml
+      </tbody>
+    </table>
+
+    <!-- Subtotals Row -->
+    <div class="subtotals-bar">
+      <div>
+        ${sale.taxAmount > 0 ? (settings.isPharmacy ? 'Advance Tax Under Section(236H)= 0.50% &nbsp;&nbsp;&nbsp; $cur' + sale.taxAmount.toStringAsFixed(2) : 'Tax Amount: $cur' + sale.taxAmount.toStringAsFixed(2)) : 'Tax: Exempt (0.00%)'}
+      </div>
+      <div>
+        TOTAL : <span style="font-size: 13px; font-weight: 900;">$cur${sale.totalAmount.toStringAsFixed(2)}</span>
+      </div>
+    </div>
+
+    <!-- Numbers of Products & Amount in Words -->
+    <div class="words-bar">
+      <div class="bold">Numbers of Products: &nbsp;${items.length}</div>
+      <div style="font-style: italic;">Amount in Words: ${numberToWords(sale.totalAmount)}</div>
+    </div>
+
+    ${!isWalkIn ? '''
+    <!-- Customer Khata Ledger Summary -->
+    <div class="ledger-box">
+      <div class="ledger-item">
+        <span class="ledger-label">PREVIOUS BALANCE (پچھلا بقایا)</span>
+        <span class="ledger-val">$cur${prevBal.toStringAsFixed(2)}</span>
+      </div>
+      <div class="ledger-item">
+        <span class="ledger-label">CURRENT INVOICE (موجودہ بل)</span>
+        <span class="ledger-val">$cur${currentBill.toStringAsFixed(2)}</span>
+      </div>
+      <div class="ledger-item">
+        <span class="ledger-label">RECEIVED TODAY (آج وصولی)</span>
+        <span class="ledger-val">$cur${paidToday.toStringAsFixed(2)}</span>
+      </div>
+      <div class="ledger-item">
+        <span class="ledger-label">NET CLOSING KHATA (کل واجب الادا)</span>
+        <span class="ledger-val highlight">$cur${netClosing.toStringAsFixed(2)}</span>
+      </div>
+    </div>
+    ''' : ''}
+
+    <!-- Warranty Section -->
+    ${settings.isPharmacy ? '''
+    <div class="warranty-box">
+      <strong>WARRANTY :-</strong><br>
+      FORM 2A (SEE RULES 19 &amp; 30). WARRANTY UNDER SECTION 23(i) OF DRUG ACT, 1976.<br>
+      I am being a resident of Pakistan carrying on business at Khuzdar. Do hereby give this warranty that the drug contained in this invoice, described as sold by us do not contravene in any way the provision of section 23 of the Drug Act, 1976.<br>
+      <em>Note: This Warranty does not apply to Unani, Homeopathic, Bio Chemic, System of Medicine, Herbal and General Item.</em>
+    </div>
+    ''' : '''
+    <div class="warranty-box">
+      <strong>TERMS &amp; CONDITIONS :-</strong><br>
+      1. Goods once sold can be exchanged within 7 days upon presentation of original bill.<br>
+      2. Altered, damaged, or clearance items are non-refundable.
+    </div>
+    '''}
+
+    <!-- Signatures and Urdu Notice -->
+    <div class="footer-bar">
+      <div>Checked By _______________________</div>
+      <div class="urdu-notice">نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔</div>
+    </div>
+  </div>
+</body>
+</html>
+    ''';
   }
 
   static String _escape(String input) {

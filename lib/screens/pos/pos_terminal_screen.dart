@@ -1865,9 +1865,16 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
           settings: widget.settings,
           tenderedAmount: tendered,
           changeReturn: changeReturn,
+          customerPreviousBalance: _selectedCustomer?.balance ?? 0.0,
         ),
       );
     }
+  }
+
+  bool get _isCurrentCustomerWalkIn {
+    if (_selectedCustomer == null || _selectedCustomer!.id == null) return true;
+    final name = _selectedCustomer!.name.toLowerCase().trim();
+    return name.contains('walk-in') || name.contains('walk in') || name == 'cash customer' || name.contains('walkin');
   }
 
   void _quickCashCheckout() {
@@ -1881,31 +1888,175 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
   }
 
   void _quickCardCheckout() {
-    _processCheckout(
-      paymentMethod: 'card',
-      paidAmount: _grandTotal,
-      tendered: _grandTotal,
-      changeReturn: 0.0,
-      paymentStatus: 'paid',
+    if (_cart.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cart is empty! Add products first.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    final isOffline = widget.settings.isOfflineOnly;
+    final cardRefCtrl = TextEditingController();
+    String selectedCardType = 'Visa / Mastercard';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Row(
+            children: const [
+              Icon(Icons.credit_card_rounded, color: Color(0xFF4338CA), size: 24),
+              SizedBox(width: 8),
+              Text('کارڈ ادائیگی (Debit / Credit Card)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isOffline)
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFF59E0B)),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.cloud_off_rounded, color: Color(0xFFB45309), size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'سسٹم آف لائن موڈ میں ہے۔ بیرونی بینک EDC مشین سے کارڈ سوائپ کریں اور تصدیقی سلپ نمبر / Auth Code درج کریں۔',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF78350F), fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                Text(
+                  'Total Payable: ${widget.settings.currencySymbol} ${_grandTotal.toStringAsFixed(2)}',
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
+                ),
+                const SizedBox(height: 12),
+                const Text('بینک مشین سلپ نمبر / Auth Code:*', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: cardRefCtrl,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. HBL-98124, MCB-4321, Alfalah Slip #',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text('کارڈ نیٹ ورک:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: selectedCardType,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'Visa / Mastercard', child: Text('Visa / Mastercard')),
+                    DropdownMenuItem(value: 'PayPak / 1Link', child: Text('PayPak / 1Link')),
+                    DropdownMenuItem(value: 'UnionPay', child: Text('UnionPay')),
+                    DropdownMenuItem(value: 'Other Bank EDC', child: Text('Other Bank EDC Terminal')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setModalState(() => selectedCardType = val);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('کینسل (Cancel)'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4338CA),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                final ref = cardRefCtrl.text.trim();
+                if (isOffline && ref.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('آف لائن موڈ میں بینک مشین کا سلپ نمبر / Auth Code درج کرنا ضروری ہے۔'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                _processCheckout(
+                  paymentMethod: 'card',
+                  paidAmount: _grandTotal,
+                  tendered: _grandTotal,
+                  changeReturn: 0.0,
+                  paymentStatus: 'paid',
+                  note: ref.isNotEmpty ? 'Card Payment ($selectedCardType) - Auth/Slip #$ref' : 'Card Payment ($selectedCardType)',
+                );
+              },
+              child: const Text('کارڈ ادائیگی مکمل کریں'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _quickCreditCheckout() {
-    final isWalkIn = _selectedCustomer == null || _selectedCustomer!.id == null;
-    if (isWalkIn) {
+    if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.white),
+        const SnackBar(content: Text('Cart is empty! Add products first.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    if (_isCurrentCustomerWalkIn) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Row(
+            children: const [
+              Icon(Icons.block_rounded, color: Colors.red, size: 24),
               SizedBox(width: 8),
-              Expanded(
-                child: Text('Strict Walk-in Rule: Credit checkout is strictly restricted to registered account holders. Please select or add a customer account.'),
-              ),
+              Text('واک اِن کسٹمر کو ادھار سیل ممنوع ہے', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 4),
+          content: const Text(
+            'واک اِن (Walk-in / Cash Customer) کا کھاتہ درج نہیں ہوتا، لہٰذا کریڈٹ / ادھار سیل کی اجازت نہیں ہے۔\n\nاگر کسٹمر ادھار پر سامان خرید رہا ہے تو برائے مہربانی اس کا باقاعدہ رجسٹرڈ کھاتہ منتخب کریں یا نیا کسٹمر اکاؤنٹ شامل کریں۔',
+            style: TextStyle(fontSize: 13, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('کینسل (Cancel)'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0038B8),
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.person_search, size: 16),
+              label: const Text('کسٹمر کھاتہ منتخب کریں (F3)'),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _openCustomerSearchModal();
+              },
+            ),
+          ],
         ),
       );
       return;
@@ -1921,6 +2072,64 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
+  void _handleMultiplePayClick() {
+    if (_cart.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cart is empty! Add products first.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    if (_isCurrentCustomerWalkIn) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Row(
+            children: const [
+              Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 24),
+              SizedBox(width: 8),
+              Text('واک اِن کسٹمر - ملٹیپل پیمنٹ پابندی', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            'واک اِن کاؤنٹر کسٹمرز کے لیے اسپلٹ یا ملٹیپل پیمنٹ کی سہولت دستیاب نہیں ہے کیونکہ ان کا بقایا بیلنس کھاتے میں محفوظ نہیں کیا جا سکتا۔\n\nاگر کسٹمر ایک سے زائد ذرائع سے ادائیگی کرنا چاہتا ہے یا ادھار رکھنا چاہتا ہے تو اس کا باقاعدہ کسٹمر اکاؤنٹ منتخب کریں۔',
+            style: TextStyle(fontSize: 13, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('کینسل (Cancel)'),
+            ),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.person_search, size: 16),
+              label: const Text('کسٹمر منتخب کریں (F3)'),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _openCustomerSearchModal();
+              },
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.payments, size: 16),
+              label: const Text('کیش وصول کریں (F2)'),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _quickCashCheckout();
+              },
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    _openPaymentModal();
+  }
+
   void _openPaymentModal() async {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1929,7 +2138,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       return;
     }
 
-    final isWalkIn = _selectedCustomer == null || _selectedCustomer!.id == null;
+    final isWalkIn = _isCurrentCustomerWalkIn;
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -2280,7 +2489,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         const SingleActivator(LogicalKeyboardKey.f4): _suspendSale,
         const SingleActivator(LogicalKeyboardKey.f5): _toggleProductLayout,
         const SingleActivator(LogicalKeyboardKey.f6): _openQuickCustomerModal,
-        const SingleActivator(LogicalKeyboardKey.f7): _openPaymentModal,
+        const SingleActivator(LogicalKeyboardKey.f7): _handleMultiplePayClick,
         const SingleActivator(LogicalKeyboardKey.f8): _clearCart,
         const SingleActivator(LogicalKeyboardKey.f9): () {
           showDialog(context: context, builder: (_) => const CalculatorDialog());
@@ -3249,7 +3458,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                       ),
                                       icon: const Icon(Icons.payments_outlined, size: 16),
                                       label: const Text('Multiple Pay', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                                      onPressed: _cart.isEmpty ? null : _openPaymentModal,
+                                      onPressed: _cart.isEmpty ? null : _handleMultiplePayClick,
                                     ),
                                     const SizedBox(width: 8),
 
