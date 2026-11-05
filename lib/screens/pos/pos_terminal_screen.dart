@@ -986,6 +986,139 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         : item.quantity.toString();
     final qtyCtrl = TextEditingController(text: initialQty);
 
+    final rawUnit = item.product.unit.toLowerCase().trim();
+
+    // 1. Weight / Weighed items (تولنے والا وزن - کلو، گرام، من، دھڑی)
+    final isWeight = rawUnit.contains('kg') ||
+        rawUnit.contains('kilo') ||
+        rawUnit.contains('gram') ||
+        rawUnit.contains('gm') ||
+        rawUnit == 'g' ||
+        rawUnit.contains('mann') ||
+        rawUnit.contains('maund') ||
+        rawUnit.contains('dhari') ||
+        rawUnit.contains('pao') ||
+        rawUnit.contains('ton') ||
+        rawUnit.contains('bori') ||
+        rawUnit.contains('sack');
+
+    // 2. Liquid / Volume items (مائع پیمائش - لیٹر، ملی لیٹر)
+    final isLiquid = rawUnit.contains('liter') ||
+        rawUnit.contains('litre') ||
+        rawUnit.contains('ltr') ||
+        rawUnit.contains('ml') ||
+        rawUnit.contains('gallon') ||
+        rawUnit.contains('gal');
+
+    // 3. Length / Fabric / Measurement (پیمائش - میٹر، گز، فٹ، انچ)
+    final isMeasurement = rawUnit.contains('meter') ||
+        rawUnit.contains('mtr') ||
+        rawUnit == 'm' ||
+        rawUnit.contains('ghaz') ||
+        rawUnit.contains('guz') ||
+        rawUnit.contains('yard') ||
+        rawUnit.contains('yd') ||
+        rawUnit.contains('foot') ||
+        rawUnit.contains('feet') ||
+        rawUnit.contains('ft') ||
+        rawUnit.contains('inch') ||
+        rawUnit.contains('sqft') ||
+        rawUnit.contains('sqm') ||
+        rawUnit.contains('marla');
+
+    // Dynamic Headers, Colors, and Presets
+    final String dlgTitle;
+    final String dlgSubTitle;
+    final IconData dlgIcon;
+    final Color dlgColor;
+    final String inputLabel;
+    final String badgeLabel;
+    final List<Map<String, dynamic>> presets;
+
+    if (isWeight) {
+      dlgTitle = 'Adjust Weight (تولنے والا وزن)';
+      dlgSubTitle = 'ترازو وزن • ${item.product.name}';
+      dlgIcon = Icons.scale_rounded;
+      dlgColor = const Color(0xFFD97706);
+      inputLabel = 'Enter Weight in ${item.product.unit.isNotEmpty ? item.product.unit : "Kg"} (اعشاریہ وزن مثلاً 1.5, 0.50)';
+      badgeLabel = '⚖️ Weighed / Weight Scale (تولنے والا وزن)';
+      presets = [
+        {'label': '0.25 (Pao / پاؤ)', 'val': 0.25},
+        {'label': '0.50 (Aadha / آدھا کلو)', 'val': 0.50},
+        {'label': '0.75 (3 Pao / تین پاؤ)', 'val': 0.75},
+        {'label': '1.0 (1 Kg / کلو)', 'val': 1.0},
+        {'label': '1.5 (ڈیڑھ کلو)', 'val': 1.5},
+        {'label': '2.0 (2 Kg)', 'val': 2.0},
+        {'label': '2.5 (ڈھائی کلو)', 'val': 2.5},
+        {'label': '5.0 (Dhari / دھڑی)', 'val': 5.0},
+        {'label': '10.0 (10 Kg)', 'val': 10.0},
+        {'label': '20.0 (آدھا من)', 'val': 20.0},
+        {'label': '40.0 (Mann / من)', 'val': 40.0},
+      ];
+    } else if (isMeasurement) {
+      dlgTitle = 'Adjust Measurement (پیمائش / لمبائی)';
+      dlgSubTitle = 'کپڑا / پائپ / تار کی لمبائی • ${item.product.name}';
+      dlgIcon = Icons.straighten_rounded;
+      dlgColor = const Color(0xFF0D9488);
+      inputLabel = 'Enter Length in ${item.product.unit.isNotEmpty ? item.product.unit : "Meter"} (میٹر / گز / فٹ)';
+      badgeLabel = '📏 Measurement / Fabric (پیمائش والے یونٹس)';
+      presets = [
+        {'label': '0.50 (آدھا میٹر)', 'val': 0.50},
+        {'label': '1.0 (1 میٹر)', 'val': 1.0},
+        {'label': '1.5 (ڈیڑھ میٹر)', 'val': 1.5},
+        {'label': '2.0 (2 میٹر)', 'val': 2.0},
+        {'label': '2.25 (شلوار 2¼m)', 'val': 2.25},
+        {'label': '2.50 (سوٹ / قمیض 2½m)', 'val': 2.50},
+        {'label': '3.0 (3 میٹر)', 'val': 3.0},
+        {'label': '4.0 (فل مردانہ سوٹ / 4m)', 'val': 4.0},
+        {'label': '4.50 (بڑا سوٹ / 4½m)', 'val': 4.50},
+        {'label': '5.0 (5 میٹر)', 'val': 5.0},
+        {'label': '10.0 (10 میٹر)', 'val': 10.0},
+        {'label': '25.0 (تھان / Roll)', 'val': 25.0},
+      ];
+    } else if (isLiquid) {
+      dlgTitle = 'Adjust Volume (مائع / لیٹر درج کریں)';
+      dlgSubTitle = 'دودھ / آئل / مائع حجم • ${item.product.name}';
+      dlgIcon = Icons.water_drop_outlined;
+      dlgColor = const Color(0xFF0284C7);
+      inputLabel = 'Enter Volume in ${item.product.unit.isNotEmpty ? item.product.unit : "Liter"} (لیٹر / ملی لیٹر)';
+      badgeLabel = '💧 Liquid Volume (مائع حجم والے یونٹس)';
+      presets = [
+        {'label': '0.25 (پاؤ / 250ml)', 'val': 0.25},
+        {'label': '0.50 (آدھا لیٹر / 500ml)', 'val': 0.50},
+        {'label': '0.75 (تین پاؤ / 750ml)', 'val': 0.75},
+        {'label': '1.0 (1 لیٹر)', 'val': 1.0},
+        {'label': '1.5 (ڈیڑھ لیٹر)', 'val': 1.5},
+        {'label': '2.0 (2 لیٹر)', 'val': 2.0},
+        {'label': '2.5 (ڈھائی لیٹر)', 'val': 2.5},
+        {'label': '5.0 (گیلن / Can)', 'val': 5.0},
+        {'label': '10.0 (10 لیٹر)', 'val': 10.0},
+        {'label': '16.0 (گھی ٹن 16L)', 'val': 16.0},
+      ];
+    } else {
+      // Discrete / Count Units: Pieces, Boxes, Packs, Strips, Tablets, Cartons, Dozens, Bottles, etc.
+      dlgTitle = 'Adjust Quantity (تعداد / مقدار درج کریں)';
+      dlgSubTitle = 'گنتی / تعداد • ${item.product.name}';
+      dlgIcon = Icons.inventory_2_outlined;
+      dlgColor = const Color(0xFF4F46E5);
+      inputLabel = 'Enter Quantity in ${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"} (تعداد درج کریں)';
+      badgeLabel = '📦 Count / Discrete Item (گنتی و تعداد والے یونٹس)';
+      presets = [
+        {'label': '1', 'val': 1.0},
+        {'label': '2', 'val': 2.0},
+        {'label': '3', 'val': 3.0},
+        {'label': '4', 'val': 4.0},
+        {'label': '5', 'val': 5.0},
+        {'label': '6 (½ Dozen)', 'val': 6.0},
+        {'label': '10', 'val': 10.0},
+        {'label': '12 (1 Dozen)', 'val': 12.0},
+        {'label': '20', 'val': 20.0},
+        {'label': '24 (2 Dozen)', 'val': 24.0},
+        {'label': '50 (Pack)', 'val': 50.0},
+        {'label': '100 (Carton)', 'val': 100.0},
+      ];
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -997,7 +1130,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
             backgroundColor: cardBg,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
+              constraints: const BoxConstraints(maxWidth: 460),
               child: Padding(
                 padding: const EdgeInsets.all(22),
                 child: Column(
@@ -1013,21 +1146,21 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF4F46E5).withValues(alpha: 0.15),
+                                color: dlgColor.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(Icons.scale_rounded, color: Color(0xFF4F46E5), size: 20),
+                              child: Icon(dlgIcon, color: dlgColor, size: 20),
                             ),
                             const SizedBox(width: 10),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Adjust Quantity / Weight',
+                                  dlgTitle,
                                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary),
                                 ),
                                 Text(
-                                  'مقدار یا وزن درج کریں • ${item.product.name}',
+                                  dlgSubTitle,
                                   style: TextStyle(fontSize: 11, color: textSecondary),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -1044,7 +1177,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Product & Current Unit
+                    // Product & Current Unit Banner
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -1058,9 +1191,18 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Unit of Measure', style: TextStyle(fontSize: 10, color: textSecondary)),
+                              Text('Unit of Measure (یونٹ)', style: TextStyle(fontSize: 10, color: textSecondary)),
                               Text(item.product.unit.isNotEmpty ? item.product.unit : 'Standard Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
                             ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: dlgColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: dlgColor.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(badgeLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: dlgColor)),
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -1074,51 +1216,70 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Direct input field
-                    Text('Enter Exact Quantity (Decimals allowed e.g. 1.5, 0.75, 2.25)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary)),
+                    // Direct input field with Step Buttons [-] and [+]
+                    Text(inputLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary)),
                     const SizedBox(height: 6),
-                    TextField(
-                      controller: qtyCtrl,
-                      autofocus: true,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: inputBg,
-                        suffixText: item.product.unit,
-                        suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onChanged: (_) => setDlgState(() {}),
+                    Row(
+                      children: [
+                        IconButton(
+                          tooltip: 'Decrease',
+                          onPressed: () {
+                            double q = double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
+                            final step = (!isWeight && !isMeasurement && !isLiquid) ? 1.0 : (isWeight ? 0.25 : 0.5);
+                            q = (q - step).clamp(0.0, 99999.0);
+                            qtyCtrl.text = q == q.toInt() ? q.toInt().toString() : q.toString();
+                            setDlgState(() {});
+                          },
+                          icon: const Icon(Icons.remove_circle_outline, size: 28, color: Colors.red),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: qtyCtrl,
+                            autofocus: true,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
+                            textAlign: TextAlign.center,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              filled: true,
+                              fillColor: inputBg,
+                              suffixText: item.product.unit,
+                              suffixStyle: TextStyle(fontWeight: FontWeight.bold, color: dlgColor),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onChanged: (_) => setDlgState(() {}),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Increase',
+                          onPressed: () {
+                            double q = double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
+                            final step = (!isWeight && !isMeasurement && !isLiquid) ? 1.0 : (isWeight ? 0.25 : 0.5);
+                            q = q + step;
+                            qtyCtrl.text = q == q.toInt() ? q.toInt().toString() : q.toString();
+                            setDlgState(() {});
+                          },
+                          icon: const Icon(Icons.add_circle_outline, size: 28, color: Colors.green),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
 
-                    // Quick decimal & fraction presets
+                    // Smart Context-Aware Quick Presets
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: [
-                        {'label': '0.25 (Pao)', 'val': 0.25},
-                        {'label': '0.50 (Aadha)', 'val': 0.50},
-                        {'label': '0.75 (3 Pao)', 'val': 0.75},
-                        {'label': '1.0', 'val': 1.0},
-                        {'label': '1.5', 'val': 1.5},
-                        {'label': '2.0', 'val': 2.0},
-                        {'label': '2.5 (Suit)', 'val': 2.5},
-                        {'label': '5.0 (Dhari)', 'val': 5.0},
-                        {'label': '10.0', 'val': 10.0},
-                        {'label': '40.0 (Mann)', 'val': 40.0},
-                      ].map((p) {
+                      children: presets.map((p) {
                         return InkWell(
                           onTap: () {
-                            qtyCtrl.text = p['val'].toString();
+                            final val = p['val'] as num;
+                            qtyCtrl.text = val == val.toInt() ? val.toInt().toString() : val.toString();
                             setDlgState(() {});
                           },
                           borderRadius: BorderRadius.circular(6),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
                               color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(6),
@@ -1177,9 +1338,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                           icon: const Icon(Icons.check, size: 16),
                           label: const Text('Apply Quantity'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4F46E5),
+                            backgroundColor: dlgColor,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
