@@ -1878,6 +1878,17 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
   }
 
   void _quickCashCheckout() {
+    if (_cart.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('کارٹ خالی ہے! پہلے بل میں پروڈکٹس شامل کریں۔ (Cart is empty! Add products first)'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     _processCheckout(
       paymentMethod: 'cash',
       paidAmount: _grandTotal,
@@ -3428,7 +3439,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                       ),
                                       icon: const Icon(Icons.close, size: 16),
                                       label: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
-                                      onPressed: _cart.isEmpty ? null : _clearCart,
+                                      onPressed: _clearCart,
                                     ),
                                     const SizedBox(width: 8),
 
@@ -3458,7 +3469,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                       ),
                                       icon: const Icon(Icons.payments_outlined, size: 16),
                                       label: const Text('Multiple Pay', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                                      onPressed: _cart.isEmpty ? null : _handleMultiplePayClick,
+                                      onPressed: _handleMultiplePayClick,
                                     ),
                                     const SizedBox(width: 8),
 
@@ -3472,7 +3483,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                       ),
                                       icon: const Icon(Icons.money, size: 16),
                                       label: const Text('Cash', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-                                      onPressed: _cart.isEmpty ? null : _quickCashCheckout,
+                                      onPressed: _quickCashCheckout,
                                     ),
                                     const SizedBox(width: 12),
 
