@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/models.dart';
@@ -147,9 +148,12 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
   @override
   Widget build(BuildContext context) {
     final currency = widget.settings.currencySymbol;
+    final screenWidth = MediaQuery.of(context).size.width;
     final isA4 = _paperSize == 'A4 Agency' || _paperSize == 'A4';
     final is58mm = _paperSize == '58mm Thermal' || _paperSize == '58mm';
-    final dialogWidth = isA4 ? 780.0 : (is58mm ? 330.0 : 430.0);
+    final double dialogWidth = isA4
+        ? math.min(screenWidth * 0.95, 840.0)
+        : math.min(screenWidth * 0.95, 540.0);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
@@ -185,47 +189,68 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                   ),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.print_outlined, color: Colors.white, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Invoice Preview (${_paperSize})',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                      ],
+                    const Icon(Icons.print_outlined, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Invoice Preview ($_paperSize)',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    Row(
-                      children: [
-                        _formatChip('A4 Agency', isA4),
-                        const SizedBox(width: 6),
-                        _formatChip('80mm POS', _paperSize == '80mm POS' || _paperSize == '80mm'),
-                        const SizedBox(width: 6),
-                        _formatChip('58mm Thermal', is58mm),
-                        const SizedBox(width: 12),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white70, size: 18),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
+                    const SizedBox(width: 8),
+                    _formatChip('A4 Agency', isA4),
+                    const SizedBox(width: 6),
+                    _formatChip('80mm POS', _paperSize == '80mm POS' || _paperSize == '80mm'),
+                    const SizedBox(width: 6),
+                    _formatChip('58mm Thermal', is58mm),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
                 ),
               ),
 
-              // Invoice Body
+              // Invoice Body with clean background and paper card
               Flexible(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(isA4 ? 26 : 18),
-                  child: isA4 ? _buildA4AgencyInvoice(currency) : _buildThermalReceipt(currency, is58mm),
+                child: Container(
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  alignment: Alignment.topCenter,
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isA4 ? 20 : 16,
+                      vertical: 16,
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: isA4 ? double.infinity : (is58mm ? 300.0 : 380.0),
+                        padding: EdgeInsets.all(isA4 ? 22 : 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: isA4 ? _buildA4AgencyInvoice(currency) : _buildThermalReceipt(currency, is58mm),
+                      ),
+                    ),
+                  ),
                 ),
               ),
 
               // Bottom Actions
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
                   border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
@@ -234,9 +259,62 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     bottomRight: Radius.circular(16),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    IconButton(
+                child: LayoutBuilder(
+                  builder: (context, actionConstraints) {
+                    final isNarrow = actionConstraints.maxWidth < 420;
+                    final printBtn = ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        backgroundColor: const Color(0xFF4F46E5),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.print_rounded, size: 17),
+                      label: Text(
+                        isNarrow ? 'Print ($_paperSize)' : 'Print Document ($_paperSize)',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onPressed: () async {
+                        final html = PrintService.generateSaleInvoiceHtml(
+                          sale: widget.sale,
+                          settings: widget.settings,
+                          tenderedAmount: widget.tenderedAmount,
+                          changeReturn: widget.changeReturn,
+                          paperSizeOverride: _paperSize,
+                          customerPreviousBalance: widget.customerPreviousBalance,
+                        );
+                        await PrintService.openPrintWindow(
+                          htmlContent: html,
+                          title: 'Invoice_${widget.sale.invoiceNo}',
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Invoice #${widget.sale.invoiceNo} dispatched to Windows Print Manager!'),
+                              backgroundColor: const Color(0xFF10B981),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                    );
+
+                    final completeBtn = ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded, size: 17),
+                      label: const Text('Complete (New Sale)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    );
+
+                    final copyBtn = IconButton(
                       icon: Icon(Icons.copy, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
                       tooltip: 'Copy Plaintext Invoice',
                       onPressed: () {
@@ -249,58 +327,18 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                           ),
                         );
                       },
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: const BorderSide(color: Color(0xFF4F46E5)),
-                          foregroundColor: const Color(0xFF4F46E5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        icon: const Icon(Icons.print_rounded, size: 18),
-                        label: Text('Print Document ($_paperSize)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        onPressed: () async {
-                          final html = PrintService.generateSaleInvoiceHtml(
-                            sale: widget.sale,
-                            settings: widget.settings,
-                            tenderedAmount: widget.tenderedAmount,
-                            changeReturn: widget.changeReturn,
-                            paperSizeOverride: _paperSize,
-                            customerPreviousBalance: widget.customerPreviousBalance,
-                          );
-                          await PrintService.openPrintWindow(
-                            htmlContent: html,
-                            title: 'Invoice_${widget.sale.invoiceNo}',
-                          );
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Invoice #${widget.sale.invoiceNo} dispatched to Windows Print Manager!'),
-                                backgroundColor: const Color(0xFF10B981),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor: const Color(0xFF10B981),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        icon: const Icon(Icons.check_circle_rounded, size: 18),
-                        label: const Text('Complete (New Sale)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                  ],
+                    );
+
+                    return Row(
+                      children: [
+                        copyBtn,
+                        const SizedBox(width: 8),
+                        Expanded(child: printBtn),
+                        const SizedBox(width: 8),
+                        Expanded(child: completeBtn),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],

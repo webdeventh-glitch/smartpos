@@ -369,11 +369,41 @@ class _CustomersScreenState extends State<CustomersScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Header Bar
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
+            // Top Header Bar (Responsive)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 800;
+                final actions = Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: const BorderSide(color: Color(0xFFDC2626)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.print_rounded, size: 18),
+                      label: const Text('Print Defaulters Sheet', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: () => _printDefaultersSheet(defaulters),
+                    ),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.person_add_rounded, size: 18),
+                      label: const Text('Add Customer', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: _openAddCustomer,
+                    ),
+                  ],
+                );
+
+                final titleColumn = Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -390,106 +420,156 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600),
                     ),
                   ],
-                ),
-                Row(
+                );
+
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      titleColumn,
+                      const SizedBox(height: 12),
+                      actions,
+                    ],
+                  );
+                }
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFDC2626),
-                        side: const BorderSide(color: Color(0xFFDC2626)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.print_rounded, size: 20),
-                      label: const Text('Print Defaulters Sheet', style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: () => _printDefaultersSheet(defaulters),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4F46E5),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.person_add_rounded, size: 20),
-                      label: const Text('Add Customer', style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: _openAddCustomer,
-                    ),
+                    Expanded(child: titleColumn),
+                    const SizedBox(width: 16),
+                    actions,
                   ],
-                ),
-              ],
+                );
+              },
             ),
             const SizedBox(height: 18),
 
-            // 4 KPI Summary Cards
-            Row(
-              children: [
-                _mini('Total Customers', '${_customers.length}', const Color(0xFF4F46E5), isDark: isDark),
-                const SizedBox(width: 12),
-                _mini('Defaulters (Pending Due)', '${defaulters.length} customers', const Color(0xFFEF4444), isDark: isDark),
-                const SizedBox(width: 12),
-                _mini('Total Overdue Receivables', '$currency${totalReceivable.toStringAsFixed(2)}', const Color(0xFFDC2626), isDark: isDark),
-                const SizedBox(width: 12),
-                _mini('Credit Limit Exceeded', '${overLimit.length} accounts', const Color(0xFFF59E0B), isDark: isDark),
-              ],
-            ),
-            const SizedBox(height: 18),
+            // 4 KPI Summary Cards (Responsive)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final c1 = _miniCard('Total Customers', '${_customers.length}', const Color(0xFF4F46E5), isDark: isDark);
+                final c2 = _miniCard('Defaulters (Pending Due)', '${defaulters.length} customers', const Color(0xFFEF4444), isDark: isDark);
+                final c3 = _miniCard('Total Overdue Receivables', '$currency${totalReceivable.toStringAsFixed(2)}', const Color(0xFFDC2626), isDark: isDark);
+                final c4 = _miniCard('Credit Limit Exceeded', '${overLimit.length} accounts', const Color(0xFFF59E0B), isDark: isDark);
 
-            // Search and Defaulter Filter Bar
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-              ),
-              child: Row(
-                children: [
-                  // Filter Chips
-                  _filterChip('all', 'All (${_customers.length})', isDark),
-                  const SizedBox(width: 8),
-                  _filterChip('defaulters', '🚨 Defaulters / Dues (${defaulters.length})', isDark, isHighlight: true),
-                  const SizedBox(width: 8),
-                  _filterChip('over_limit', '⚠️ Limit Exceeded (${overLimit.length})', isDark),
-                  const SizedBox(width: 8),
-                  _filterChip('clear', '✓ Zero Balance (${cleared.length})', isDark),
-
-                  const Spacer(),
-
-                  // Search Box
-                  SizedBox(
-                    width: 280,
-                    child: TextField(
-                      controller: _searchCtrl,
-                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                      decoration: InputDecoration(
-                        hintText: 'Search by name, phone...',
-                        prefixIcon: const Icon(Icons.search, size: 18),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 16),
-                                onPressed: () {
-                                  _searchCtrl.clear();
-                                  setState(() => _searchQuery = '');
-                                },
-                              )
-                            : null,
-                        isDense: true,
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                if (constraints.maxWidth >= 1050) {
+                  return Row(
+                    children: [
+                      Expanded(child: c1),
+                      const SizedBox(width: 12),
+                      Expanded(child: c2),
+                      const SizedBox(width: 12),
+                      Expanded(child: c3),
+                      const SizedBox(width: 12),
+                      Expanded(child: c4),
+                    ],
+                  );
+                } else if (constraints.maxWidth >= 600) {
+                  return Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: c1),
+                          const SizedBox(width: 12),
+                          Expanded(child: c2),
+                        ],
                       ),
-                      onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                    ),
-                  ),
-                ],
-              ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: c3),
+                          const SizedBox(width: 12),
+                          Expanded(child: c4),
+                        ],
+                      ),
+                    ],
+                  );
+                }
+                return Column(
+                  children: [
+                    c1,
+                    const SizedBox(height: 10),
+                    c2,
+                    const SizedBox(height: 10),
+                    c3,
+                    const SizedBox(height: 10),
+                    c4,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 18),
 
-            // Customers Table
+            // Search and Defaulter Filter Bar (Responsive)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final chips = Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _filterChip('all', 'All (${_customers.length})', isDark),
+                    _filterChip('defaulters', '🚨 Defaulters / Dues (${defaulters.length})', isDark, isHighlight: true),
+                    _filterChip('over_limit', '⚠️ Limit Exceeded (${overLimit.length})', isDark),
+                    _filterChip('clear', '✓ Zero Balance (${cleared.length})', isDark),
+                  ],
+                );
+
+                final searchBox = SizedBox(
+                  width: constraints.maxWidth < 750 ? double.infinity : 280,
+                  child: TextField(
+                    controller: _searchCtrl,
+                    style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    decoration: InputDecoration(
+                      hintText: 'Search by name, phone...',
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 16),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      isDense: true,
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                  ),
+                );
+
+                return Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  ),
+                  child: constraints.maxWidth < 950
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            chips,
+                            const SizedBox(height: 12),
+                            searchBox,
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            Expanded(child: chips),
+                            const SizedBox(width: 16),
+                            searchBox,
+                          ],
+                        ),
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+
+            // Customers Table (Responsive Full Width)
             Container(
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -519,152 +599,178 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               final double tableWidth = math.max(constraints.maxWidth, 950.0);
-                              return SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: SizedBox(
-                                  width: tableWidth,
-                                  child: DataTable(
-                                    columnSpacing: 0,
-                                    horizontalMargin: 16,
-                                    headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
-                                    headingTextStyle: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-                                      fontSize: 12,
-                                    ),
-                                    dataRowMinHeight: 52,
-                                    dataRowMaxHeight: 56,
-                                    columns: const [
-                                      DataColumn(columnWidth: FlexColumnWidth(2.2), label: Text('CUSTOMER NAME')),
-                                      DataColumn(columnWidth: FlexColumnWidth(1.8), label: Text('BUSINESS')),
-                                      DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('PHONE')),
-                                      DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('CREDIT LIMIT')),
-                                      DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('CURRENT DUE')),
-                                      DataColumn(columnWidth: FlexColumnWidth(1.8), label: Text('ACTIONS & REMINDERS')),
-                                    ],
-                              rows: displayedCustomers.map((c) {
-                                final isOverLimit = c.creditLimit > 0 && c.balance > c.creditLimit;
-
-                                return DataRow(
-                                  cells: [
-                                    DataCell(
-                                      Row(
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 14,
-                                            backgroundColor: c.balance > 0
-                                                ? const Color(0xFFFEE2E2)
-                                                : (isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF)),
-                                            child: Text(
-                                              c.name.isNotEmpty ? c.name[0] : 'C',
-                                              style: TextStyle(
-                                                color: c.balance > 0 ? const Color(0xFFDC2626) : const Color(0xFF4F46E5),
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 11,
-                                              ),
-                                            ),
+                              return Scrollbar(
+                                thumbVisibility: true,
+                                trackVisibility: true,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  child: SizedBox(
+                                    width: tableWidth,
+                                    child: Table(
+                                      columnWidths: const {
+                                        0: FlexColumnWidth(2.2), // CUSTOMER NAME
+                                        1: FlexColumnWidth(1.8), // BUSINESS
+                                        2: FlexColumnWidth(1.4), // PHONE
+                                        3: FlexColumnWidth(1.4), // CREDIT LIMIT
+                                        4: FlexColumnWidth(1.4), // CURRENT DUE
+                                        5: FlexColumnWidth(2.2), // ACTIONS & REMINDERS
+                                      },
+                                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                      children: [
+                                        TableRow(
+                                          decoration: BoxDecoration(
+                                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                            border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), width: 1.2)),
                                           ),
-                                          const SizedBox(width: 10),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            _th('CUSTOMER NAME', isDark),
+                                            _th('BUSINESS', isDark),
+                                            _th('PHONE', isDark),
+                                            _th('CREDIT LIMIT', isDark),
+                                            _th('CURRENT DUE', isDark),
+                                            _th('ACTIONS & REMINDERS', isDark),
+                                          ],
+                                        ),
+                                        ...displayedCustomers.asMap().entries.map((entry) {
+                                          final idx = entry.key;
+                                          final c = entry.value;
+                                          final isOverLimit = c.creditLimit > 0 && c.balance > c.creditLimit;
+                                          final rowBg = idx.isOdd
+                                              ? (isDark ? const Color(0xFF1E293B) : Colors.white)
+                                              : (isDark ? const Color(0xFF172033) : const Color(0xFFFBFDFF));
+
+                                          return TableRow(
+                                            decoration: BoxDecoration(
+                                              color: rowBg,
+                                              border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155).withValues(alpha: 0.6) : const Color(0xFFE2E8F0), width: 0.8)),
+                                            ),
                                             children: [
-                                              Text(
-                                                c.name,
+                                              _td(
+                                                Row(
+                                                  children: [
+                                                    CircleAvatar(
+                                                      radius: 14,
+                                                      backgroundColor: c.balance > 0
+                                                          ? const Color(0xFFFEE2E2)
+                                                          : (isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF)),
+                                                      child: Text(
+                                                        c.name.isNotEmpty ? c.name[0] : 'C',
+                                                        style: TextStyle(
+                                                          color: c.balance > 0 ? const Color(0xFFDC2626) : const Color(0xFF4F46E5),
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 11,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 10),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          Text(
+                                                            c.name,
+                                                            style: TextStyle(
+                                                              fontWeight: FontWeight.bold,
+                                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                            ),
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                          if (isOverLimit)
+                                                            const Text(
+                                                              'Exceeded Limit!',
+                                                              style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              _td(Text(
+                                                c.businessName?.isNotEmpty == true ? c.businessName! : '-',
+                                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                                overflow: TextOverflow.ellipsis,
+                                              )),
+                                              _td(Text(
+                                                c.phone.isNotEmpty ? c.phone : '-',
+                                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                              )),
+                                              _td(Text(
+                                                '$currency${c.creditLimit.toStringAsFixed(2)}',
+                                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                              )),
+                                              _td(Text(
+                                                c.balance > 0 ? '$currency${c.balance.toStringAsFixed(2)}' : '$currency 0.00',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                  fontSize: 13,
+                                                  color: c.balance > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                                                ),
+                                              )),
+                                              _td(
+                                                Wrap(
+                                                  spacing: 6,
+                                                  runSpacing: 4,
+                                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                                  children: [
+                                                    // Pay Due
+                                                    if (c.balance > 0) ...[
+                                                      ElevatedButton.icon(
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: const Color(0xFF059669),
+                                                          foregroundColor: Colors.white,
+                                                          elevation: 0,
+                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                        ),
+                                                        icon: const Icon(Icons.attach_money, size: 14),
+                                                        label: const Text('Pay Due', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                        onPressed: () => _openPayDueDialog(c),
+                                                      ),
+
+                                                      // WhatsApp / SMS Reminder
+                                                      ElevatedButton.icon(
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: const Color(0xFF10B981),
+                                                          foregroundColor: Colors.white,
+                                                          elevation: 0,
+                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                        ),
+                                                        icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 13),
+                                                        label: const Text('Reminder', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                        onPressed: () => _openReminderDialog(c),
+                                                      ),
+                                                    ],
+
+                                                    // Khata Ledger
+                                                    OutlinedButton.icon(
+                                                      style: OutlinedButton.styleFrom(
+                                                        foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                                                        side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                      ),
+                                                      icon: const Icon(Icons.receipt_long, size: 14),
+                                                      label: const Text('Ledger', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                      onPressed: () => _openLedgerDialog(c),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-                                              if (isOverLimit)
-                                                const Text(
-                                                  'Exceeded Limit!',
-                                                  style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold),
-                                                ),
                                             ],
-                                          ),
-                                        ],
-                                      ),
+                                          );
+                                        }),
+                                      ],
                                     ),
-                                    DataCell(Text(
-                                      c.businessName?.isNotEmpty == true ? c.businessName! : '-',
-                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
-                                    )),
-                                    DataCell(Text(
-                                      c.phone.isNotEmpty ? c.phone : '-',
-                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
-                                    )),
-                                    DataCell(Text(
-                                      '$currency${c.creditLimit.toStringAsFixed(2)}',
-                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
-                                    )),
-                                    DataCell(Text(
-                                      c.balance > 0 ? '$currency${c.balance.toStringAsFixed(2)}' : '$currency 0.00',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: c.balance > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
-                                      ),
-                                    )),
-                                    DataCell(
-                                      Row(
-                                        children: [
-                                          // Pay Due
-                                          if (c.balance > 0) ...[
-                                            ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF059669),
-                                                foregroundColor: Colors.white,
-                                                elevation: 0,
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                              ),
-                                              icon: const Icon(Icons.attach_money, size: 14),
-                                              label: const Text('Pay Due', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                              onPressed: () => _openPayDueDialog(c),
-                                            ),
-                                            const SizedBox(width: 6),
-
-                                            // WhatsApp / SMS Reminder
-                                            ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF10B981),
-                                                foregroundColor: Colors.white,
-                                                elevation: 0,
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                              ),
-                                              icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 13),
-                                              label: const Text('Reminder', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                              onPressed: () => _openReminderDialog(c),
-                                            ),
-                                            const SizedBox(width: 6),
-                                          ],
-
-                                          // Khata Ledger
-                                          OutlinedButton.icon(
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
-                                              side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                            ),
-                                            icon: const Icon(Icons.receipt_long, size: 14),
-                                            label: const Text('Ledger', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                            onPressed: () => _openLedgerDialog(c),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
-                            ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  ),
+                        ),
             ),
           ],
         ),
@@ -725,6 +831,53 @@ class _CustomersScreenState extends State<CustomersScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _miniCard(String label, String value, Color color, {required bool isDark}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color), overflow: TextOverflow.ellipsis),
+        ],
+      ),
+    );
+  }
+
+  Widget _th(String label, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _td(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: child,
     );
   }
 }

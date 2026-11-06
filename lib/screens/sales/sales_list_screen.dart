@@ -372,150 +372,193 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                       width: tableWidth,
                                       child: Padding(
                                         padding: const EdgeInsets.only(bottom: 12),
-                                        child: DataTable(
-                                          columnSpacing: 0,
-                                          horizontalMargin: 16,
-                                          headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
-                                          headingTextStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: isDark ? Colors.white : const Color(0xFF1E293B),
-                                            fontSize: 12,
-                                          ),
-                                          dataRowMinHeight: 48,
-                                          dataRowMaxHeight: 54,
-                                          columns: const [
-                                            DataColumn(columnWidth: FlexColumnWidth(1.1), label: Text('Action')),
-                                            DataColumn(columnWidth: FlexColumnWidth(1.6), label: Text('Date ⇅')),
-                                            DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('Invoice No. ⇅')),
-                                            DataColumn(columnWidth: FlexColumnWidth(2.0), label: Text('Customer name ⇅')),
-                                            DataColumn(columnWidth: FlexColumnWidth(1.5), label: Text('Contact Number ⇅')),
-                                            DataColumn(columnWidth: FlexColumnWidth(2.0), label: Text('Location ⇅')),
-                                            DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('Payment Status ⇅')),
-                                            DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('Payment Method')),
-                                            DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('Total amount ⇅')),
-                                            DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('Total paid ⇅')),
-                                            DataColumn(columnWidth: FlexColumnWidth(1.2), label: Text('Sell Due')),
-                                          ],
-                                    rows: _sales.map((s) {
-                                      return DataRow(
-                                        cells: [
-                                          // Blue Actions ⌵ Button
-                                          DataCell(
-                                            PopupMenuButton<String>(
-                                              onSelected: (val) {
-                                                if (val == 'receipt') {
-                                                  _printReceipt(s);
-                                                } else if (val == 'quotation') {
-                                                  _printQuotation(s);
-                                                } else if (val == 'pay_due') {
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (_) => PayDueDialog(
-                                                      settings: widget.settings,
-                                                      type: DuePaymentType.sale,
-                                                      entityId: s.id!,
-                                                      reference: s.invoiceNo,
-                                                      contactName: s.customerName,
-                                                      contactId: s.customerId,
-                                                      totalAmount: s.totalAmount,
-                                                      paidAmount: s.paidAmount,
-                                                      dueAmount: s.dueAmount,
-                                                      onPaymentSuccess: _load,
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                              itemBuilder: (ctx) => [
-                                                const PopupMenuItem(value: 'receipt', child: Text('Print Receipt')),
-                                                const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
-                                                if (s.dueAmount > 0)
-                                                  const PopupMenuItem(
-                                                    value: 'pay_due',
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(Icons.payments_outlined, size: 16, color: Color(0xFF059669)),
-                                                        SizedBox(width: 8),
-                                                        Text('Pay Due / Collect', style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold)),
+                                        child: Table(
+                                          columnWidths: const {
+                                            0: FlexColumnWidth(1.0), // Action
+                                            1: FlexColumnWidth(1.5), // Date
+                                            2: FlexColumnWidth(1.2), // Invoice No.
+                                            3: FlexColumnWidth(1.8), // Customer name
+                                            4: FlexColumnWidth(1.3), // Contact Number
+                                            5: FlexColumnWidth(1.6), // Location
+                                            6: FlexColumnWidth(1.2), // Payment Status
+                                            7: FlexColumnWidth(1.1), // Payment Method
+                                            8: FlexColumnWidth(1.3), // Total amount
+                                            9: FlexColumnWidth(1.3), // Total paid
+                                            10: FlexColumnWidth(1.1), // Sell Due
+                                          },
+                                          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                          children: [
+                                            TableRow(
+                                              decoration: BoxDecoration(
+                                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                                border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), width: 1.2)),
+                                              ),
+                                              children: [
+                                                _th('Action', isDark),
+                                                _th('Date ⇅', isDark),
+                                                _th('Invoice No. ⇅', isDark),
+                                                _th('Customer name ⇅', isDark),
+                                                _th('Contact Number ⇅', isDark),
+                                                _th('Location ⇅', isDark),
+                                                _th('Payment Status ⇅', isDark),
+                                                _th('Payment Method', isDark),
+                                                _th('Total amount ⇅', isDark),
+                                                _th('Total paid ⇅', isDark),
+                                                _th('Sell Due', isDark),
+                                              ],
+                                            ),
+                                            ..._sales.asMap().entries.map((entry) {
+                                              final idx = entry.key;
+                                              final s = entry.value;
+                                              final rowBg = idx.isOdd
+                                                  ? (isDark ? const Color(0xFF1E293B) : Colors.white)
+                                                  : (isDark ? const Color(0xFF172033) : const Color(0xFFFBFDFF));
+
+                                              return TableRow(
+                                                decoration: BoxDecoration(
+                                                  color: rowBg,
+                                                  border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155).withValues(alpha: 0.6) : const Color(0xFFE2E8F0), width: 0.8)),
+                                                ),
+                                                children: [
+                                                  // Action Button
+                                                  _td(
+                                                    PopupMenuButton<String>(
+                                                      onSelected: (val) {
+                                                        if (val == 'receipt') {
+                                                          _printReceipt(s);
+                                                        } else if (val == 'quotation') {
+                                                          _printQuotation(s);
+                                                        } else if (val == 'pay_due') {
+                                                          showDialog(
+                                                            context: context,
+                                                            builder: (_) => PayDueDialog(
+                                                              settings: widget.settings,
+                                                              type: DuePaymentType.sale,
+                                                              entityId: s.id!,
+                                                              reference: s.invoiceNo,
+                                                              contactName: s.customerName,
+                                                              contactId: s.customerId,
+                                                              totalAmount: s.totalAmount,
+                                                              paidAmount: s.paidAmount,
+                                                              dueAmount: s.dueAmount,
+                                                              onPaymentSuccess: _load,
+                                                            ),
+                                                          );
+                                                        }
+                                                      },
+                                                      itemBuilder: (ctx) => [
+                                                        const PopupMenuItem(value: 'receipt', child: Text('Print Receipt')),
+                                                        const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
+                                                        if (s.dueAmount > 0)
+                                                          const PopupMenuItem(
+                                                            value: 'pay_due',
+                                                            child: Row(
+                                                              children: [
+                                                                Icon(Icons.payments_outlined, size: 16, color: Color(0xFF059669)),
+                                                                SizedBox(width: 8),
+                                                                Text('Pay Due / Collect', style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold)),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        const PopupMenuItem(value: 'view', child: Text('View Details')),
                                                       ],
+                                                      child: Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                        decoration: BoxDecoration(
+                                                          color: const Color(0xFF004EEB),
+                                                          borderRadius: BorderRadius.circular(4),
+                                                        ),
+                                                        child: const Row(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            Text('Actions', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                            SizedBox(width: 4),
+                                                            Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
+                                                          ],
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
-                                                const PopupMenuItem(value: 'view', child: Text('View Details')),
-                                              ],
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0xFF004EEB),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: const Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Text('Actions', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                                                    SizedBox(width: 4),
-                                                    Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(Text(s.createdAt, style: const TextStyle(fontSize: 12))),
-                                          DataCell(Text(s.invoiceNo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                          DataCell(Text(s.customerName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
-                                          const DataCell(Text('(378) 400-1234', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
-                                          DataCell(Text(widget.settings.businessName, style: const TextStyle(fontSize: 12))),
-                                          DataCell(StatusPill(status: s.paymentStatus)),
-                                          DataCell(Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                                              borderRadius: BorderRadius.circular(4),
-                                              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                                            ),
-                                            child: Text(
-                                              s.paymentMethod.toUpperCase(),
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-                                              ),
-                                            ),
-                                          )),
-                                          DataCell(Text(
-                                            '$currency ${s.totalAmount.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
-                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                            ),
-                                          )),
-                                          DataCell(Text(
-                                            '$currency ${s.paidAmount.toStringAsFixed(2)}',
-                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF059669)),
-                                          )),
-                                          DataCell(Text(
-                                            s.dueAmount > 0 ? '$currency ${s.dueAmount.toStringAsFixed(2)}' : '$currency 0.00',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: s.dueAmount > 0 ? FontWeight.bold : FontWeight.normal,
-                                              color: s.dueAmount > 0 ? const Color(0xFFEF4444) : const Color(0xFF94A3B8),
-                                            ),
-                                          )),
-                                        ],
-                                      );
-                                    }).toList(),
+                                                  _td(Text(s.createdAt, style: const TextStyle(fontSize: 12))),
+                                                  _td(Text(s.invoiceNo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                                                  _td(Text(s.customerName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                                                  _td(const Text('(378) 400-1234', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                                                  _td(Text(widget.settings.businessName, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                                  _td(StatusPill(status: s.paymentStatus)),
+                                                  _td(Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                                    ),
+                                                    child: Text(
+                                                      s.paymentMethod.toUpperCase(),
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.w700,
+                                                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                                      ),
+                                                    ),
+                                                  )),
+                                                  _td(Text(
+                                                    '$currency ${s.totalAmount.toStringAsFixed(2)}',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 13,
+                                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                    ),
+                                                  )),
+                                                  _td(Text(
+                                                    '$currency ${s.paidAmount.toStringAsFixed(2)}',
+                                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF059669)),
+                                                  )),
+                                                  _td(Text(
+                                                    s.dueAmount > 0 ? '$currency ${s.dueAmount.toStringAsFixed(2)}' : '$currency 0.00',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: s.dueAmount > 0 ? FontWeight.bold : FontWeight.normal,
+                                                      color: s.dueAmount > 0 ? const Color(0xFFEF4444) : const Color(0xFF94A3B8),
+                                                    ),
+                                                  )),
+                                                ],
+                                              );
+                                            }),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _th(String label, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: isDark ? Colors.white : const Color(0xFF1E293B),
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _td(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: child,
     );
   }
 }

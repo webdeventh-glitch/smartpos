@@ -491,10 +491,24 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
+            // Header (Responsive)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 700;
+                final addBtn = ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.factory_rounded, size: 18),
+                  label: const Text('Add Supplier', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: _openAddSupplier,
+                );
+
+                final titleColumn = Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -511,32 +525,57 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                       style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600),
                     ),
                   ],
-                ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F46E5),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  icon: const Icon(Icons.factory_rounded, size: 20),
-                  label: const Text('Add Supplier', style: TextStyle(fontWeight: FontWeight.bold)),
-                  onPressed: _openAddSupplier,
-                ),
-              ],
+                );
+
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      titleColumn,
+                      const SizedBox(height: 12),
+                      addBtn,
+                    ],
+                  );
+                }
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: titleColumn),
+                    const SizedBox(width: 16),
+                    addBtn,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 20),
 
-            Row(
-              children: [
-                _mini('Total Suppliers', '${_suppliers.length}', const Color(0xFF4F46E5), isDark: isDark),
-                const SizedBox(width: 14),
-                _mini('Total Payables Due', '$currency${totalPayable.toStringAsFixed(2)}', const Color(0xFFEF4444), isDark: isDark),
-              ],
+            // KPI Cards (Responsive)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final c1 = _miniCard('Total Suppliers', '${_suppliers.length}', const Color(0xFF4F46E5), isDark: isDark);
+                final c2 = _miniCard('Total Payables Due', '$currency${totalPayable.toStringAsFixed(2)}', const Color(0xFFEF4444), isDark: isDark);
+
+                if (constraints.maxWidth < 550) {
+                  return Column(
+                    children: [
+                      c1,
+                      const SizedBox(height: 10),
+                      c2,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: c1),
+                    const SizedBox(width: 14),
+                    Expanded(child: c2),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 20),
 
+            // Suppliers Table (Responsive Full Width)
             Container(
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -555,123 +594,153 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               final double tableWidth = math.max(constraints.maxWidth, 950.0);
-                              return SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: SizedBox(
-                                  width: tableWidth,
-                                  child: DataTable(
-                                    columnSpacing: 0,
-                                    horizontalMargin: 16,
-                                    headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
-                                    headingTextStyle: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-                                      fontSize: 12,
-                                    ),
-                                    dataRowMinHeight: 52,
-                                    dataRowMaxHeight: 56,
-                                    columns: const [
-                                      DataColumn(columnWidth: FlexColumnWidth(2.0), label: Text('SUPPLIER')),
-                                      DataColumn(columnWidth: FlexColumnWidth(2.0), label: Text('BUSINESS / COMPANY')),
-                                      DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('PHONE')),
-                                      DataColumn(columnWidth: FlexColumnWidth(1.6), label: Text('EMAIL')),
-                                      DataColumn(columnWidth: FlexColumnWidth(2.0), label: Text('ADDRESS')),
-                                      DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('BALANCE PAYABLE')),
-                                      DataColumn(columnWidth: FlexColumnWidth(1.6), label: Text('ACTIONS')),
-                                    ],
-                              rows: _suppliers.map((s) {
-                                return DataRow(
-                                  cells: [
-                                    DataCell(
-                                      Row(
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 14,
-                                            backgroundColor: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                                            child: Text(
-                                              s.name.isNotEmpty ? s.name[0] : 'S',
-                                              style: TextStyle(
-                                                color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 11,
-                                              ),
-                                            ),
+                              return Scrollbar(
+                                thumbVisibility: true,
+                                trackVisibility: true,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  child: SizedBox(
+                                    width: tableWidth,
+                                    child: Table(
+                                      columnWidths: const {
+                                        0: FlexColumnWidth(2.0), // SUPPLIER
+                                        1: FlexColumnWidth(2.0), // BUSINESS / COMPANY
+                                        2: FlexColumnWidth(1.4), // PHONE
+                                        3: FlexColumnWidth(1.6), // EMAIL
+                                        4: FlexColumnWidth(2.0), // ADDRESS
+                                        5: FlexColumnWidth(1.4), // BALANCE PAYABLE
+                                        6: FlexColumnWidth(1.6), // ACTIONS
+                                      },
+                                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                      children: [
+                                        TableRow(
+                                          decoration: BoxDecoration(
+                                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                            border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), width: 1.2)),
                                           ),
-                                          const SizedBox(width: 10),
-                                          Text(
-                                            s.name,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    DataCell(Text(
-                                      s.businessName ?? '-',
-                                      style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
-                                    )),
-                                    DataCell(Text(
-                                      s.phone.isNotEmpty ? s.phone : '-',
-                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
-                                    )),
-                                    DataCell(Text(
-                                      s.email.isNotEmpty ? s.email : '-',
-                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
-                                    )),
-                                    DataCell(Text(
-                                      s.address.isNotEmpty ? s.address : '-',
-                                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
-                                    )),
-                                    DataCell(Text(
-                                      s.balance > 0 ? '$currency${s.balance.toStringAsFixed(2)}' : '$currency 0.00',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: s.balance > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
-                                      ),
-                                    )),
-                                    DataCell(
-                                      Row(
-                                        children: [
-                                          if (s.balance > 0) ...[
-                                            ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF2563EB),
-                                                foregroundColor: Colors.white,
-                                                elevation: 0,
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                              ),
-                                              icon: const Icon(Icons.outbox, size: 14),
-                                              label: const Text('Pay Due', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                              onPressed: () => _openPaySupplierDialog(s),
-                                            ),
-                                            const SizedBox(width: 6),
+                                          children: [
+                                            _th('SUPPLIER', isDark),
+                                            _th('BUSINESS / COMPANY', isDark),
+                                            _th('PHONE', isDark),
+                                            _th('EMAIL', isDark),
+                                            _th('ADDRESS', isDark),
+                                            _th('BALANCE PAYABLE', isDark),
+                                            _th('ACTIONS', isDark),
                                           ],
-                                          OutlinedButton.icon(
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
-                                              side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                        ),
+                                        ..._suppliers.asMap().entries.map((entry) {
+                                          final idx = entry.key;
+                                          final s = entry.value;
+                                          final rowBg = idx.isOdd
+                                              ? (isDark ? const Color(0xFF1E293B) : Colors.white)
+                                              : (isDark ? const Color(0xFF172033) : const Color(0xFFFBFDFF));
+
+                                          return TableRow(
+                                            decoration: BoxDecoration(
+                                              color: rowBg,
+                                              border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155).withValues(alpha: 0.6) : const Color(0xFFE2E8F0), width: 0.8)),
                                             ),
-                                            icon: const Icon(Icons.receipt_long, size: 14),
-                                            label: const Text('Ledger', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                            onPressed: () => _openSupplierLedgerDialog(s),
-                                          ),
-                                        ],
-                                      ),
+                                            children: [
+                                              _td(
+                                                Row(
+                                                  children: [
+                                                    CircleAvatar(
+                                                      radius: 14,
+                                                      backgroundColor: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
+                                                      child: Text(
+                                                        s.name.isNotEmpty ? s.name[0] : 'S',
+                                                        style: TextStyle(
+                                                          color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 11,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 10),
+                                                    Expanded(
+                                                      child: Text(
+                                                        s.name,
+                                                        style: TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                        ),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              _td(Text(
+                                                s.businessName ?? '-',
+                                                style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                                overflow: TextOverflow.ellipsis,
+                                              )),
+                                              _td(Text(
+                                                s.phone.isNotEmpty ? s.phone : '-',
+                                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                              )),
+                                              _td(Text(
+                                                s.email.isNotEmpty ? s.email : '-',
+                                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                                overflow: TextOverflow.ellipsis,
+                                              )),
+                                              _td(Text(
+                                                s.address.isNotEmpty ? s.address : '-',
+                                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                                overflow: TextOverflow.ellipsis,
+                                              )),
+                                              _td(Text(
+                                                s.balance > 0 ? '$currency${s.balance.toStringAsFixed(2)}' : '$currency 0.00',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: s.balance > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                                                ),
+                                              )),
+                                              _td(
+                                                Wrap(
+                                                  spacing: 6,
+                                                  runSpacing: 4,
+                                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                                  children: [
+                                                    if (s.balance > 0)
+                                                      ElevatedButton.icon(
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: const Color(0xFF2563EB),
+                                                          foregroundColor: Colors.white,
+                                                          elevation: 0,
+                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                        ),
+                                                        icon: const Icon(Icons.outbox, size: 14),
+                                                        label: const Text('Pay Due', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                        onPressed: () => _openPaySupplierDialog(s),
+                                                      ),
+                                                    OutlinedButton.icon(
+                                                      style: OutlinedButton.styleFrom(
+                                                        foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                                                        side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                      ),
+                                                      icon: const Icon(Icons.receipt_long, size: 14),
+                                                      label: const Text('Ledger', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                      onPressed: () => _openSupplierLedgerDialog(s),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        }),
+                                      ],
                                     ),
-                                  ],
-                                );
-                              }).toList(),
-                            ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  ),
+                        ),
             ),
           ],
         ),
@@ -679,31 +748,50 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     );
   }
 
-  Widget _mini(String label, String value, Color color, {required bool isDark}) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                fontWeight: FontWeight.w600,
-              ),
+  Widget _miniCard(String label, String value, Color color, {required bool isDark}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
-          ],
+          ),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _th(String label, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+          fontSize: 12,
         ),
       ),
+    );
+  }
+
+  Widget _td(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: child,
     );
   }
 }

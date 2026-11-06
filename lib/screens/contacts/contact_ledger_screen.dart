@@ -41,6 +41,7 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
   Contact? _updatedContact;
 
   final TextEditingController _searchCtrl = TextEditingController();
+  final ScrollController _tableHorizontalScroll = ScrollController();
 
   @override
   void initState() {
@@ -52,6 +53,7 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _tableHorizontalScroll.dispose();
     super.dispose();
   }
 
@@ -438,6 +440,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
     final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
@@ -467,38 +471,45 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      '${contact.name} - Official Account Ledger',
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textPrimary),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isCustomer ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        isCustomer ? 'CUSTOMER KHATA / کسٹمر کھاتہ' : 'SUPPLIER PAYABLE / سپلائر کھاتہ',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: isCustomer ? const Color(0xFF065F46) : const Color(0xFF92400E),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          '${contact.name} - Official Account Ledger',
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textPrimary),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                Text(
-                  '${widget.settings.businessName} • Official Financial Ledger Book (سرکاری کھاتہ رجسٹر)',
-                  style: TextStyle(fontSize: 11, color: textSecondary),
-                ),
-              ],
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isCustomer ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          isCustomer ? 'CUSTOMER KHATA' : 'SUPPLIER KHATA',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isCustomer ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '${widget.settings.businessName} • Official Financial Ledger Book (سرکاری کھاتہ رجسٹر)',
+                    style: TextStyle(fontSize: 11, color: textSecondary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -525,21 +536,31 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                 );
               },
             ),
-          // Print Official A4 Ledger
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: textPrimary,
-                side: BorderSide(color: borderColor),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              icon: const Icon(Icons.print_rounded, size: 17),
-              label: const Text('Print Official A4 Ledger', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          // Print Official A4 Ledger (Responsive)
+          if (screenWidth < 850)
+            IconButton(
+              tooltip: 'Print Official A4 Ledger',
+              icon: const Icon(Icons.print_rounded, size: 20),
               onPressed: _printOfficialLedger,
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: textPrimary,
+                  side: BorderSide(color: borderColor),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: const Icon(Icons.print_rounded, size: 17),
+                label: Text(
+                  screenWidth < 1180 ? 'Print A4' : 'Print Official A4 Ledger',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                onPressed: _printOfficialLedger,
+              ),
             ),
-          ),
-          // Receive Payment / Pay Supplier
+          // Receive Payment / Pay Supplier (Responsive)
           Padding(
             padding: const EdgeInsets.only(left: 4, right: 16, top: 8, bottom: 8),
             child: ElevatedButton.icon(
@@ -547,11 +568,15 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                 backgroundColor: const Color(0xFF059669),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                padding: EdgeInsets.symmetric(horizontal: screenWidth < 1000 ? 10 : 14),
               ),
               icon: const Icon(Icons.payments_rounded, size: 17),
               label: Text(
-                isCustomer ? '+ Receive Payment (رقم وصول کریں)' : '+ Pay Supplier (ادائیگی کریں)',
+                screenWidth < 850
+                    ? (isCustomer ? '+ Receive' : '+ Pay')
+                    : (screenWidth < 1180
+                        ? (isCustomer ? '+ Receive Payment' : '+ Pay Supplier')
+                        : (isCustomer ? '+ Receive Payment (رقم وصول کریں)' : '+ Pay Supplier (ادائیگی کریں)')),
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
               ),
               onPressed: _openQuickPaymentModal,
@@ -733,46 +758,67 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          // Clear Layman Status Bar
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: statusBg,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: statusBorder),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        statusHeading,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: statusColor),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        statusDesc,
-                        style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
-                      ),
-                    ],
-                  ),
+          // Clear Layman Status Bar (Responsive)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 680;
+              final copyBtn = ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: statusColor,
+                  foregroundColor: Colors.white,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                 ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: statusColor,
-                    foregroundColor: Colors.white,
-                    visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                icon: const Icon(Icons.history_edu_rounded, size: 15),
+                label: const Text('Copy WhatsApp Statement'),
+                onPressed: _copyStatementToClipboard,
+              );
+
+              final textColumn = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    statusHeading,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: statusColor),
                   ),
-                  icon: const Icon(Icons.history_edu_rounded, size: 15),
-                  label: const Text('Copy WhatsApp Statement'),
-                  onPressed: _copyStatementToClipboard,
+                  const SizedBox(height: 2),
+                  Text(
+                    statusDesc,
+                    style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+                  ),
+                ],
+              );
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: statusBorder),
                 ),
-              ],
-            ),
+                child: isNarrow
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          textColumn,
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: copyBtn,
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(child: textColumn),
+                          const SizedBox(width: 12),
+                          copyBtn,
+                        ],
+                      ),
+              );
+            },
           ),
         ],
       ),
@@ -780,9 +826,9 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
   }
 
   Widget _buildKpiSummaryCards(bool isCustomer, bool isDark, String cur) {
-    return Row(
-      children: [
-        _kpiStatCard(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final card1 = _kpiStatCard(
           titleUrdu: 'سابقہ بقایا رقم',
           titleEng: 'Opening Balance',
           amount: _openingBalance,
@@ -791,9 +837,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
           icon: Icons.account_balance_wallet_outlined,
           color: const Color(0xFF64748B),
           isDark: isDark,
-        ),
-        const SizedBox(width: 12),
-        _kpiStatCard(
+        );
+        final card2 = _kpiStatCard(
           titleUrdu: isCustomer ? 'بنام / کل مالیت (انوائسز)' : 'کل مال خریداری (انوائسز)',
           titleEng: isCustomer ? 'Total Invoices / Billed (Dr)' : 'Total Purchases (Cr)',
           amount: isCustomer ? _totalDebit : _totalCredit,
@@ -802,9 +847,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
           icon: Icons.receipt_long_rounded,
           color: const Color(0xFF3B82F6),
           isDark: isDark,
-        ),
-        const SizedBox(width: 12),
-        _kpiStatCard(
+        );
+        final card3 = _kpiStatCard(
           titleUrdu: isCustomer ? 'جمع / کل موصول شدہ رقم' : 'کل ادا شدہ رقم',
           titleEng: isCustomer ? 'Total Paid / Recoveries (Cr)' : 'Total Payments Made (Dr)',
           amount: isCustomer ? _totalCredit : _totalDebit,
@@ -813,9 +857,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
           icon: Icons.price_check_rounded,
           color: const Color(0xFF10B981),
           isDark: isDark,
-        ),
-        const SizedBox(width: 12),
-        _kpiStatCard(
+        );
+        final card4 = _kpiStatCard(
           titleUrdu: 'خالص واجب الادا بقایا',
           titleEng: 'Net Closing Balance',
           amount: _closingBalance,
@@ -827,8 +870,54 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
           color: _closingBalance > 0 ? const Color(0xFFEF4444) : const Color(0xFF059669),
           isDark: isDark,
           isHighlight: true,
-        ),
-      ],
+        );
+
+        if (constraints.maxWidth >= 1050) {
+          return Row(
+            children: [
+              Expanded(child: card1),
+              const SizedBox(width: 12),
+              Expanded(child: card2),
+              const SizedBox(width: 12),
+              Expanded(child: card3),
+              const SizedBox(width: 12),
+              Expanded(child: card4),
+            ],
+          );
+        } else if (constraints.maxWidth >= 580) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: card1),
+                  const SizedBox(width: 12),
+                  Expanded(child: card2),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: card3),
+                  const SizedBox(width: 12),
+                  Expanded(child: card4),
+                ],
+              ),
+            ],
+          );
+        } else {
+          return Column(
+            children: [
+              card1,
+              const SizedBox(height: 10),
+              card2,
+              const SizedBox(height: 10),
+              card3,
+              const SizedBox(height: 10),
+              card4,
+            ],
+          );
+        }
+      },
     );
   }
 
@@ -846,84 +935,82 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: isHighlight ? color.withValues(alpha: isDark ? 0.2 : 0.08) : cardBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isHighlight ? color : borderColor,
-            width: isHighlight ? 1.8 : 1.0,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: isHighlight ? color.withValues(alpha: isDark ? 0.2 : 0.08) : cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isHighlight ? color : borderColor,
+          width: isHighlight ? 1.8 : 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        titleUrdu,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isHighlight ? color : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
-                        ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titleUrdu,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isHighlight ? color : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
                       ),
-                      Text(
-                        titleEng,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                        ),
+                    ),
+                    Text(
+                      titleEng,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 18, color: color),
+              ),
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$cur${amount.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: isHighlight ? color : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                child: Icon(icon, size: 18, color: color),
               ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$cur${amount.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: isHighlight ? color : (isDark ? Colors.white : const Color(0xFF0F172A)),
             ),
-            const SizedBox(height: 3),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 10,
-                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 3),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 10,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
             ),
-          ],
-        ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
@@ -936,84 +1023,126 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
   ) {
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        children: [
-          const Text('Period (مدت):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-          const SizedBox(width: 8),
-          _filterChoiceChip('All Time (مکمل)', 'all', isDark),
-          const SizedBox(width: 6),
-          _filterChoiceChip('Today (آج)', 'today', isDark),
-          const SizedBox(width: 6),
-          _filterChoiceChip('This Month (یہ مہینہ)', 'month', isDark),
-          const SizedBox(width: 6),
-          _filterChoiceChip('Last 30 Days (30 دن)', '30days', isDark),
-          const SizedBox(width: 6),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              side: BorderSide(
-                color: _dateFilter == 'custom' ? const Color(0xFF4F46E5) : borderColor,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final chips = Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const Text('Period (مدت):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 4),
+            _filterChoiceChip('All Time (مکمل)', 'all', isDark),
+            _filterChoiceChip('Today (آج)', 'today', isDark),
+            _filterChoiceChip('This Month (یہ مہینہ)', 'month', isDark),
+            _filterChoiceChip('Last 30 Days (30 دن)', '30days', isDark),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                side: BorderSide(
+                  color: _dateFilter == 'custom' ? const Color(0xFF4F46E5) : borderColor,
+                ),
               ),
-            ),
-            icon: const Icon(Icons.date_range_rounded, size: 14),
-            label: Text(
-              _dateFilter == 'custom' && _startDate != null
-                  ? '${DateFormat("dd MMM").format(_startDate!)} - ${DateFormat("dd MMM").format(_endDate!)}'
-                  : 'Custom Range (تاریخ منتخب کریں)',
-              style: const TextStyle(fontSize: 11),
-            ),
-            onPressed: _selectCustomDateRange,
-          ),
-          const Spacer(),
-          // Search Box
-          SizedBox(
-            width: 260,
-            height: 36,
-            child: TextField(
-              controller: _searchCtrl,
-              onChanged: (val) => setState(() => _searchQuery = val),
-              style: TextStyle(fontSize: 12, color: textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Search Inv #, Ref # or details...',
-                hintStyle: TextStyle(fontSize: 11, color: textSecondary),
-                prefixIcon: const Icon(Icons.search, size: 16),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 14),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                isDense: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              icon: const Icon(Icons.date_range_rounded, size: 14),
+              label: Text(
+                _dateFilter == 'custom' && _startDate != null
+                    ? '${DateFormat("dd MMM").format(_startDate!)} - ${DateFormat("dd MMM").format(_endDate!)}'
+                    : 'Custom Range (تاریخ منتخب کریں)',
+                style: const TextStyle(fontSize: 11),
               ),
+              onPressed: _selectCustomDateRange,
+            ),
+          ],
+        );
+
+        final searchBox = SizedBox(
+          width: constraints.maxWidth < 600 ? double.infinity : 240,
+          height: 36,
+          child: TextField(
+            controller: _searchCtrl,
+            onChanged: (val) => setState(() => _searchQuery = val),
+            style: TextStyle(fontSize: 12, color: textPrimary),
+            decoration: InputDecoration(
+              hintText: 'Search Inv #, Ref # or details...',
+              hintStyle: TextStyle(fontSize: 11, color: textSecondary),
+              prefixIcon: const Icon(Icons.search, size: 16),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 14),
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        );
+
+        final countBadge = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            '${_filteredEntries.length} Transactions',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondary),
+          ),
+        );
+
+        if (constraints.maxWidth < 980) {
+          return Container(
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(6),
+              color: cardBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: borderColor),
             ),
-            child: Text(
-              '${_filteredEntries.length} Transactions',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondary),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                chips,
+                const SizedBox(height: 12),
+                if (constraints.maxWidth < 600) ...[
+                  searchBox,
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerLeft, child: countBadge),
+                ] else
+                  Row(
+                    children: [
+                      Expanded(child: searchBox),
+                      const SizedBox(width: 10),
+                      countBadge,
+                    ],
+                  ),
+              ],
             ),
+          );
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: borderColor),
           ),
-        ],
-      ),
+          child: Row(
+            children: [
+              Expanded(child: chips),
+              const SizedBox(width: 16),
+              searchBox,
+              const SizedBox(width: 10),
+              countBadge,
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -1131,186 +1260,231 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
               ),
             ),
 
-            // DataTable
+            // Responsive Full-Width Table
             LayoutBuilder(
               builder: (context, constraints) {
                 final double tableWidth = math.max(constraints.maxWidth, 1050.0);
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: tableWidth,
-                    child: DataTable(
-                      headingRowHeight: 42,
-                      dataRowMinHeight: 46,
-                      dataRowMaxHeight: 52,
-                      headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                      columnSpacing: 0,
-                      columns: const [
-                        DataColumn(columnWidth: FlexColumnWidth(0.5), label: Text('#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        DataColumn(columnWidth: FlexColumnWidth(1.6), label: Text('DATE & TIME / تاریخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('TYPE / قسم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('REF / INVOICE #', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        DataColumn(columnWidth: FlexColumnWidth(2.8), label: Text('NARRATION & DETAILS / مال کی تفصیل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('DEBIT / بنام Dr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('CREDIT / جمع Cr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        DataColumn(columnWidth: FlexColumnWidth(1.6), label: Text('RUNNING BALANCE / بقیہ کھاتہ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        DataColumn(columnWidth: FlexColumnWidth(0.8), label: Text('ACTION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                      ],
-                  rows: entries.asMap().entries.map((entry) {
-                    final idx = entry.key + 1;
-                    final e = entry.value;
-                    final isDebit = e.debit > 0;
-                    final isCredit = e.credit > 0;
-                    final isInvoice = e.transactionType.contains('sale') || e.transactionType.contains('purchase');
-
-                    final balType = e.runningBalance > 0
-                        ? (isCustomer ? "Dr (واجب)" : "Cr (واجب)")
-                        : (e.runningBalance < 0 ? "Adv (جمع)" : "Cleared");
-
-                    final balColor = e.runningBalance > 0
-                        ? const Color(0xFFDC2626)
-                        : (e.runningBalance < 0 ? const Color(0xFF059669) : textSecondary);
-
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(idx.toString(), style: TextStyle(fontSize: 11, color: textSecondary))),
-                        DataCell(
-                          Text(
-                            e.date.length > 16 ? e.date.substring(0, 16) : e.date,
-                            style: TextStyle(fontSize: 11, color: textPrimary),
-                          ),
-                        ),
-                        DataCell(_typeBadge(e.transactionType, isDark)),
-                        DataCell(
-                          InkWell(
-                            onTap: isInvoice ? () => _viewInvoiceDetails(e.refNo) : null,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  e.refNo,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                    color: isInvoice ? const Color(0xFF4F46E5) : textPrimary,
-                                    decoration: isInvoice ? TextDecoration.underline : TextDecoration.none,
-                                  ),
-                                ),
-                                if (isInvoice) ...[
-                                  const SizedBox(width: 3),
-                                  const Icon(Icons.open_in_new_rounded, size: 12, color: Color(0xFF4F46E5)),
-                                ],
-                              ],
+                return Scrollbar(
+                  controller: _tableHorizontalScroll,
+                  thumbVisibility: true,
+                  trackVisibility: true,
+                  interactive: true,
+                  thickness: 8,
+                  radius: const Radius.circular(4),
+                  child: SingleChildScrollView(
+                    controller: _tableHorizontalScroll,
+                    scrollDirection: Axis.horizontal,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      width: tableWidth,
+                      child: Table(
+                        columnWidths: const {
+                          0: FlexColumnWidth(0.5), // #
+                          1: FlexColumnWidth(1.6), // DATE & TIME
+                          2: FlexColumnWidth(1.3), // TYPE
+                          3: FlexColumnWidth(1.4), // REF #
+                          4: FlexColumnWidth(2.8), // NARRATION & DETAILS
+                          5: FlexColumnWidth(1.3), // DEBIT
+                          6: FlexColumnWidth(1.3), // CREDIT
+                          7: FlexColumnWidth(1.6), // RUNNING BALANCE
+                          8: FlexColumnWidth(0.8), // ACTION
+                        },
+                        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                        children: [
+                          // Header TableRow
+                          TableRow(
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              border: Border(bottom: BorderSide(color: borderColor, width: 1.2)),
                             ),
-                          ),
-                        ),
-                        DataCell(
-                          SizedBox(
-                            width: 240,
-                            child: Text(
-                              e.description,
-                              style: TextStyle(fontSize: 11, color: textPrimary),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            isDebit ? '$cur${e.debit.toStringAsFixed(2)}' : '-',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isDebit ? FontWeight.bold : FontWeight.normal,
-                              color: isDebit ? const Color(0xFF1E40AF) : Colors.grey,
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            isCredit ? '$cur${e.credit.toStringAsFixed(2)}' : '-',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isCredit ? FontWeight.bold : FontWeight.normal,
-                              color: isCredit ? const Color(0xFF059669) : Colors.grey,
-                            ),
-                          ),
-                        ),
-                        DataCell(
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                '$cur${e.runningBalance.abs().toStringAsFixed(2)}',
-                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: balColor),
-                              ),
-                              const SizedBox(width: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: balColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: Text(
-                                  balType,
-                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: balColor),
-                                ),
-                              ),
+                              _tableHeaderCell('#', isDark),
+                              _tableHeaderCell('DATE & TIME / تاریخ', isDark),
+                              _tableHeaderCell('TYPE / قسم', isDark),
+                              _tableHeaderCell('REF / INVOICE #', isDark),
+                              _tableHeaderCell('NARRATION & DETAILS / تفصیل', isDark),
+                              _tableHeaderCell('DEBIT / بنام Dr', isDark),
+                              _tableHeaderCell('CREDIT / جمع Cr', isDark),
+                              _tableHeaderCell('RUNNING BAL / بقیہ', isDark),
+                              _tableHeaderCell('ACTION', isDark),
                             ],
                           ),
-                        ),
-                        DataCell(
-                          isInvoice
-                              ? IconButton(
-                                  icon: const Icon(Icons.remove_red_eye_outlined, size: 16, color: Color(0xFF4F46E5)),
-                                  tooltip: 'View Invoice Items',
-                                  onPressed: () => _viewInvoiceDetails(e.refNo),
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-            );
-          },
-        ),
+                          // Data TableRows
+                          ...entries.asMap().entries.map((entry) {
+                            final idx = entry.key + 1;
+                            final e = entry.value;
+                            final isDebit = e.debit > 0;
+                            final isCredit = e.credit > 0;
+                            final isInvoice = e.transactionType.contains('sale') || e.transactionType.contains('purchase');
 
-            // Footer Totals Row
+                            final balType = e.runningBalance > 0
+                                ? (isCustomer ? "Dr (واجب)" : "Cr (واجب)")
+                                : (e.runningBalance < 0 ? "Adv (جمع)" : "Cleared");
+
+                            final balColor = e.runningBalance > 0
+                                ? const Color(0xFFDC2626)
+                                : (e.runningBalance < 0 ? const Color(0xFF059669) : textSecondary);
+
+                            final rowBg = idx.isOdd
+                                ? (isDark ? const Color(0xFF1E293B) : Colors.white)
+                                : (isDark ? const Color(0xFF172033) : const Color(0xFFF8FAFC));
+
+                            return TableRow(
+                              decoration: BoxDecoration(
+                                color: rowBg,
+                                border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.6), width: 0.8)),
+                              ),
+                              children: [
+                                _tableCell(Text(idx.toString(), style: TextStyle(fontSize: 11, color: textSecondary))),
+                                _tableCell(
+                                  Text(
+                                    e.date.length > 16 ? e.date.substring(0, 16) : e.date,
+                                    style: TextStyle(fontSize: 11, color: textPrimary),
+                                  ),
+                                ),
+                                _tableCell(_typeBadge(e.transactionType, isDark)),
+                                _tableCell(
+                                  InkWell(
+                                    onTap: isInvoice ? () => _viewInvoiceDetails(e.refNo) : null,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            e.refNo,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11,
+                                              color: isInvoice ? const Color(0xFF4F46E5) : textPrimary,
+                                              decoration: isInvoice ? TextDecoration.underline : TextDecoration.none,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isInvoice) ...[
+                                          const SizedBox(width: 3),
+                                          const Icon(Icons.open_in_new_rounded, size: 12, color: Color(0xFF4F46E5)),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                _tableCell(
+                                  Text(
+                                    e.description,
+                                    style: TextStyle(fontSize: 11, color: textPrimary),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                _tableCell(
+                                  Text(
+                                    isDebit ? '$cur${e.debit.toStringAsFixed(2)}' : '-',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: isDebit ? FontWeight.bold : FontWeight.normal,
+                                      color: isDebit ? const Color(0xFF1E40AF) : Colors.grey,
+                                    ),
+                                  ),
+                                ),
+                                _tableCell(
+                                  Text(
+                                    isCredit ? '$cur${e.credit.toStringAsFixed(2)}' : '-',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: isCredit ? FontWeight.bold : FontWeight.normal,
+                                      color: isCredit ? const Color(0xFF059669) : Colors.grey,
+                                    ),
+                                  ),
+                                ),
+                                _tableCell(
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '$cur${e.runningBalance.abs().toStringAsFixed(2)}',
+                                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: balColor),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: balColor.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(3),
+                                        ),
+                                        child: Text(
+                                          balType,
+                                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: balColor),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _tableCell(
+                                  isInvoice
+                                      ? IconButton(
+                                          icon: const Icon(Icons.remove_red_eye_outlined, size: 16, color: Color(0xFF4F46E5)),
+                                          tooltip: 'View Invoice Items',
+                                          onPressed: () => _viewInvoiceDetails(e.refNo),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        )
+                                      : const SizedBox.shrink(),
+                                ),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            // Footer Totals Row (Responsive)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                 border: Border(top: BorderSide(color: borderColor, width: 1.5)),
               ),
-              child: Row(
+              child: Wrap(
+                spacing: 20,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                alignment: WrapAlignment.spaceBetween,
                 children: [
                   const Text('GRAND TOTALS (کل میزان کھاتہ):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  const Spacer(),
-                  Text(
-                    'Total Debit (Dr): $cur${_totalDebit.toStringAsFixed(2)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E40AF)),
-                  ),
-                  const SizedBox(width: 24),
-                  Text(
-                    'Total Credit (Cr): $cur${_totalCredit.toStringAsFixed(2)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF059669)),
-                  ),
-                  const SizedBox(width: 24),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _closingBalance > 0 ? const Color(0xFFFEE2E2) : const Color(0xFFD1FAE5),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'Net Balance: $cur${_closingBalance.toStringAsFixed(2)} ${_closingBalance > 0 ? "(واجب الادا)" : "(بے باق)"}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                        color: _closingBalance > 0 ? const Color(0xFFDC2626) : const Color(0xFF065F46),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        'Total Debit (Dr): $cur${_totalDebit.toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E40AF)),
                       ),
-                    ),
+                      Text(
+                        'Total Credit (Cr): $cur${_totalCredit.toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF059669)),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _closingBalance > 0 ? const Color(0xFFFEE2E2) : const Color(0xFFD1FAE5),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Net Balance: $cur${_closingBalance.toStringAsFixed(2)} ${_closingBalance > 0 ? "(واجب الادا)" : "(بے باق)"}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            color: _closingBalance > 0 ? const Color(0xFFDC2626) : const Color(0xFF065F46),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1358,6 +1532,27 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
         label,
         style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: fg),
       ),
+    );
+  }
+
+  Widget _tableHeaderCell(String text, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          color: isDark ? Colors.white : const Color(0xFF1E293B),
+        ),
+      ),
+    );
+  }
+
+  Widget _tableCell(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: child,
     );
   }
 }
