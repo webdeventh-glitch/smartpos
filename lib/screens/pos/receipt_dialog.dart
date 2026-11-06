@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
 import '../../services/print_service.dart';
 
@@ -69,6 +71,251 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
       parts.add(convertBelowThousand(intPart));
     }
     return '${parts.join(' ')} Only';
+  }
+
+  String _generateWhatsAppInvoiceText() {
+    final currency = widget.settings.currencySymbol;
+    final buffer = StringBuffer();
+    buffer.writeln('🛍️ *${widget.settings.businessName.toUpperCase()}*');
+    buffer.writeln('📍 ${widget.settings.branchName}');
+    if (widget.settings.phone.isNotEmpty) buffer.writeln('📞 Tel: ${widget.settings.phone}');
+    buffer.writeln('----------------------------------------');
+    buffer.writeln('🧾 *Invoice:* ${widget.sale.invoiceNo}');
+    buffer.writeln('📅 *Date:* ${widget.sale.createdAt}');
+    buffer.writeln('👤 *Customer:* ${widget.sale.customerName}');
+    buffer.writeln('💳 *Pay Mode:* ${widget.sale.paymentMethod.toUpperCase()}');
+    buffer.writeln('----------------------------------------');
+    buffer.writeln('*ITEMS / مصنوعات:*');
+    if (widget.sale.items != null) {
+      for (int i = 0; i < widget.sale.items!.length; i++) {
+        final item = widget.sale.items![i];
+        final qtyStr = item.quantity.toStringAsFixed(item.quantity % 1 == 0 ? 0 : 2);
+        final unitStr = (item.unitName != null && item.unitName!.isNotEmpty) ? ' ${item.unitName}' : '';
+        buffer.writeln('${i + 1}. *${item.productName}*');
+        buffer.writeln('    $qtyStr$unitStr x $currency${item.unitPrice.toStringAsFixed(2)} = *$currency${item.subtotal.toStringAsFixed(2)}*');
+      }
+    }
+    buffer.writeln('----------------------------------------');
+    buffer.writeln('Subtotal: $currency${widget.sale.subtotal.toStringAsFixed(2)}');
+    if (widget.sale.discount > 0) {
+      buffer.writeln('Discount: -$currency${widget.sale.discount.toStringAsFixed(2)}');
+    }
+    if (widget.sale.taxAmount > 0) {
+      buffer.writeln('Tax: +$currency${widget.sale.taxAmount.toStringAsFixed(2)}');
+    }
+    buffer.writeln('💰 *TOTAL PAYABLE: $currency${widget.sale.totalAmount.toStringAsFixed(2)}*');
+    buffer.writeln('💵 Amount Paid: $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
+    if (widget.sale.dueAmount > 0) {
+      buffer.writeln('⚠️ *Balance Due: $currency${widget.sale.dueAmount.toStringAsFixed(2)}*');
+    }
+    buffer.writeln('----------------------------------------');
+    buffer.writeln('Thank you for shopping with us! 🙏');
+    return buffer.toString();
+  }
+
+  void _showWhatsAppModal() {
+    final phoneCtrl = TextEditingController();
+    final message = _generateWhatsAppInvoiceText();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          return Dialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Container(
+              width: 480,
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF25D366).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const FaIcon(FontAwesomeIcons.whatsapp, color: Color(0xFF25D366), size: 22),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Send Invoice via WhatsApp',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  Text(
+                                    'Invoice #${widget.sale.invoiceNo} • ${widget.sale.customerName}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Customer WhatsApp Number *',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    autofocus: true,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 03001234567 or 923001234567',
+                      hintStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(Icons.phone_iphone_rounded, size: 18, color: Color(0xFF25D366)),
+                      isDense: true,
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Text(
+                    'Message Preview',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 150,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Text(
+                        message,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B),
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF4F46E5),
+                          side: const BorderSide(color: Color(0xFF4F46E5)),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.copy_rounded, size: 15),
+                        label: const Text('Copy Bill Text', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: message));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('WhatsApp bill copied to clipboard!'),
+                              backgroundColor: Color(0xFF4F46E5),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF25D366),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 16),
+                        label: const Text('Send via WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        onPressed: () {
+                          var phone = phoneCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
+                          if (phone.startsWith('0')) {
+                            phone = '92${phone.substring(1)}';
+                          } else if (phone.length == 10) {
+                            phone = '92$phone';
+                          }
+                          final encoded = Uri.encodeComponent(message);
+                          final url = 'https://wa.me/$phone?text=$encoded';
+                          try {
+                            if (Platform.isWindows) {
+                              Process.run('cmd', ['/c', 'start', '', url]);
+                            }
+                          } catch (_) {}
+                          Clipboard.setData(ClipboardData(text: message));
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('WhatsApp launched & bill copied!'),
+                              backgroundColor: Color(0xFF10B981),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   String _generatePlainTextReceipt() {
@@ -227,21 +474,24 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                       vertical: 16,
                     ),
                     child: Center(
-                      child: Container(
-                        width: isA4 ? double.infinity : (is58mm ? 300.0 : 380.0),
-                        padding: EdgeInsets.all(isA4 ? 22 : 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Container(
+                          width: isA4 ? 760.0 : (is58mm ? 300.0 : 380.0),
+                          padding: EdgeInsets.all(isA4 ? 22 : 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: isA4 ? _buildA4AgencyInvoice(currency) : _buildThermalReceipt(currency, is58mm),
                         ),
-                        child: isA4 ? _buildA4AgencyInvoice(currency) : _buildThermalReceipt(currency, is58mm),
                       ),
                     ),
                   ),
@@ -261,7 +511,26 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                 ),
                 child: LayoutBuilder(
                   builder: (context, actionConstraints) {
-                    final isNarrow = actionConstraints.maxWidth < 420;
+                    final isNarrow = actionConstraints.maxWidth < 580;
+                    final isUltraNarrow = actionConstraints.maxWidth < 440;
+
+                    final whatsappBtn = ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(horizontal: isNarrow ? 10 : 14, vertical: 12),
+                        backgroundColor: const Color(0xFF25D366),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 16),
+                      label: Text(
+                        isUltraNarrow ? 'WA' : (isNarrow ? 'WhatsApp' : 'WhatsApp Bill'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onPressed: _showWhatsAppModal,
+                    );
+
                     final printBtn = ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -272,7 +541,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                       ),
                       icon: const Icon(Icons.print_rounded, size: 17),
                       label: Text(
-                        isNarrow ? 'Print ($_paperSize)' : 'Print Document ($_paperSize)',
+                        isUltraNarrow ? 'Print' : (isNarrow ? 'Print ($_paperSize)' : 'Print Document ($_paperSize)'),
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -310,7 +579,10 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.check_circle_rounded, size: 17),
-                      label: const Text('Complete (New Sale)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      label: Text(
+                        isUltraNarrow ? 'Done' : 'Complete (New Sale)',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
                       onPressed: () => Navigator.of(context).pop(),
                     );
 
@@ -332,6 +604,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     return Row(
                       children: [
                         copyBtn,
+                        const SizedBox(width: 6),
+                        whatsappBtn,
                         const SizedBox(width: 8),
                         Expanded(child: printBtn),
                         const SizedBox(width: 8),
@@ -649,7 +923,14 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
-              Text('Authorized Signature: _______________________', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+              Expanded(
+                child: Text(
+                  'Authorized Signature: _______________________',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              SizedBox(width: 8),
               Text('Customer Receipt Copy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF4F46E5))),
             ],
           ),
@@ -659,23 +940,29 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
   }
 
   Widget _ledgerItem(String label, String value, {bool isBoldRed = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-            color: isBoldRed ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
           ),
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: isBoldRed ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

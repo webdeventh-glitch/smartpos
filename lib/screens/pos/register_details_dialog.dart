@@ -18,10 +18,46 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
   final TextEditingController _closingCashController = TextEditingController();
   final TextEditingController _closeNoteController = TextEditingController();
 
+  bool _showDenominations = false;
+  final Map<int, TextEditingController> _denomControllers = {
+    5000: TextEditingController(),
+    1000: TextEditingController(),
+    500: TextEditingController(),
+    100: TextEditingController(),
+    50: TextEditingController(),
+    20: TextEditingController(),
+    10: TextEditingController(),
+  };
+  final TextEditingController _coinsController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _closingCashController.dispose();
+    _closeNoteController.dispose();
+    for (final c in _denomControllers.values) {
+      c.dispose();
+    }
+    _coinsController.dispose();
+    super.dispose();
+  }
+
+  void _recalculateFromDenominations() {
+    double total = 0.0;
+    _denomControllers.forEach((val, ctrl) {
+      final count = int.tryParse(ctrl.text.trim()) ?? 0;
+      total += val * count;
+    });
+    final coins = double.tryParse(_coinsController.text.trim()) ?? 0.0;
+    total += coins;
+    setState(() {
+      _closingCashController.text = total.toStringAsFixed(2);
+    });
   }
 
   Future<void> _load() async {
@@ -84,7 +120,8 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
       elevation: 8,
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       child: Container(
-        width: 500,
+        width: 520,
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
         padding: const EdgeInsets.all(24),
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -133,10 +170,11 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
                       ),
                     ],
                   )
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                : SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -244,10 +282,125 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
                       ),
                       const SizedBox(height: 10),
 
+                      // Denomination Counter Toggle Button
+                      InkWell(
+                        onTap: () => setState(() => _showDenominations = !_showDenominations),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEEF2FF),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.calculate_outlined, size: 18, color: Color(0xFF4F46E5)),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Physical Note Counter (کرنسی نوٹ کاؤنٹر)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF4F46E5),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Icon(
+                                _showDenominations ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                                size: 18,
+                                color: const Color(0xFF4F46E5),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      if (_showDenominations) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 14),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  _denomInput(5000, isDark),
+                                  const SizedBox(width: 8),
+                                  _denomInput(1000, isDark),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  _denomInput(500, isDark),
+                                  const SizedBox(width: 8),
+                                  _denomInput(100, isDark),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  _denomInput(50, isDark),
+                                  const SizedBox(width: 8),
+                                  _denomInput(20, isDark),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  _denomInput(10, isDark),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 55,
+                                          child: Text('Coins:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569))),
+                                        ),
+                                        Expanded(
+                                          child: SizedBox(
+                                            height: 32,
+                                            child: TextField(
+                                              controller: _coinsController,
+                                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                              style: TextStyle(fontSize: 12, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                              onChanged: (_) => _recalculateFromDenominations(),
+                                              decoration: InputDecoration(
+                                                hintText: '0.00',
+                                                isDense: true,
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                                                filled: true,
+                                                fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
                       _fieldLabel('Actual Closing Cash Counted *', isDark),
                       TextField(
                         controller: _closingCashController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (_) => setState(() {}),
                         style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold),
                         decoration: InputDecoration(
                           prefixText: '$currency ',
@@ -262,6 +415,68 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
                           ),
                         ),
                       ),
+
+                      // Discrepancy Live Status Banner
+                      Builder(builder: (context) {
+                        final entered = double.tryParse(_closingCashController.text.trim()) ?? 0.0;
+                        final expected = _register!.totalCashInRegister;
+                        final diff = entered - expected;
+                        final isMatch = diff.abs() < 0.01;
+                        final isShort = diff < -0.01;
+
+                        return Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isMatch
+                                ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                                : isShort
+                                    ? const Color(0xFFEF4444).withValues(alpha: 0.12)
+                                    : const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isMatch
+                                  ? const Color(0xFF10B981)
+                                  : isShort
+                                      ? const Color(0xFFEF4444)
+                                      : const Color(0xFFF59E0B),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isMatch ? Icons.check_circle_rounded : (isShort ? Icons.error_outline_rounded : Icons.info_outline_rounded),
+                                size: 15,
+                                color: isMatch
+                                    ? const Color(0xFF059669)
+                                    : isShort
+                                        ? const Color(0xFFDC2626)
+                                        : const Color(0xFFD97706),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  isMatch
+                                      ? 'Balanced: Count matches expected cash exactly ($currency 0.00)'
+                                      : isShort
+                                          ? 'CASH SHORT: Drawer is short by $currency${diff.abs().toStringAsFixed(2)}'
+                                          : 'CASH OVER: Drawer has surplus of $currency${diff.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: isMatch
+                                        ? const Color(0xFF059669)
+                                        : isShort
+                                            ? const Color(0xFFDC2626)
+                                            : const Color(0xFFD97706),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
                       const SizedBox(height: 12),
 
                       _fieldLabel('Closing Note (Optional)', isDark),
@@ -336,6 +551,50 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
                       ),
                     ],
                   ),
+                ),
+      ),
+    );
+  }
+
+  Widget _denomInput(int value, bool isDark) {
+    return Expanded(
+      child: Row(
+        children: [
+          SizedBox(
+            width: 50,
+            child: Text(
+              '$value x',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+              ),
+            ),
+          ),
+          Expanded(
+            child: SizedBox(
+              height: 32,
+              child: TextField(
+                controller: _denomControllers[value],
+                keyboardType: TextInputType.number,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+                onChanged: (_) => _recalculateFromDenominations(),
+                decoration: InputDecoration(
+                  hintText: '0',
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

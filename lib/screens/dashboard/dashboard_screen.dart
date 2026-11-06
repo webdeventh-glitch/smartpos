@@ -837,35 +837,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: const [BoxShadow(color: Color(0x10000000), blurRadius: 10)],
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.keyboard_outlined, color: Colors.amberAccent, size: 18),
-                      SizedBox(width: 10),
-                      Text(
-                        'POWER SHORTCUTS',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 1.0,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.keyboard_outlined, color: Colors.amberAccent, size: 18),
+                        SizedBox(width: 10),
+                        Text(
+                          'POWER SHORTCUTS',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 1.0,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  Wrap(
-                    spacing: 16,
-                    children: [
-                      _shortcutBadge('F1', 'POS Terminal'),
-                      _shortcutBadge('F2', 'Register'),
-                      _shortcutBadge('F3', 'New Product'),
-                      _shortcutBadge('F4', 'Sales List'),
-                      _shortcutBadge('Ctrl+R', 'Refresh Data'),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(width: 24),
+                    Wrap(
+                      spacing: 16,
+                      children: [
+                        _shortcutBadge('F1', 'POS Terminal'),
+                        _shortcutBadge('F2', 'Register'),
+                        _shortcutBadge('F3', 'New Product'),
+                        _shortcutBadge('F4', 'Sales List'),
+                        _shortcutBadge('Ctrl+R', 'Refresh Data'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
