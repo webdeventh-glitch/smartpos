@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -1131,27 +1132,30 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
             ),
 
             // DataTable
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 1000),
-                child: DataTable(
-                  headingRowHeight: 42,
-                  dataRowMinHeight: 46,
-                  dataRowMaxHeight: 52,
-                  headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                  columnSpacing: 18,
-                  columns: const [
-                    DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                    DataColumn(label: Text('DATE & TIME / تاریخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                    DataColumn(label: Text('TYPE / قسم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                    DataColumn(label: Text('REF / INVOICE #', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                    DataColumn(label: Text('NARRATION & DETAILS / مال کی تفصیل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                    DataColumn(label: Text('DEBIT / بنام Dr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                    DataColumn(label: Text('CREDIT / جمع Cr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                    DataColumn(label: Text('RUNNING BALANCE / بقیہ کھاتہ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                    DataColumn(label: Text('ACTION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                  ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final double tableWidth = math.max(constraints.maxWidth, 1050.0);
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: DataTable(
+                      headingRowHeight: 42,
+                      dataRowMinHeight: 46,
+                      dataRowMaxHeight: 52,
+                      headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                      columnSpacing: 0,
+                      columns: const [
+                        DataColumn(columnWidth: FlexColumnWidth(0.5), label: Text('#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        DataColumn(columnWidth: FlexColumnWidth(1.6), label: Text('DATE & TIME / تاریخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('TYPE / قسم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('REF / INVOICE #', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        DataColumn(columnWidth: FlexColumnWidth(2.8), label: Text('NARRATION & DETAILS / مال کی تفصیل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('DEBIT / بنام Dr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('CREDIT / جمع Cr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        DataColumn(columnWidth: FlexColumnWidth(1.6), label: Text('RUNNING BALANCE / بقیہ کھاتہ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        DataColumn(columnWidth: FlexColumnWidth(0.8), label: Text('ACTION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                      ],
                   rows: entries.asMap().entries.map((entry) {
                     final idx = entry.key + 1;
                     final e = entry.value;
@@ -1268,7 +1272,9 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                   }).toList(),
                 ),
               ),
-            ),
+            );
+          },
+        ),
 
             // Footer Totals Row
             Container(

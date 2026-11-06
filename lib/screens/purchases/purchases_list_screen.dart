@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
@@ -132,41 +133,46 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                         )
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Scrollbar(
-                            controller: _hScroll,
-                            thumbVisibility: true,
-                            trackVisibility: true,
-                            thickness: 9,
-                            radius: const Radius.circular(5),
-                            child: SingleChildScrollView(
-                              controller: _hScroll,
-                              scrollDirection: Axis.horizontal,
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              child: Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: DataTable(
-                                  columnSpacing: 22,
-                                  horizontalMargin: 16,
-                                  headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
-                                  headingTextStyle: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-                                    fontSize: 12,
-                                  ),
-                                  dataRowMinHeight: 50,
-                                  dataRowMaxHeight: 56,
-                                  columns: const [
-                                    DataColumn(label: Text('REF NO')),
-                                    DataColumn(label: Text('DATE')),
-                                    DataColumn(label: Text('LOCATION')),
-                                    DataColumn(label: Text('SUPPLIER')),
-                                    DataColumn(label: Text('STATUS')),
-                                    DataColumn(label: Text('PAYMENT')),
-                                    DataColumn(label: Text('TOTAL AMOUNT')),
-                                    DataColumn(label: Text('PAID AMOUNT')),
-                                    DataColumn(label: Text('BALANCE DUE')),
-                                    DataColumn(label: Text('ACTIONS')),
-                                  ],
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final double tableWidth = math.max(constraints.maxWidth, 1100.0);
+                              return Scrollbar(
+                                controller: _hScroll,
+                                thumbVisibility: true,
+                                trackVisibility: true,
+                                thickness: 9,
+                                radius: const Radius.circular(5),
+                                child: SingleChildScrollView(
+                                  controller: _hScroll,
+                                  scrollDirection: Axis.horizontal,
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  child: SizedBox(
+                                    width: tableWidth,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(bottom: 12),
+                                      child: DataTable(
+                                        columnSpacing: 0,
+                                        horizontalMargin: 16,
+                                        headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                                        headingTextStyle: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                          fontSize: 12,
+                                        ),
+                                        dataRowMinHeight: 50,
+                                        dataRowMaxHeight: 56,
+                                        columns: const [
+                                          DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('REF NO')),
+                                          DataColumn(columnWidth: FlexColumnWidth(1.6), label: Text('DATE')),
+                                          DataColumn(columnWidth: FlexColumnWidth(1.8), label: Text('LOCATION')),
+                                          DataColumn(columnWidth: FlexColumnWidth(2.0), label: Text('SUPPLIER')),
+                                          DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('STATUS')),
+                                          DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('PAYMENT')),
+                                          DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('TOTAL AMOUNT')),
+                                          DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('PAID AMOUNT')),
+                                          DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('BALANCE DUE')),
+                                          DataColumn(columnWidth: FlexColumnWidth(1.2), label: Text('ACTIONS')),
+                                        ],
                                   rows: _purchases.map((p) {
                                     return DataRow(
                                       cells: [
@@ -275,7 +281,10 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                               ),
                             ),
                           ),
-                        ),
+                        );
+                      },
+                    ),
+                  ),
             ),
           ],
         ),

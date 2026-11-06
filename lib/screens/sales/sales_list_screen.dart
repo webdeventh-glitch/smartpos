@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
@@ -353,43 +354,48 @@ class _SalesListScreenState extends State<SalesListScreen> {
                               padding: EdgeInsets.all(40),
                               child: Center(child: Text('No POS records found', style: TextStyle(color: Colors.grey))),
                             )
-                          : Scrollbar(
-                              controller: _tableScrollController,
-                              thumbVisibility: true,
-                              trackVisibility: true,
-                              interactive: true,
-                              thickness: 9,
-                              radius: const Radius.circular(5),
-                              child: SingleChildScrollView(
-                                controller: _tableScrollController,
-                                scrollDirection: Axis.horizontal,
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: DataTable(
-                                    columnSpacing: 20,
-                                    horizontalMargin: 16,
-                                    headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
-                                    headingTextStyle: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : const Color(0xFF1E293B),
-                                      fontSize: 12,
-                                    ),
-                                    dataRowMinHeight: 48,
-                                    dataRowMaxHeight: 54,
-                                    columns: const [
-                                      DataColumn(label: Text('Action')),
-                                      DataColumn(label: Text('Date ⇅')),
-                                      DataColumn(label: Text('Invoice No. ⇅')),
-                                      DataColumn(label: Text('Customer name ⇅')),
-                                      DataColumn(label: Text('Contact Number ⇅')),
-                                      DataColumn(label: Text('Location ⇅')),
-                                      DataColumn(label: Text('Payment Status ⇅')),
-                                      DataColumn(label: Text('Payment Method')),
-                                      DataColumn(label: Text('Total amount ⇅')),
-                                      DataColumn(label: Text('Total paid ⇅')),
-                                      DataColumn(label: Text('Sell Due')),
-                                    ],
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                final double tableWidth = math.max(constraints.maxWidth, 1150.0);
+                                return Scrollbar(
+                                  controller: _tableScrollController,
+                                  thumbVisibility: true,
+                                  trackVisibility: true,
+                                  interactive: true,
+                                  thickness: 9,
+                                  radius: const Radius.circular(5),
+                                  child: SingleChildScrollView(
+                                    controller: _tableScrollController,
+                                    scrollDirection: Axis.horizontal,
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    child: SizedBox(
+                                      width: tableWidth,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(bottom: 12),
+                                        child: DataTable(
+                                          columnSpacing: 0,
+                                          horizontalMargin: 16,
+                                          headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                                          headingTextStyle: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark ? Colors.white : const Color(0xFF1E293B),
+                                            fontSize: 12,
+                                          ),
+                                          dataRowMinHeight: 48,
+                                          dataRowMaxHeight: 54,
+                                          columns: const [
+                                            DataColumn(columnWidth: FlexColumnWidth(1.1), label: Text('Action')),
+                                            DataColumn(columnWidth: FlexColumnWidth(1.6), label: Text('Date ⇅')),
+                                            DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('Invoice No. ⇅')),
+                                            DataColumn(columnWidth: FlexColumnWidth(2.0), label: Text('Customer name ⇅')),
+                                            DataColumn(columnWidth: FlexColumnWidth(1.5), label: Text('Contact Number ⇅')),
+                                            DataColumn(columnWidth: FlexColumnWidth(2.0), label: Text('Location ⇅')),
+                                            DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('Payment Status ⇅')),
+                                            DataColumn(columnWidth: FlexColumnWidth(1.3), label: Text('Payment Method')),
+                                            DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('Total amount ⇅')),
+                                            DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('Total paid ⇅')),
+                                            DataColumn(columnWidth: FlexColumnWidth(1.2), label: Text('Sell Due')),
+                                          ],
                                     rows: _sales.map((s) {
                                       return DataRow(
                                         cells: [
@@ -501,6 +507,9 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                 ),
                               ),
                             ),
+                          );
+                        },
+                      ),
                 ],
               ),
             ),

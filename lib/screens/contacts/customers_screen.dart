@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -515,25 +516,32 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         )
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: DataTable(
-                              headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
-                              headingTextStyle: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-                                fontSize: 12,
-                              ),
-                              dataRowMinHeight: 52,
-                              dataRowMaxHeight: 56,
-                              columns: const [
-                                DataColumn(label: Text('CUSTOMER NAME')),
-                                DataColumn(label: Text('BUSINESS')),
-                                DataColumn(label: Text('PHONE')),
-                                DataColumn(label: Text('CREDIT LIMIT')),
-                                DataColumn(label: Text('CURRENT DUE')),
-                                DataColumn(label: Text('ACTIONS & REMINDERS')),
-                              ],
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final double tableWidth = math.max(constraints.maxWidth, 950.0);
+                              return SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: SizedBox(
+                                  width: tableWidth,
+                                  child: DataTable(
+                                    columnSpacing: 0,
+                                    horizontalMargin: 16,
+                                    headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                                    headingTextStyle: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                      fontSize: 12,
+                                    ),
+                                    dataRowMinHeight: 52,
+                                    dataRowMaxHeight: 56,
+                                    columns: const [
+                                      DataColumn(columnWidth: FlexColumnWidth(2.2), label: Text('CUSTOMER NAME')),
+                                      DataColumn(columnWidth: FlexColumnWidth(1.8), label: Text('BUSINESS')),
+                                      DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('PHONE')),
+                                      DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('CREDIT LIMIT')),
+                                      DataColumn(columnWidth: FlexColumnWidth(1.4), label: Text('CURRENT DUE')),
+                                      DataColumn(columnWidth: FlexColumnWidth(1.8), label: Text('ACTIONS & REMINDERS')),
+                                    ],
                               rows: displayedCustomers.map((c) {
                                 final isOverLimit = c.creditLimit > 0 && c.balance > c.creditLimit;
 
@@ -653,7 +661,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                               }).toList(),
                             ),
                           ),
-                        ),
+                        );
+                      },
+                    ),
+                  ),
             ),
           ],
         ),
