@@ -1192,7 +1192,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Unit of Measure (یونٹ)', style: TextStyle(fontSize: 10, color: textSecondary)),
-                              Text(item.product.unit.isNotEmpty ? item.product.unit : 'Standard Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
+                              Text(item.selectedUnitName ?? (item.product.unit.isNotEmpty ? item.product.unit : 'Standard Unit'),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
                             ],
                           ),
                           Container(
@@ -1214,7 +1215,51 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+
+                    // Active Selling Sub-Unit Switcher Chips
+                    FutureBuilder<List<Unit>>(
+                      future: DatabaseService.initialize().then((db) => db.getConversionUnitsForProduct(item.product)),
+                      builder: (ctx, snapshot) {
+                        final uList = snapshot.data ?? [];
+                        if (uList.length <= 1) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Change Active Selling Unit (یونٹ تبدیل کریں):',
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary)),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: uList.map((u) {
+                                  final isCur = (item.selectedUnitName ?? item.product.unit).toLowerCase().trim() == u.actualName.toLowerCase().trim();
+                                  final rate = item.basePrice * u.baseUnitMultiplier;
+                                  return ChoiceChip(
+                                    label: Text(
+                                      '${u.actualName} (${widget.settings.currencySymbol} ${rate.toStringAsFixed(2)})',
+                                      style: TextStyle(fontSize: 11, fontWeight: isCur ? FontWeight.bold : FontWeight.normal),
+                                    ),
+                                    selected: isCur,
+                                    selectedColor: dlgColor,
+                                    labelStyle: TextStyle(color: isCur ? Colors.white : textPrimary),
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        setDlgState(() {
+                                          item.changeUnit(u.actualName, u.baseUnitMultiplier);
+                                        });
+                                      }
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
 
                     // Direct input field with Step Buttons [-] and [+]
                     Text(inputLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary)),
@@ -1352,6 +1397,64 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _openUnitSelectorForCartItem(CartItem item, int index) async {
+    final db = await DatabaseService.initialize();
+    final units = await db.getConversionUnitsForProduct(item.product);
+    if (!mounted || units.length <= 1) return;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Select Unit: ${item.product.name}',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => Navigator.pop(ctx)),
+              ],
+            ),
+            const Divider(),
+            ...units.map((u) {
+              final isCur = (item.selectedUnitName ?? item.product.unit).toLowerCase().trim() == u.actualName.toLowerCase().trim();
+              final rate = item.basePrice * u.baseUnitMultiplier;
+              return ListTile(
+                dense: true,
+                leading: Icon(isCur ? Icons.check_circle_rounded : Icons.radio_button_unchecked, color: isCur ? const Color(0xFF10B981) : Colors.grey),
+                title: Text(u.actualName, style: TextStyle(fontWeight: isCur ? FontWeight.bold : FontWeight.normal)),
+                subtitle: Text('Multiplier: ${u.baseUnitMultiplier}x  •  Base: ${item.product.unit}'),
+                trailing: Text(
+                  '${widget.settings.currencySymbol} ${rate.toStringAsFixed(2)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF059669), fontSize: 13),
+                ),
+                onTap: () {
+                  setState(() {
+                    item.changeUnit(u.actualName, u.baseUnitMultiplier);
+                  });
+                  Navigator.pop(ctx);
+                },
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
@@ -2566,7 +2669,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
               _shortcutRow('F6', 'Add New Customer (Quick Modal)', isDark),
               _shortcutRow('F7', 'Multiple / Split Pay Modal', isDark),
               _shortcutRow('F8', 'Cancel Sale / Clear Cart', isDark),
-              _shortcutRow('F9', 'Open Calculator', isDark),
+              _shortcutRow('F9', 'Recent Sales & Transactions (Reprint / Recall)', isDark),
               _shortcutRow('F10', 'Register Details & Session', isDark),
               _shortcutRow('Esc', 'Focus Barcode Scanner / Search Input', isDark),
 
@@ -2663,9 +2766,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         const SingleActivator(LogicalKeyboardKey.f6): _openQuickCustomerModal,
         const SingleActivator(LogicalKeyboardKey.f7): _handleMultiplePayClick,
         const SingleActivator(LogicalKeyboardKey.f8): _clearCart,
-        const SingleActivator(LogicalKeyboardKey.f9): () {
-          showDialog(context: context, builder: (_) => const CalculatorDialog());
-        },
+        const SingleActivator(LogicalKeyboardKey.f9): _openRecentTransactionsModal,
         const SingleActivator(LogicalKeyboardKey.f10): () {
           showDialog(context: context, builder: (_) => RegisterDetailsDialog(settings: widget.settings));
         },
@@ -2896,6 +2997,39 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                   builder: (_) => AddExpenseDialog(
                                     settings: widget.settings,
                                   ),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 6),
+
+                            // [ Recent Sales F9 ]
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: borderColor),
+                                foregroundColor: textPrimary,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                              icon: const Icon(Icons.history_rounded, size: 15, color: Color(0xFF4F46E5)),
+                              label: const Text('Recent Sales [F9]', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              onPressed: _openRecentTransactionsModal,
+                            ),
+                            const SizedBox(width: 6),
+
+                            // [ Till Session F10 ]
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: borderColor),
+                                foregroundColor: textPrimary,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                              icon: const Icon(Icons.account_balance_wallet_outlined, size: 15, color: Color(0xFF10B981)),
+                              label: const Text('Till [F10]', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => RegisterDetailsDialog(settings: widget.settings),
                                 );
                               },
                             ),
@@ -3437,8 +3571,30 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                         ),
                                                       ],
                                                     ),
-                                                    const SizedBox(height: 2),
-                                                    Text(item.product.unit, style: TextStyle(fontSize: 10, color: textSecondary)),
+                                                    const SizedBox(height: 3),
+                                                    InkWell(
+                                                      onTap: () => _openUnitSelectorForCartItem(item, index),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                      child: Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                        decoration: BoxDecoration(
+                                                          color: isDark ? const Color(0xFF334155) : const Color(0xFFEFF6FF),
+                                                          borderRadius: BorderRadius.circular(4),
+                                                          border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.4), width: 0.8),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            Text(
+                                                              item.selectedUnitName ?? item.product.unit,
+                                                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                                                            ),
+                                                            const SizedBox(width: 2),
+                                                            const Icon(Icons.keyboard_arrow_down_rounded, size: 12, color: Color(0xFF2563EB)),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
                                                   ],
                                                 ),
                                               ),

@@ -56,6 +56,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   String _selectedUnit = 'Pieces (Pc)';
   final List<String> _units = ['Pieces (Pc)', 'Box', 'Kilogram (Kg)', 'Liter (Ltr)', 'Pack'];
+  List<Unit> _dbUnits = [];
 
   List<Category> _categories = [];
   Category? _selectedCategory;
@@ -110,6 +111,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final cats = await db.getCategories();
     final brs = await db.getBrands();
     final wars = await db.getWarranties();
+    final unList = await db.getUnits();
     List<ProductVariation> loadedVars = [];
     if (widget.productToEdit != null && widget.productToEdit!.id != null) {
       loadedVars = await db.getProductVariations(widget.productToEdit!.id!);
@@ -120,6 +122,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
         _categories = cats;
         _brands = brs;
         _warranties = wars;
+        _dbUnits = unList;
+        for (final u in unList) {
+          final label = u.shortName.isNotEmpty && u.shortName != u.actualName
+              ? '${u.actualName} (${u.shortName})'
+              : u.actualName;
+          if (!_units.contains(label)) {
+            _units.add(label);
+          }
+        }
         if (widget.productToEdit != null) {
           final p = widget.productToEdit!;
           _nameCtrl.text = p.name;
@@ -134,6 +145,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _barcodeType = p.barcodeType;
           _productType = p.type;
           _selectedUnit = p.unit;
+          if (!_units.contains(_selectedUnit)) {
+            _units.add(_selectedUnit);
+          }
           if (p.imageColor != null && File(p.imageColor!).existsSync()) {
             _pickedImagePath = p.imageColor;
             _imageCtrl.text = p_path.basename(p.imageColor!);
@@ -158,6 +172,141 @@ class _AddProductScreenState extends State<AddProductScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _showQuickAddUnitDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameCtrl = TextEditingController();
+    final shortCtrl = TextEditingController();
+    final multCtrl = TextEditingController(text: '1');
+    bool allowDecimal = false;
+    int? selectedBaseUnit;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => Dialog(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Add New Unit of Measure',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                      IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(ctx)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _buildFieldLabel('Unit Name (e.g. Strip, Gram, Carton)', isRequired: true),
+                  const SizedBox(height: 4),
+                  TextFormField(controller: nameCtrl, decoration: _inputDecor('e.g. Strip')),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildFieldLabel('Short Code', isRequired: true),
+                            const SizedBox(height: 4),
+                            TextFormField(controller: shortCtrl, decoration: _inputDecor('e.g. Strip')),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildFieldLabel('Allow Decimal?'),
+                            const SizedBox(height: 4),
+                            SwitchListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(allowDecimal ? 'Yes' : 'No', style: const TextStyle(fontSize: 12)),
+                              value: allowDecimal,
+                              onChanged: (v) => setDlgState(() => allowDecimal = v),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildFieldLabel('Base Unit (Optional - for sub-units)'),
+                  const SizedBox(height: 4),
+                  DropdownButtonFormField<int?>(
+                    initialValue: selectedBaseUnit,
+                    decoration: _inputDecor('Select Base Unit'),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('None (This is a primary unit)', style: TextStyle(fontSize: 12))),
+                      ..._dbUnits.where((u) => u.id != null && u.baseUnitId == null).map(
+                        (u) => DropdownMenuItem(value: u.id, child: Text('${u.actualName} (${u.shortName})', style: const TextStyle(fontSize: 12))),
+                      ),
+                    ],
+                    onChanged: (v) => setDlgState(() => selectedBaseUnit = v),
+                  ),
+                  if (selectedBaseUnit != null) ...[
+                    const SizedBox(height: 12),
+                    _buildFieldLabel('Multiplier (How many base units in this unit?)'),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      controller: multCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: _inputDecor('e.g. 10 for Strip of 10 Tabs, 100 for Box'),
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF004EEB), foregroundColor: Colors.white),
+                        onPressed: () async {
+                          final name = nameCtrl.text.trim();
+                          final short = shortCtrl.text.trim();
+                          if (name.isEmpty) return;
+                          final mult = double.tryParse(multCtrl.text.trim()) ?? 1.0;
+                          final newUnit = Unit(
+                            actualName: name,
+                            shortName: short.isNotEmpty ? short : name,
+                            allowDecimal: allowDecimal,
+                            baseUnitId: selectedBaseUnit,
+                            baseUnitMultiplier: mult,
+                          );
+                          final db = await DatabaseService.initialize();
+                          await db.addUnit(newUnit);
+                          Navigator.pop(ctx);
+                          await _loadMetadata();
+                          final newLabel = short.isNotEmpty && short != name ? '$name ($short)' : name;
+                          setState(() {
+                            _selectedUnit = newLabel;
+                            if (!_units.contains(_selectedUnit)) {
+                              _units.add(_selectedUnit);
+                            }
+                          });
+                        },
+                        child: const Text('Save Unit'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _autoGenerateSku() {
@@ -1051,12 +1200,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      _buildPlusButton(() {
-                                        // Quick add unit
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Unit management available in Settings.')),
-                                        );
-                                      }),
+                                      _buildPlusButton(_showQuickAddUnitDialog),
                                     ],
                                   ),
                                 ],

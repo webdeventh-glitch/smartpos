@@ -230,6 +230,12 @@ class DatabaseService {
     try {
       await db.execute("ALTER TABLE categories ADD COLUMN parent_id INTEGER");
     } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE sale_items ADD COLUMN unit_name TEXT");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE sale_items ADD COLUMN unit_multiplier REAL DEFAULT 1.0");
+    } catch (_) {}
 
     // Seed default variation templates if empty
     final varTempRes = await db.rawQuery('SELECT COUNT(*) as c FROM variation_templates');
@@ -1388,6 +1394,8 @@ class DatabaseService {
         expiry_date TEXT,
         bonus_quantity REAL DEFAULT 0.0,
         pack_discount REAL DEFAULT 0.0,
+        unit_name TEXT,
+        unit_multiplier REAL DEFAULT 1.0,
         FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE
       )
     ''');
@@ -2153,6 +2161,97 @@ class DatabaseService {
     await db.delete('units', where: 'id = ?', whereArgs: [id]);
   }
 
+  /// Returns all available selling units and sub-units for a product (Base unit + Sub-units)
+  Future<List<Unit>> getConversionUnitsForProduct(Product product) async {
+    final allUnits = await getUnits();
+    final rawUnit = product.unit.toLowerCase().trim();
+
+    // 1. Find matching base unit in DB if exists
+    Unit? matchedBase;
+    for (final u in allUnits) {
+      if (u.actualName.toLowerCase().trim() == rawUnit ||
+          u.shortName.toLowerCase().trim() == rawUnit ||
+          rawUnit.contains(u.actualName.toLowerCase().trim()) ||
+          rawUnit.contains(u.shortName.toLowerCase().trim())) {
+        matchedBase = u;
+        break;
+      }
+    }
+
+    final results = <Unit>[];
+
+    // Always add primary/base unit (multiplier = 1.0)
+    final baseName = product.unit.isNotEmpty ? product.unit : 'Pieces (Pc)';
+    final baseShort = matchedBase?.shortName ?? (product.unit.contains('(') ? product.unit.split('(').last.replaceAll(')', '').trim() : 'Pc');
+    results.add(Unit(
+      id: matchedBase?.id,
+      actualName: baseName,
+      shortName: baseShort,
+      allowDecimal: matchedBase?.allowDecimal ?? true,
+      baseUnitMultiplier: 1.0,
+    ));
+
+    // 2. Add units that reference this base unit in DB
+    if (matchedBase != null && matchedBase.id != null) {
+      for (final u in allUnits) {
+        if (u.baseUnitId == matchedBase.id && !results.any((r) => r.actualName.toLowerCase() == u.actualName.toLowerCase())) {
+          results.add(u);
+        }
+      }
+    }
+
+    // 3. Smart Commercial Fallback Presets if no custom sub-units exist in DB
+    // (e.g. Pharmacy strips/boxes, Grocery Pao/Dhari/Mann, Textile meters/suits)
+    if (results.length == 1) {
+      if (rawUnit.contains('tab') || rawUnit.contains('cap') || rawUnit.contains('pill')) {
+        results.add(Unit(actualName: 'Strip (10 Tabs)', shortName: 'Strip', allowDecimal: false, baseUnitMultiplier: 10.0));
+        results.add(Unit(actualName: 'Box (100 Tabs)', shortName: 'Box', allowDecimal: false, baseUnitMultiplier: 100.0));
+        results.add(Unit(actualName: 'Master Carton (2000)', shortName: 'Ctn', allowDecimal: false, baseUnitMultiplier: 2000.0));
+      } else if (rawUnit.contains('strip')) {
+        results.add(Unit(actualName: 'Box (10 Strips)', shortName: 'Box', allowDecimal: false, baseUnitMultiplier: 10.0));
+        results.add(Unit(actualName: 'Master Carton (100 Strips)', shortName: 'Ctn', allowDecimal: false, baseUnitMultiplier: 100.0));
+      } else if (rawUnit.contains('box') || rawUnit.contains('pack')) {
+        final packMult = product.packSize > 1 ? product.packSize : 12.0;
+        results.add(Unit(actualName: 'Carton (${packMult.toInt() * 10} Units)', shortName: 'Ctn', allowDecimal: false, baseUnitMultiplier: 10.0));
+      } else if (rawUnit.contains('gm') || rawUnit.contains('gram') || rawUnit == 'g') {
+        results.add(Unit(actualName: 'Pao (250 Grams)', shortName: 'Pao', allowDecimal: true, baseUnitMultiplier: 250.0));
+        results.add(Unit(actualName: 'Aadha Kg (500 Grams)', shortName: '0.5Kg', allowDecimal: true, baseUnitMultiplier: 500.0));
+        results.add(Unit(actualName: 'Kilogram (1,000 Grams)', shortName: 'Kg', allowDecimal: true, baseUnitMultiplier: 1000.0));
+        results.add(Unit(actualName: 'Dhari (5 Kg)', shortName: 'Dhari', allowDecimal: true, baseUnitMultiplier: 5000.0));
+        results.add(Unit(actualName: 'Mann (40 Kg)', shortName: 'Mann', allowDecimal: true, baseUnitMultiplier: 40000.0));
+      } else if (rawUnit.contains('kg') || rawUnit.contains('kilo')) {
+        results.add(Unit(actualName: 'Pao (0.25 Kg)', shortName: 'Pao', allowDecimal: true, baseUnitMultiplier: 0.25));
+        results.add(Unit(actualName: 'Aadha Kg (0.5 Kg)', shortName: '0.5Kg', allowDecimal: true, baseUnitMultiplier: 0.5));
+        results.add(Unit(actualName: '3 Pao (0.75 Kg)', shortName: '3 Pao', allowDecimal: true, baseUnitMultiplier: 0.75));
+        results.add(Unit(actualName: 'Dhari (5 Kg)', shortName: 'Dhari', allowDecimal: true, baseUnitMultiplier: 5.0));
+        results.add(Unit(actualName: 'Mann (40 Kg)', shortName: 'Mann', allowDecimal: true, baseUnitMultiplier: 40.0));
+        results.add(Unit(actualName: 'Bori (50 Kg)', shortName: 'Bori', allowDecimal: true, baseUnitMultiplier: 50.0));
+      } else if (rawUnit.contains('ml') || rawUnit.contains('milli')) {
+        results.add(Unit(actualName: 'Bottle (60 ML)', shortName: '60ml', allowDecimal: false, baseUnitMultiplier: 60.0));
+        results.add(Unit(actualName: 'Bottle (120 ML)', shortName: '120ml', allowDecimal: false, baseUnitMultiplier: 120.0));
+        results.add(Unit(actualName: 'Liter (1,000 ML)', shortName: 'Ltr', allowDecimal: true, baseUnitMultiplier: 1000.0));
+      } else if (rawUnit.contains('liter') || rawUnit.contains('litre') || rawUnit.contains('ltr')) {
+        results.add(Unit(actualName: 'Bottle (500 ML)', shortName: '0.5L', allowDecimal: true, baseUnitMultiplier: 0.5));
+        results.add(Unit(actualName: 'Can (5 Liters)', shortName: '5L Can', allowDecimal: true, baseUnitMultiplier: 5.0));
+        results.add(Unit(actualName: 'Carton (16 Liters)', shortName: '16L Tin', allowDecimal: true, baseUnitMultiplier: 16.0));
+      } else if (rawUnit.contains('meter') || rawUnit.contains('mtr') || rawUnit == 'm') {
+        results.add(Unit(actualName: 'Shalwar Piece (2.25 Mtr)', shortName: '2.25m', allowDecimal: true, baseUnitMultiplier: 2.25));
+        results.add(Unit(actualName: 'Suit Piece (2.5 Mtr)', shortName: '2.5m', allowDecimal: true, baseUnitMultiplier: 2.5));
+        results.add(Unit(actualName: 'Full Suit (4 Mtr)', shortName: '4m', allowDecimal: true, baseUnitMultiplier: 4.0));
+        results.add(Unit(actualName: 'Thaan (20 Mtr)', shortName: 'Thaan', allowDecimal: true, baseUnitMultiplier: 20.0));
+        results.add(Unit(actualName: 'Roll (100 Mtr)', shortName: 'Roll', allowDecimal: true, baseUnitMultiplier: 100.0));
+      } else if (rawUnit.contains('pc') || rawUnit.contains('piece') || rawUnit.contains('each') || rawUnit.contains('item')) {
+        results.add(Unit(actualName: 'Half Dozen (6 Pcs)', shortName: 'Half Doz', allowDecimal: false, baseUnitMultiplier: 6.0));
+        results.add(Unit(actualName: 'Dozen (12 Pcs)', shortName: 'Dozen', allowDecimal: false, baseUnitMultiplier: 12.0));
+        results.add(Unit(actualName: 'Box (24 Pcs)', shortName: 'Box', allowDecimal: false, baseUnitMultiplier: 24.0));
+        results.add(Unit(actualName: 'Crate (30 Pcs)', shortName: 'Crate', allowDecimal: false, baseUnitMultiplier: 30.0));
+        results.add(Unit(actualName: 'Carton (72 Pcs)', shortName: 'Ctn', allowDecimal: false, baseUnitMultiplier: 72.0));
+      }
+    }
+
+    return results;
+  }
+
   // Selling Price Groups
   Future<List<SellingPriceGroup>> getSellingPriceGroups() async {
     final rows = await db.query('selling_price_groups', orderBy: 'id ASC');
@@ -2501,9 +2600,10 @@ class DatabaseService {
         await txn.insert('sale_items', item.toMap(saleId));
 
         if (sale.saleStatus == 'final' && item.product.id != null) {
+          final baseDeduction = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
           await txn.rawUpdate(
             'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
-            [item.quantity, item.product.id],
+            [baseDeduction, item.product.id],
           );
         }
       }

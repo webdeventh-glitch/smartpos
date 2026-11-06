@@ -108,13 +108,17 @@ class PrintService {
     if (sale.items != null) {
       for (int i = 0; i < sale.items!.length; i++) {
         final item = sale.items![i];
+        final qStr = item.quantity == item.quantity.toInt()
+            ? item.quantity.toInt().toString()
+            : item.quantity.toStringAsFixed(2);
+        final uLabel = item.unitName != null && item.unitName!.isNotEmpty ? ' ${item.unitName}' : '';
         // Thermal Slip Layout
         itemsHtml.writeln('''
           <tr style="border-bottom: 1px dashed #ccc;">
             <td colspan="4" style="padding-top: 4px; font-weight: bold;">${_escape(item.productName)}</td>
           </tr>
           <tr style="border-bottom: 1px dotted #ddd;">
-            <td style="padding-bottom: 4px;">${item.quantity.toStringAsFixed(0)} x $cur${item.unitPrice.toStringAsFixed(2)}</td>
+            <td style="padding-bottom: 4px;">$qStr$uLabel x $cur${item.unitPrice.toStringAsFixed(2)}</td>
             <td style="padding-bottom: 4px; text-align:center;">${item.batchNumber != null && item.batchNumber!.isNotEmpty ? 'B:${item.batchNumber}' : ''}</td>
             <td style="padding-bottom: 4px; text-align:right;">${item.packDiscount > 0 ? '-${item.packDiscount}%' : ''}</td>
             <td style="padding-bottom: 4px; text-align:right; font-weight: bold;">$cur${item.subtotal.toStringAsFixed(2)}</td>
@@ -313,11 +317,15 @@ class PrintService {
     if (effectiveQuotation.items != null) {
       for (int i = 0; i < effectiveQuotation.items!.length; i++) {
         final item = effectiveQuotation.items![i];
+        final qStr = item.quantity == item.quantity.toInt()
+            ? item.quantity.toInt().toString()
+            : item.quantity.toStringAsFixed(2);
+        final uLabel = item.unitName != null && item.unitName!.isNotEmpty ? ' ${item.unitName}' : '';
         itemsHtml.writeln('''
           <tr>
             <td style="text-align:center; padding: 6px;">${i + 1}</td>
             <td style="padding: 6px; font-weight:bold;">${_escape(item.productName)}</td>
-            <td style="text-align:center; padding: 6px;">${item.quantity.toStringAsFixed(0)}</td>
+            <td style="text-align:center; padding: 6px;">$qStr$uLabel</td>
             <td style="text-align:right; padding: 6px;">$cur${item.unitPrice.toStringAsFixed(2)}</td>
             <td style="text-align:right; padding: 6px;">${item.packDiscount > 0 ? '${item.packDiscount}%' : '-'}</td>
             <td style="text-align:right; padding: 6px; font-weight:bold;">$cur${item.subtotal.toStringAsFixed(2)}</td>
@@ -790,12 +798,16 @@ class PrintService {
     for (var it in items) {
       final packVal = it.unitPrice * it.quantity;
       final discVal = it.discount > 0 ? it.discount : (it.packDiscount > 0 ? (packVal * it.packDiscount / 100) : 0.0);
+      final qStr = it.quantity == it.quantity.toInt()
+          ? it.quantity.toInt().toString()
+          : it.quantity.toStringAsFixed(2);
+      final uLabel = it.unitName != null && it.unitName!.isNotEmpty ? ' ${it.unitName}' : '';
       itemsHtml.writeln('''
         <tr>
           <td style="border: 1px solid #000; padding: 4px 6px; font-weight: bold; text-align: left;">${_escape(it.productName)}</td>
           <td style="border: 1px solid #000; padding: 4px; text-align: center;">${_escape(it.batchNumber ?? '02260')}</td>
           <td style="border: 1px solid #000; padding: 4px; text-align: center; color: #d97706; font-weight: bold;">${_escape(it.expiryDate ?? '12-2028')}</td>
-          <td style="border: 1px solid #000; padding: 4px; text-align: center;">${it.quantity.toInt()}</td>
+          <td style="border: 1px solid #000; padding: 4px; text-align: center;">$qStr$uLabel</td>
           <td style="border: 1px solid #000; padding: 4px; text-align: center; color: #059669; font-weight: bold;">${it.bonusQuantity > 0 ? it.bonusQuantity.toInt() : 0}</td>
           <td style="border: 1px solid #000; padding: 4px; text-align: right;">${it.unitPrice.toStringAsFixed(2)}</td>
           <td style="border: 1px solid #000; padding: 4px; text-align: right;">${packVal.toStringAsFixed(2)}</td>

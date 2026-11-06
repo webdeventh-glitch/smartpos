@@ -1325,6 +1325,9 @@ class CartItem {
   String? expiryDate;
   double bonusQuantity;
   double packDiscount; // percentage or fixed
+  String? selectedUnitName;
+  double unitMultiplier;
+  final double basePrice;
 
   CartItem({
     required this.product,
@@ -1335,9 +1338,18 @@ class CartItem {
     this.expiryDate,
     this.bonusQuantity = 0.0,
     this.packDiscount = 0.0,
-  }) {
+    this.selectedUnitName,
+    this.unitMultiplier = 1.0,
+  }) : basePrice = product.sellingPrice {
     batchNumber ??= product.batchNumber;
     expiryDate ??= product.expiryDate;
+    selectedUnitName ??= product.unit;
+  }
+
+  void changeUnit(String newUnitName, double multiplier) {
+    selectedUnitName = newUnitName;
+    unitMultiplier = multiplier > 0 ? multiplier : 1.0;
+    unitPrice = basePrice * unitMultiplier;
   }
 
   double get subtotal {
@@ -1372,6 +1384,8 @@ class CartItem {
         'expiry_date': expiryDate ?? '',
         'bonus_quantity': bonusQuantity,
         'pack_discount': packDiscount,
+        'unit_name': selectedUnitName ?? product.unit,
+        'unit_multiplier': unitMultiplier,
       };
 
   Map<String, dynamic> toSavedStateMap() => {
@@ -1383,6 +1397,8 @@ class CartItem {
         'expiry_date': expiryDate ?? '',
         'bonus_quantity': bonusQuantity,
         'pack_discount': packDiscount,
+        'selected_unit_name': selectedUnitName,
+        'unit_multiplier': unitMultiplier,
       };
 
   factory CartItem.fromSavedStateMap(Map<String, dynamic> map) => CartItem(
@@ -1394,6 +1410,8 @@ class CartItem {
         expiryDate: map['expiry_date'] as String?,
         bonusQuantity: (map['bonus_quantity'] as num?)?.toDouble() ?? 0.0,
         packDiscount: (map['pack_discount'] as num?)?.toDouble() ?? 0.0,
+        selectedUnitName: map['selected_unit_name'] as String?,
+        unitMultiplier: (map['unit_multiplier'] as num?)?.toDouble() ?? 1.0,
       );
 }
 
@@ -1502,6 +1520,8 @@ class SaleItem {
   final String? expiryDate;
   final double bonusQuantity;
   final double packDiscount;
+  final String? unitName;
+  final double unitMultiplier;
 
   SaleItem({
     this.id,
@@ -1517,6 +1537,8 @@ class SaleItem {
     this.expiryDate,
     this.bonusQuantity = 0.0,
     this.packDiscount = 0.0,
+    this.unitName,
+    this.unitMultiplier = 1.0,
   });
 
   double get packValue => unitPrice * quantity;
@@ -1535,6 +1557,8 @@ class SaleItem {
         'expiry_date': expiryDate ?? '',
         'bonus_quantity': bonusQuantity,
         'pack_discount': packDiscount,
+        'unit_name': unitName,
+        'unit_multiplier': unitMultiplier,
       };
 
   factory SaleItem.fromMap(Map<String, dynamic> map) => SaleItem(
@@ -1551,6 +1575,8 @@ class SaleItem {
         expiryDate: map['expiry_date'] as String?,
         bonusQuantity: (map['bonus_quantity'] as num?)?.toDouble() ?? 0.0,
         packDiscount: (map['pack_discount'] as num?)?.toDouble() ?? 0.0,
+        unitName: map['unit_name'] as String?,
+        unitMultiplier: (map['unit_multiplier'] as num?)?.toDouble() ?? 1.0,
       );
 }
 
