@@ -639,10 +639,10 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
         : (isClear ? const Color(0xFF059669) : const Color(0xFF4F46E5));
 
     final statusHeading = isDue
-        ? (isCustomer ? '⚠️ واجب الادا رقم (Customer Due Balance): $cur${_closingBalance.toStringAsFixed(2)}' : '⚠️ واجب الادا ادائیگی (Supplier Payable): $cur${_closingBalance.toStringAsFixed(2)}')
+        ? (isCustomer ? 'واجب الادا رقم (Customer Due Balance): $cur${_closingBalance.toStringAsFixed(2)}' : 'واجب الادا ادائیگی (Supplier Payable): $cur${_closingBalance.toStringAsFixed(2)}')
         : (isClear
-            ? '✅ کھاتہ بالکل بے باق ہے (Zero Balance / Account Completely Cleared)'
-            : '💰 پیشگی رقم جمع ہے (Advance Credit Balance): $cur${_closingBalance.abs().toStringAsFixed(2)}');
+            ? 'کھاتہ بالکل بے باق ہے (Zero Balance / Account Completely Cleared)'
+            : 'پیشگی رقم جمع ہے (Advance Credit Balance): $cur${_closingBalance.abs().toStringAsFixed(2)}');
 
     final statusDesc = isDue
         ? (isCustomer ? 'یہ رقم گاہک کے ذمہ واجب الادا ہے، فوری وصولی کریں۔' : 'یہ رقم سپلائر کو ادا کرنی ہے۔')
@@ -778,9 +778,21 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
               final textColumn = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    statusHeading,
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: statusColor),
+                  Row(
+                    children: [
+                      Icon(
+                        isDue ? Icons.warning_amber_rounded : (isClear ? Icons.check_circle_rounded : Icons.account_balance_wallet_rounded),
+                        size: 16,
+                        color: statusColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          statusHeading,
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: statusColor),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(

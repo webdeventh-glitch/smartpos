@@ -529,7 +529,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
                         spacing: 8,
                         children: [
                           ActionChip(
-                            label: const Text('👑 Full Owner', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            avatar: const Icon(Icons.admin_panel_settings_rounded, size: 16, color: Color(0xFF4F46E5)),
+                            label: const Text('Full Owner', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             backgroundColor: const Color(0xFFEEF2FF),
                             onPressed: () {
                               setDlgState(() {
@@ -548,7 +549,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
                             },
                           ),
                           ActionChip(
-                            label: const Text('👔 Store Manager', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            avatar: const Icon(Icons.shield_outlined, size: 16, color: Color(0xFF059669)),
+                            label: const Text('Store Manager', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             backgroundColor: const Color(0xFFECFDF5),
                             onPressed: () {
                               setDlgState(() {
@@ -567,7 +569,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
                             },
                           ),
                           ActionChip(
-                            label: const Text('🛒 Standard Salesman', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            avatar: const Icon(Icons.point_of_sale_rounded, size: 16, color: Color(0xFF2563EB)),
+                            label: const Text('Standard Salesman', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             backgroundColor: const Color(0xFFEFF6FF),
                             onPressed: () {
                               setDlgState(() {
@@ -586,7 +589,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
                             },
                           ),
                           ActionChip(
-                            label: const Text('🔒 Restricted Cashier', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            avatar: const Icon(Icons.lock_outline_rounded, size: 16, color: Color(0xFFDC2626)),
+                            label: const Text('Restricted Cashier', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             backgroundColor: const Color(0xFFFEF2F2),
                             onPressed: () {
                               setDlgState(() {

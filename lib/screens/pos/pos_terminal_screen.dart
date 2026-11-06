@@ -1041,7 +1041,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       dlgIcon = Icons.scale_rounded;
       dlgColor = const Color(0xFFD97706);
       inputLabel = 'Enter Weight in ${item.product.unit.isNotEmpty ? item.product.unit : "Kg"} (اعشاریہ وزن مثلاً 1.5, 0.50)';
-      badgeLabel = '⚖️ Weighed / Weight Scale (تولنے والا وزن)';
+      badgeLabel = 'Weighed / Weight Scale (تولنے والا وزن)';
       presets = [
         {'label': '0.25 (Pao / پاؤ)', 'val': 0.25},
         {'label': '0.50 (Aadha / آدھا کلو)', 'val': 0.50},
@@ -1061,7 +1061,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       dlgIcon = Icons.straighten_rounded;
       dlgColor = const Color(0xFF0D9488);
       inputLabel = 'Enter Length in ${item.product.unit.isNotEmpty ? item.product.unit : "Meter"} (میٹر / گز / فٹ)';
-      badgeLabel = '📏 Measurement / Fabric (پیمائش والے یونٹس)';
+      badgeLabel = 'Measurement / Fabric (پیمائش والے یونٹس)';
       presets = [
         {'label': '0.50 (آدھا میٹر)', 'val': 0.50},
         {'label': '1.0 (1 میٹر)', 'val': 1.0},
@@ -1082,7 +1082,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       dlgIcon = Icons.water_drop_outlined;
       dlgColor = const Color(0xFF0284C7);
       inputLabel = 'Enter Volume in ${item.product.unit.isNotEmpty ? item.product.unit : "Liter"} (لیٹر / ملی لیٹر)';
-      badgeLabel = '💧 Liquid Volume (مائع حجم والے یونٹس)';
+      badgeLabel = 'Liquid Volume (مائع حجم والے یونٹس)';
       presets = [
         {'label': '0.25 (پاؤ / 250ml)', 'val': 0.25},
         {'label': '0.50 (آدھا لیٹر / 500ml)', 'val': 0.50},
@@ -1102,7 +1102,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       dlgIcon = Icons.inventory_2_outlined;
       dlgColor = const Color(0xFF4F46E5);
       inputLabel = 'Enter Quantity in ${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"} (تعداد درج کریں)';
-      badgeLabel = '📦 Count / Discrete Item (گنتی و تعداد والے یونٹس)';
+      badgeLabel = 'Count / Discrete Item (گنتی و تعداد والے یونٹس)';
       presets = [
         {'label': '1', 'val': 1.0},
         {'label': '2', 'val': 2.0},
@@ -3298,7 +3298,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
-                                            _isWholesaleMode ? '📦 Wholesale Tier (Active)' : '🛒 Retail Mode (F12)',
+                                            _isWholesaleMode ? 'Wholesale Tier (Active)' : 'Retail Mode (F12)',
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold,

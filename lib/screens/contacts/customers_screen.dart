@@ -509,9 +509,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     _filterChip('all', 'All (${_customers.length})', isDark),
-                    _filterChip('defaulters', '🚨 Defaulters / Dues (${defaulters.length})', isDark, isHighlight: true),
-                    _filterChip('over_limit', '⚠️ Limit Exceeded (${overLimit.length})', isDark),
-                    _filterChip('clear', '✓ Zero Balance (${cleared.length})', isDark),
+                    _filterChip('defaulters', 'Defaulters / Dues (${defaulters.length})', isDark, isHighlight: true, icon: Icons.warning_amber_rounded),
+                    _filterChip('over_limit', 'Limit Exceeded (${overLimit.length})', isDark, icon: Icons.block_rounded),
+                    _filterChip('clear', 'Zero Balance (${cleared.length})', isDark, icon: Icons.check_circle_outline_rounded),
                   ],
                 );
 
@@ -778,7 +778,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
     );
   }
 
-  Widget _filterChip(String id, String label, bool isDark, {bool isHighlight = false}) {
+  Widget _filterChip(String id, String label, bool isDark, {bool isHighlight = false, IconData? icon}) {
     final isSelected = _filter == id;
     final color = isHighlight ? const Color(0xFFEF4444) : const Color(0xFF4F46E5);
 
@@ -794,13 +794,26 @@ class _CustomersScreenState extends State<CustomersScreen> {
             color: isSelected ? color : (isHighlight ? const Color(0xFFEF4444).withValues(alpha: 0.4) : const Color(0xFFCBD5E1)),
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            color: isSelected ? Colors.white : (isHighlight ? const Color(0xFFDC2626) : const Color(0xFF475569)),
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 13,
+                color: isSelected ? Colors.white : (isHighlight ? const Color(0xFFDC2626) : const Color(0xFF4F46E5)),
+              ),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: isSelected ? Colors.white : (isHighlight ? const Color(0xFFDC2626) : const Color(0xFF475569)),
+              ),
+            ),
+          ],
         ),
       ),
     );

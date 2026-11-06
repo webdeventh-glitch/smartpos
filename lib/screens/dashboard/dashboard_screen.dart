@@ -542,7 +542,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text('👋', style: TextStyle(fontSize: 26)),
+                      const Icon(Icons.waving_hand_rounded, color: Colors.amberAccent, size: 24),
                     ],
                   ),
                   Row(

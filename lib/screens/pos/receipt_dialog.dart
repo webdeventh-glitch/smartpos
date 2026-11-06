@@ -76,16 +76,17 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
   String _generateWhatsAppInvoiceText() {
     final currency = widget.settings.currencySymbol;
     final buffer = StringBuffer();
-    buffer.writeln('🛍️ *${widget.settings.businessName.toUpperCase()}*');
-    buffer.writeln('📍 ${widget.settings.branchName}');
-    if (widget.settings.phone.isNotEmpty) buffer.writeln('📞 Tel: ${widget.settings.phone}');
+    buffer.writeln('========================================');
+    buffer.writeln('*${widget.settings.businessName.toUpperCase()}*');
+    buffer.writeln('Branch: ${widget.settings.branchName}');
+    if (widget.settings.phone.isNotEmpty) buffer.writeln('Tel: ${widget.settings.phone}');
+    buffer.writeln('========================================');
+    buffer.writeln('*INVOICE:* ${widget.sale.invoiceNo}');
+    buffer.writeln('Date: ${widget.sale.createdAt}');
+    buffer.writeln('Customer: ${widget.sale.customerName}');
+    buffer.writeln('Payment: ${widget.sale.paymentMethod.toUpperCase()}');
     buffer.writeln('----------------------------------------');
-    buffer.writeln('🧾 *Invoice:* ${widget.sale.invoiceNo}');
-    buffer.writeln('📅 *Date:* ${widget.sale.createdAt}');
-    buffer.writeln('👤 *Customer:* ${widget.sale.customerName}');
-    buffer.writeln('💳 *Pay Mode:* ${widget.sale.paymentMethod.toUpperCase()}');
-    buffer.writeln('----------------------------------------');
-    buffer.writeln('*ITEMS / مصنوعات:*');
+    buffer.writeln('*ITEMS / PARTICULARS:*');
     if (widget.sale.items != null) {
       for (int i = 0; i < widget.sale.items!.length; i++) {
         final item = widget.sale.items![i];
@@ -103,13 +104,14 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
     if (widget.sale.taxAmount > 0) {
       buffer.writeln('Tax: +$currency${widget.sale.taxAmount.toStringAsFixed(2)}');
     }
-    buffer.writeln('💰 *TOTAL PAYABLE: $currency${widget.sale.totalAmount.toStringAsFixed(2)}*');
-    buffer.writeln('💵 Amount Paid: $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
+    buffer.writeln('*TOTAL PAYABLE: $currency${widget.sale.totalAmount.toStringAsFixed(2)}*');
+    buffer.writeln('Amount Paid: $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
     if (widget.sale.dueAmount > 0) {
-      buffer.writeln('⚠️ *Balance Due: $currency${widget.sale.dueAmount.toStringAsFixed(2)}*');
+      buffer.writeln('*Balance Due: $currency${widget.sale.dueAmount.toStringAsFixed(2)}*');
     }
-    buffer.writeln('----------------------------------------');
-    buffer.writeln('Thank you for shopping with us! 🙏');
+    buffer.writeln('========================================');
+    buffer.writeln('Thank you for your business.');
+    buffer.writeln('========================================');
     return buffer.toString();
   }
 
