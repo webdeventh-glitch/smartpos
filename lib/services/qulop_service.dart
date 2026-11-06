@@ -261,7 +261,7 @@ class QulopService {
         isValid: false,
         tier: QulopTier.invalid,
         tierLabel: 'Invalid',
-        message: 'Qulop key cannot be empty.',
+        message: 'License key cannot be empty.',
       );
     }
 
@@ -374,7 +374,7 @@ class QulopService {
         isValid: false,
         tier: QulopTier.expired,
         tierLabel: '${getTierLabel(tierCode)} (Expired)',
-        message: 'Your Qulop subscription expired on ${expiryDate.toIso8601String().split('T').first}. Please renew.',
+        message: 'Your software subscription expired on ${expiryDate.toIso8601String().split('T').first}. Please renew.',
         clientName: clientName,
         targetMac: targetMac,
         expiryDate: expiryDate,
@@ -458,7 +458,7 @@ class QulopService {
         isValid: false,
         tier: QulopTier.expired,
         tierLabel: '30-Day Free Trial (Expired)',
-        message: 'Your 30-Day Free Trial expired on ${expiryDay.toIso8601String().split('T').first}. Please enter your Qulop License Key.',
+        message: 'Your 30-Day Free Trial expired on ${expiryDay.toIso8601String().split('T').first}. Please enter your Software License Key.',
         clientName: settings.businessName,
         targetMac: currentMac,
         issueDate: trialStart,
@@ -502,21 +502,22 @@ class QulopService {
     String vendorContact = '+92 300 1234567',
   }) {
     return '''
-*QULOP LICENSING SYSTEM — SMART POS OFFICIAL LICENSE* Dear *$clientName*,
-Thank you for choosing *Smart POS System*! Your Qulop license subscription has been generated.
+*SMART POS OFFICIAL SOFTWARE LICENSE*
+Dear *$clientName*,
+Thank you for choosing *Smart POS System*! Your software license subscription has been generated.
 
 *Subscription Details:*
 • *Plan:* $tierLabel
 • *Machine Hardware ID:* $macAddress
 • *Valid Until:* $expiryDateStr
 
-*Your Qulop Activation Key:*
+*Your Software Activation Key:*
 `$key`
 
 *How to Activate:*
 1. Open *Smart POS System* on your PC.
-2. Go to *Settings > Qulop License* (or paste into the activation screen).
-3. Paste the key above and click *"Activate Software"*.
+2. Go to *Settings > License & Activation* (or paste into the activation screen).
+3. Paste the key above and click *"Activate License"*.
 
 For technical support or renewals, WhatsApp us: $vendorContact
 ''';

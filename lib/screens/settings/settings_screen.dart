@@ -1583,7 +1583,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             Tab(icon: Icon(Icons.location_city, size: 18), text: 'Business Locations'),
             Tab(icon: Icon(Icons.percent, size: 18), text: 'Tax Rates'),
             Tab(icon: Icon(Icons.receipt_long, size: 18), text: 'Invoice Schemes'),
-            Tab(icon: Icon(Icons.vpn_key_rounded, size: 18), text: 'Qulop License System'),
+            Tab(icon: Icon(Icons.vpn_key_rounded, size: 18), text: 'License & Activation'),
             Tab(icon: Icon(Icons.storage_rounded, size: 18), text: 'Purge & Medicine Engine'),
             Tab(icon: Icon(Icons.system_update_alt_rounded, size: 18), text: 'Software Update & Backup'),
             Tab(icon: Icon(Icons.print_rounded, size: 18), text: 'Bill Customization & Printing'),
@@ -2800,9 +2800,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Qulop Hardware Machine Fingerprint (MAC Address)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  const Text('Hardware Machine Fingerprint (MAC Address)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                   const SizedBox(height: 2),
-                                  Text('Unique machine identifier bound to Qulop license: $_hostMac', style: const TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+                                  Text('Unique machine identifier bound to software license: $_hostMac', style: const TextStyle(color: Color(0xFF64748B), fontSize: 13)),
                                 ],
                               ),
                             ],
@@ -2877,7 +2877,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             child: TextFormField(
                               controller: _purchaseKeyCtrl,
                               decoration: const InputDecoration(
-                                labelText: 'Enter Qulop License Key',
+                                labelText: 'Enter Software License Key',
                                 hintText: 'QULOP-YRL-XXXX-XXXX...',
                                 prefixIcon: Icon(Icons.key_rounded, size: 20),
                                 border: OutlineInputBorder(),
@@ -2929,9 +2929,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           const Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('How to Renew or Purchase a Qulop License Key', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                              Text('How to Renew or Purchase a Software License Key', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
                               SizedBox(height: 2),
-                              Text('Contact software vendor to purchase or extend your Qulop subscription', style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+                              Text('Contact software vendor to purchase or extend your software subscription', style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
                             ],
                           ),
                         ],
@@ -2959,7 +2959,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                               children: [
                                 Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 18),
                                 SizedBox(width: 8),
-                                Text('Qulop SaaS Provider: Webdeventh Software Solutions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('Software Provider: Webdeventh Software Solutions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                               ],
                             ),
                             Text('WhatsApp / Support: +92 300 1234567', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: primaryColor)),

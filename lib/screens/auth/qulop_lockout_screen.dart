@@ -47,7 +47,7 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
   Future<void> _activateLicense() async {
     final key = _keyController.text.trim();
     if (key.isEmpty) {
-      setState(() => _errorMessage = 'Please enter or paste your Qulop License Key.');
+      setState(() => _errorMessage = 'Please enter or paste your Software License Key.');
       return;
     }
 
@@ -183,9 +183,9 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Front Title: Qulop License Required
+                // Front Title: Software License Required
                 const Text(
-                  'Qulop License Required',
+                  'Software License Required',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
@@ -294,7 +294,7 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
 
                 // License Key Input Field
                 const Text(
-                  'Enter Qulop License Key',
+                  'Enter Software License Key',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
