@@ -104,6 +104,10 @@ class BusinessSettings {
   final bool showTaxBreakdownOnReceipt;
   final bool showCashierNameOnReceipt;
   final int invoicePrintCopies;
+  final bool multiCurrencyEnabled;
+  final String exchangeRatesJson;
+  final String customRatesJson;
+  final String lastRatesSync;
 
   BusinessSettings({
     this.id = 1,
@@ -168,6 +172,10 @@ class BusinessSettings {
     this.showTaxBreakdownOnReceipt = true,
     this.showCashierNameOnReceipt = true,
     this.invoicePrintCopies = 1,
+    this.multiCurrencyEnabled = true,
+    this.exchangeRatesJson = '',
+    this.customRatesJson = '',
+    this.lastRatesSync = '',
   });
 
   String get effectiveLoginBanner {
@@ -547,6 +555,10 @@ class BusinessSettings {
     bool? showTaxBreakdownOnReceipt,
     bool? showCashierNameOnReceipt,
     int? invoicePrintCopies,
+    bool? multiCurrencyEnabled,
+    String? exchangeRatesJson,
+    String? customRatesJson,
+    String? lastRatesSync,
   }) {
     return BusinessSettings(
       id: id ?? this.id,
@@ -611,6 +623,10 @@ class BusinessSettings {
       showTaxBreakdownOnReceipt: showTaxBreakdownOnReceipt ?? this.showTaxBreakdownOnReceipt,
       showCashierNameOnReceipt: showCashierNameOnReceipt ?? this.showCashierNameOnReceipt,
       invoicePrintCopies: invoicePrintCopies ?? this.invoicePrintCopies,
+      multiCurrencyEnabled: multiCurrencyEnabled ?? this.multiCurrencyEnabled,
+      exchangeRatesJson: exchangeRatesJson ?? this.exchangeRatesJson,
+      customRatesJson: customRatesJson ?? this.customRatesJson,
+      lastRatesSync: lastRatesSync ?? this.lastRatesSync,
     );
   }
 
@@ -677,6 +693,10 @@ class BusinessSettings {
         'show_tax_breakdown_on_receipt': showTaxBreakdownOnReceipt ? 1 : 0,
         'show_cashier_name_on_receipt': showCashierNameOnReceipt ? 1 : 0,
         'invoice_print_copies': invoicePrintCopies,
+        'multi_currency_enabled': multiCurrencyEnabled ? 1 : 0,
+        'exchange_rates_json': exchangeRatesJson,
+        'custom_rates_json': customRatesJson,
+        'last_rates_sync': lastRatesSync,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
@@ -743,6 +763,10 @@ class BusinessSettings {
         showTaxBreakdownOnReceipt: _asBool(map['show_tax_breakdown_on_receipt'], true),
         showCashierNameOnReceipt: _asBool(map['show_cashier_name_on_receipt'], true),
         invoicePrintCopies: _asInt(map['invoice_print_copies'], 1),
+        multiCurrencyEnabled: _asBool(map['multi_currency_enabled'], true),
+        exchangeRatesJson: _asString(map['exchange_rates_json']),
+        customRatesJson: _asString(map['custom_rates_json']),
+        lastRatesSync: _asString(map['last_rates_sync']),
       );
 }
 

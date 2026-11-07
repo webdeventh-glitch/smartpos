@@ -270,6 +270,11 @@ class PrintService {
         <td class="text-right bold">$cur${changeReturn.toStringAsFixed(2)}</td>
       </tr>
       ''' : ''}
+      ${sale.note != null && sale.note!.contains('Foreign') ? '''
+      <tr>
+        <td colspan="2" style="font-size: 9.5px; color: #374151; font-style: italic; padding: 2px 0; border-top: 1px dashed #ccc;">${_escape(sale.note!)}</td>
+      </tr>
+      ''' : ''}
       ${settings.showCustomerBalanceOnReceipt && sale.dueAmount > 0 ? '''
       <tr style="color: #b91c1c; font-weight: bold;">
         <td>CURRENT BILL DUE:</td>

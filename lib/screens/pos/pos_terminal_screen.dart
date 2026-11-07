@@ -16,6 +16,7 @@ import 'pos_power_dialogs.dart';
 import 'recent_transactions_dialog.dart';
 import '../../widgets/calculator_dialog.dart';
 import '../products/add_product_dialog.dart';
+import '../../services/currency_rate_service.dart';
 
 class PosTerminalScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -2424,6 +2425,12 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         isWalkIn: isWalkIn,
         customerCreditLimit: _selectedCustomer?.creditLimit ?? 0.0,
         customerCurrentBalance: _selectedCustomer?.balance ?? 0.0,
+        currencyCode: widget.settings.currencyCode,
+        multiCurrencyEnabled: widget.settings.multiCurrencyEnabled,
+        availableRates: CurrencyRateService.parseRatesJson(
+          widget.settings.exchangeRatesJson,
+          widget.settings.currencyCode,
+        ),
       ),
     );
 

@@ -902,6 +902,10 @@ class MySqlService {
         `db_port` INT DEFAULT 3306,
         `db_name` VARCHAR(100) DEFAULT 'smartpos',
         `db_user` VARCHAR(100) DEFAULT 'root',
+        `multi_currency_enabled` TINYINT(1) DEFAULT 1,
+        `exchange_rates_json` TEXT NULL,
+        `custom_rates_json` TEXT NULL,
+        `last_rates_sync` VARCHAR(50) NULL,
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB;

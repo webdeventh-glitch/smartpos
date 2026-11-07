@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/currency_rate_service.dart';
 
 class PaymentModal extends StatefulWidget {
   final double grandTotal;
@@ -7,6 +8,9 @@ class PaymentModal extends StatefulWidget {
   final bool isWalkIn;
   final double customerCreditLimit;
   final double customerCurrentBalance;
+  final String currencyCode;
+  final bool multiCurrencyEnabled;
+  final List<CurrencyRate> availableRates;
 
   const PaymentModal({
     super.key,
@@ -16,6 +20,9 @@ class PaymentModal extends StatefulWidget {
     this.isWalkIn = true,
     this.customerCreditLimit = 0.0,
     this.customerCurrentBalance = 0.0,
+    this.currencyCode = 'PKR',
+    this.multiCurrencyEnabled = false,
+    this.availableRates = const [],
   });
 
   @override
@@ -25,6 +32,10 @@ class PaymentModal extends StatefulWidget {
 class _PaymentModalState extends State<PaymentModal> {
   late TextEditingController _tenderedController;
   final TextEditingController _noteController = TextEditingController();
+
+  // Multi-Currency Tender State
+  CurrencyRate? _selectedRate;
+  late TextEditingController _foreignTenderedCtrl;
 
   // Split tender controllers
   final TextEditingController _splitCashController = TextEditingController();
@@ -41,6 +52,7 @@ class _PaymentModalState extends State<PaymentModal> {
     _tenderedController = TextEditingController(
       text: widget.grandTotal.toStringAsFixed(2),
     );
+    _foreignTenderedCtrl = TextEditingController();
     _splitCashController.text = (widget.grandTotal / 2).toStringAsFixed(2);
     _splitCardController.text = (widget.grandTotal / 2).toStringAsFixed(2);
   }
@@ -48,6 +60,7 @@ class _PaymentModalState extends State<PaymentModal> {
   @override
   void dispose() {
     _tenderedController.dispose();
+    _foreignTenderedCtrl.dispose();
     _noteController.dispose();
     _splitCashController.dispose();
     _splitCardController.dispose();
@@ -55,9 +68,28 @@ class _PaymentModalState extends State<PaymentModal> {
     super.dispose();
   }
 
-  double get _tendered => double.tryParse(_tenderedController.text.trim()) ?? 0.0;
+  bool get _isForeign => _selectedRate != null;
+  double get _foreignTendered => double.tryParse(_foreignTenderedCtrl.text.trim()) ?? 0.0;
+  double get _effectiveRate => _selectedRate?.effectiveRate ?? 1.0;
+  double get _foreignTotal => _selectedRate != null && _effectiveRate > 0
+      ? double.parse((widget.grandTotal / _effectiveRate).toStringAsFixed(2))
+      : widget.grandTotal;
+
+  double get _tendered {
+    if (_isForeign) {
+      return double.parse((_foreignTendered * _effectiveRate).toStringAsFixed(2));
+    }
+    return double.tryParse(_tenderedController.text.trim()) ?? 0.0;
+  }
+
   double get _changeReturn => _tendered > widget.grandTotal ? _tendered - widget.grandTotal : 0.0;
+  double get _foreignChangeReturn => (_isForeign && _effectiveRate > 0)
+      ? double.parse((_changeReturn / _effectiveRate).toStringAsFixed(2))
+      : 0.0;
   double get _balanceDue => _tendered < widget.grandTotal ? widget.grandTotal - _tendered : 0.0;
+  double get _foreignBalanceDue => (_isForeign && _effectiveRate > 0)
+      ? double.parse((_balanceDue / _effectiveRate).toStringAsFixed(2))
+      : 0.0;
 
   // Split calculation getters
   double get _splitCash => double.tryParse(_splitCashController.text.trim()) ?? 0.0;
@@ -66,6 +98,33 @@ class _PaymentModalState extends State<PaymentModal> {
   double get _splitTotalPaid => _splitCash + _splitCard + _splitBank;
   double get _splitBalanceDue => _splitTotalPaid < widget.grandTotal ? widget.grandTotal - _splitTotalPaid : 0.0;
   double get _splitChangeReturn => _splitTotalPaid > widget.grandTotal ? _splitTotalPaid - widget.grandTotal : 0.0;
+
+  void _selectTenderCurrency(CurrencyRate? rate) {
+    setState(() {
+      _selectedRate = rate;
+      _validationError = null;
+      if (rate == null) {
+        _tenderedController.text = widget.grandTotal.toStringAsFixed(2);
+      } else {
+        final fDue = CurrencyRateService.calculateForeignAmount(
+          baseAmount: widget.grandTotal,
+          effectiveRate: rate.effectiveRate,
+        );
+        _foreignTenderedCtrl.text = fDue.toStringAsFixed(2);
+        _tenderedController.text = (fDue * rate.effectiveRate).toStringAsFixed(2);
+      }
+    });
+  }
+
+  void _setForeignTendered(double amount) {
+    if (_selectedRate == null) return;
+    setState(() {
+      _foreignTenderedCtrl.text = amount.toStringAsFixed(2);
+      final baseEquiv = amount * _selectedRate!.effectiveRate;
+      _tenderedController.text = baseEquiv.toStringAsFixed(2);
+      _validationError = null;
+    });
+  }
 
   void _setTendered(double amount) {
     setState(() {
@@ -167,6 +226,12 @@ class _PaymentModalState extends State<PaymentModal> {
       }
     }
 
+    final isForeign = _isForeign;
+    final rate = _effectiveRate;
+    final foreignTenderedVal = isForeign ? _foreignTendered : 0.0;
+    final foreignChangeVal = isForeign ? _foreignChangeReturn : 0.0;
+    final tenderCode = isForeign ? _selectedRate!.code : widget.currencyCode;
+
     Navigator.of(context).pop({
       'isSplit': false,
       'method': _selectedMethod,
@@ -174,10 +239,16 @@ class _PaymentModalState extends State<PaymentModal> {
       'change': _changeReturn,
       'paidAmount': paid,
       'paymentStatus': paymentStatus,
+      'tenderCurrency': tenderCode,
+      'foreignTendered': foreignTenderedVal,
+      'foreignChange': foreignChangeVal,
+      'exchangeRate': rate,
       'splitTenders': [
         if (paid > 0) {'method': _selectedMethod, 'amount': paid},
       ],
-      'note': _noteController.text.trim(),
+      'note': isForeign
+          ? 'Foreign Currency Tender: $tenderCode (${_selectedRate!.symbol}$foreignTenderedVal @ ${rate.toStringAsFixed(2)} = ${widget.currencySymbol}${_tendered.toStringAsFixed(2)}). Change: ${widget.currencySymbol}${_changeReturn.toStringAsFixed(2)} (${_selectedRate!.symbol}${foreignChangeVal.toStringAsFixed(2)})'
+          : _noteController.text.trim(),
     });
   }
 
@@ -300,51 +371,54 @@ class _PaymentModalState extends State<PaymentModal> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Payment & Checkout',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: widget.isWalkIn
-                                    ? Colors.amber.withValues(alpha: 0.15)
-                                    : Colors.blue.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: widget.isWalkIn
-                                      ? Colors.amber.withValues(alpha: 0.5)
-                                      : Colors.blue.withValues(alpha: 0.5),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              Text(
+                                'Payment & Checkout',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
                                 ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    widget.isWalkIn ? Icons.person_outline : Icons.verified_user_outlined,
-                                    size: 13,
-                                    color: widget.isWalkIn ? Colors.amber[700] : Colors.blue[600],
+                              const SizedBox(width: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: widget.isWalkIn
+                                      ? Colors.amber.withValues(alpha: 0.15)
+                                      : Colors.blue.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: widget.isWalkIn
+                                        ? Colors.amber.withValues(alpha: 0.5)
+                                        : Colors.blue.withValues(alpha: 0.5),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    widget.isWalkIn ? 'Walk-in (100% Upfront)' : 'Registered Account',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      widget.isWalkIn ? Icons.person_outline : Icons.verified_user_outlined,
+                                      size: 13,
                                       color: widget.isWalkIn ? Colors.amber[700] : Colors.blue[600],
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      widget.isWalkIn ? 'Walk-in (100% Upfront)' : 'Registered Account',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: widget.isWalkIn ? Colors.amber[700] : Colors.blue[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -383,27 +457,29 @@ class _PaymentModalState extends State<PaymentModal> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'TOTAL PAYABLE AMOUNT',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF),
-                            fontSize: 12,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        if (widget.isWalkIn)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            'Must be paid in full (No credit)',
+                            'TOTAL PAYABLE AMOUNT',
                             style: TextStyle(
-                              fontSize: 11,
-                              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF),
+                              fontSize: 12,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                      ],
+                          if (widget.isWalkIn)
+                            Text(
+                              'Must be paid in full (No credit)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                     Text(
                       '$currency${widget.grandTotal.toStringAsFixed(2)}',
@@ -491,18 +567,21 @@ class _PaymentModalState extends State<PaymentModal> {
                                   color: widget.isWalkIn ? Colors.grey : null,
                                 ),
                                 const SizedBox(width: 6),
-                                Text(
-                                  widget.isWalkIn
-                                      ? 'Split Tender (Account Only)'
-                                      : 'Split Tender (Cash + Card/Bank)',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    color: widget.isWalkIn
-                                        ? Colors.grey
-                                        : (_isSplitMode
-                                            ? (isDark ? Colors.white : const Color(0xFF1E293B))
-                                            : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                                Flexible(
+                                  child: Text(
+                                    widget.isWalkIn
+                                        ? 'Split Tender (Account Only)'
+                                        : 'Split Tender (Cash + Card/Bank)',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: widget.isWalkIn
+                                          ? Colors.grey
+                                          : (_isSplitMode
+                                              ? (isDark ? Colors.white : const Color(0xFF1E293B))
+                                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -570,54 +649,243 @@ class _PaymentModalState extends State<PaymentModal> {
                 const SizedBox(height: 16),
 
                 if (_selectedMethod != 'credit') ...[
-                  Text(
-                    'AMOUNT TENDERED / RECEIVED',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                      letterSpacing: 0.8,
+                  // Multi-Currency Tender Selector (If enabled)
+                  if (widget.multiCurrencyEnabled && widget.availableRates.isNotEmpty) ...[
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.currency_exchange_rounded, size: 14, color: Color(0xFF16A34A)),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'PAYMENT CURRENCY (ادائیگی کی کرنسی)',
+                                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                              ),
+                            ],
+                          ),
+                          if (_selectedRate != null) ...[
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF16A34A).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'Rate: 1 ${_selectedRate!.code} = ${widget.currencySymbol}${_effectiveRate.toStringAsFixed(2)}',
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _tenderedController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => setState(() => _validationError = null),
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    const SizedBox(height: 6),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          ChoiceChip(
+                            avatar: const Icon(Icons.home_outlined, size: 13),
+                            label: Text(
+                              '${widget.currencyCode} (${widget.currencySymbol})',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                            selected: _selectedRate == null,
+                            selectedColor: const Color(0xFF4F46E5).withValues(alpha: 0.2),
+                            onSelected: (_) => _selectTenderCurrency(null),
+                          ),
+                          const SizedBox(width: 6),
+                          ...widget.availableRates.where((r) => r.isEnabled).map((rate) {
+                            final isSel = _selectedRate?.code == rate.code;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ChoiceChip(
+                                label: Text(
+                                  '${rate.symbol} ${rate.code} (@ ${rate.effectiveRate.toStringAsFixed(1)})',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSel ? const Color(0xFF047857) : null,
+                                  ),
+                                ),
+                                selected: isSel,
+                                selectedColor: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                onSelected: (_) => _selectTenderCurrency(rate),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
                     ),
-                    decoration: InputDecoration(
-                      prefixText: '$currency ',
-                      prefixStyle: TextStyle(
+                    const SizedBox(height: 12),
+                  ],
+
+                  if (_isForeign) ...[
+                    // Foreign Currency Tender Input Panel
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.2) : const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: isDark ? const Color(0xFF065F46) : const Color(0xFF86EFAC)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'TOTAL IN ${_selectedRate!.code}:',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF166534),
+                                ),
+                              ),
+                              Text(
+                                '${_selectedRate!.symbol}${_foreignTotal.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF166534),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'FOREIGN CASH TENDERED (${_selectedRate!.name})',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _foreignTenderedCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            onChanged: (val) {
+                              final f = double.tryParse(val.trim()) ?? 0.0;
+                              setState(() {
+                                _tenderedController.text = (f * _effectiveRate).toStringAsFixed(2);
+                                _validationError = null;
+                              });
+                            },
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
+                            decoration: InputDecoration(
+                              prefixText: '${_selectedRate!.symbol} ',
+                              prefixStyle: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              ),
+                              filled: true,
+                              fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: isDark ? const Color(0xFF065F46) : const Color(0xFF86EFAC)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              _quickCashBtn('Exact (${_selectedRate!.symbol}${_foreignTotal.toStringAsFixed(2)})', () => _setForeignTendered(_foreignTotal), isDark),
+                              _quickCashBtn('${_selectedRate!.symbol} 10', () => _setForeignTendered(10), isDark),
+                              _quickCashBtn('${_selectedRate!.symbol} 20', () => _setForeignTendered(20), isDark),
+                              _quickCashBtn('${_selectedRate!.symbol} 50', () => _setForeignTendered(50), isDark),
+                              _quickCashBtn('${_selectedRate!.symbol} 100', () => _setForeignTendered(100), isDark),
+                              _quickCashBtn('${_selectedRate!.symbol} 500', () => _setForeignTendered(500), isDark),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Base Currency Equivalent:',
+                                  style: TextStyle(fontSize: 10.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                ),
+                                Text(
+                                  '${widget.currencySymbol}${_tendered.toStringAsFixed(2)}',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    // Standard Base Currency Input
+                    Text(
+                      'AMOUNT TENDERED / RECEIVED',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _tenderedController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      onChanged: (_) => setState(() => _validationError = null),
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: isDark ? Colors.white : const Color(0xFF0F172A),
                       ),
-                      filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                      decoration: InputDecoration(
+                        prefixText: '$currency ',
+                        prefixStyle: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 8),
 
-                  Wrap(
-                    children: [
-                      _quickCashBtn('Exact', () => _setTendered(widget.grandTotal), isDark),
-                      _quickCashBtn('$currency 100', () => _setTendered(100), isDark),
-                      _quickCashBtn('$currency 500', () => _setTendered(500), isDark),
-                      _quickCashBtn('$currency 1,000', () => _setTendered(1000), isDark),
-                      _quickCashBtn('$currency 5,000', () => _setTendered(5000), isDark),
-                      _quickCashBtn('+ $currency 500', () => _addTendered(500), isDark),
-                      _quickCashBtn('+ $currency 1,000', () => _addTendered(1000), isDark),
-                    ],
-                  ),
+                    Wrap(
+                      children: [
+                        _quickCashBtn('Exact', () => _setTendered(widget.grandTotal), isDark),
+                        _quickCashBtn('$currency 100', () => _setTendered(100), isDark),
+                        _quickCashBtn('$currency 500', () => _setTendered(500), isDark),
+                        _quickCashBtn('$currency 1,000', () => _setTendered(1000), isDark),
+                        _quickCashBtn('$currency 5,000', () => _setTendered(5000), isDark),
+                        _quickCashBtn('+ $currency 500', () => _addTendered(500), isDark),
+                        _quickCashBtn('+ $currency 1,000', () => _addTendered(1000), isDark),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 12),
 
                   Row(
@@ -652,6 +920,15 @@ class _PaymentModalState extends State<PaymentModal> {
                                   color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF03543F),
                                 ),
                               ),
+                              if (_isForeign && _changeReturn > 0)
+                                Text(
+                                  'or ${_selectedRate!.symbol}${_foreignChangeReturn.toStringAsFixed(2)} ${_selectedRate!.code}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? const Color(0xFFA7F3D0) : const Color(0xFF047857),
+                                  ),
+                                ),
                             ],
                           ),
                         ),

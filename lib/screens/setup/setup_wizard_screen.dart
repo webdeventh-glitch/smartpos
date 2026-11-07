@@ -7,6 +7,7 @@ import '../../services/auth_service.dart';
 import '../../services/qulop_service.dart';
 import '../../services/mysql_service.dart';
 import '../../services/regional_data_service.dart';
+import '../../services/currency_rate_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class SetupWizardScreen extends StatefulWidget {
@@ -519,6 +520,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         timeZone: _timeZone,
         logoPath: _logoPath ?? '',
         isConfigured: true,
+        multiCurrencyEnabled: true,
+        exchangeRatesJson: CurrencyRateService.encodeRatesJson(
+          CurrencyRateService.defaultRatesForBase(_currencyCodeCtrl.text.trim().isNotEmpty ? _currencyCodeCtrl.text.trim() : 'PKR'),
+        ),
       );
 
       setState(() => _seedStatus = 'Writing system configuration and hardware profile...');
@@ -1383,6 +1388,93 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           ],
         ),
         const SizedBox(height: 16),
+
+        // Quick Currency Presets for Fast Regional Onboarding
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ActionChip(
+              avatar: const FaIcon(FontAwesomeIcons.coins, size: 11, color: Color(0xFF4F46E5)),
+              label: const Text('Pakistani Rupee (PKR / Rs)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'PKR' ? const Color(0xFFEEF2FF) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+              side: BorderSide(color: _currencyCodeCtrl.text == 'PKR' ? const Color(0xFF4F46E5) : Colors.transparent),
+              onPressed: () {
+                setState(() {
+                  _currencySymCtrl.text = 'Rs';
+                  _currencyCodeCtrl.text = 'PKR';
+                  _selectedCurrency = RegionalDataService.findCurrency('PKR');
+                });
+              },
+            ),
+            ActionChip(
+              avatar: const FaIcon(FontAwesomeIcons.coins, size: 11, color: Color(0xFFD97706)),
+              label: const Text('Saudi Riyal (SAR)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'SAR' ? const Color(0xFFFEF3C7) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+              side: BorderSide(color: _currencyCodeCtrl.text == 'SAR' ? const Color(0xFFD97706) : Colors.transparent),
+              onPressed: () {
+                setState(() {
+                  _currencySymCtrl.text = 'SAR';
+                  _currencyCodeCtrl.text = 'SAR';
+                  _selectedCurrency = RegionalDataService.findCurrency('SAR');
+                });
+              },
+            ),
+            ActionChip(
+              avatar: const FaIcon(FontAwesomeIcons.coins, size: 11, color: Color(0xFF0284C7)),
+              label: const Text('UAE Dirham (AED)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'AED' ? const Color(0xFFE0F2FE) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+              side: BorderSide(color: _currencyCodeCtrl.text == 'AED' ? const Color(0xFF0284C7) : Colors.transparent),
+              onPressed: () {
+                setState(() {
+                  _currencySymCtrl.text = 'AED';
+                  _currencyCodeCtrl.text = 'AED';
+                  _selectedCurrency = RegionalDataService.findCurrency('AED');
+                });
+              },
+            ),
+            ActionChip(
+              avatar: const FaIcon(FontAwesomeIcons.dollarSign, size: 11, color: Color(0xFF10B981)),
+              label: const Text('US Dollar (USD / \$)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'USD' ? const Color(0xFFD1FAE5) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+              side: BorderSide(color: _currencyCodeCtrl.text == 'USD' ? const Color(0xFF10B981) : Colors.transparent),
+              onPressed: () {
+                setState(() {
+                  _currencySymCtrl.text = '\$';
+                  _currencyCodeCtrl.text = 'USD';
+                  _selectedCurrency = RegionalDataService.findCurrency('USD');
+                });
+              },
+            ),
+            ActionChip(
+              avatar: const FaIcon(FontAwesomeIcons.sterlingSign, size: 11, color: Color(0xFF7C3AED)),
+              label: const Text('British Pound (GBP / £)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'GBP' ? const Color(0xFFEDE9FE) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+              side: BorderSide(color: _currencyCodeCtrl.text == 'GBP' ? const Color(0xFF7C3AED) : Colors.transparent),
+              onPressed: () {
+                setState(() {
+                  _currencySymCtrl.text = '£';
+                  _currencyCodeCtrl.text = 'GBP';
+                  _selectedCurrency = RegionalDataService.findCurrency('GBP');
+                });
+              },
+            ),
+            ActionChip(
+              avatar: const FaIcon(FontAwesomeIcons.euroSign, size: 11, color: Color(0xFF0D9488)),
+              label: const Text('Euro (EUR / €)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'EUR' ? const Color(0xFFCCFBF1) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+              side: BorderSide(color: _currencyCodeCtrl.text == 'EUR' ? const Color(0xFF0D9488) : Colors.transparent),
+              onPressed: () {
+                setState(() {
+                  _currencySymCtrl.text = '€';
+                  _currencyCodeCtrl.text = 'EUR';
+                  _selectedCurrency = RegionalDataService.findCurrency('EUR');
+                });
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
 
         // Searchable Currency and Searchable Time Zone
         Row(

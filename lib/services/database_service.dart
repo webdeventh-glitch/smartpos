@@ -891,6 +891,10 @@ class DatabaseService {
     try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_tax_breakdown_on_receipt INTEGER DEFAULT 1"); } catch (_) {}
     try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_cashier_name_on_receipt INTEGER DEFAULT 1"); } catch (_) {}
     try { await db.execute("ALTER TABLE business_settings ADD COLUMN invoice_print_copies INTEGER DEFAULT 1"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN multi_currency_enabled INTEGER DEFAULT 1"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN exchange_rates_json TEXT DEFAULT ''"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN custom_rates_json TEXT DEFAULT ''"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN last_rates_sync TEXT DEFAULT ''"); } catch (_) {}
     try { await db.execute("UPDATE business_settings SET sync_branch_id = 1 WHERE sync_branch_id IS NULL OR sync_branch_id = ''"); } catch (_) {}
     try { await db.execute("ALTER TABLE sales ADD COLUMN sale_type TEXT DEFAULT 'final'"); } catch (_) {}
     try { await db.execute("ALTER TABLE sales ADD COLUMN project_name TEXT"); } catch (_) {}
@@ -1285,7 +1289,11 @@ class DatabaseService {
         show_customer_balance_on_receipt INTEGER DEFAULT 1,
         show_tax_breakdown_on_receipt INTEGER DEFAULT 1,
         show_cashier_name_on_receipt INTEGER DEFAULT 1,
-        invoice_print_copies INTEGER DEFAULT 1
+        invoice_print_copies INTEGER DEFAULT 1,
+        multi_currency_enabled INTEGER DEFAULT 1,
+        exchange_rates_json TEXT DEFAULT '',
+        custom_rates_json TEXT DEFAULT '',
+        last_rates_sync TEXT DEFAULT ''
       )
     ''');
 

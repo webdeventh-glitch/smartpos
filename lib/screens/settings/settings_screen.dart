@@ -10,6 +10,7 @@ import '../../services/backup_update_service.dart';
 import '../../services/local_api_service.dart';
 import '../../services/mysql_service.dart';
 import '../../services/regional_data_service.dart';
+import '../../services/currency_rate_service.dart';
 import '../../services/print_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -115,6 +116,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   bool _showCashierNameOnReceipt = true;
   bool _isSavingReceiptSettings = false;
 
+  // Multi-Currency & Live Exchange Rates State
+  bool _multiCurrencyEnabled = true;
+  List<CurrencyRate> _ratesList = [];
+  bool _isSyncingRates = false;
+  String _lastRatesSync = '';
+  CurrencyInfo? _selectedCurrencyInfo;
+
   @override
   void initState() {
     super.initState();
@@ -176,6 +184,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _showCustomerBalanceOnReceipt = s.showCustomerBalanceOnReceipt;
     _showTaxBreakdownOnReceipt = s.showTaxBreakdownOnReceipt;
     _showCashierNameOnReceipt = s.showCashierNameOnReceipt;
+
+    _multiCurrencyEnabled = s.multiCurrencyEnabled;
+    _lastRatesSync = s.lastRatesSync;
+    _ratesList = CurrencyRateService.parseRatesJson(s.exchangeRatesJson, s.currencyCode);
+    _selectedCurrencyInfo = RegionalDataService.findCurrency(s.currencyCode) ??
+        RegionalDataService.findCurrency('PKR');
 
     _initLicenseInfo();
     _loadSubData();
@@ -994,6 +1008,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         startDate: _startDateCtrl.text.trim(),
         logoPath: _logoPath ?? '',
         isConfigured: true,
+        multiCurrencyEnabled: _multiCurrencyEnabled,
+        exchangeRatesJson: CurrencyRateService.encodeRatesJson(_ratesList),
+        lastRatesSync: _lastRatesSync,
       );
 
       final db = await DatabaseService.initialize();
@@ -1016,6 +1033,58 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _syncLiveRates() async {
+    setState(() => _isSyncingRates = true);
+    try {
+      final base = _currencyCodeCtrl.text.trim().isNotEmpty ? _currencyCodeCtrl.text.trim() : 'PKR';
+      final result = await CurrencyRateService.fetchLiveRates(
+        baseCurrency: base,
+        existingRates: _ratesList,
+      );
+      if (mounted) {
+        if (result.success) {
+          setState(() {
+            _ratesList = result.rates;
+            _lastRatesSync = result.timestamp;
+          });
+          // Also persist immediately
+          final updated = widget.settings.copyWith(
+            exchangeRatesJson: CurrencyRateService.encodeRatesJson(_ratesList),
+            lastRatesSync: _lastRatesSync,
+          );
+          final db = await DatabaseService.initialize();
+          await db.updateBusinessSettings(updated);
+          widget.onSettingsUpdated(updated);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Text('لائیو ایکسچینج ریٹس کامیابی سے اپ ڈیٹ ہو گئے! (${result.rates.length} currencies synced)'),
+                ],
+              ),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result.message), backgroundColor: Colors.orange),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ایکسچینج ریٹس حاصل کرنے میں خرابی: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSyncingRates = false);
     }
   }
 
@@ -2093,184 +2162,420 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ],
                     const SizedBox(height: 16),
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Currency & Standard Tax', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => CurrencySearchDialog(
-                                initialCode: _currencyCodeCtrl.text,
-                                onSelected: (info) {
+                    // 1. Official Base Currency Selector Card
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const FaIcon(FontAwesomeIcons.coins, color: Color(0xFF4F46E5), size: 16),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Official Business Base Currency (بنیادی دفتری کرنسی)',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                      ),
+                                      Text(
+                                        'تمام دفتری کھاتے، اسٹاک انوینٹری، اور منافع/نقصان رپورٹس اس بنیادی کرنسی میں محفوظ ہوں گی',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => CurrencySearchDialog(
+                                      initialCode: _currencyCodeCtrl.text,
+                                      onSelected: (info) {
+                                        setState(() {
+                                          _selectedCurrencyInfo = info;
+                                          _currencySymCtrl.text = info.symbol;
+                                          _currencyCodeCtrl.text = info.code;
+                                          _ratesList = CurrencyRateService.defaultRatesForBase(info.code);
+                                        });
+                                      },
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.search_rounded, size: 16),
+                                label: const Text('Search 140+ Currencies (کرنسی تلاش کریں)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4F46E5),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Clickable Current Currency Banner
+                          InkWell(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => CurrencySearchDialog(
+                                  initialCode: _currencyCodeCtrl.text,
+                                  onSelected: (info) {
+                                    setState(() {
+                                      _selectedCurrencyInfo = info;
+                                      _currencySymCtrl.text = info.symbol;
+                                      _currencyCodeCtrl.text = info.code;
+                                      _ratesList = CurrencyRateService.defaultRatesForBase(info.code);
+                                    });
+                                  },
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.4), width: 1.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4F46E5),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      _currencyCodeCtrl.text.isNotEmpty ? _currencyCodeCtrl.text : 'PKR',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _selectedCurrencyInfo != null
+                                              ? '${_selectedCurrencyInfo!.name} (${_selectedCurrencyInfo!.country})'
+                                              : 'Pakistani Rupee (Pakistan)',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                        Text(
+                                          'Symbol: ${_currencySymCtrl.text.isNotEmpty ? _currencySymCtrl.text : "Rs"}  •  کلک کر کے دنیا بھر کی کرنسیاں تلاش کریں',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_drop_down_circle_outlined, color: Color(0xFF4F46E5)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Quick Regional Presets
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              ActionChip(
+                                avatar: const FaIcon(FontAwesomeIcons.coins, size: 11, color: Color(0xFF4F46E5)),
+                                label: const Text('Pakistani Rupee (Rs / PKR)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                backgroundColor: _currencyCodeCtrl.text == 'PKR' ? const Color(0xFFEEF2FF) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                                side: BorderSide(color: _currencyCodeCtrl.text == 'PKR' ? const Color(0xFF4F46E5) : Colors.transparent),
+                                onPressed: () {
                                   setState(() {
-                                    _currencySymCtrl.text = info.symbol;
-                                    _currencyCodeCtrl.text = info.code;
+                                    _currencySymCtrl.text = 'Rs';
+                                    _currencyCodeCtrl.text = 'PKR';
+                                    _selectedCurrencyInfo = RegionalDataService.findCurrency('PKR');
+                                    _ratesList = CurrencyRateService.defaultRatesForBase('PKR');
                                   });
                                 },
                               ),
-                            );
-                          },
-                          icon: const Icon(Icons.search, size: 16),
-                          label: const Text('Search 130+ Currencies', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4F46E5),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            visualDensity: VisualDensity.compact,
+                              ActionChip(
+                                avatar: const FaIcon(FontAwesomeIcons.coins, size: 11, color: Color(0xFFD97706)),
+                                label: const Text('Saudi Riyal (SAR)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                backgroundColor: _currencyCodeCtrl.text == 'SAR' ? const Color(0xFFFEF3C7) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                                side: BorderSide(color: _currencyCodeCtrl.text == 'SAR' ? const Color(0xFFD97706) : Colors.transparent),
+                                onPressed: () {
+                                  setState(() {
+                                    _currencySymCtrl.text = 'SAR';
+                                    _currencyCodeCtrl.text = 'SAR';
+                                    _selectedCurrencyInfo = RegionalDataService.findCurrency('SAR');
+                                    _ratesList = CurrencyRateService.defaultRatesForBase('SAR');
+                                  });
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const FaIcon(FontAwesomeIcons.coins, size: 11, color: Color(0xFF0284C7)),
+                                label: const Text('UAE Dirham (AED)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                backgroundColor: _currencyCodeCtrl.text == 'AED' ? const Color(0xFFE0F2FE) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                                side: BorderSide(color: _currencyCodeCtrl.text == 'AED' ? const Color(0xFF0284C7) : Colors.transparent),
+                                onPressed: () {
+                                  setState(() {
+                                    _currencySymCtrl.text = 'AED';
+                                    _currencyCodeCtrl.text = 'AED';
+                                    _selectedCurrencyInfo = RegionalDataService.findCurrency('AED');
+                                    _ratesList = CurrencyRateService.defaultRatesForBase('AED');
+                                  });
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const FaIcon(FontAwesomeIcons.dollarSign, size: 11, color: Color(0xFF10B981)),
+                                label: const Text('US Dollar (\$ / USD)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                backgroundColor: _currencyCodeCtrl.text == 'USD' ? const Color(0xFFD1FAE5) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                                side: BorderSide(color: _currencyCodeCtrl.text == 'USD' ? const Color(0xFF10B981) : Colors.transparent),
+                                onPressed: () {
+                                  setState(() {
+                                    _currencySymCtrl.text = '\$';
+                                    _currencyCodeCtrl.text = 'USD';
+                                    _selectedCurrencyInfo = RegionalDataService.findCurrency('USD');
+                                    _ratesList = CurrencyRateService.defaultRatesForBase('USD');
+                                  });
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const FaIcon(FontAwesomeIcons.sterlingSign, size: 11, color: Color(0xFF7C3AED)),
+                                label: const Text('British Pound (£ / GBP)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                backgroundColor: _currencyCodeCtrl.text == 'GBP' ? const Color(0xFFEDE9FE) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                                side: BorderSide(color: _currencyCodeCtrl.text == 'GBP' ? const Color(0xFF7C3AED) : Colors.transparent),
+                                onPressed: () {
+                                  setState(() {
+                                    _currencySymCtrl.text = '£';
+                                    _currencyCodeCtrl.text = 'GBP';
+                                    _selectedCurrencyInfo = RegionalDataService.findCurrency('GBP');
+                                    _ratesList = CurrencyRateService.defaultRatesForBase('GBP');
+                                  });
+                                },
+                              ),
+                              ActionChip(
+                                avatar: const FaIcon(FontAwesomeIcons.euroSign, size: 11, color: Color(0xFF0D9488)),
+                                label: const Text('Euro (€ / EUR)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                backgroundColor: _currencyCodeCtrl.text == 'EUR' ? const Color(0xFFCCFBF1) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                                side: BorderSide(color: _currencyCodeCtrl.text == 'EUR' ? const Color(0xFF0D9488) : Colors.transparent),
+                                onPressed: () {
+                                  setState(() {
+                                    _currencySymCtrl.text = '€';
+                                    _currencyCodeCtrl.text = 'EUR';
+                                    _selectedCurrencyInfo = RegionalDataService.findCurrency('EUR');
+                                    _ratesList = CurrencyRateService.defaultRatesForBase('EUR');
+                                  });
+                                },
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _currencySymCtrl,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Currency Symbol * (e.g. Rs, \$, PKR, €)',
+                                    isDense: true,
+                                    prefixIcon: Icon(Icons.currency_exchange, size: 18),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _currencyCodeCtrl,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Currency Code (PKR, USD, EUR, SAR)',
+                                    isDense: true,
+                                    prefixIcon: Icon(Icons.flag_outlined, size: 18),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _taxCtrl,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Default Tax Rate (%)',
+                                    isDense: true,
+                                    prefixIcon: Icon(Icons.percent_rounded, size: 18),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    // Quick Currency Presets
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ActionChip(
-                          avatar: const FaIcon(FontAwesomeIcons.coins, size: 12, color: Color(0xFF4F46E5)),
-                          label: const Text('Pakistani Rupee (Rs / PKR)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          onPressed: () {
-                            setState(() {
-                              _currencySymCtrl.text = 'Rs';
-                              _currencyCodeCtrl.text = 'PKR';
-                            });
-                          },
-                        ),
-                        ActionChip(
-                          avatar: const FaIcon(FontAwesomeIcons.dollarSign, size: 12, color: Color(0xFF10B981)),
-                          label: const Text('US Dollar (\$ / USD)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          onPressed: () {
-                            setState(() {
-                              _currencySymCtrl.text = '\$';
-                              _currencyCodeCtrl.text = 'USD';
-                            });
-                          },
-                        ),
-                        ActionChip(
-                          avatar: const FaIcon(FontAwesomeIcons.coins, size: 12, color: Color(0xFFD97706)),
-                          label: const Text('Saudi Riyal (SAR)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          onPressed: () {
-                            setState(() {
-                              _currencySymCtrl.text = 'SAR';
-                              _currencyCodeCtrl.text = 'SAR';
-                            });
-                          },
-                        ),
-                        ActionChip(
-                          avatar: const FaIcon(FontAwesomeIcons.coins, size: 12, color: Color(0xFF0284C7)),
-                          label: const Text('UAE Dirham (AED)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          onPressed: () {
-                            setState(() {
-                              _currencySymCtrl.text = 'AED';
-                              _currencyCodeCtrl.text = 'AED';
-                            });
-                          },
-                        ),
-                        ActionChip(
-                          avatar: const FaIcon(FontAwesomeIcons.sterlingSign, size: 12, color: Color(0xFF7C3AED)),
-                          label: const Text('British Pound (£ / GBP)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          onPressed: () {
-                            setState(() {
-                              _currencySymCtrl.text = '£';
-                              _currencyCodeCtrl.text = 'GBP';
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _currencySymCtrl,
-                            decoration: const InputDecoration(labelText: 'Currency Symbol * (e.g. Rs, \$, PKR, €)', isDense: true),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _currencyCodeCtrl,
-                            decoration: const InputDecoration(labelText: 'Currency Code (PKR, USD, EUR, SAR)', isDense: true),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _taxCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(labelText: 'Default Tax Rate (%)', isDense: true),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
 
-                    // Multi-Currency & Dual Tender Information Banner
+                    // 2. Multi-Currency Counter Sales & Free Live API Engine Section
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFBBF7D0)),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFF86EFAC)),
                       ),
-                      child: Row(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(7),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF16A34A).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.currency_exchange, color: Color(0xFF16A34A), size: 20),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      'Multi-Currency System (Dual Tender Ready)',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark ? Colors.white : const Color(0xFF166534),
-                                      ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF16A34A).withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF16A34A).withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.circular(4),
+                                    child: const Icon(Icons.currency_exchange_rounded, color: Color(0xFF16A34A), size: 22),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Text(
+                                            'Multi-Currency Sales & Live Exchange Rates (ملٹی کرنسی سیلز)',
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF16A34A).withValues(alpha: 0.2),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: const Text('FREE API • 0 COST', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
+                                          ),
+                                        ],
                                       ),
-                                      child: const Text('ACTIVE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
+                                      Text(
+                                        'اگر کسٹمر کاؤنٹر پر ڈالر، ریال یا درہم دیتا ہے تو خودکار ریٹ کے ساتھ رقم کنورٹ ہو گی',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF15803D),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    _multiCurrencyEnabled ? 'فعال (Active)' : 'غیر فعال (Disabled)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: _multiCurrencyEnabled ? const Color(0xFF16A34A) : Colors.grey,
+                                    ),
+                                  ),
+                                  Switch(
+                                    value: _multiCurrencyEnabled,
+                                    activeColor: const Color(0xFF16A34A),
+                                    onChanged: (val) => setState(() => _multiCurrencyEnabled = val),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          if (_multiCurrencyEnabled) ...[
+                            const SizedBox(height: 12),
+                            const Divider(height: 1),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Foreign Currency Exchange Rates Table', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                    Text(
+                                      _lastRatesSync.isNotEmpty
+                                          ? 'آخری بار اپ ڈیٹ ہوا: ${_lastRatesSync.split("T").first}'
+                                          : 'ابھی تک لائیو سنک نہیں ہوا (آف لائن بیس لائن ریٹس فعال ہیں)',
+                                      style: TextStyle(fontSize: 10.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Aapka official Ledger & Accounting Currency "${_currencyCodeCtrl.text}" (${_currencySymCtrl.text}) par set hai. International ya border trade mein secondary foreign currencies (USD, SAR, AED, EUR, GBP) POS cash counter par automatic live conversion ke sath receive ki ja sakti hain jabke stock valuation aur tax audit local base currency mein mehfooz rehta hai.',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF15803D),
-                                    height: 1.4,
+                                ElevatedButton.icon(
+                                  onPressed: _isSyncingRates ? null : _syncLiveRates,
+                                  icon: _isSyncingRates
+                                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                      : const Icon(Icons.sync_rounded, size: 16),
+                                  label: Text(
+                                    _isSyncingRates ? 'Syncing...' : 'Sync Live Rates Now (مفت لائیو ریٹس حاصل کریں)',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF16A34A),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
+                            const SizedBox(height: 12),
+                            // Rate rows
+                            ..._ratesList.map((rate) => _buildCurrencyRateRow(rate, isDark)),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.info_outline, size: 16, color: Color(0xFF4F46E5)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'آپ کا آفیشل لیجر، اسٹاک ویلیوایشن، اور پرافٹ اینڈ لاس ہمیشہ آپ کی بنیادی کرنسی (${_currencyCodeCtrl.text}) میں محفوظ رہے گا۔ اگر گاہک ڈالر (USD) یا ریال (SAR) میں ادائیگی کرے تو کاؤنٹر پر خودکار ریٹ کے ساتھ رقم کنورٹ ہو جائے گی اور بقایا لوکل کرنسی میں لوٹایا جا سکتا ہے۔',
+                                      style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155), height: 1.3),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -5106,6 +5411,161 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         children: [
           Text(label, style: TextStyle(fontFamily: 'monospace', fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal, color: Colors.black)),
           Text(value, style: TextStyle(fontFamily: 'monospace', fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal, color: Colors.black)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrencyRateRow(CurrencyRate rate, bool isDark) {
+    final baseCode = _currencyCodeCtrl.text.isNotEmpty ? _currencyCodeCtrl.text : 'PKR';
+    final effective = rate.effectiveRate;
+    final isCustom = rate.customRate != null && rate.customRate! > 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: rate.isEnabled
+              ? (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))
+              : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Currency Badge
+          Container(
+            width: 72,
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+            decoration: BoxDecoration(
+              color: rate.isEnabled
+                  ? const Color(0xFF4F46E5).withValues(alpha: 0.12)
+                  : Colors.grey.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${rate.symbol} ${rate.code}',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                color: rate.isEnabled ? const Color(0xFF4F46E5) : Colors.grey,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Name & Country
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  rate.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: rate.isEnabled ? null : Colors.grey,
+                  ),
+                ),
+                Text(
+                  rate.country,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Live API Rate Info
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: const Text('API LIVE', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '1 ${rate.code} = $baseCode ${rate.liveRate.toStringAsFixed(2)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Counter Rate: 1 ${rate.code} = $baseCode ${effective.toStringAsFixed(2)} ${isCustom ? "(Custom)" : ""}',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: isCustom ? FontWeight.bold : FontWeight.normal,
+                    color: isCustom ? const Color(0xFFD97706) : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Custom Rate Input
+          SizedBox(
+            width: 130,
+            child: TextFormField(
+              initialValue: rate.customRate != null ? rate.customRate!.toStringAsFixed(2) : '',
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Merchant Rate',
+                hintText: rate.liveRate.toStringAsFixed(2),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                suffixIcon: rate.customRate != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 14),
+                        onPressed: () {
+                          setState(() {
+                            final idx = _ratesList.indexWhere((r) => r.code == rate.code);
+                            if (idx != -1) {
+                              _ratesList[idx] = _ratesList[idx].copyWith(customRate: null);
+                            }
+                          });
+                        },
+                      )
+                    : null,
+              ),
+              onChanged: (val) {
+                final parsed = double.tryParse(val.trim());
+                final idx = _ratesList.indexWhere((r) => r.code == rate.code);
+                if (idx != -1) {
+                  _ratesList[idx] = _ratesList[idx].copyWith(customRate: parsed);
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Toggle Active at POS
+          Tooltip(
+            message: rate.isEnabled ? 'Disable at POS checkout' : 'Enable at POS checkout',
+            child: Switch(
+              value: rate.isEnabled,
+              activeColor: const Color(0xFF4F46E5),
+              onChanged: (val) {
+                setState(() {
+                  final idx = _ratesList.indexWhere((r) => r.code == rate.code);
+                  if (idx != -1) {
+                    _ratesList[idx] = _ratesList[idx].copyWith(isEnabled: val);
+                  }
+                });
+              },
+            ),
+          ),
         ],
       ),
     );
