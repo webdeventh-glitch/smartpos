@@ -1878,6 +1878,33 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
+  int? _getDaysUntilExpiry(String? expiryDate) {
+    if (expiryDate == null || expiryDate.trim().isEmpty) return null;
+    try {
+      final trimmed = expiryDate.trim();
+      DateTime? exp;
+      if (trimmed.contains('-')) {
+        final parts = trimmed.split('-');
+        if (parts.length == 3) {
+          exp = DateTime.tryParse(trimmed);
+        } else if (parts.length == 2) {
+          exp = DateTime(int.parse(parts[0]), int.parse(parts[1]) + 1, 0);
+        }
+      } else if (trimmed.contains('/')) {
+        final parts = trimmed.split('/');
+        if (parts.length == 3) {
+          exp = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+        } else if (parts.length == 2) {
+          exp = DateTime(int.parse(parts[1]), int.parse(parts[0]) + 1, 0);
+        }
+      }
+      if (exp == null) return null;
+      return exp.difference(DateTime.now()).inDays;
+    } catch (_) {
+      return null;
+    }
+  }
+
   void _addToCart(Product product) {
     if (product.isOutOfStock) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1890,6 +1917,22 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       return;
     }
 
+    final expDays = _getDaysUntilExpiry(product.expiryDate);
+    if (expDays != null && expDays <= 60) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            expDays < 0
+                ? '⛔ WARNING: ${product.name} is EXPIRED (${product.expiryDate})!'
+                : '⚠️ NOTICE: ${product.name} nearing expiry ($expDays days left • ${product.expiryDate}).',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: expDays < 0 ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
     setState(() {
       final index = _cart.indexWhere((item) => item.product.id == product.id);
       if (index >= 0) {
@@ -1899,6 +1942,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
           product: product,
           quantity: 1.0,
           unitPrice: product.sellingPrice,
+          batchNumber: product.batchNumber,
+          expiryDate: product.expiryDate,
           packDiscount: _isWholesaleMode ? _wholesaleDiscountPercent : 0.0,
         ));
       }
@@ -1917,6 +1962,22 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       return;
     }
 
+    final expDays = _getDaysUntilExpiry(product.expiryDate);
+    if (expDays != null && expDays <= 60) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            expDays < 0
+                ? '⛔ WARNING: ${product.name} is EXPIRED (${product.expiryDate})!'
+                : '⚠️ NOTICE: ${product.name} nearing expiry ($expDays days left • ${product.expiryDate}).',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: expDays < 0 ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
     setState(() {
       final index = _cart.indexWhere((item) => item.product.id == product.id && item.unitPrice == product.sellingPrice);
       if (index >= 0) {
@@ -1926,6 +1987,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
           product: product,
           quantity: qty,
           unitPrice: product.sellingPrice,
+          batchNumber: product.batchNumber,
+          expiryDate: product.expiryDate,
           packDiscount: _isWholesaleMode ? _wholesaleDiscountPercent : 0.0,
         ));
       }
@@ -2076,6 +2139,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     String saleStatus = 'final',
     String note = '',
     List<Map<String, dynamic>>? splitTenders,
+    double loyaltyDiscount = 0.0,
+    double redeemedPoints = 0.0,
   }) async {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2088,16 +2153,35 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
     final invoiceNo = await db.generateNextInvoiceNo();
 
+    // Loyalty points rewards calculation (1 point per 100 Rs spent)
+    final earnedPoints = (paidAmount / 100).floorToDouble();
+    if (_selectedCustomer?.id != null && !_isCurrentCustomerWalkIn) {
+      if (redeemedPoints > 0) {
+        await db.updateContactLoyaltyPoints(_selectedCustomer!.id!, -redeemedPoints);
+      }
+      if (earnedPoints > 0) {
+        await db.updateContactLoyaltyPoints(_selectedCustomer!.id!, earnedPoints);
+      }
+    }
+
+    if (redeemedPoints > 0 || earnedPoints > 0) {
+      final loyaltySummary = '⭐ Loyalty: ${redeemedPoints > 0 ? "Redeemed ${redeemedPoints.toInt()} pts (-${widget.settings.currencySymbol}${loyaltyDiscount.toStringAsFixed(2)}). " : ""}Earned +${earnedPoints.toInt()} pts';
+      note = note.isEmpty ? loyaltySummary : '$note • $loyaltySummary';
+    }
+
+    final totalDiscount = _calculatedDiscount + loyaltyDiscount;
+    final finalBillTotal = (_grandTotal - loyaltyDiscount).clamp(0.0, double.infinity);
+
     final sale = Sale(
       invoiceNo: invoiceNo,
       customerId: _selectedCustomer?.id,
       customerName: _selectedCustomer?.name ?? 'Walk-in Customer',
       subtotal: _subtotal,
-      discount: _calculatedDiscount,
+      discount: totalDiscount,
       taxAmount: _orderTax,
       taxRate: widget.settings.defaultTaxRate,
       shipping: _shippingCharge,
-      totalAmount: _grandTotal,
+      totalAmount: finalBillTotal,
       paidAmount: paidAmount,
       paymentMethod: paymentMethod,
       paymentStatus: paymentStatus,
@@ -2425,6 +2509,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         isWalkIn: isWalkIn,
         customerCreditLimit: _selectedCustomer?.creditLimit ?? 0.0,
         customerCurrentBalance: _selectedCustomer?.balance ?? 0.0,
+        customerLoyaltyPoints: _selectedCustomer?.loyaltyPoints ?? 0.0,
         currencyCode: widget.settings.currencyCode,
         multiCurrencyEnabled: widget.settings.multiCurrencyEnabled,
         availableRates: CurrencyRateService.parseRatesJson(
@@ -2439,6 +2524,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
           [];
+      final loyaltyDiscount = (result['loyaltyDiscount'] as num?)?.toDouble() ?? 0.0;
+      final redeemedPoints = (result['redeemedLoyaltyPoints'] as num?)?.toDouble() ?? 0.0;
 
       _processCheckout(
         paymentMethod: result['method'] as String,
@@ -2448,6 +2535,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         paymentStatus: result['paymentStatus'] as String,
         splitTenders: splitTenders.isNotEmpty ? splitTenders : null,
         note: result['note'] as String,
+        loyaltyDiscount: loyaltyDiscount,
+        redeemedPoints: redeemedPoints,
       );
     }
   }
@@ -2921,12 +3010,61 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                               isDark: isDark,
                             ),
 
-                            // [ || ] Pause / Suspend bills drawer
-                            _topIconBtn(
-                              icon: Icons.pause,
-                              onTap: _openParkedSales,
-                              tooltip: 'Suspended Bills ($_parkedCount)',
-                              isDark: isDark,
+                            // [ || ] Pause / Suspend bills drawer with badge
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 3),
+                              child: Tooltip(
+                                message: 'Suspended Bills ($_parkedCount held)',
+                                child: InkWell(
+                                  onTap: _openParkedSales,
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Container(
+                                    height: 32,
+                                    padding: EdgeInsets.symmetric(horizontal: _parkedCount > 0 ? 8 : 6),
+                                    decoration: BoxDecoration(
+                                      color: _parkedCount > 0
+                                          ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
+                                          : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: _parkedCount > 0
+                                            ? const Color(0xFFD97706)
+                                            : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.pause,
+                                          size: 16,
+                                          color: _parkedCount > 0
+                                              ? const Color(0xFFD97706)
+                                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                                        ),
+                                        if (_parkedCount > 0) ...[
+                                          const SizedBox(width: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFD97706),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Text(
+                                              '$_parkedCount',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
 
                             // [ ] Register Details (Green icon)
@@ -3181,35 +3319,93 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                   ),
                                   const SizedBox(width: 6),
 
-                                  // [ ] Customer Balance Due indicator
-                                  Tooltip(
-                                    message: 'Customer Outstanding Due & Ledger',
-                                    child: InkWell(
-                                      onTap: () {
-                                        if (_selectedCustomer != null) {
-                                          final due = _selectedCustomer!.balance;
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Customer: ${_selectedCustomer!.name} | Outstanding Due: ${widget.settings.currencySymbol} ${due.toStringAsFixed(2)}',
-                                              ),
-                                              backgroundColor: due > 0 ? const Color(0xFFD97706) : const Color(0xFF16A34A),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                      child: Container(
-                                        width: 38,
+                                  // Customer Balance Due & Loyalty Badges
+                                  if (_selectedCustomer != null && !_selectedCustomer!.name.toLowerCase().contains('walk-in')) ...[
+                                    if (_selectedCustomer!.balance != 0)
+                                      Container(
                                         height: 38,
+                                        margin: const EdgeInsets.only(right: 6),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
                                         decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
+                                          color: _selectedCustomer!.balance > 0
+                                              ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
+                                              : (isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7)),
                                           borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+                                          border: Border.all(
+                                            color: _selectedCustomer!.balance > 0
+                                                ? (isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A))
+                                                : (isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0)),
+                                          ),
                                         ),
-                                        child: Icon(Icons.payments_outlined, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 18),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          'Due: ${widget.settings.currencySymbol}${_selectedCustomer!.balance.toStringAsFixed(0)}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: _selectedCustomer!.balance > 0
+                                                ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706))
+                                                : (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A)),
+                                          ),
+                                        ),
+                                      ),
+                                    if (_selectedCustomer!.loyaltyPoints > 0)
+                                      Container(
+                                        height: 38,
+                                        margin: const EdgeInsets.only(right: 6),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF451A03) : const Color(0xFFFFFBEB),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A)),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.stars_rounded, color: Color(0xFFD97706), size: 14),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${_selectedCustomer!.loyaltyPoints.toInt()} pts',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ] else ...[
+                                    Tooltip(
+                                      message: 'Customer Outstanding Due & Ledger',
+                                      child: InkWell(
+                                        onTap: () {
+                                          if (_selectedCustomer != null) {
+                                            final due = _selectedCustomer!.balance;
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Customer: ${_selectedCustomer!.name} | Outstanding Due: ${widget.settings.currencySymbol} ${due.toStringAsFixed(2)}',
+                                                ),
+                                                backgroundColor: due > 0 ? const Color(0xFFD97706) : const Color(0xFF16A34A),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: Container(
+                                          width: 38,
+                                          height: 38,
+                                          decoration: BoxDecoration(
+                                            color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+                                          ),
+                                          child: Icon(Icons.payments_outlined, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 18),
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                  ],
                                   const SizedBox(width: 10),
 
                                   // Search product / barcode input
@@ -3450,17 +3646,44 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                             ),
                                                           ),
                                                         if (item.expiryDate != null && item.expiryDate!.isNotEmpty)
-                                                          Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                                            decoration: BoxDecoration(
-                                                              color: isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7),
-                                                              borderRadius: BorderRadius.circular(3),
-                                                              border: Border.all(color: isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A)),
-                                                            ),
-                                                            child: Text(
-                                                              'Exp: ${item.expiryDate}',
-                                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
-                                                            ),
+                                                          Builder(
+                                                            builder: (_) {
+                                                              final expDays = _getDaysUntilExpiry(item.expiryDate);
+                                                              final isExp = expDays != null && expDays < 0;
+                                                              final isNear = expDays != null && expDays >= 0 && expDays <= 60;
+                                                              final bg = isExp
+                                                                  ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
+                                                                  : (isNear
+                                                                      ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
+                                                                      : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)));
+                                                              final border = isExp
+                                                                  ? (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA))
+                                                                  : (isNear
+                                                                      ? (isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A))
+                                                                      : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)));
+                                                              final textCol = isExp
+                                                                  ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                  : (isNear
+                                                                      ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706))
+                                                                      : textSecondary);
+                                                              final label = isExp
+                                                                  ? '⛔ EXPIRED: ${item.expiryDate}'
+                                                                  : (isNear
+                                                                      ? '⚠️ Nearing Expiry (${item.expiryDate} • ${expDays}d left)'
+                                                                      : 'Exp: ${item.expiryDate}');
+                                                              return Container(
+                                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                                decoration: BoxDecoration(
+                                                                  color: bg,
+                                                                  borderRadius: BorderRadius.circular(3),
+                                                                  border: Border.all(color: border),
+                                                                ),
+                                                                child: Text(
+                                                                  label,
+                                                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textCol),
+                                                                ),
+                                                              );
+                                                            },
                                                           ),
                                                         if (item.bonusQuantity > 0)
                                                           Container(
@@ -3774,7 +3997,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                     _bottomOutlineBtn(icon: Icons.assignment_outlined, label: 'Quotation', onTap: _saveQuotation, isDark: isDark),
 
                                     // [ ⏸ Suspend ]
-                                    _bottomOutlineBtn(icon: Icons.pause, label: 'Suspend', color: const Color(0xFFD97706), onTap: _suspendSale, isDark: isDark),
+                                    Tooltip(
+                                      message: 'Suspend / Hold Sale [F4]',
+                                      child: _bottomOutlineBtn(icon: Icons.pause, label: 'Suspend', color: const Color(0xFFD97706), onTap: _suspendSale, isDark: isDark),
+                                    ),
 
                                     // [ Credit Sale ]
                                     _bottomOutlineBtn(icon: Icons.check, label: 'Credit Sale', onTap: _quickCreditCheckout, isDark: isDark),
@@ -3784,30 +4010,36 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                     const SizedBox(width: 8),
 
                                     // [ Multiple Pay ]
-                                    ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1E293B),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                    Tooltip(
+                                      message: 'Multiple / Split Payment [F7]',
+                                      child: ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1E293B),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                        ),
+                                        icon: const Icon(Icons.payments_outlined, size: 16),
+                                        label: const Text('Multiple Pay', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                                        onPressed: _handleMultiplePayClick,
                                       ),
-                                      icon: const Icon(Icons.payments_outlined, size: 16),
-                                      label: const Text('Multiple Pay', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                                      onPressed: _handleMultiplePayClick,
                                     ),
                                     const SizedBox(width: 8),
 
                                     // [ Cash ]
-                                    ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF10B981),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                    Tooltip(
+                                      message: 'Quick Cash Checkout [F2]',
+                                      child: ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF10B981),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                        ),
+                                        icon: const Icon(Icons.money, size: 16),
+                                        label: const Text('Cash', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                                        onPressed: _quickCashCheckout,
                                       ),
-                                      icon: const Icon(Icons.money, size: 16),
-                                      label: const Text('Cash', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-                                      onPressed: _quickCashCheckout,
                                     ),
                                     const SizedBox(width: 12),
 
@@ -3820,7 +4052,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                       ),
                                       icon: const Icon(Icons.access_time_rounded, size: 16),
-                                      label: const Text('Recent Transactions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      label: const Text('Recent Sales [F9]', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                                       onPressed: _openRecentTransactionsModal,
                                     ),
                                   ],
@@ -4191,6 +4423,42 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                             maxLines: 1,
                                                             overflow: TextOverflow.ellipsis,
                                                           ),
+                                                          if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
+                                                            Builder(
+                                                              builder: (_) {
+                                                                final pExp = _getDaysUntilExpiry(p.expiryDate);
+                                                                if (pExp == null || pExp > 60) return const SizedBox.shrink();
+                                                                final isExp = pExp < 0;
+                                                                return Padding(
+                                                                  padding: const EdgeInsets.only(top: 2, bottom: 2),
+                                                                  child: Container(
+                                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                                    decoration: BoxDecoration(
+                                                                      color: isExp
+                                                                          ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
+                                                                          : (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7)),
+                                                                      borderRadius: BorderRadius.circular(3),
+                                                                      border: Border.all(
+                                                                        color: isExp ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+                                                                        width: 0.5,
+                                                                      ),
+                                                                    ),
+                                                                    child: Text(
+                                                                      isExp ? '⛔ Expired' : '⚠️ Exp: ${pExp}d',
+                                                                      textAlign: TextAlign.center,
+                                                                      style: TextStyle(
+                                                                        fontSize: 8.5,
+                                                                        fontWeight: FontWeight.bold,
+                                                                        color: isExp
+                                                                            ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                            : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                );
+                                                              },
+                                                            ),
+                                                          ],
                                                           const SizedBox(height: 6),
 
                                                           // Price & Add Button Row
@@ -4285,6 +4553,24 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                     if (p.batchNumber != null && p.batchNumber!.isNotEmpty) ...[
                                                                       const SizedBox(width: 8),
                                                                       Text('• Batch: ${p.batchNumber}', style: TextStyle(fontSize: 11, color: textSecondary)),
+                                                                    ],
+                                                                    if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
+                                                                      const SizedBox(width: 8),
+                                                                      Builder(
+                                                                        builder: (_) {
+                                                                          final pExp = _getDaysUntilExpiry(p.expiryDate);
+                                                                          if (pExp == null || pExp > 60) return const SizedBox.shrink();
+                                                                          final isExp = pExp < 0;
+                                                                          return Text(
+                                                                            isExp ? '• ⛔ EXPIRED (${p.expiryDate})' : '• ⚠️ Exp: ${pExp}d (${p.expiryDate})',
+                                                                            style: TextStyle(
+                                                                              fontSize: 11,
+                                                                              fontWeight: FontWeight.bold,
+                                                                              color: isExp ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+                                                                            ),
+                                                                          );
+                                                                        },
+                                                                      ),
                                                                     ],
                                                                   ],
                                                                 ),

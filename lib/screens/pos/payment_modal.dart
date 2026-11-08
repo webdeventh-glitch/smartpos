@@ -8,6 +8,7 @@ class PaymentModal extends StatefulWidget {
   final bool isWalkIn;
   final double customerCreditLimit;
   final double customerCurrentBalance;
+  final double customerLoyaltyPoints;
   final String currencyCode;
   final bool multiCurrencyEnabled;
   final List<CurrencyRate> availableRates;
@@ -20,6 +21,7 @@ class PaymentModal extends StatefulWidget {
     this.isWalkIn = true,
     this.customerCreditLimit = 0.0,
     this.customerCurrentBalance = 0.0,
+    this.customerLoyaltyPoints = 0.0,
     this.currencyCode = 'PKR',
     this.multiCurrencyEnabled = false,
     this.availableRates = const [],
@@ -45,6 +47,12 @@ class _PaymentModalState extends State<PaymentModal> {
   bool _isSplitMode = false;
   String _selectedMethod = 'cash'; // 'cash', 'card', 'bank_transfer', 'cheque', 'credit'
   String? _validationError;
+
+  // Loyalty Rewards Redemption (Strictly manual, default OFF)
+  bool _redeemLoyalty = false;
+  double _loyaltyDiscount = 0.0;
+
+  double get payableTotal => (widget.grandTotal - (_redeemLoyalty ? _loyaltyDiscount : 0.0)).clamp(0.0, double.infinity);
 
   @override
   void initState() {
@@ -72,8 +80,8 @@ class _PaymentModalState extends State<PaymentModal> {
   double get _foreignTendered => double.tryParse(_foreignTenderedCtrl.text.trim()) ?? 0.0;
   double get _effectiveRate => _selectedRate?.effectiveRate ?? 1.0;
   double get _foreignTotal => _selectedRate != null && _effectiveRate > 0
-      ? double.parse((widget.grandTotal / _effectiveRate).toStringAsFixed(2))
-      : widget.grandTotal;
+      ? double.parse((payableTotal / _effectiveRate).toStringAsFixed(2))
+      : payableTotal;
 
   double get _tendered {
     if (_isForeign) {
@@ -82,11 +90,11 @@ class _PaymentModalState extends State<PaymentModal> {
     return double.tryParse(_tenderedController.text.trim()) ?? 0.0;
   }
 
-  double get _changeReturn => _tendered > widget.grandTotal ? _tendered - widget.grandTotal : 0.0;
+  double get _changeReturn => _tendered > payableTotal ? _tendered - payableTotal : 0.0;
   double get _foreignChangeReturn => (_isForeign && _effectiveRate > 0)
       ? double.parse((_changeReturn / _effectiveRate).toStringAsFixed(2))
       : 0.0;
-  double get _balanceDue => _tendered < widget.grandTotal ? widget.grandTotal - _tendered : 0.0;
+  double get _balanceDue => _tendered < payableTotal ? payableTotal - _tendered : 0.0;
   double get _foreignBalanceDue => (_isForeign && _effectiveRate > 0)
       ? double.parse((_balanceDue / _effectiveRate).toStringAsFixed(2))
       : 0.0;
@@ -96,8 +104,8 @@ class _PaymentModalState extends State<PaymentModal> {
   double get _splitCard => double.tryParse(_splitCardController.text.trim()) ?? 0.0;
   double get _splitBank => double.tryParse(_splitBankController.text.trim()) ?? 0.0;
   double get _splitTotalPaid => _splitCash + _splitCard + _splitBank;
-  double get _splitBalanceDue => _splitTotalPaid < widget.grandTotal ? widget.grandTotal - _splitTotalPaid : 0.0;
-  double get _splitChangeReturn => _splitTotalPaid > widget.grandTotal ? _splitTotalPaid - widget.grandTotal : 0.0;
+  double get _splitBalanceDue => _splitTotalPaid < payableTotal ? payableTotal - _splitTotalPaid : 0.0;
+  double get _splitChangeReturn => _splitTotalPaid > payableTotal ? _splitTotalPaid - payableTotal : 0.0;
 
   void _selectTenderCurrency(CurrencyRate? rate) {
     setState(() {
@@ -146,9 +154,9 @@ class _PaymentModalState extends State<PaymentModal> {
 
     if (_isSplitMode) {
       // Split payment mode validation
-      if (widget.isWalkIn && _splitTotalPaid < widget.grandTotal) {
+      if (widget.isWalkIn && _splitTotalPaid < payableTotal) {
         setState(() {
-          _validationError = 'Strict Walk-in Rule: Walk-in customers must pay 100% upfront (${widget.currencySymbol}${widget.grandTotal.toStringAsFixed(2)}). Partial split payments are disabled.';
+          _validationError = 'Strict Walk-in Rule: Walk-in customers must pay 100% upfront (${widget.currencySymbol}${payableTotal.toStringAsFixed(2)}). Partial split payments are disabled.';
         });
         return;
       }
@@ -160,11 +168,11 @@ class _PaymentModalState extends State<PaymentModal> {
         return;
       }
 
-      final effectivePaid = _splitTotalPaid > widget.grandTotal ? widget.grandTotal : _splitTotalPaid;
+      final effectivePaid = _splitTotalPaid > payableTotal ? payableTotal : _splitTotalPaid;
       String paymentStatus = 'paid';
       if (_splitTotalPaid == 0.0) {
         paymentStatus = 'due';
-      } else if (_splitTotalPaid < widget.grandTotal) {
+      } else if (_splitTotalPaid < payableTotal) {
         paymentStatus = 'partial';
       }
 
@@ -181,6 +189,8 @@ class _PaymentModalState extends State<PaymentModal> {
         'paidAmount': effectivePaid,
         'paymentStatus': paymentStatus,
         'splitTenders': splitTenders,
+        'redeemedLoyaltyPoints': _redeemLoyalty ? _loyaltyDiscount : 0.0,
+        'loyaltyDiscount': _redeemLoyalty ? _loyaltyDiscount : 0.0,
         'note': _noteController.text.trim(),
       });
       return;
@@ -195,9 +205,9 @@ class _PaymentModalState extends State<PaymentModal> {
         return;
       }
 
-      if (_tendered < widget.grandTotal) {
+      if (_tendered < payableTotal) {
         setState(() {
-          _validationError = 'Strict Walk-in Rule: Walk-in customers must pay 100% upfront (${widget.currencySymbol}${widget.grandTotal.toStringAsFixed(2)}). Partial balance due is strictly restricted.';
+          _validationError = 'Strict Walk-in Rule: Walk-in customers must pay 100% upfront (${widget.currencySymbol}${payableTotal.toStringAsFixed(2)}). Partial balance due is strictly restricted.';
         });
         return;
       }
@@ -206,19 +216,19 @@ class _PaymentModalState extends State<PaymentModal> {
     double paid = _tendered;
     if (_selectedMethod == 'credit') {
       paid = 0.0;
-    } else if (paid > widget.grandTotal) {
-      paid = widget.grandTotal;
+    } else if (paid > payableTotal) {
+      paid = payableTotal;
     }
 
     String paymentStatus = 'paid';
     if (paid == 0.0) {
       paymentStatus = 'due';
-    } else if (paid < widget.grandTotal) {
+    } else if (paid < payableTotal) {
       paymentStatus = 'partial';
     }
 
     // Credit limit warning for registered customers
-    final due = widget.grandTotal - paid;
+    final due = payableTotal - paid;
     if (!widget.isWalkIn && due > 0 && widget.customerCreditLimit > 0) {
       final projectedBalance = widget.customerCurrentBalance + due;
       if (projectedBalance > widget.customerCreditLimit) {
@@ -243,6 +253,8 @@ class _PaymentModalState extends State<PaymentModal> {
       'foreignTendered': foreignTenderedVal,
       'foreignChange': foreignChangeVal,
       'exchangeRate': rate,
+      'redeemedLoyaltyPoints': _redeemLoyalty ? _loyaltyDiscount : 0.0,
+      'loyaltyDiscount': _redeemLoyalty ? _loyaltyDiscount : 0.0,
       'splitTenders': [
         if (paid > 0) {'method': _selectedMethod, 'amount': paid},
       ],
@@ -425,6 +437,9 @@ class _PaymentModalState extends State<PaymentModal> {
                           'Customer: ${widget.customerName}' +
                               (!widget.isWalkIn && widget.customerCreditLimit > 0
                                   ? ' • Credit Limit: $currency${widget.customerCreditLimit.toStringAsFixed(0)} • Current Due: $currency${widget.customerCurrentBalance.toStringAsFixed(0)}'
+                                  : '') +
+                              (!widget.isWalkIn && widget.customerLoyaltyPoints > 0
+                                  ? ' • ⭐ ${widget.customerLoyaltyPoints.toInt()} pts'
                                   : ''),
                           style: TextStyle(
                             fontSize: 12,
@@ -470,7 +485,16 @@ class _PaymentModalState extends State<PaymentModal> {
                               letterSpacing: 0.5,
                             ),
                           ),
-                          if (widget.isWalkIn)
+                          if (_redeemLoyalty)
+                            Text(
+                              'Includes ⭐ ${_loyaltyDiscount.toInt()} pts discount (-$currency${_loyaltyDiscount.toStringAsFixed(2)})',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFD97706),
+                              ),
+                            )
+                          else if (widget.isWalkIn)
                             Text(
                               'Must be paid in full (No credit)',
                               style: TextStyle(
@@ -481,17 +505,104 @@ class _PaymentModalState extends State<PaymentModal> {
                         ],
                       ),
                     ),
-                    Text(
-                      '$currency${widget.grandTotal.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 26,
-                        color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E3A8A),
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (_redeemLoyalty)
+                          Text(
+                            '$currency${widget.grandTotal.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              decoration: TextDecoration.lineThrough,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            ),
+                          ),
+                        Text(
+                          '$currency${payableTotal.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 26,
+                            color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E3A8A),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+
+              if (!widget.isWalkIn && widget.customerLoyaltyPoints > 0) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF451A03).withValues(alpha: 0.6) : const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.stars_rounded, color: Color(0xFFD97706), size: 24),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Customer Rewards: ${widget.customerLoyaltyPoints.toInt()} Points',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                              ),
+                            ),
+                            Text(
+                              _redeemLoyalty
+                                  ? 'Redeeming ${_loyaltyDiscount.toInt()} points (-$currency${_loyaltyDiscount.toStringAsFixed(2)})'
+                                  : 'Redeemable value: $currency${(widget.customerLoyaltyPoints > widget.grandTotal ? widget.grandTotal : widget.customerLoyaltyPoints).toStringAsFixed(2)} (Manual redeem only)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark ? const Color(0xFFFCD34D) : const Color(0xFFB45309),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Redeem',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : const Color(0xFF92400E),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Switch(
+                            value: _redeemLoyalty,
+                            activeColor: const Color(0xFFD97706),
+                            onChanged: (val) {
+                              setState(() {
+                                _redeemLoyalty = val;
+                                if (val) {
+                                  _loyaltyDiscount = widget.customerLoyaltyPoints > widget.grandTotal
+                                      ? widget.grandTotal
+                                      : widget.customerLoyaltyPoints;
+                                } else {
+                                  _loyaltyDiscount = 0.0;
+                                }
+                                _tenderedController.text = payableTotal.toStringAsFixed(2);
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
 
               // Mode Tabs: Single Tender vs Split Payment

@@ -994,6 +994,7 @@ class MySqlService {
         `address` TEXT NULL,
         `balance` DECIMAL(12,2) DEFAULT 0.00,
         `credit_limit` DECIMAL(12,2) DEFAULT 50000.00,
+        `loyalty_points` DECIMAL(12,2) DEFAULT 0.00,
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX `idx_contact_type` (`type`),
@@ -1685,6 +1686,8 @@ class MySqlService {
         INDEX `idx_note_parent` (`notable_type`, `notable_id`)
       ) ENGINE=InnoDB;
     ''');
+    // Safe migrations for newly added columns
+    try { await conn.execute("ALTER TABLE `contacts` ADD COLUMN `loyalty_points` DECIMAL(12,2) DEFAULT 0.00"); } catch (_) {}
   }
 
   static Future<void> _seedSettings(MySQLConnection conn, BusinessSettings s) async {

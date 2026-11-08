@@ -916,6 +916,7 @@ class DatabaseService {
     try { await db.execute("ALTER TABLE sales ADD COLUMN user_name TEXT"); } catch (_) {}
     try { await db.execute("ALTER TABLE contacts ADD COLUMN tax_number TEXT"); } catch (_) {}
     try { await db.execute("ALTER TABLE contacts ADD COLUMN is_default_walk_in INTEGER DEFAULT 0"); } catch (_) {}
+    try { await db.execute("ALTER TABLE contacts ADD COLUMN loyalty_points REAL DEFAULT 0.0"); } catch (_) {}
     try { await db.execute("ALTER TABLE restaurant_tables ADD COLUMN waiter_name TEXT"); } catch (_) {}
     try { await db.execute("ALTER TABLE restaurant_tables ADD COLUMN waiter_id INTEGER"); } catch (_) {}
     try { await db.execute("ALTER TABLE restaurant_tables ADD COLUMN current_sale_id INTEGER"); } catch (_) {}
@@ -1372,7 +1373,8 @@ class DatabaseService {
         email TEXT,
         address TEXT,
         balance REAL DEFAULT 0.0,
-        credit_limit REAL DEFAULT 1000.0
+        credit_limit REAL DEFAULT 1000.0,
+        loyalty_points REAL DEFAULT 0.0
       )
     ''');
 
@@ -7032,6 +7034,14 @@ class DatabaseService {
       SET balance = balance + ? 
       WHERE id = ?
     ''', [deltaAmount, contactId]);
+  }
+
+  Future<void> updateContactLoyaltyPoints(int contactId, double deltaPoints) async {
+    await db.rawUpdate('''
+      UPDATE contacts 
+      SET loyalty_points = MAX(0.0, COALESCE(loyalty_points, 0.0) + ?) 
+      WHERE id = ?
+    ''', [deltaPoints, contactId]);
   }
 
   Future<bool> isWalkInCustomer(int? customerId) async {

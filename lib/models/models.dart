@@ -1346,6 +1346,7 @@ class Contact {
   final String address;
   final double balance; // Receivable for customer, Payable for supplier
   final double creditLimit;
+  final double loyaltyPoints;
 
   Contact({
     this.id,
@@ -1357,6 +1358,7 @@ class Contact {
     this.address = '',
     this.balance = 0.0,
     this.creditLimit = 1000.0,
+    this.loyaltyPoints = 0.0,
   });
 
   bool get isCustomer => type == 'customer';
@@ -1372,6 +1374,7 @@ class Contact {
         'address': address,
         'balance': balance,
         'credit_limit': creditLimit,
+        'loyalty_points': loyaltyPoints,
       };
 
   factory Contact.fromMap(Map<String, dynamic> map) => Contact(
@@ -1384,6 +1387,7 @@ class Contact {
         address: map['address'] as String? ?? '',
         balance: (map['balance'] as num?)?.toDouble() ?? 0.0,
         creditLimit: (map['credit_limit'] as num?)?.toDouble() ?? 1000.0,
+        loyaltyPoints: (map['loyalty_points'] as num?)?.toDouble() ?? 0.0,
       );
 }
 
