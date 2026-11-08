@@ -97,5 +97,32 @@ void main() {
       final earnedPoints = (paidAmount / 100).floorToDouble();
       expect(earnedPoints, equals(13.0)); // 1 point per 100 Rs spent
     });
+
+    test('4. Expiry date parser correctly parses MM-YYYY formats (e.g. 01-2028 is NOT expired)', () {
+      // User reported bug: Disprin with expiry "01-2028" was triggering WARNING: EXPIRED (01-2028)!
+      final days2028 = calculateDaysUntilExpiry('01-2028');
+      expect(days2028, isNotNull);
+      expect(days2028! > 300, isTrue, reason: 'January 2028 is far in the future and must NOT be expired');
+
+      // Slash format: 01/2028
+      final daysSlash = calculateDaysUntilExpiry('01/2028');
+      expect(daysSlash, isNotNull);
+      expect(daysSlash! > 300, isTrue);
+
+      // YYYY-MM format: 2028-01
+      final daysIso = calculateDaysUntilExpiry('2028-01');
+      expect(daysIso, isNotNull);
+      expect(daysIso! > 300, isTrue);
+
+      // Past date: 01-2020 must be expired (negative days)
+      final daysPast = calculateDaysUntilExpiry('01-2020');
+      expect(daysPast, isNotNull);
+      expect(daysPast! < 0, isTrue, reason: 'Past date must evaluate to negative days (expired)');
+
+      // Full date: 15-01-2028
+      final daysFull = calculateDaysUntilExpiry('15-01-2028');
+      expect(daysFull, isNotNull);
+      expect(daysFull! > 300, isTrue);
+    });
   });
 }

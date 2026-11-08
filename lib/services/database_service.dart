@@ -4141,29 +4141,7 @@ class DatabaseService {
     final expiring = <Product>[];
     for (final p in all) {
       if (p.expiryDate != null && p.expiryDate!.trim().isNotEmpty) {
-        final expStr = p.expiryDate!.trim();
-        DateTime? expDate;
-        if (expStr.contains('-')) {
-          final parts = expStr.split('-');
-          if (parts.length == 2) {
-            final p1 = int.tryParse(parts[0]);
-            final p2 = int.tryParse(parts[1]);
-            if (p1 != null && p2 != null) {
-              if (p1 > 12) {
-                expDate = DateTime(p1, p2, 28);
-              } else {
-                expDate = DateTime(p2, p1, 28);
-              }
-            }
-          } else if (parts.length == 3) {
-            final y = int.tryParse(parts[0]);
-            final m = int.tryParse(parts[1]);
-            final d = int.tryParse(parts[2]);
-            if (y != null && m != null && d != null) {
-              expDate = DateTime(y, m, d);
-            }
-          }
-        }
+        final expDate = parseExpiryDate(p.expiryDate);
         if (expDate != null && expDate.isBefore(targetLimit)) {
           expiring.add(p);
         }

@@ -1878,32 +1878,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
-  int? _getDaysUntilExpiry(String? expiryDate) {
-    if (expiryDate == null || expiryDate.trim().isEmpty) return null;
-    try {
-      final trimmed = expiryDate.trim();
-      DateTime? exp;
-      if (trimmed.contains('-')) {
-        final parts = trimmed.split('-');
-        if (parts.length == 3) {
-          exp = DateTime.tryParse(trimmed);
-        } else if (parts.length == 2) {
-          exp = DateTime(int.parse(parts[0]), int.parse(parts[1]) + 1, 0);
-        }
-      } else if (trimmed.contains('/')) {
-        final parts = trimmed.split('/');
-        if (parts.length == 3) {
-          exp = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-        } else if (parts.length == 2) {
-          exp = DateTime(int.parse(parts[1]), int.parse(parts[0]) + 1, 0);
-        }
-      }
-      if (exp == null) return null;
-      return exp.difference(DateTime.now()).inDays;
-    } catch (_) {
-      return null;
-    }
-  }
+  int? _getDaysUntilExpiry(String? expiryDate) => calculateDaysUntilExpiry(expiryDate);
 
   void _addToCart(Product product) {
     if (product.isOutOfStock) {
