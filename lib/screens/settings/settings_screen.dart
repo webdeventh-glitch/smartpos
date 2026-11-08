@@ -116,6 +116,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   bool _showCashierNameOnReceipt = true;
   bool _isSavingReceiptSettings = false;
 
+  // Invoice Layout & Detailed A4 Customization (Ultimate POS style)
+  String _invoiceLayoutDesign = 'detailed';
+  bool _showBatchOnInvoice = true;
+  bool _showExpiryOnInvoice = true;
+  bool _showBrandOnInvoice = true;
+  bool _showSkuOnInvoice = true;
+  bool _showWarrantyOnInvoice = true;
+  bool _showTotalInWords = true;
+  late TextEditingController _invoiceHeadingCtrl;
+
   // Multi-Currency & Live Exchange Rates State
   bool _multiCurrencyEnabled = true;
   List<CurrencyRate> _ratesList = [];
@@ -184,6 +194,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _showCustomerBalanceOnReceipt = s.showCustomerBalanceOnReceipt;
     _showTaxBreakdownOnReceipt = s.showTaxBreakdownOnReceipt;
     _showCashierNameOnReceipt = s.showCashierNameOnReceipt;
+
+    _invoiceLayoutDesign = s.invoiceLayoutDesign.isNotEmpty ? s.invoiceLayoutDesign : 'detailed';
+    _showBatchOnInvoice = s.showBatchOnInvoice;
+    _showExpiryOnInvoice = s.showExpiryOnInvoice;
+    _showBrandOnInvoice = s.showBrandOnInvoice;
+    _showSkuOnInvoice = s.showSkuOnInvoice;
+    _showWarrantyOnInvoice = s.showWarrantyOnInvoice;
+    _showTotalInWords = s.showTotalInWords;
+    _invoiceHeadingCtrl = TextEditingController(text: s.invoiceHeading.isNotEmpty ? s.invoiceHeading : 'TAX INVOICE');
 
     _multiCurrencyEnabled = s.multiCurrencyEnabled;
     _lastRatesSync = s.lastRatesSync;
@@ -315,6 +334,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _receiptTaglineCtrl.dispose();
     _receiptNoteCtrl.dispose();
     _receiptReturnPolicyCtrl.dispose();
+    _invoiceHeadingCtrl.dispose();
     super.dispose();
   }
 
@@ -1011,6 +1031,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         multiCurrencyEnabled: _multiCurrencyEnabled,
         exchangeRatesJson: CurrencyRateService.encodeRatesJson(_ratesList),
         lastRatesSync: _lastRatesSync,
+        invoiceLayoutDesign: _invoiceLayoutDesign,
+        showBatchOnInvoice: _showBatchOnInvoice,
+        showExpiryOnInvoice: _showExpiryOnInvoice,
+        showBrandOnInvoice: _showBrandOnInvoice,
+        showSkuOnInvoice: _showSkuOnInvoice,
+        showWarrantyOnInvoice: _showWarrantyOnInvoice,
+        showTotalInWords: _showTotalInWords,
+        invoiceHeading: _invoiceHeadingCtrl.text.trim(),
       );
 
       final db = await DatabaseService.initialize();
@@ -1651,7 +1679,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             Tab(icon: Icon(Icons.storefront, size: 18), text: 'Store & Business Profile'),
             Tab(icon: Icon(Icons.location_city, size: 18), text: 'Business Locations'),
             Tab(icon: Icon(Icons.percent, size: 18), text: 'Tax Rates'),
-            Tab(icon: Icon(Icons.receipt_long, size: 18), text: 'Invoice Schemes'),
+            Tab(icon: Icon(Icons.receipt_long, size: 18), text: 'Invoice Schemes & Layouts'),
             Tab(icon: Icon(Icons.vpn_key_rounded, size: 18), text: 'License & Activation'),
             Tab(icon: Icon(Icons.storage_rounded, size: 18), text: 'Purge & Medicine Engine'),
             Tab(icon: Icon(Icons.system_update_alt_rounded, size: 18), text: 'Software Update & Backup'),
@@ -2397,43 +2425,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _currencySymCtrl,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Currency Symbol * (e.g. Rs, \$, PKR, €)',
-                                    isDense: true,
-                                    prefixIcon: Icon(Icons.currency_exchange, size: 18),
-                                  ),
-                                ),
+                          const SizedBox(height: 14),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 320),
+                            child: TextFormField(
+                              controller: _taxCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: const InputDecoration(
+                                labelText: 'Default Tax Rate (%)',
+                                isDense: true,
+                                prefixIcon: Icon(Icons.percent_rounded, size: 18),
+                                helperText: 'Default sales tax / GST applied at checkout',
                               ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _currencyCodeCtrl,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Currency Code (PKR, USD, EUR, SAR)',
-                                    isDense: true,
-                                    prefixIcon: Icon(Icons.flag_outlined, size: 18),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _taxCtrl,
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  decoration: const InputDecoration(
-                                    labelText: 'Default Tax Rate (%)',
-                                    isDense: true,
-                                    prefixIcon: Icon(Icons.percent_rounded, size: 18),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
@@ -3002,70 +3006,109 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ),
           ),
 
-          // Tab 3: Invoice Schemes
-          Padding(
+          // Tab 3: Invoice Schemes & Layouts
+          SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Invoice Schemes & Sequence Numbering', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0038B8),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Add Scheme'),
-                      onPressed: _showAddSchemeDialog,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : ListView.separated(
-                          itemCount: _schemes.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (ctx, i) {
-                            final sc = _schemes[i];
-                            return Card(
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: const BorderSide(color: Color(0xFFE2E8F0)),
-                              ),
-                              child: ListTile(
-                                leading: Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.format_list_numbered, color: Color(0xFF0038B8)),
+                // 1. Invoice Schemes & Numbering Card
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0038B8).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                title: Text(sc.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                subtitle: Text('Preview: ${sc.previewExample} • Start: ${sc.startNumber} • Total Invoices: ${sc.invoiceCount}'),
-                                trailing: sc.isDefault
-                                    ? Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFDBEAFE),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: const Text('Default', style: TextStyle(color: Color(0xFF1D4ED8), fontWeight: FontWeight.bold, fontSize: 12)),
-                                      )
-                                    : null,
+                                child: const Icon(Icons.format_list_numbered_rounded, color: Color(0xFF0038B8), size: 20),
                               ),
-                            );
-                          },
-                        ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Invoice Schemes & Sequence Numbering',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    'Define prefix and starting sequence for invoices (e.g. INV-1001, POS-5001)',
+                                    style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0038B8),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Add Scheme'),
+                            onPressed: _showAddSchemeDialog,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (_isLoading)
+                        const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                      else ...[
+                        for (final sc in _schemes)
+                          Card(
+                            elevation: 0,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                            ),
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            child: ListTile(
+                              leading: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0038B8).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.tag_rounded, color: Color(0xFF0038B8), size: 20),
+                              ),
+                              title: Text(sc.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              subtitle: Text('Preview: ${sc.previewExample} • Start: ${sc.startNumber} • Total Invoices: ${sc.invoiceCount}'),
+                              trailing: sc.isDefault
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFDBEAFE),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Text('Default Scheme', style: TextStyle(color: Color(0xFF1D4ED8), fontWeight: FontWeight.bold, fontSize: 11)),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                      ],
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 24),
+
+                // 2. Invoice Layouts & Design Customization (Ultimate POS Style)
+                _buildInvoiceLayoutsSection(isDark, primaryColor),
               ],
             ),
           ),
@@ -4640,6 +4683,405 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   // ==========================================
+  // INVOICE LAYOUTS & DETAILED A4 CUSTOMIZATION (Ultimate POS Style)
+  // ==========================================
+
+  Widget _buildInvoiceLayoutsSection(bool isDark, Color primaryColor) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black26 : const Color(0x04000000),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.design_services_rounded, color: Color(0xFF4F46E5), size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Invoice Layouts & Print Designs (انوائس لے آؤٹ اور ڈیزائن)',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Select layout format and configure columns for Batch No., Expiry Date, Khata balance & Warranties.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF4F46E5),
+                      side: const BorderSide(color: Color(0xFF4F46E5)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.preview_rounded, size: 16),
+                    label: const Text('Live A4 Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    onPressed: () {
+                      setState(() => _receiptPaperSize = 'a4');
+                      _openUniversalPreviewDialog();
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0284C7),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.print_outlined, size: 16),
+                    label: const Text('Test Print', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    onPressed: () {
+                      setState(() => _receiptPaperSize = 'a4');
+                      _testPrintSampleReceipt();
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.save_rounded, size: 16),
+                    label: Text(_isSavingReceiptSettings ? 'Saving...' : 'Save Layout', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    onPressed: _isSavingReceiptSettings ? null : _saveReceiptSettings,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+
+          // 1. Template Design Picker (Ultimate POS Style)
+          const Text(
+            'Invoice Template Design (انوائس ڈیزائن ٹیمپلیٹ)',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Choose your layout style. Detailed A4 includes Batch & Expiry columns recommended for Medicine, Pharmacy & Wholesale agencies.',
+            style: TextStyle(fontSize: 11.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildLayoutDesignCard(
+                title: 'Detailed A4 (Agency & Expiry)',
+                badge: 'Recommended',
+                badgeColor: const Color(0xFF10B981),
+                desc: 'Full-feature 9-column invoice with Batch No., Expiry Date, Bonus, Rate, Discount, Khata Due & Drug Act 1976 Form 2A Warranty.',
+                icon: Icons.local_hospital_rounded,
+                selected: _receiptPaperSize == 'a4' && _invoiceLayoutDesign == 'detailed',
+                onTap: () {
+                  setState(() {
+                    _receiptPaperSize = 'a4';
+                    _invoiceLayoutDesign = 'detailed';
+                    _showBatchOnInvoice = true;
+                    _showExpiryOnInvoice = true;
+                    _showWarrantyOnInvoice = true;
+                  });
+                },
+                isDark: isDark,
+              ),
+              const SizedBox(width: 12),
+              _buildLayoutDesignCard(
+                title: 'Classic A4 (Standard Retail)',
+                badge: 'General Trading',
+                badgeColor: const Color(0xFF0284C7),
+                desc: 'Clean corporate layout without batch/expiry columns for general retail, electronics, garments & supermarkets.',
+                icon: Icons.description_rounded,
+                selected: _receiptPaperSize == 'a4' && _invoiceLayoutDesign == 'classic',
+                onTap: () {
+                  setState(() {
+                    _receiptPaperSize = 'a4';
+                    _invoiceLayoutDesign = 'classic';
+                    _showBatchOnInvoice = false;
+                    _showExpiryOnInvoice = false;
+                  });
+                },
+                isDark: isDark,
+              ),
+              const SizedBox(width: 12),
+              _buildLayoutDesignCard(
+                title: '80mm Thermal Slip (POS)',
+                badge: 'Counter Roll',
+                badgeColor: const Color(0xFF7C3AED),
+                desc: 'Standard thermal receipt roll for rapid checkout, customer slips, and thermal POS printers.',
+                icon: Icons.receipt_long_rounded,
+                selected: _receiptPaperSize == '80mm',
+                onTap: () {
+                  setState(() => _receiptPaperSize = '80mm');
+                },
+                isDark: isDark,
+              ),
+              const SizedBox(width: 12),
+              _buildLayoutDesignCard(
+                title: '58mm Mini Thermal',
+                badge: 'Mobile Bluetooth',
+                badgeColor: const Color(0xFFD97706),
+                desc: 'Compact mobile slip for handheld Bluetooth and delivery printers.',
+                icon: Icons.receipt_rounded,
+                selected: _receiptPaperSize == '58mm',
+                onTap: () {
+                  setState(() => _receiptPaperSize = '58mm');
+                },
+                isDark: isDark,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+
+          // 2. Product Columns & Elements Visibility
+          const Text(
+            'Product Columns & Print Elements (پروڈکٹ کالمز اور معلومات)',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Enable or disable specific columns on the invoice table. Perfect for customizing medicine expiry details, brands, and customer ledger dues.',
+            style: TextStyle(fontSize: 11.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 12),
+
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              _buildCheckboxChip(
+                label: 'Show Product Expiry Date (تاریخ تنسیخ / ایکسپائری)',
+                value: _showExpiryOnInvoice,
+                icon: Icons.event_available_rounded,
+                onChanged: (val) => setState(() => _showExpiryOnInvoice = val),
+                isDark: isDark,
+              ),
+              _buildCheckboxChip(
+                label: 'Show Batch / Lot Number (بیچ نمبر)',
+                value: _showBatchOnInvoice,
+                icon: Icons.qr_code_scanner_rounded,
+                onChanged: (val) => setState(() => _showBatchOnInvoice = val),
+                isDark: isDark,
+              ),
+              _buildCheckboxChip(
+                label: 'Show Product Brand (برانڈ / مینوفیکچرر)',
+                value: _showBrandOnInvoice,
+                icon: Icons.branding_watermark_rounded,
+                onChanged: (val) => setState(() => _showBrandOnInvoice = val),
+                isDark: isDark,
+              ),
+              _buildCheckboxChip(
+                label: 'Show SKU / Product Code (پروڈکٹ کوڈ)',
+                value: _showSkuOnInvoice,
+                icon: Icons.barcode_reader,
+                onChanged: (val) => setState(() => _showSkuOnInvoice = val),
+                isDark: isDark,
+              ),
+              _buildCheckboxChip(
+                label: 'Show Customer Khata Balance (پچھلا بقایا اور نیٹ واجب الادا)',
+                value: _showCustomerBalanceOnReceipt,
+                icon: Icons.account_balance_wallet_rounded,
+                onChanged: (val) => setState(() => _showCustomerBalanceOnReceipt = val),
+                isDark: isDark,
+              ),
+              _buildCheckboxChip(
+                label: 'Show Drug Act Form 2A Legal Warranty (وارنٹی فارم)',
+                value: _showWarrantyOnInvoice,
+                icon: Icons.verified_user_rounded,
+                onChanged: (val) => setState(() => _showWarrantyOnInvoice = val),
+                isDark: isDark,
+              ),
+              _buildCheckboxChip(
+                label: 'Show Amount in Words (رقم لفظوں میں)',
+                value: _showTotalInWords,
+                icon: Icons.spellcheck_rounded,
+                onChanged: (val) => setState(() => _showTotalInWords = val),
+                isDark: isDark,
+              ),
+              _buildCheckboxChip(
+                label: 'Show FBR / Digital QR Code (ای-انوائس کیو آر کوڈ)',
+                value: _showQrOnReceipt,
+                icon: Icons.qr_code_2_rounded,
+                onChanged: (val) => setState(() => _showQrOnReceipt = val),
+                isDark: isDark,
+              ),
+              _buildCheckboxChip(
+                label: 'Show Tax Breakdown (GST / NTN)',
+                value: _showTaxBreakdownOnReceipt,
+                icon: Icons.percent_rounded,
+                onChanged: (val) => setState(() => _showTaxBreakdownOnReceipt = val),
+                isDark: isDark,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+
+          // 3. Invoice Header Title & Customization
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _invoiceHeadingCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Invoice Heading / Title (e.g. TAX INVOICE, COMMERCIAL INVOICE)',
+                    prefixIcon: Icon(Icons.title_rounded, size: 18),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TextFormField(
+                  controller: _receiptTaglineCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Header Sub-title / Agency License (e.g. Drug License # / NTN)',
+                    prefixIcon: Icon(Icons.subtitles_rounded, size: 18),
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLayoutDesignCard({
+    required String title,
+    required String badge,
+    required Color badgeColor,
+    required String desc,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: selected
+                ? (isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : const Color(0xFFEFF6FF))
+                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? const Color(0xFF2563EB) : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Icon(icon, color: selected ? const Color(0xFF2563EB) : (isDark ? Colors.white70 : const Color(0xFF475569)), size: 22),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(badge, style: TextStyle(color: badgeColor, fontSize: 9.5, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                desc,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  height: 1.3,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCheckboxChip({
+    required String label,
+    required bool value,
+    required IconData icon,
+    required ValueChanged<bool> onChanged,
+    required bool isDark,
+  }) {
+    return FilterChip(
+      avatar: Icon(icon, size: 14, color: value ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+      label: Text(label, style: TextStyle(fontSize: 11, fontWeight: value ? FontWeight.bold : FontWeight.normal, color: value ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF1E293B)))),
+      selected: value,
+      selectedColor: const Color(0xFF4F46E5),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+      checkmarkColor: Colors.white,
+      side: BorderSide(color: value ? const Color(0xFF4F46E5) : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+      onSelected: onChanged,
+    );
+  }
+
+  // ==========================================
   // BILL CUSTOMIZATION & UNIVERSAL PRINT ENGINE
   // ==========================================
 
@@ -4658,6 +5100,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         showCustomerBalanceOnReceipt: _showCustomerBalanceOnReceipt,
         showTaxBreakdownOnReceipt: _showTaxBreakdownOnReceipt,
         showCashierNameOnReceipt: _showCashierNameOnReceipt,
+        invoiceLayoutDesign: _invoiceLayoutDesign,
+        showBatchOnInvoice: _showBatchOnInvoice,
+        showExpiryOnInvoice: _showExpiryOnInvoice,
+        showBrandOnInvoice: _showBrandOnInvoice,
+        showSkuOnInvoice: _showSkuOnInvoice,
+        showWarrantyOnInvoice: _showWarrantyOnInvoice,
+        showTotalInWords: _showTotalInWords,
+        invoiceHeading: _invoiceHeadingCtrl.text.trim(),
       );
 
       final db = await DatabaseService.initialize();
@@ -4752,6 +5202,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       showCustomerBalanceOnReceipt: _showCustomerBalanceOnReceipt,
       showTaxBreakdownOnReceipt: _showTaxBreakdownOnReceipt,
       showCashierNameOnReceipt: _showCashierNameOnReceipt,
+      invoiceLayoutDesign: _invoiceLayoutDesign,
+      showBatchOnInvoice: _showBatchOnInvoice,
+      showExpiryOnInvoice: _showExpiryOnInvoice,
+      showBrandOnInvoice: _showBrandOnInvoice,
+      showSkuOnInvoice: _showSkuOnInvoice,
+      showWarrantyOnInvoice: _showWarrantyOnInvoice,
+      showTotalInWords: _showTotalInWords,
+      invoiceHeading: _invoiceHeadingCtrl.text.trim(),
     );
 
     final html = PrintService.generateSaleInvoiceHtml(
@@ -4762,7 +5220,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       changeReturn: 150.0,
     );
 
-    PrintService.openPrintWindow(htmlContent: html, title: 'Sample-Thermal-Receipt');
+    PrintService.openPrintWindow(htmlContent: html, title: _receiptPaperSize == 'a4' ? 'Sample-A4-Invoice' : 'Sample-Thermal-Receipt');
   }
 
   void _openUniversalPreviewDialog() {
@@ -4778,6 +5236,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       showCustomerBalanceOnReceipt: _showCustomerBalanceOnReceipt,
       showTaxBreakdownOnReceipt: _showTaxBreakdownOnReceipt,
       showCashierNameOnReceipt: _showCashierNameOnReceipt,
+      invoiceLayoutDesign: _invoiceLayoutDesign,
+      showBatchOnInvoice: _showBatchOnInvoice,
+      showExpiryOnInvoice: _showExpiryOnInvoice,
+      showBrandOnInvoice: _showBrandOnInvoice,
+      showSkuOnInvoice: _showSkuOnInvoice,
+      showWarrantyOnInvoice: _showWarrantyOnInvoice,
+      showTotalInWords: _showTotalInWords,
+      invoiceHeading: _invoiceHeadingCtrl.text.trim(),
     );
 
     final html = PrintService.generateSaleInvoiceHtml(
@@ -5221,9 +5687,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             children: [
               const Icon(Icons.remove_red_eye_rounded, size: 18, color: Color(0xFF0038B8)),
               const SizedBox(width: 8),
-              const Text(
-                'Live Thermal Receipt Preview',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              Text(
+                _receiptPaperSize == 'a4' ? 'Live A4 Invoice Preview' : 'Live Thermal Receipt Preview',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const Spacer(),
               Container(
@@ -5233,7 +5699,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  _receiptPaperSize.toUpperCase(),
+                  _receiptPaperSize == 'a4' ? 'A4 DETAILED' : _receiptPaperSize.toUpperCase(),
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF0038B8)),
                 ),
               ),
@@ -5252,9 +5718,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ],
               border: Border.all(color: const Color(0xFFCBD5E1)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
+            child: _receiptPaperSize == 'a4'
+                ? _buildA4PaperContent(bizName, tagline, phone, address, currency)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
                 if (_showLogoOnReceipt) ...[
                   const Icon(Icons.point_of_sale_rounded, color: Colors.black87, size: 28),
                   const SizedBox(height: 4),
@@ -5385,6 +5853,159 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildA4PaperContent(String bizName, String tagline, String phone, String address, String currency) {
+    final heading = _invoiceHeadingCtrl.text.trim().isNotEmpty ? _invoiceHeadingCtrl.text.trim().toUpperCase() : 'TAX INVOICE';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // A4 Header
+        Text(
+          bizName,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 13, color: Colors.black),
+        ),
+        Text(
+          '$heading • WHOLESALE & DISTRIBUTION',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 9, color: Color(0xFF334155)),
+        ),
+        Text(
+          '$address • $phone',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'monospace', fontSize: 8, color: Colors.black54),
+        ),
+        const SizedBox(height: 8),
+
+        // Party Info Box
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black87),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('PARTY: M. Tariq (Regular Customer)', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 8, color: Colors.black)),
+                  Text('INV: POS-INV-8821', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 8, color: Colors.black)),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('CITY: Commercial Area, Karachi', style: TextStyle(fontFamily: 'monospace', fontSize: 7.5, color: Colors.black87)),
+                  Text('DATE: 08-Nov-2026 11:38 AM', style: TextStyle(fontFamily: 'monospace', fontSize: 7.5, color: Colors.black87)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // Table Header
+        Container(
+          color: const Color(0xFFF1F5F9),
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+          child: Row(
+            children: [
+              const Expanded(flex: 4, child: Text('DESCRIPTION', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 8, color: Colors.black))),
+              if (_showBatchOnInvoice)
+                const Expanded(flex: 2, child: Text('BATCH', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 8, color: Colors.black))),
+              if (_showExpiryOnInvoice)
+                const Expanded(flex: 2, child: Text('EXPIRY', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 8, color: Colors.black))),
+              const Expanded(flex: 1, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 8, color: Colors.black))),
+              const Expanded(flex: 2, child: Text('TOTAL', textAlign: TextAlign.right, style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 8, color: Colors.black))),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: Colors.black54),
+
+        // Sample Items
+        _buildA4ItemRow('Panadol Extra 500mg (20s)', 'BN-9921', '12/27', '2', '$currency 700.00'),
+        _buildA4ItemRow('Brufen Syrup 120ml', 'BN-4412', '08/26', '1', '$currency 280.00'),
+        _buildA4ItemRow('Face Masks 3-Ply 50s', 'MSK-2026', '05/29', '1', '$currency 870.00'),
+
+        const Divider(height: 1, color: Colors.black54),
+        const SizedBox(height: 4),
+
+        // Total
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('NET INVOICE TOTAL:', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 9, color: Colors.black)),
+            Text('$currency 1,850.00', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 9.5, color: Colors.black)),
+          ],
+        ),
+
+        if (_showTotalInWords) ...[
+          const SizedBox(height: 2),
+          const Text('Words: One Thousand Eight Hundred Fifty Only', style: TextStyle(fontFamily: 'monospace', fontStyle: FontStyle.italic, fontSize: 7.5, color: Colors.black87)),
+        ],
+
+        if (_showCustomerBalanceOnReceipt) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              border: Border.all(color: Colors.black45),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Prev Bal: $currency 1,450.00', style: const TextStyle(fontFamily: 'monospace', fontSize: 7.5, color: Colors.black)),
+                Text('Paid: $currency 1,850.00', style: const TextStyle(fontFamily: 'monospace', fontSize: 7.5, color: Colors.black)),
+                Text('Total Due: $currency 1,450.00', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 7.5, color: Colors.red)),
+              ],
+            ),
+          ),
+        ],
+
+        if (_showWarrantyOnInvoice) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade400),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              'WARRANTY: Form 2A under Section 23(i) of Drug Act 1976. Goods do not contravene provisions.',
+              style: TextStyle(fontFamily: 'monospace', fontSize: 7, color: Colors.black54),
+            ),
+          ),
+        ],
+        const SizedBox(height: 6),
+        const Text(
+          'نوٹ: مال وصول کرتے وقت ایکسپائری اور ڈبہ چیک کرلیں۔',
+          textAlign: TextAlign.right,
+          style: TextStyle(fontSize: 8, color: Colors.red, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildA4ItemRow(String desc, String batch, String exp, String qty, String total) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      child: Row(
+        children: [
+          Expanded(flex: 4, child: Text(desc, style: const TextStyle(fontFamily: 'monospace', fontSize: 8, color: Colors.black87))),
+          if (_showBatchOnInvoice)
+            Expanded(flex: 2, child: Text(batch, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'monospace', fontSize: 8, color: Colors.black87))),
+          if (_showExpiryOnInvoice)
+            Expanded(flex: 2, child: Text(exp, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 8, color: Color(0xFFD97706)))),
+          Expanded(flex: 1, child: Text(qty, textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'monospace', fontSize: 8, color: Colors.black87))),
+          Expanded(flex: 2, child: Text(total, textAlign: TextAlign.right, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 8, color: Colors.black))),
         ],
       ),
     );

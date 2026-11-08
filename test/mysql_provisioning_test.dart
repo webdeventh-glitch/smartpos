@@ -8,15 +8,15 @@ void main() {
       final conn = await MySQLConnection.createConnection(
         host: 'localhost',
         port: 3306,
-        userName: 'root',
-        password: '',
+        userName: 'smartpos',
+        password: 'smartpos123',
         secure: false,
       );
       await conn.connect();
-      print('Direct localhost connection SUCCESS!');
+      print('smartpos user connection SUCCESS!');
       await conn.close();
     } catch (e, st) {
-      print('Direct localhost error: $e\n$st');
+      print('smartpos user error: $e\n$st');
     }
 
     try {

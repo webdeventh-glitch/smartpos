@@ -799,6 +799,12 @@ class PrintService {
     final cur = settings.currencySymbol;
     final items = sale.items ?? [];
     final itemsHtml = StringBuffer();
+    final showBatch = settings.showBatchOnInvoice;
+    final showExpiry = settings.showExpiryOnInvoice;
+    final showBrand = settings.showBrandOnInvoice;
+    final showSku = settings.showSkuOnInvoice;
+    final showWarranty = settings.showWarrantyOnInvoice;
+    final showWords = settings.showTotalInWords;
 
     for (var it in items) {
       final packVal = it.unitPrice * it.quantity;
@@ -807,11 +813,20 @@ class PrintService {
           ? it.quantity.toInt().toString()
           : it.quantity.toStringAsFixed(2);
       final uLabel = it.unitName != null && it.unitName!.isNotEmpty ? ' ${it.unitName}' : '';
+
+      String itemDesc = _escape(it.productName);
+      if (showSku && it.sku.isNotEmpty) {
+        itemDesc += '<br><small style="color: #64748b; font-size: 9.5px;">SKU: ${_escape(it.sku)}</small>';
+      }
+
+      final batchText = (it.batchNumber != null && it.batchNumber!.isNotEmpty) ? _escape(it.batchNumber!) : '-';
+      final expText = (it.expiryDate != null && it.expiryDate!.isNotEmpty) ? _escape(it.expiryDate!) : '-';
+
       itemsHtml.writeln('''
         <tr>
-          <td style="border: 1px solid #000; padding: 4px 6px; font-weight: bold; text-align: left;">${_escape(it.productName)}</td>
-          <td style="border: 1px solid #000; padding: 4px; text-align: center;">${_escape(it.batchNumber ?? '02260')}</td>
-          <td style="border: 1px solid #000; padding: 4px; text-align: center; color: #d97706; font-weight: bold;">${_escape(it.expiryDate ?? '12-2028')}</td>
+          <td style="border: 1px solid #000; padding: 4px 6px; font-weight: bold; text-align: left;">$itemDesc</td>
+          ${showBatch ? '<td style="border: 1px solid #000; padding: 4px; text-align: center;">$batchText</td>' : ''}
+          ${showExpiry ? '<td style="border: 1px solid #000; padding: 4px; text-align: center; color: #d97706; font-weight: bold;">$expText</td>' : ''}
           <td style="border: 1px solid #000; padding: 4px; text-align: center;">$qStr$uLabel</td>
           <td style="border: 1px solid #000; padding: 4px; text-align: center; color: #059669; font-weight: bold;">${it.bonusQuantity > 0 ? it.bonusQuantity.toInt() : 0}</td>
           <td style="border: 1px solid #000; padding: 4px; text-align: right;">${it.unitPrice.toStringAsFixed(2)}</td>
@@ -1010,7 +1025,7 @@ class PrintService {
     <!-- Header -->
     <div class="biz-header">
       <div class="biz-title">${_escape(settings.businessName.toUpperCase())}</div>
-      <div class="biz-sub">DISTRIBUTOR AND WHOLESALER - ${_escape(settings.branchName.toUpperCase())}</div>
+      <div class="biz-sub">${_escape(settings.invoiceHeading.toUpperCase())} &bull; ${_escape(settings.branchName.toUpperCase())}</div>
       <div class="biz-meta">${_escape(settings.address)}</div>
       ${settings.phone.isNotEmpty ? '<div class="biz-cell">CELL NO: ' + _escape(settings.phone) + (settings.taxNumber.isNotEmpty ? ' &bull; NTN/GST: ' + _escape(settings.taxNumber) : '') + '</div>' : ''}
     </div>
@@ -1025,25 +1040,24 @@ class PrintService {
       </div>
       <div class="meta-col">
         <div class="meta-row"><span class="meta-label">DATE:</span><span class="meta-val">${_escape(dateStr)}</span></div>
-        <div class="meta-row"><span class="meta-label">S/MAN.CODE:</span><span class="meta-val">02</span></div>
-        <div class="meta-row"><span class="meta-label">NAME:</span><span class="meta-val bold">${_escape(sale.userName ?? 'NASIR MENGAL')}</span></div>
+        <div class="meta-row"><span class="meta-label">CASHIER / S.MAN:</span><span class="meta-val bold">${_escape(sale.userName ?? 'Admin Counter')}</span></div>
         <div class="meta-row"><span class="meta-label">TIME:</span><span class="meta-val">${_escape(timeStr)}</span></div>
       </div>
     </div>
 
-    <!-- 9-Column Products Table -->
+    <!-- Products Table -->
     <table class="a4-table">
       <thead>
         <tr>
-          <th style="width: 32%; text-align: left; padding-left: 6px;">DESCRIPTION</th>
-          <th style="width: 9%;">BATCH</th>
-          <th style="width: 10%;">EXP-DATE</th>
-          <th style="width: 6%;">QTY</th>
+          <th style="text-align: left; padding-left: 6px;">DESCRIPTION</th>
+          ${showBatch ? '<th style="width: 10%;">BATCH</th>' : ''}
+          ${showExpiry ? '<th style="width: 11%;">EXP-DATE</th>' : ''}
+          <th style="width: 7%;">QTY</th>
           <th style="width: 7%;">BONUS</th>
-          <th style="width: 9%; text-align: right;">RATE+GST</th>
+          <th style="width: 10%; text-align: right;">RATE+GST</th>
           <th style="width: 10%; text-align: right;">PACK VALUE</th>
           <th style="width: 8%; text-align: right;">PACK DISC</th>
-          <th style="width: 9%; text-align: right; padding-right: 6px;">NET TOTAL</th>
+          <th style="width: 10%; text-align: right; padding-right: 6px;">NET TOTAL</th>
         </tr>
       </thead>
       <tbody>
@@ -1064,10 +1078,10 @@ class PrintService {
     <!-- Numbers of Products & Amount in Words -->
     <div class="words-bar">
       <div class="bold">Numbers of Products: &nbsp;${items.length}</div>
-      <div style="font-style: italic;">Amount in Words: ${numberToWords(sale.totalAmount)}</div>
+      ${showWords ? '<div style="font-style: italic;">Amount in Words: ' + numberToWords(sale.totalAmount) + '</div>' : ''}
     </div>
 
-    ${!isWalkIn ? '''
+    ${(!isWalkIn && settings.showCustomerBalanceOnReceipt) ? '''
     <!-- Customer Khata Ledger Summary -->
     <div class="ledger-box">
       <div class="ledger-item">
@@ -1090,11 +1104,11 @@ class PrintService {
     ''' : ''}
 
     <!-- Warranty Section -->
-    ${settings.isPharmacy ? '''
+    ${showWarranty ? (settings.isPharmacy ? '''
     <div class="warranty-box">
       <strong>WARRANTY :-</strong><br>
       FORM 2A (SEE RULES 19 &amp; 30). WARRANTY UNDER SECTION 23(i) OF DRUG ACT, 1976.<br>
-      I am being a resident of Pakistan carrying on business at Khuzdar. Do hereby give this warranty that the drug contained in this invoice, described as sold by us do not contravene in any way the provision of section 23 of the Drug Act, 1976.<br>
+      I am being a resident of Pakistan carrying on business at ${_escape(settings.address.split(',').first)}. Do hereby give this warranty that the drug contained in this invoice, described as sold by us do not contravene in any way the provision of section 23 of the Drug Act, 1976.<br>
       <em>Note: This Warranty does not apply to Unani, Homeopathic, Bio Chemic, System of Medicine, Herbal and General Item.</em>
     </div>
     ''' : '''
@@ -1103,7 +1117,7 @@ class PrintService {
       1. Goods once sold can be exchanged within 7 days upon presentation of original bill.<br>
       2. Altered, damaged, or clearance items are non-refundable.
     </div>
-    '''}
+    ''') : ''}
 
     <!-- Signatures and Urdu Notice -->
     <div class="footer-bar">

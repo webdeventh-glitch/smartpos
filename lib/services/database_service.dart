@@ -895,6 +895,14 @@ class DatabaseService {
     try { await db.execute("ALTER TABLE business_settings ADD COLUMN exchange_rates_json TEXT DEFAULT ''"); } catch (_) {}
     try { await db.execute("ALTER TABLE business_settings ADD COLUMN custom_rates_json TEXT DEFAULT ''"); } catch (_) {}
     try { await db.execute("ALTER TABLE business_settings ADD COLUMN last_rates_sync TEXT DEFAULT ''"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN invoice_layout_design TEXT DEFAULT 'detailed'"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_batch_on_invoice INTEGER DEFAULT 1"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_expiry_on_invoice INTEGER DEFAULT 1"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_brand_on_invoice INTEGER DEFAULT 1"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_sku_on_invoice INTEGER DEFAULT 1"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_warranty_on_invoice INTEGER DEFAULT 1"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_total_in_words INTEGER DEFAULT 1"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN invoice_heading TEXT DEFAULT 'TAX INVOICE'"); } catch (_) {}
     try { await db.execute("UPDATE business_settings SET sync_branch_id = 1 WHERE sync_branch_id IS NULL OR sync_branch_id = ''"); } catch (_) {}
     try { await db.execute("ALTER TABLE sales ADD COLUMN sale_type TEXT DEFAULT 'final'"); } catch (_) {}
     try { await db.execute("ALTER TABLE sales ADD COLUMN project_name TEXT"); } catch (_) {}
@@ -1293,7 +1301,15 @@ class DatabaseService {
         multi_currency_enabled INTEGER DEFAULT 1,
         exchange_rates_json TEXT DEFAULT '',
         custom_rates_json TEXT DEFAULT '',
-        last_rates_sync TEXT DEFAULT ''
+        last_rates_sync TEXT DEFAULT '',
+        invoice_layout_design TEXT DEFAULT 'detailed',
+        show_batch_on_invoice INTEGER DEFAULT 1,
+        show_expiry_on_invoice INTEGER DEFAULT 1,
+        show_brand_on_invoice INTEGER DEFAULT 1,
+        show_sku_on_invoice INTEGER DEFAULT 1,
+        show_warranty_on_invoice INTEGER DEFAULT 1,
+        show_total_in_words INTEGER DEFAULT 1,
+        invoice_heading TEXT DEFAULT 'TAX INVOICE'
       )
     ''');
 

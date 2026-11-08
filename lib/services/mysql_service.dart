@@ -906,6 +906,14 @@ class MySqlService {
         `exchange_rates_json` TEXT NULL,
         `custom_rates_json` TEXT NULL,
         `last_rates_sync` VARCHAR(50) NULL,
+        `invoice_layout_design` VARCHAR(50) DEFAULT 'detailed',
+        `show_batch_on_invoice` TINYINT(1) DEFAULT 1,
+        `show_expiry_on_invoice` TINYINT(1) DEFAULT 1,
+        `show_brand_on_invoice` TINYINT(1) DEFAULT 1,
+        `show_sku_on_invoice` TINYINT(1) DEFAULT 1,
+        `show_warranty_on_invoice` TINYINT(1) DEFAULT 1,
+        `show_total_in_words` TINYINT(1) DEFAULT 1,
+        `invoice_heading` VARCHAR(150) DEFAULT 'TAX INVOICE',
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB;

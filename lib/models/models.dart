@@ -108,6 +108,14 @@ class BusinessSettings {
   final String exchangeRatesJson;
   final String customRatesJson;
   final String lastRatesSync;
+  final String invoiceLayoutDesign; // 'detailed', 'classic', 'elegant', 'slim'
+  final bool showBatchOnInvoice;
+  final bool showExpiryOnInvoice;
+  final bool showBrandOnInvoice;
+  final bool showSkuOnInvoice;
+  final bool showWarrantyOnInvoice;
+  final bool showTotalInWords;
+  final String invoiceHeading;
 
   BusinessSettings({
     this.id = 1,
@@ -176,6 +184,14 @@ class BusinessSettings {
     this.exchangeRatesJson = '',
     this.customRatesJson = '',
     this.lastRatesSync = '',
+    this.invoiceLayoutDesign = 'detailed',
+    this.showBatchOnInvoice = true,
+    this.showExpiryOnInvoice = true,
+    this.showBrandOnInvoice = true,
+    this.showSkuOnInvoice = true,
+    this.showWarrantyOnInvoice = true,
+    this.showTotalInWords = true,
+    this.invoiceHeading = 'TAX INVOICE',
   });
 
   String get effectiveLoginBanner {
@@ -559,6 +575,14 @@ class BusinessSettings {
     String? exchangeRatesJson,
     String? customRatesJson,
     String? lastRatesSync,
+    String? invoiceLayoutDesign,
+    bool? showBatchOnInvoice,
+    bool? showExpiryOnInvoice,
+    bool? showBrandOnInvoice,
+    bool? showSkuOnInvoice,
+    bool? showWarrantyOnInvoice,
+    bool? showTotalInWords,
+    String? invoiceHeading,
   }) {
     return BusinessSettings(
       id: id ?? this.id,
@@ -627,6 +651,14 @@ class BusinessSettings {
       exchangeRatesJson: exchangeRatesJson ?? this.exchangeRatesJson,
       customRatesJson: customRatesJson ?? this.customRatesJson,
       lastRatesSync: lastRatesSync ?? this.lastRatesSync,
+      invoiceLayoutDesign: invoiceLayoutDesign ?? this.invoiceLayoutDesign,
+      showBatchOnInvoice: showBatchOnInvoice ?? this.showBatchOnInvoice,
+      showExpiryOnInvoice: showExpiryOnInvoice ?? this.showExpiryOnInvoice,
+      showBrandOnInvoice: showBrandOnInvoice ?? this.showBrandOnInvoice,
+      showSkuOnInvoice: showSkuOnInvoice ?? this.showSkuOnInvoice,
+      showWarrantyOnInvoice: showWarrantyOnInvoice ?? this.showWarrantyOnInvoice,
+      showTotalInWords: showTotalInWords ?? this.showTotalInWords,
+      invoiceHeading: invoiceHeading ?? this.invoiceHeading,
     );
   }
 
@@ -697,6 +729,14 @@ class BusinessSettings {
         'exchange_rates_json': exchangeRatesJson,
         'custom_rates_json': customRatesJson,
         'last_rates_sync': lastRatesSync,
+        'invoice_layout_design': invoiceLayoutDesign,
+        'show_batch_on_invoice': showBatchOnInvoice ? 1 : 0,
+        'show_expiry_on_invoice': showExpiryOnInvoice ? 1 : 0,
+        'show_brand_on_invoice': showBrandOnInvoice ? 1 : 0,
+        'show_sku_on_invoice': showSkuOnInvoice ? 1 : 0,
+        'show_warranty_on_invoice': showWarrantyOnInvoice ? 1 : 0,
+        'show_total_in_words': showTotalInWords ? 1 : 0,
+        'invoice_heading': invoiceHeading,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
@@ -767,6 +807,14 @@ class BusinessSettings {
         exchangeRatesJson: _asString(map['exchange_rates_json']),
         customRatesJson: _asString(map['custom_rates_json']),
         lastRatesSync: _asString(map['last_rates_sync']),
+        invoiceLayoutDesign: _asString(map['invoice_layout_design'], 'detailed'),
+        showBatchOnInvoice: _asBool(map['show_batch_on_invoice'], true),
+        showExpiryOnInvoice: _asBool(map['show_expiry_on_invoice'], true),
+        showBrandOnInvoice: _asBool(map['show_brand_on_invoice'], true),
+        showSkuOnInvoice: _asBool(map['show_sku_on_invoice'], true),
+        showWarrantyOnInvoice: _asBool(map['show_warranty_on_invoice'], true),
+        showTotalInWords: _asBool(map['show_total_in_words'], true),
+        invoiceHeading: _asString(map['invoice_heading'], 'TAX INVOICE'),
       );
 }
 
