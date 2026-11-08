@@ -439,7 +439,7 @@ class _PaymentModalState extends State<PaymentModal> {
                                   ? ' • Credit Limit: $currency${widget.customerCreditLimit.toStringAsFixed(0)} • Current Due: $currency${widget.customerCurrentBalance.toStringAsFixed(0)}'
                                   : '') +
                               (!widget.isWalkIn && widget.customerLoyaltyPoints > 0
-                                  ? ' • ⭐ ${widget.customerLoyaltyPoints.toInt()} pts'
+                                  ? ' • Loyalty: ${widget.customerLoyaltyPoints.toInt()} pts'
                                   : ''),
                           style: TextStyle(
                             fontSize: 12,
@@ -487,7 +487,7 @@ class _PaymentModalState extends State<PaymentModal> {
                           ),
                           if (_redeemLoyalty)
                             Text(
-                              'Includes ⭐ ${_loyaltyDiscount.toInt()} pts discount (-$currency${_loyaltyDiscount.toStringAsFixed(2)})',
+                              'Includes Loyalty Discount: ${_loyaltyDiscount.toInt()} pts (-$currency${_loyaltyDiscount.toStringAsFixed(2)})',
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,

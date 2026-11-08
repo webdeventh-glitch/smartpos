@@ -1923,8 +1923,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         SnackBar(
           content: Text(
             expDays < 0
-                ? '⛔ WARNING: ${product.name} is EXPIRED (${product.expiryDate})!'
-                : '⚠️ NOTICE: ${product.name} nearing expiry ($expDays days left • ${product.expiryDate}).',
+                ? 'WARNING: ${product.name} is EXPIRED (${product.expiryDate})!'
+                : 'NOTICE: ${product.name} nearing expiry ($expDays days left • ${product.expiryDate}).',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor: expDays < 0 ? const Color(0xFFDC2626) : const Color(0xFFD97706),
@@ -1968,8 +1968,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         SnackBar(
           content: Text(
             expDays < 0
-                ? '⛔ WARNING: ${product.name} is EXPIRED (${product.expiryDate})!'
-                : '⚠️ NOTICE: ${product.name} nearing expiry ($expDays days left • ${product.expiryDate}).',
+                ? 'WARNING: ${product.name} is EXPIRED (${product.expiryDate})!'
+                : 'NOTICE: ${product.name} nearing expiry ($expDays days left • ${product.expiryDate}).',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor: expDays < 0 ? const Color(0xFFDC2626) : const Color(0xFFD97706),
@@ -2165,7 +2165,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     }
 
     if (redeemedPoints > 0 || earnedPoints > 0) {
-      final loyaltySummary = '⭐ Loyalty: ${redeemedPoints > 0 ? "Redeemed ${redeemedPoints.toInt()} pts (-${widget.settings.currencySymbol}${loyaltyDiscount.toStringAsFixed(2)}). " : ""}Earned +${earnedPoints.toInt()} pts';
+      final loyaltySummary = 'Loyalty Rewards: ${redeemedPoints > 0 ? "Redeemed ${redeemedPoints.toInt()} pts (-${widget.settings.currencySymbol}${loyaltyDiscount.toStringAsFixed(2)}). " : ""}Earned +${earnedPoints.toInt()} pts';
       note = note.isEmpty ? loyaltySummary : '$note • $loyaltySummary';
     }
 
@@ -3667,9 +3667,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                       ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706))
                                                                       : textSecondary);
                                                               final label = isExp
-                                                                  ? '⛔ EXPIRED: ${item.expiryDate}'
+                                                                  ? 'EXPIRED: ${item.expiryDate}'
                                                                   : (isNear
-                                                                      ? '⚠️ Nearing Expiry (${item.expiryDate} • ${expDays}d left)'
+                                                                      ? 'Nearing Expiry: ${item.expiryDate} (${expDays}d left)'
                                                                       : 'Exp: ${item.expiryDate}');
                                                               return Container(
                                                                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -3678,9 +3678,22 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                   borderRadius: BorderRadius.circular(3),
                                                                   border: Border.all(color: border),
                                                                 ),
-                                                                child: Text(
-                                                                  label,
-                                                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textCol),
+                                                                child: Row(
+                                                                  mainAxisSize: MainAxisSize.min,
+                                                                  children: [
+                                                                    if (isExp || isNear) ...[
+                                                                      Icon(
+                                                                        isExp ? Icons.cancel_outlined : Icons.warning_amber_rounded,
+                                                                        size: 11,
+                                                                        color: textCol,
+                                                                      ),
+                                                                      const SizedBox(width: 3),
+                                                                    ],
+                                                                    Text(
+                                                                      label,
+                                                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textCol),
+                                                                    ),
+                                                                  ],
                                                                 ),
                                                               );
                                                             },
@@ -4443,16 +4456,30 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                         width: 0.5,
                                                                       ),
                                                                     ),
-                                                                    child: Text(
-                                                                      isExp ? '⛔ Expired' : '⚠️ Exp: ${pExp}d',
-                                                                      textAlign: TextAlign.center,
-                                                                      style: TextStyle(
-                                                                        fontSize: 8.5,
-                                                                        fontWeight: FontWeight.bold,
-                                                                        color: isExp
-                                                                            ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                            : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
-                                                                      ),
+                                                                    child: Row(
+                                                                      mainAxisSize: MainAxisSize.min,
+                                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                                      children: [
+                                                                        Icon(
+                                                                          isExp ? Icons.cancel_outlined : Icons.warning_amber_rounded,
+                                                                          size: 9,
+                                                                          color: isExp
+                                                                              ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                              : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
+                                                                        ),
+                                                                        const SizedBox(width: 2),
+                                                                        Text(
+                                                                          isExp ? 'Expired' : 'Exp: ${pExp}d',
+                                                                          textAlign: TextAlign.center,
+                                                                          style: TextStyle(
+                                                                            fontSize: 8.5,
+                                                                            fontWeight: FontWeight.bold,
+                                                                            color: isExp
+                                                                                ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                                : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
+                                                                          ),
+                                                                        ),
+                                                                      ],
                                                                     ),
                                                                   ),
                                                                 );
@@ -4562,7 +4589,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                           if (pExp == null || pExp > 60) return const SizedBox.shrink();
                                                                           final isExp = pExp < 0;
                                                                           return Text(
-                                                                            isExp ? '• ⛔ EXPIRED (${p.expiryDate})' : '• ⚠️ Exp: ${pExp}d (${p.expiryDate})',
+                                                                            isExp ? '• EXPIRED (${p.expiryDate})' : '• Exp: ${pExp}d (${p.expiryDate})',
                                                                             style: TextStyle(
                                                                               fontSize: 11,
                                                                               fontWeight: FontWeight.bold,

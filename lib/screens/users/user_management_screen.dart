@@ -442,7 +442,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> with Single
   }
 
   // =========================================================================
-  // 4. ⭐ STAR FEATURE: USER AUTHORIZATION & PERMISSIONS CONTROL CENTER
+  // 4. KEY FEATURE: USER AUTHORIZATION & PERMISSIONS CONTROL CENTER
   // =========================================================================
   void _showPermissionsDialog(User user) {
     bool canEditPrice = user.canEditPrice;
