@@ -714,20 +714,20 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                          final minWidth = max(constraints.maxWidth, 980.0);
+                          final minWidth = max(constraints.maxWidth, 1180.0);
                           return SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: ConstrainedBox(
                               constraints: BoxConstraints(minWidth: minWidth),
                               child: Table(
                                 columnWidths: const {
-                                  0: FlexColumnWidth(3.0), // Product Name & Type
+                                  0: FlexColumnWidth(3.4), // Product Item & Type
                                   1: FlexColumnWidth(1.8), // SKU & Barcode
-                                  2: FlexColumnWidth(1.8), // Category / Brand
+                                  2: FlexColumnWidth(1.9), // Category / Brand
                                   3: FlexColumnWidth(1.3), // Cost Price
-                                  4: FlexColumnWidth(1.6), // Selling Price (Margin)
-                                  5: FlexColumnWidth(1.4), // Stock Quantity
-                                  6: FlexColumnWidth(1.4), // Actions
+                                  4: FlexColumnWidth(1.5), // Selling Price (Margin)
+                                  5: FlexColumnWidth(1.9), // Stock Quantity & Quick Stock In
+                                  6: FlexColumnWidth(1.7), // Actions
                                 },
                                 children: [
                                   TableRow(
@@ -789,7 +789,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                           ),
                                         ),
                                         const SizedBox(height: 2),
-                                        Row(
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 4,
+                                          crossAxisAlignment: WrapCrossAlignment.center,
                                           children: [
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -810,10 +813,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                                 ),
                                               ),
                                             ),
-                                            const SizedBox(width: 6),
                                             Text(p.unit, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                                             if (p.batchNumber != null && p.batchNumber!.isNotEmpty) ...[
-                                              const SizedBox(width: 6),
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                                 decoration: BoxDecoration(
@@ -828,7 +829,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                               ),
                                             ],
                                             if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
-                                              const SizedBox(width: 6),
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                                 decoration: BoxDecoration(
@@ -924,8 +924,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             // Stock Quantity & Alert Status
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                              child: Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -950,7 +952,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
                                   InkWell(
                                     onTap: () => _openQuickStockIn(p),
                                     borderRadius: BorderRadius.circular(4),

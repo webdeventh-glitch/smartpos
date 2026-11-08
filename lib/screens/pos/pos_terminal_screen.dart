@@ -2890,9 +2890,18 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                   children: [
                     // Location: Awesome Shop
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Location: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
-                        Text(widget.settings.businessName, style: TextStyle(fontSize: 13, color: textSecondary)),
+                        Text('Location: ', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: textPrimary)),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 160),
+                          child: Text(
+                            widget.settings.businessName,
+                            style: TextStyle(fontSize: 12.5, color: textSecondary),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(width: 14),
@@ -2981,11 +2990,12 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                    const SizedBox(width: 16),
 
                     // Header Action icons:
-                    Flexible(
+                    // Header Action icons:
+                    Expanded(
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             // [ < ] Back
                             _topIconBtn(
@@ -3241,7 +3251,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                 const Icon(Icons.person_outline_rounded, size: 16, color: Color(0xFF4F46E5)),
                                                 const SizedBox(width: 6),
                                                 ConstrainedBox(
-                                                  constraints: const BoxConstraints(maxWidth: 140),
+                                                  constraints: const BoxConstraints(maxWidth: 110),
                                                   child: Text(
                                                     _selectedCustomer?.name ?? 'Walk-in Customer',
                                                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textPrimary),
@@ -3424,7 +3434,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                         onChanged: (val) => _applyProductFilter(),
                                         style: TextStyle(fontSize: 13, color: textPrimary),
                                         decoration: InputDecoration(
-                                          hintText: 'Enter Product name / SKU / Scan bar code',
+                                          hintText: 'Search product / barcode / SKU [F1]',
                                           hintStyle: TextStyle(fontSize: 12, color: textSecondary),
                                           prefixIcon: Icon(Icons.search, size: 18, color: textSecondary),
                                           border: InputBorder.none,
@@ -3980,96 +3990,135 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
                             // ================= BOTTOM ACTIONS ROW =================
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                               decoration: BoxDecoration(
                                 color: cardBg,
                                 border: Border(top: BorderSide(color: borderColor)),
                               ),
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: [
-                                    // [ Cancel ]
-                                    OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        side: const BorderSide(color: Color(0xFFEF4444)),
-                                        foregroundColor: const Color(0xFFEF4444),
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                      ),
-                                      icon: const Icon(Icons.close, size: 16),
-                                      label: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
-                                      onPressed: _clearCart,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // 1. Secondary Quick Action Tools
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: [
+                                        // [ Cancel ]
+                                        OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            side: const BorderSide(color: Color(0xFFEF4444)),
+                                            foregroundColor: const Color(0xFFEF4444),
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                            visualDensity: VisualDensity.compact,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                          ),
+                                          icon: const Icon(Icons.close, size: 14),
+                                          label: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                          onPressed: _clearCart,
+                                        ),
+                                        const SizedBox(width: 6),
+
+                                        // [ Draft ]
+                                        _bottomOutlineBtn(icon: Icons.edit_note, label: 'Draft', onTap: _saveQuotation, isDark: isDark),
+
+                                        // [ Quotation ]
+                                        _bottomOutlineBtn(icon: Icons.assignment_outlined, label: 'Quotation', onTap: _saveQuotation, isDark: isDark),
+
+                                        // [ Suspend ]
+                                        Tooltip(
+                                          message: 'Suspend / Hold Sale [F4]',
+                                          child: _bottomOutlineBtn(icon: Icons.pause, label: 'Suspend', color: const Color(0xFFD97706), onTap: _suspendSale, isDark: isDark),
+                                        ),
+
+                                        // [ Credit Sale ]
+                                        _bottomOutlineBtn(icon: Icons.check, label: 'Credit Sale', onTap: _quickCreditCheckout, isDark: isDark),
+
+                                        // [ Recent Sales F9 ]
+                                        OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+                                            backgroundColor: isDark ? const Color(0xFF312E81).withOpacity(0.3) : const Color(0xFFEEF2FF),
+                                            foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                            visualDensity: VisualDensity.compact,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                          ),
+                                          icon: const Icon(Icons.access_time_rounded, size: 14),
+                                          label: const Text('Recent Sales [F9]', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                          onPressed: _openRecentTransactionsModal,
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 8),
+                                  ),
+                                  const SizedBox(height: 8),
 
-                                    // [ Draft ]
-                                    _bottomOutlineBtn(icon: Icons.edit_note, label: 'Draft', onTap: _saveQuotation, isDark: isDark),
-
-                                    // [ Quotation ]
-                                    _bottomOutlineBtn(icon: Icons.assignment_outlined, label: 'Quotation', onTap: _saveQuotation, isDark: isDark),
-
-                                    // [ ⏸ Suspend ]
-                                    Tooltip(
-                                      message: 'Suspend / Hold Sale [F4]',
-                                      child: _bottomOutlineBtn(icon: Icons.pause, label: 'Suspend', color: const Color(0xFFD97706), onTap: _suspendSale, isDark: isDark),
-                                    ),
-
-                                    // [ Credit Sale ]
-                                    _bottomOutlineBtn(icon: Icons.check, label: 'Credit Sale', onTap: _quickCreditCheckout, isDark: isDark),
-
-                                    // [ Card ]
-                                    _bottomOutlineBtn(icon: Icons.credit_card, label: 'Card', color: const Color(0xFFEC4899), onTap: _quickCardCheckout, isDark: isDark),
-                                    const SizedBox(width: 8),
-
-                                    // [ Multiple Pay ]
-                                    Tooltip(
-                                      message: 'Multiple / Split Payment [F7]',
-                                      child: ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1E293B),
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  // 2. Primary Checkout Buttons (Card, Multiple Pay [F7], Cash [F2])
+                                  // Always fully visible across the entire bottom without any horizontal scroll
+                                  Row(
+                                    children: [
+                                      // [ Card ]
+                                      OutlinedButton.icon(
+                                        style: OutlinedButton.styleFrom(
+                                          side: const BorderSide(color: Color(0xFFEC4899)),
+                                          foregroundColor: const Color(0xFFEC4899),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                         ),
-                                        icon: const Icon(Icons.payments_outlined, size: 16),
-                                        label: const Text('Multiple Pay', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                                        onPressed: _handleMultiplePayClick,
+                                        icon: const Icon(Icons.credit_card, size: 16),
+                                        label: const Text('Card', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                        onPressed: _quickCardCheckout,
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
+                                      const SizedBox(width: 8),
 
-                                    // [ Cash ]
-                                    Tooltip(
-                                      message: 'Quick Cash Checkout [F2]',
-                                      child: ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF10B981),
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                      // [ Multiple Pay ]
+                                      Expanded(
+                                        flex: 1,
+                                        child: Tooltip(
+                                          message: 'Multiple / Split Payment [F7]',
+                                          child: ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1E293B),
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            ),
+                                            icon: const Icon(Icons.payments_outlined, size: 16),
+                                            label: const Text(
+                                              'Multiple Pay',
+                                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            onPressed: _handleMultiplePayClick,
+                                          ),
                                         ),
-                                        icon: const Icon(Icons.money, size: 16),
-                                        label: const Text('Cash', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-                                        onPressed: _quickCashCheckout,
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
+                                      const SizedBox(width: 8),
 
-                                    // [ Recent Transactions ]
-                                    ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF5B6DF0),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                      // [ Cash ]
+                                      Expanded(
+                                        flex: 1,
+                                        child: Tooltip(
+                                          message: 'Quick Cash Checkout [F2]',
+                                          child: ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF10B981),
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            ),
+                                            icon: const Icon(Icons.money, size: 16),
+                                            label: const Text(
+                                              'Cash',
+                                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            onPressed: _quickCashCheckout,
+                                          ),
+                                        ),
                                       ),
-                                      icon: const Icon(Icons.access_time_rounded, size: 16),
-                                      label: const Text('Recent Sales [F9]', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                      onPressed: _openRecentTransactionsModal,
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -4325,200 +4374,214 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                           ),
                                         )
                                       : _isGridView
-                                          ? GridView.builder(
-                                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                                crossAxisCount: 4,
-                                                childAspectRatio: 0.80,
-                                                crossAxisSpacing: 10,
-                                                mainAxisSpacing: 10,
-                                              ),
-                                              itemCount: _products.length,
-                                              itemBuilder: (context, index) {
-                                                final p = _products[index];
-                                                final currency = widget.settings.currencySymbol;
-                                                final isOutOfStock = p.isOutOfStock;
-                                                final isLowStock = !isOutOfStock && p.stockQuantity <= 5;
+                                          ? LayoutBuilder(
+                                              builder: (context, constraints) {
+                                                final width = constraints.maxWidth;
+                                                final int crossAxisCount = width >= 860 ? 4 : (width >= 560 ? 3 : 2);
+                                                final double childAspectRatio = width >= 860 ? 0.78 : (width >= 560 ? 0.82 : 0.88);
 
-                                                return Material(
-                                                  color: cardBg,
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  elevation: 0,
-                                                  child: InkWell(
-                                                    onTap: () => _addToCart(p),
-                                                    borderRadius: BorderRadius.circular(8),
-                                                    hoverColor: const Color(0xFF4F46E5).withOpacity(0.04),
-                                                    child: Container(
-                                                      padding: const EdgeInsets.all(8),
-                                                      decoration: BoxDecoration(
+                                                return GridView.builder(
+                                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                                    crossAxisCount: crossAxisCount,
+                                                    childAspectRatio: childAspectRatio,
+                                                    crossAxisSpacing: 8,
+                                                    mainAxisSpacing: 8,
+                                                  ),
+                                                  itemCount: _products.length,
+                                                  itemBuilder: (context, index) {
+                                                    final p = _products[index];
+                                                    final currency = widget.settings.currencySymbol;
+                                                    final isOutOfStock = p.isOutOfStock;
+                                                    final isLowStock = !isOutOfStock && p.stockQuantity <= 5;
+
+                                                    return Material(
+                                                      color: cardBg,
+                                                      borderRadius: BorderRadius.circular(8),
+                                                      elevation: 0,
+                                                      clipBehavior: Clip.antiAlias,
+                                                      child: InkWell(
+                                                        onTap: () => _addToCart(p),
                                                         borderRadius: BorderRadius.circular(8),
-                                                        border: Border.all(color: borderColor),
-                                                      ),
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                                                        children: [
-                                                          // Top Row: Stock Badge & Unit
-                                                          Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                            children: [
-                                                              Container(
-                                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                                decoration: BoxDecoration(
-                                                                  color: isOutOfStock
-                                                                      ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
-                                                                      : (isLowStock
-                                                                          ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
-                                                                          : (isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7))),
-                                                                  borderRadius: BorderRadius.circular(4),
-                                                                ),
-                                                                child: Text(
-                                                                  isOutOfStock
-                                                                      ? 'Out of stock'
-                                                                      : '${p.stockQuantity.toInt()} in stock',
-                                                                  style: TextStyle(
-                                                                    fontSize: 9,
-                                                                    fontWeight: FontWeight.bold,
-                                                                    color: isOutOfStock
-                                                                        ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                        : (isLowStock
-                                                                            ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706))
-                                                                            : (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A))),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                              if (p.unit.isNotEmpty)
-                                                                Text(
-                                                                  p.unit,
-                                                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: textSecondary),
-                                                                ),
-                                                            ],
+                                                        hoverColor: const Color(0xFF4F46E5).withOpacity(0.04),
+                                                        child: Container(
+                                                          padding: const EdgeInsets.all(8),
+                                                          decoration: BoxDecoration(
+                                                            borderRadius: BorderRadius.circular(8),
+                                                            border: Border.all(color: borderColor),
                                                           ),
-                                                          const SizedBox(height: 6),
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                            children: [
+                                                              // Top Row: Stock Badge & Unit
+                                                              Row(
+                                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                children: [
+                                                                  Container(
+                                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                                                    decoration: BoxDecoration(
+                                                                      color: isOutOfStock
+                                                                          ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
+                                                                          : (isLowStock
+                                                                              ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
+                                                                              : (isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7))),
+                                                                      borderRadius: BorderRadius.circular(4),
+                                                                    ),
+                                                                    child: Text(
+                                                                      isOutOfStock
+                                                                          ? 'Out of stock'
+                                                                          : '${p.stockQuantity.toInt()} in stock',
+                                                                      style: TextStyle(
+                                                                        fontSize: 9,
+                                                                        fontWeight: FontWeight.bold,
+                                                                        color: isOutOfStock
+                                                                            ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                            : (isLowStock
+                                                                                ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706))
+                                                                                : (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A))),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  if (p.unit.isNotEmpty)
+                                                                    Flexible(
+                                                                      child: Text(
+                                                                        p.unit,
+                                                                        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600, color: textSecondary),
+                                                                        overflow: TextOverflow.ellipsis,
+                                                                      ),
+                                                                    ),
+                                                                ],
+                                                              ),
+                                                              const SizedBox(height: 6),
 
-                                                          // Thumbnail Graphic
-                                                          Expanded(
-                                                            child: Center(
-                                                              child: Container(
-                                                                padding: const EdgeInsets.all(8),
+                                                              // Thumbnail Graphic (Fixed height so it NEVER collides with text)
+                                                              Container(
+                                                                height: 38,
+                                                                alignment: Alignment.center,
                                                                 decoration: BoxDecoration(
                                                                   color: subtleBg,
-                                                                  borderRadius: BorderRadius.circular(8),
+                                                                  borderRadius: BorderRadius.circular(6),
                                                                 ),
                                                                 child: Icon(
                                                                   Icons.inventory_2_outlined,
-                                                                  size: 32,
+                                                                  size: 22,
                                                                   color: const Color(0xFF4F46E5).withOpacity(0.85),
                                                                 ),
                                                               ),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(height: 6),
+                                                              const SizedBox(height: 4),
 
-                                                          // Product Title
-                                                          Text(
-                                                            p.name,
-                                                            style: TextStyle(
-                                                              fontWeight: FontWeight.bold,
-                                                              fontSize: 11,
-                                                              color: textPrimary,
-                                                              height: 1.2,
-                                                            ),
-                                                            textAlign: TextAlign.center,
-                                                            maxLines: 2,
-                                                            overflow: TextOverflow.ellipsis,
-                                                          ),
-                                                          const SizedBox(height: 2),
-
-                                                          // SKU: (SKU-001)
-                                                          Text(
-                                                            '(${p.sku})',
-                                                            style: TextStyle(fontSize: 10, color: textSecondary),
-                                                            textAlign: TextAlign.center,
-                                                            maxLines: 1,
-                                                            overflow: TextOverflow.ellipsis,
-                                                          ),
-                                                          if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
-                                                            Builder(
-                                                              builder: (_) {
-                                                                final pExp = _getDaysUntilExpiry(p.expiryDate);
-                                                                if (pExp == null || pExp > 60) return const SizedBox.shrink();
-                                                                final isExp = pExp < 0;
-                                                                return Padding(
-                                                                  padding: const EdgeInsets.only(top: 2, bottom: 2),
-                                                                  child: Container(
-                                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                                    decoration: BoxDecoration(
-                                                                      color: isExp
-                                                                          ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
-                                                                          : (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7)),
-                                                                      borderRadius: BorderRadius.circular(3),
-                                                                      border: Border.all(
-                                                                        color: isExp ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
-                                                                        width: 0.5,
-                                                                      ),
-                                                                    ),
-                                                                    child: Row(
-                                                                      mainAxisSize: MainAxisSize.min,
-                                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                                      children: [
-                                                                        Icon(
-                                                                          isExp ? Icons.cancel_outlined : Icons.warning_amber_rounded,
-                                                                          size: 9,
-                                                                          color: isExp
-                                                                              ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                              : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
-                                                                        ),
-                                                                        const SizedBox(width: 2),
-                                                                        Text(
-                                                                          isExp ? 'Expired' : 'Exp: ${pExp}d',
-                                                                          textAlign: TextAlign.center,
-                                                                          style: TextStyle(
-                                                                            fontSize: 8.5,
-                                                                            fontWeight: FontWeight.bold,
-                                                                            color: isExp
-                                                                                ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                                : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
-                                                                          ),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                );
-                                                              },
-                                                            ),
-                                                          ],
-                                                          const SizedBox(height: 6),
-
-                                                          // Price & Add Button Row
-                                                          Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                            children: [
+                                                              // Product Title & Details in Expanded so it adapts vertically without overlapping
                                                               Expanded(
-                                                                child: Text(
-                                                                  '$currency ${p.sellingPrice.toStringAsFixed(2)}',
-                                                                  style: TextStyle(
-                                                                    fontSize: 12,
-                                                                    fontWeight: FontWeight.w900,
-                                                                    color: textPrimary,
-                                                                  ),
-                                                                  maxLines: 1,
-                                                                  overflow: TextOverflow.ellipsis,
+                                                                child: Column(
+                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                  children: [
+                                                                    Text(
+                                                                      p.name,
+                                                                      style: TextStyle(
+                                                                        fontWeight: FontWeight.bold,
+                                                                        fontSize: 11,
+                                                                        color: textPrimary,
+                                                                        height: 1.15,
+                                                                      ),
+                                                                      textAlign: TextAlign.center,
+                                                                      maxLines: 2,
+                                                                      overflow: TextOverflow.ellipsis,
+                                                                    ),
+                                                                    const SizedBox(height: 2),
+                                                                    Text(
+                                                                      '(${p.sku})',
+                                                                      style: TextStyle(fontSize: 9.5, color: textSecondary),
+                                                                      textAlign: TextAlign.center,
+                                                                      maxLines: 1,
+                                                                      overflow: TextOverflow.ellipsis,
+                                                                    ),
+                                                                    if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
+                                                                      Builder(
+                                                                        builder: (_) {
+                                                                          final pExp = _getDaysUntilExpiry(p.expiryDate);
+                                                                          if (pExp == null || pExp > 60) return const SizedBox.shrink();
+                                                                          final isExp = pExp < 0;
+                                                                          return Padding(
+                                                                            padding: const EdgeInsets.only(top: 2),
+                                                                            child: Container(
+                                                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                                              decoration: BoxDecoration(
+                                                                                color: isExp
+                                                                                    ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
+                                                                                    : (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7)),
+                                                                                borderRadius: BorderRadius.circular(3),
+                                                                                border: Border.all(
+                                                                                  color: isExp ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+                                                                                  width: 0.5,
+                                                                                ),
+                                                                              ),
+                                                                              child: Row(
+                                                                                mainAxisSize: MainAxisSize.min,
+                                                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                                                children: [
+                                                                                  Icon(
+                                                                                    isExp ? Icons.cancel_outlined : Icons.warning_amber_rounded,
+                                                                                    size: 9,
+                                                                                    color: isExp
+                                                                                        ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                                        : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
+                                                                                  ),
+                                                                                  const SizedBox(width: 2),
+                                                                                  Text(
+                                                                                    isExp ? 'Expired' : 'Exp: ${pExp}d',
+                                                                                    textAlign: TextAlign.center,
+                                                                                    style: TextStyle(
+                                                                                      fontSize: 8.5,
+                                                                                      fontWeight: FontWeight.bold,
+                                                                                      color: isExp
+                                                                                          ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                                          : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
+                                                                                    ),
+                                                                                  ),
+                                                                                ],
+                                                                              ),
+                                                                            ),
+                                                                          );
+                                                                        },
+                                                                      ),
+                                                                    ],
+                                                                  ],
                                                                 ),
                                                               ),
-                                                              Container(
-                                                                width: 22,
-                                                                height: 22,
-                                                                decoration: BoxDecoration(
-                                                                  color: const Color(0xFF4F46E5),
-                                                                  borderRadius: BorderRadius.circular(4),
-                                                                ),
-                                                                child: const Icon(Icons.add, color: Colors.white, size: 14),
+                                                              const SizedBox(height: 4),
+
+                                                              // Price & Add Button Row
+                                                              Row(
+                                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                children: [
+                                                                  Expanded(
+                                                                    child: Text(
+                                                                      '$currency ${p.sellingPrice.toStringAsFixed(2)}',
+                                                                      style: TextStyle(
+                                                                        fontSize: 11.5,
+                                                                        fontWeight: FontWeight.w900,
+                                                                        color: textPrimary,
+                                                                      ),
+                                                                      maxLines: 1,
+                                                                      overflow: TextOverflow.ellipsis,
+                                                                    ),
+                                                                  ),
+                                                                  Container(
+                                                                    width: 22,
+                                                                    height: 22,
+                                                                    decoration: BoxDecoration(
+                                                                      color: const Color(0xFF4F46E5),
+                                                                      borderRadius: BorderRadius.circular(4),
+                                                                    ),
+                                                                    child: const Icon(Icons.add, color: Colors.white, size: 14),
+                                                                  ),
+                                                                ],
                                                               ),
                                                             ],
                                                           ),
-                                                        ],
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ),
+                                                    );
+                                                  },
                                                 );
                                               },
                                             )
@@ -4570,19 +4633,16 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                   overflow: TextOverflow.ellipsis,
                                                                 ),
                                                                 const SizedBox(height: 2),
-                                                                Row(
+                                                                Wrap(
+                                                                  spacing: 8,
+                                                                  runSpacing: 2,
                                                                   children: [
                                                                     Text('SKU: ${p.sku}', style: TextStyle(fontSize: 11, color: textSecondary)),
-                                                                    if (p.unit.isNotEmpty) ...[
-                                                                      const SizedBox(width: 8),
+                                                                    if (p.unit.isNotEmpty)
                                                                       Text('• Unit: ${p.unit}', style: TextStyle(fontSize: 11, color: textSecondary)),
-                                                                    ],
-                                                                    if (p.batchNumber != null && p.batchNumber!.isNotEmpty) ...[
-                                                                      const SizedBox(width: 8),
+                                                                    if (p.batchNumber != null && p.batchNumber!.isNotEmpty)
                                                                       Text('• Batch: ${p.batchNumber}', style: TextStyle(fontSize: 11, color: textSecondary)),
-                                                                    ],
-                                                                    if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
-                                                                      const SizedBox(width: 8),
+                                                                    if (p.expiryDate != null && p.expiryDate!.isNotEmpty)
                                                                       Builder(
                                                                         builder: (_) {
                                                                           final pExp = _getDaysUntilExpiry(p.expiryDate);
@@ -4598,7 +4658,6 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                           );
                                                                         },
                                                                       ),
-                                                                    ],
                                                                   ],
                                                                 ),
                                                               ],
@@ -4762,7 +4821,14 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     return content;
   }
 
-  Widget _bottomOutlineBtn({required IconData icon, required String label, Color? color, VoidCallback? onTap, bool isDark = false}) {
+  Widget _bottomOutlineBtn({
+    required IconData icon,
+    required String label,
+    Color? color,
+    VoidCallback? onTap,
+    bool isDark = false,
+    EdgeInsetsGeometry? padding,
+  }) {
     final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
     final textPrimary = isDark ? Colors.white : const Color(0xFF1E293B);
     final iconColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
@@ -4773,16 +4839,16 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: borderColor),
           foregroundColor: color ?? textPrimary,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          visualDensity: VisualDensity.compact,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
-        icon: Icon(icon, size: 15, color: color ?? iconColor),
-        label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+        icon: Icon(icon, size: 14, color: color ?? iconColor),
+        label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
         onPressed: onTap,
       ),
     );
   }
-
   Widget _filterBtn({
     required IconData icon,
     required String label,

@@ -58,6 +58,7 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   bool _sidebarCollapsed = false;
+  bool _initializedLayout = false;
   late BusinessSettings _settings;
   String _activeLocationName = 'Main Branch HQ';
 
@@ -68,20 +69,47 @@ class _MainShellState extends State<MainShell> {
     _activeLocationName = _settings.branchName;
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initializedLayout) {
+      _initializedLayout = true;
+      if (MediaQuery.of(context).size.width < 1300) {
+        _sidebarCollapsed = true;
+      }
+    }
+  }
+
   Product? _productToEdit;
   Product? _productToPrintLabel;
 
   void _onOpenPos() {
+    final isCompact = MediaQuery.of(context).size.width < 1400;
     if (_settings.isRestaurant) {
-      setState(() => _selectedIndex = 29); // Restaurant Tables & KOT
+      setState(() {
+        _selectedIndex = 29; // Restaurant Tables & KOT
+        if (isCompact) _sidebarCollapsed = true;
+      });
     } else if (_settings.isRepair) {
-      setState(() => _selectedIndex = 30); // Repair Job Sheets
+      setState(() {
+        _selectedIndex = 30; // Repair Job Sheets
+        if (isCompact) _sidebarCollapsed = true;
+      });
     } else if (_settings.isHotel) {
-      setState(() => _selectedIndex = 31); // Hotel Room Grid
+      setState(() {
+        _selectedIndex = 31; // Hotel Room Grid
+        if (isCompact) _sidebarCollapsed = true;
+      });
     } else if (_settings.isGym) {
-      setState(() => _selectedIndex = 32); // Gym Subscriptions
+      setState(() {
+        _selectedIndex = 32; // Gym Subscriptions
+        if (isCompact) _sidebarCollapsed = true;
+      });
     } else {
-      setState(() => _selectedIndex = 1); // Standard / Fast POS Terminal
+      setState(() {
+        _selectedIndex = 1; // Standard / Fast POS Terminal
+        if (isCompact) _sidebarCollapsed = true;
+      });
     }
   }
 
@@ -299,7 +327,14 @@ class _MainShellState extends State<MainShell> {
               children: [
                 SmartSidebar(
                   selectedIndex: _selectedIndex,
-                  onSelect: (idx) => setState(() => _selectedIndex = idx),
+                  onSelect: (idx) {
+                    setState(() {
+                      _selectedIndex = idx;
+                      if (idx == 1 && MediaQuery.of(context).size.width < 1400) {
+                        _sidebarCollapsed = true;
+                      }
+                    });
+                  },
                   isCollapsed: _sidebarCollapsed,
                   settings: _settings,
                 ),

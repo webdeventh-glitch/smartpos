@@ -363,40 +363,44 @@ class _SmartSidebarState extends State<SmartSidebar> {
       padding: const EdgeInsets.only(left: 28, right: 10, top: 1.5, bottom: 1.5),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          onTap: () => widget.onSelect(index),
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6.5),
-            decoration: BoxDecoration(
-              color: isSelected ? activeBg : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                // Connecting Guide Dot
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? activeDot : inactiveDot,
-                  ),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? activeText : inactiveText,
+        child: Tooltip(
+          message: urduSubtitle != null && urduSubtitle.isNotEmpty ? '$title ($urduSubtitle)' : title,
+          waitDuration: const Duration(milliseconds: 350),
+          child: InkWell(
+            onTap: () => widget.onSelect(index),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6.5),
+              decoration: BoxDecoration(
+                color: isSelected ? activeBg : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  // Connecting Guide Dot
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected ? activeDot : inactiveDot,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? activeText : inactiveText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -678,12 +682,12 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(10),
         ),
         if (!widget.isCollapsed && _settingsExpanded) ...[
-          _subItem(title: 'Business Settings (کاروباری معلومات)', index: 10),
-          _subItem(title: 'Payment Accounts (بینک و کیش)', index: 15),
+          _subItem(title: 'Business Settings', urduSubtitle: 'کاروباری معلومات', index: 10),
+          _subItem(title: 'Payment Accounts', urduSubtitle: 'بینک و کیش', index: 15),
           if (_isModEnabled(BusinessSettings.moduleFiscalClosing))
-            _subItem(title: 'Annual Fiscal Closing (سالانہ کلوزنگ)', index: 27),
-          _subItem(title: 'Cloud & MySQL Sync (کلاؤڈ سنک)', index: 40),
-          _subItem(title: 'Modular Features (ماڈیولز آن/آف)', index: 39),
+            _subItem(title: 'Annual Fiscal Closing', urduSubtitle: 'سالانہ کلوزنگ', index: 27),
+          _subItem(title: 'Cloud & MySQL Sync', urduSubtitle: 'کلاؤڈ سنک', index: 40),
+          _subItem(title: 'Modular Features', urduSubtitle: 'ماڈیولز آن/آف', index: 39),
         ],
       ],
 
