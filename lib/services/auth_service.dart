@@ -49,6 +49,16 @@ class AuthService {
     branchId: 1,
     branchName: 'Main Branch HQ',
     phone: '+92 300 1234567',
+    canViewCostPrice: true,
+    canAccessInventory: true,
+    canAccessReports: true,
+    canAccessSettings: true,
+    canManageUsers: true,
+    canDeleteSale: true,
+    canProcessReturn: true,
+    canEditPrice: true,
+    canGiveDiscount: true,
+    maxDiscountPercent: 100.0,
   );
 
   /// Authenticate user credentials
@@ -66,7 +76,8 @@ class AuthService {
             (verifyPassword(cleanPass, u.password) ||
              u.password == cleanPass ||
              cleanPass == 'password')) {
-          currentUserNotifier.value = u;
+          final effectiveUser = u.isSuperAdmin ? u.copyWith(canViewCostPrice: true) : u;
+          currentUserNotifier.value = effectiveUser;
           return true;
         }
       }
@@ -82,6 +93,16 @@ class AuthService {
           role: 'superadmin',
           status: 'active',
           branchName: 'Main Branch HQ',
+          canViewCostPrice: true,
+          canAccessInventory: true,
+          canAccessReports: true,
+          canAccessSettings: true,
+          canManageUsers: true,
+          canDeleteSale: true,
+          canProcessReturn: true,
+          canEditPrice: true,
+          canGiveDiscount: true,
+          maxDiscountPercent: 100.0,
         );
         return true;
       }

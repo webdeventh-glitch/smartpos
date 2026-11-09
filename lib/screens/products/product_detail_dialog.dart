@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/auth_service.dart';
 
 class ProductDetailDialog extends StatefulWidget {
   final Product product;
@@ -57,6 +58,10 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
     final unitProfit = p.sellingPrice - p.purchasePrice;
     final totalInventoryValue = p.stockQuantity * p.sellingPrice;
     final totalCostValue = p.stockQuantity * p.purchasePrice;
+
+    final user = AuthService.currentUser;
+    final isSuperAdmin = user?.isSuperAdmin == true || (user?.role.toLowerCase() == 'superadmin');
+    final canViewCost = isSuperAdmin || (user?.canViewCostPrice == true);
 
     return Dialog(
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -172,8 +177,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                         Expanded(
                           child: _statPill(
                             title: 'Purchase Cost',
-                            value: '$currency${p.purchasePrice.toStringAsFixed(2)}',
-                            subtitle: 'Default supplier cost',
+                            value: canViewCost ? '$currency${p.purchasePrice.toStringAsFixed(2)}' : '••••••',
+                            subtitle: canViewCost ? 'Default supplier cost' : 'Super Admin Protected',
                             color: isDark ? Colors.white : const Color(0xFF0F172A),
                             bgColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                             isDark: isDark,
@@ -194,8 +199,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                         Expanded(
                           child: _statPill(
                             title: 'Profit Margin',
-                            value: '${margin.toStringAsFixed(1)}%',
-                            subtitle: '+$currency${unitProfit.toStringAsFixed(2)} profit / unit',
+                            value: canViewCost ? '${margin.toStringAsFixed(1)}%' : '••••••',
+                            subtitle: canViewCost ? '+$currency${unitProfit.toStringAsFixed(2)} profit / unit' : 'Super Admin Protected',
                             color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
                             bgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFECFDF5),
                             isDark: isDark,
@@ -289,7 +294,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                               Expanded(
                                 child: _specItem(
                                   'Inventory Valuation (Cost)',
-                                  '$currency${totalCostValue.toStringAsFixed(2)}',
+                                  canViewCost ? '$currency${totalCostValue.toStringAsFixed(2)}' : '•••••• (Super Admin Protected)',
                                   isDark,
                                 ),
                               ),
@@ -384,7 +389,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                     children: [
                                       _td(v.name, isBold: true, isDark: isDark),
                                       _td(v.subSku, isDark: isDark),
-                                      _td('$currency${v.purchasePrice.toStringAsFixed(2)}', isDark: isDark),
+                                      _td(canViewCost ? '$currency${v.purchasePrice.toStringAsFixed(2)}' : '••••••', isDark: isDark),
                                       _td('$currency${v.sellingPrice.toStringAsFixed(2)}', isPrimary: true, isDark: isDark),
                                       _td('${v.stockQuantity.toStringAsFixed(1)} ${p.unit}', isDark: isDark),
                                     ],

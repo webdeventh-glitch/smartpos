@@ -2448,6 +2448,9 @@ class User {
   bool get isSalesman => role.toLowerCase() == 'salesman';
   bool get isCashier => role.toLowerCase() == 'cashier';
 
+  /// Permission checker: Super Admin can always view cost price
+  bool get canViewCostPriceEffective => isSuperAdmin || canViewCostPrice;
+
   /// Permission checker: Owner & Admin bypass all restrictions
   bool hasPermission(String perm) {
     if (isSuperAdmin || isAdmin) return true;
@@ -2567,7 +2570,8 @@ class User {
 
   factory User.fromMap(Map<String, dynamic> map) {
     final roleStr = (map['role'] as String? ?? 'salesman').toLowerCase();
-    final isAdm = roleStr == 'superadmin' || roleStr == 'admin' || roleStr == 'owner';
+    final isSuper = roleStr == 'superadmin' || roleStr == 'owner';
+    final isAdm = isSuper || roleStr == 'admin';
 
     return User(
       id: map['id'] as int?,
@@ -2583,7 +2587,7 @@ class User {
       canEditPrice: (map['can_edit_price'] as int? ?? (isAdm ? 1 : 0)) == 1,
       canGiveDiscount: (map['can_give_discount'] as int? ?? 1) == 1,
       maxDiscountPercent: (map['max_discount_percent'] as num?)?.toDouble() ?? (isAdm ? 100.0 : 5.0),
-      canViewCostPrice: (map['can_view_cost_price'] as int? ?? (isAdm ? 1 : 0)) == 1,
+      canViewCostPrice: isSuper || (map['can_view_cost_price'] as int? ?? (isAdm ? 1 : 0)) == 1,
       canDeleteSale: (map['can_delete_sale'] as int? ?? (isAdm ? 1 : 0)) == 1,
       canProcessReturn: (map['can_process_return'] as int? ?? (isAdm ? 1 : 0)) == 1,
       canAccessKhata: (map['can_access_khata'] as int? ?? 1) == 1,
