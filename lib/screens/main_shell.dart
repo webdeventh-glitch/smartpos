@@ -19,6 +19,7 @@ import 'products/selling_price_groups_screen.dart';
 import 'products/import_products_screen.dart';
 import 'sales/sales_list_screen.dart';
 import 'purchases/purchases_list_screen.dart';
+import 'purchases/add_purchase_screen.dart';
 import 'contacts/customers_screen.dart';
 import 'contacts/suppliers_screen.dart';
 import 'expenses/expenses_screen.dart';
@@ -159,7 +160,10 @@ class _MainShellState extends State<MainShell> {
       case 4:
         return SalesListScreen(settings: _settings, onOpenPos: _onOpenPos);
       case 5:
-        return PurchasesListScreen(settings: _settings);
+        return PurchasesListScreen(
+          settings: _settings,
+          onNavigateToAddPurchase: () => setState(() => _selectedIndex = 41),
+        );
       case 6:
         return CustomersScreen(settings: _settings);
       case 7:
@@ -258,6 +262,12 @@ class _MainShellState extends State<MainShell> {
         return CloudSyncScreen(
           settings: _settings,
           onSettingsUpdated: (updated) => setState(() => _settings = updated),
+        );
+      case 41:
+        return AddPurchaseScreen(
+          settings: _settings,
+          onPurchaseSaved: () => setState(() => _selectedIndex = 5),
+          onBackToList: () => setState(() => _selectedIndex = 5),
         );
       default:
         return DashboardScreen(

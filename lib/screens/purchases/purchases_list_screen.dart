@@ -1,16 +1,22 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import 'add_purchase_dialog.dart';
+import 'add_purchase_screen.dart';
 import 'purchase_receipt_dialog.dart';
 
 class PurchasesListScreen extends StatefulWidget {
   final BusinessSettings settings;
+  final VoidCallback? onNavigateToAddPurchase;
 
-  const PurchasesListScreen({super.key, required this.settings});
+  const PurchasesListScreen({
+    super.key,
+    required this.settings,
+    this.onNavigateToAddPurchase,
+  });
 
   @override
   State<PurchasesListScreen> createState() => _PurchasesListScreenState();
@@ -19,7 +25,11 @@ class PurchasesListScreen extends StatefulWidget {
 class _PurchasesListScreenState extends State<PurchasesListScreen> {
   List<Purchase> _purchases = [];
   bool _loading = true;
+  String _searchQuery = '';
+  String _statusFilter = 'all';
+  String _paymentFilter = 'all';
   final ScrollController _hScroll = ScrollController();
+  final TextEditingController _searchCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -30,6 +40,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
   @override
   void dispose() {
     _hScroll.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -45,16 +56,77 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
   }
 
   void _openAddPurchase() {
-    showDialog(
+    if (widget.onNavigateToAddPurchase != null) {
+      widget.onNavigateToAddPurchase!();
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AddPurchaseScreen(
+            settings: widget.settings,
+            onPurchaseSaved: _load,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deletePurchase(Purchase p) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AddPurchaseDialog(onPurchaseSaved: _load),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Purchase Invoice?'),
+        content: Text(
+          'Are you sure you want to delete purchase invoice "${p.refNo}" from ${p.supplierName}?\n\n'
+          'This will automatically reverse the added stock quantity, subtract the payable from the supplier ledger, '
+          'and restore any payment recorded in the cash register / bank account.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete Invoice'),
+          ),
+        ],
+      ),
     );
+
+    if (confirmed == true && p.id != null) {
+      final db = await DatabaseService.initialize();
+      final ok = await db.deletePurchase(p.id!);
+      if (ok) {
+        _load();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Purchase invoice ${p.refNo} deleted and stock reversed.'),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+        }
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currency = widget.settings.currencySymbol;
+
+    final filteredPurchases = _purchases.where((p) {
+      if (_statusFilter != 'all' && p.status.toLowerCase() != _statusFilter) return false;
+      if (_paymentFilter != 'all' && p.paymentStatus.toLowerCase() != _paymentFilter) return false;
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        final matchRef = p.refNo.toLowerCase().contains(q);
+        final matchSup = p.supplierName.toLowerCase().contains(q);
+        final matchLoc = p.locationName.toLowerCase().contains(q);
+        final matchNote = p.note.toLowerCase().contains(q);
+        if (!matchRef && !matchSup && !matchLoc && !matchNote) return false;
+      }
+      return true;
+    }).toList();
+
     final totalPurchases = _purchases.fold(0.0, (sum, p) => sum + p.totalAmount);
     final totalDue = _purchases.fold(0.0, (sum, p) => sum + p.dueAmount);
 
@@ -130,7 +202,89 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                 );
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
+
+            // Search & Filter Toolbar
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextField(
+                      controller: _searchCtrl,
+                      onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                      decoration: InputDecoration(
+                        hintText: 'Search purchases by Ref No, Supplier, Location...',
+                        hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Status Filter Dropdown
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        value: _statusFilter,
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('Status: All')),
+                          DropdownMenuItem(value: 'received', child: Text('Received')),
+                          DropdownMenuItem(value: 'pending', child: Text('Pending')),
+                          DropdownMenuItem(value: 'ordered', child: Text('Ordered')),
+                        ],
+                        onChanged: (val) => setState(() => _statusFilter = val ?? 'all'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Payment Status Filter Dropdown
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        value: _paymentFilter,
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('Payment: All')),
+                          DropdownMenuItem(value: 'paid', child: Text('Paid')),
+                          DropdownMenuItem(value: 'due', child: Text('Due / Unpaid')),
+                          DropdownMenuItem(value: 'partial', child: Text('Partial')),
+                        ],
+                        onChanged: (val) => setState(() => _paymentFilter = val ?? 'all'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
 
             Container(
               decoration: BoxDecoration(
@@ -140,12 +294,12 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
               ),
               child: _loading
                   ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5))))
-                  : _purchases.isEmpty
+                  : filteredPurchases.isEmpty
                       ? Padding(
                           padding: const EdgeInsets.all(40),
                           child: Center(
                             child: Text(
-                              'No purchase records yet.',
+                              _purchases.isEmpty ? 'No purchase records yet.' : 'No purchases match your filter.',
                               style: TextStyle(color: isDark ? const Color(0xFF64748B) : Colors.grey),
                             ),
                           ),
@@ -202,7 +356,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                               _th('ACTIONS', isDark),
                                             ],
                                           ),
-                                          ..._purchases.asMap().entries.map((entry) {
+                                          ...filteredPurchases.asMap().entries.map((entry) {
                                             final idx = entry.key;
                                             final p = entry.value;
                                             final rowBg = idx.isOdd
@@ -309,6 +463,15 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                             ),
                                                           );
                                                         },
+                                                      ),
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                          Icons.delete_outline_rounded,
+                                                          size: 18,
+                                                          color: Color(0xFFEF4444),
+                                                        ),
+                                                        tooltip: 'Delete & Reverse Stock',
+                                                        onPressed: () => _deletePurchase(p),
                                                       ),
                                                     ],
                                                   ),

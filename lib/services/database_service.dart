@@ -289,6 +289,48 @@ class DatabaseService {
     try {
       await db.execute("ALTER TABLE purchases ADD COLUMN items_json TEXT DEFAULT '[]'");
     } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN discount_type TEXT DEFAULT 'none'");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN discount_amount REAL DEFAULT 0.0");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN tax_rate REAL DEFAULT 0.0");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN tax_amount REAL DEFAULT 0.0");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN shipping_charges REAL DEFAULT 0.0");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN shipping_details TEXT DEFAULT ''");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN additional_expenses REAL DEFAULT 0.0");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN payment_method TEXT DEFAULT 'cash'");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN payment_account_id INTEGER");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN payment_note TEXT DEFAULT ''");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN pay_term_number INTEGER");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN pay_term_type TEXT DEFAULT 'days'");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN document_path TEXT DEFAULT ''");
+    } catch (_) {}
+    try {
+      await db.execute("ALTER TABLE purchases ADD COLUMN purchase_date TEXT DEFAULT ''");
+    } catch (_) {}
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS stock_transfers (
@@ -1441,7 +1483,21 @@ class DatabaseService {
         note TEXT,
         location_id INTEGER DEFAULT 1,
         location_name TEXT DEFAULT 'Main Branch HQ',
-        items_json TEXT DEFAULT '[]'
+        items_json TEXT DEFAULT '[]',
+        discount_type TEXT DEFAULT 'none',
+        discount_amount REAL DEFAULT 0.0,
+        tax_rate REAL DEFAULT 0.0,
+        tax_amount REAL DEFAULT 0.0,
+        shipping_charges REAL DEFAULT 0.0,
+        shipping_details TEXT DEFAULT '',
+        additional_expenses REAL DEFAULT 0.0,
+        payment_method TEXT DEFAULT 'cash',
+        payment_account_id INTEGER,
+        payment_note TEXT DEFAULT '',
+        pay_term_number INTEGER,
+        pay_term_type TEXT DEFAULT 'days',
+        document_path TEXT DEFAULT '',
+        purchase_date TEXT DEFAULT ''
       )
     ''');
 
@@ -3578,13 +3634,21 @@ class DatabaseService {
     required List<Map<String, dynamic>> items,
   }) async {
     final purchaseId = await db.transaction((txn) async {
-      final purchaseId = await txn.insert('purchases', purchase.toMap());
+      final purchaseMap = purchase.toMap();
+      if (purchase.itemsJson.isEmpty || purchase.itemsJson == '[]') {
+        purchaseMap['items_json'] = jsonEncode(items);
+      }
+      final purchaseId = await txn.insert('purchases', purchaseMap);
 
       for (var item in items) {
         final productId = item['product_id'] as int?;
         final qty = (item['quantity'] as num).toDouble();
         final unitCost = (item['purchase_price'] as num?)?.toDouble() ?? (item['unit_cost'] as num?)?.toDouble();
         final sellingPrice = (item['selling_price'] as num?)?.toDouble();
+        final batchNo = (item['batch_number'] ?? item['lot_number'])?.toString().trim();
+        final mfgDate = item['manufacturing_date']?.toString().trim();
+        final expDate = (item['expiry_date'] ?? item['exp_date'])?.toString().trim();
+
         if (productId != null) {
           if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
             await txn.rawUpdate(
@@ -3602,14 +3666,67 @@ class DatabaseService {
               [qty, productId],
             );
           }
+
+          // If expiry date or batch is provided, update product metadata
+          if (expDate != null && expDate.isNotEmpty) {
+            await txn.rawUpdate(
+              'UPDATE products SET expiry_date = ?, batch_number = COALESCE(NULLIF(batch_number, \'\'), ?) WHERE id = ?',
+              [expDate, batchNo ?? '', productId],
+            );
+          } else if (batchNo != null && batchNo.isNotEmpty) {
+            await txn.rawUpdate(
+              'UPDATE products SET batch_number = ? WHERE id = ?',
+              [batchNo, productId],
+            );
+          }
+
+          // Automatically record into product_serials_batches table for stock tracking & expiry alerts
+          if (batchNo != null && batchNo.isNotEmpty) {
+            final prodRow = await txn.query('products', where: 'id = ?', whereArgs: [productId], limit: 1);
+            final prodName = prodRow.isNotEmpty ? (prodRow.first['name'] as String? ?? 'Product') : (item['product_name'] ?? 'Product');
+            final prodSku = prodRow.isNotEmpty ? (prodRow.first['sku'] as String? ?? '') : (item['sku'] ?? '');
+
+            await txn.insert('product_serials_batches', {
+              'product_id': productId,
+              'product_name': prodName,
+              'sku': prodSku,
+              'batch_number': batchNo,
+              'manufacturing_date': mfgDate ?? '',
+              'expiry_date': expDate ?? '',
+              'warranty_months': 0,
+              'status': 'in_stock',
+              'purchase_id': purchaseId,
+              'location_id': purchase.locationId,
+              'purchase_price': unitCost ?? 0.0,
+              'selling_price': sellingPrice ?? 0.0,
+              'notes': 'Recorded via Purchase ${purchase.refNo}',
+              'created_at': DateTime.now().toIso8601String(),
+            });
+          }
         }
       }
 
+      // Update supplier khata balance if due amount remains
       if (purchase.supplierId != null && purchase.dueAmount > 0) {
         await txn.rawUpdate(
           'UPDATE contacts SET balance = balance + ? WHERE id = ?',
           [purchase.dueAmount, purchase.supplierId],
         );
+      }
+
+      // If supplier was paid, debit the payment account or cash register
+      if (purchase.paidAmount > 0) {
+        if (purchase.paymentAccountId != null) {
+          await txn.rawUpdate(
+            'UPDATE payment_accounts SET current_balance = current_balance - ? WHERE id = ?',
+            [purchase.paidAmount, purchase.paymentAccountId],
+          );
+        } else if (purchase.paymentMethod.toLowerCase() == 'cash') {
+          await txn.rawUpdate(
+            'UPDATE cash_registers SET total_sales_cash = total_sales_cash - ? WHERE status = \'open\'',
+            [purchase.paidAmount],
+          );
+        }
       }
 
       // Queue for live MySQL sync
@@ -3630,6 +3747,64 @@ class DatabaseService {
     });
     triggerAsyncMySqlSync();
     return purchaseId;
+  }
+
+  Future<bool> deletePurchase(int purchaseId) async {
+    return await db.transaction((txn) async {
+      final rows = await txn.query('purchases', where: 'id = ?', whereArgs: [purchaseId], limit: 1);
+      if (rows.isEmpty) return false;
+      final purchase = Purchase.fromMap(rows.first);
+
+      // 1. Reverse stock
+      for (final item in purchase.getItems()) {
+        final productId = item['product_id'] as int?;
+        final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
+        if (productId != null) {
+          await txn.rawUpdate(
+            'UPDATE products SET stock_quantity = MAX(0, stock_quantity - ?) WHERE id = ?',
+            [qty, productId],
+          );
+        }
+      }
+
+      // 2. Reverse batch entries
+      await txn.delete('product_serials_batches', where: 'purchase_id = ?', whereArgs: [purchaseId]);
+
+      // 3. Reverse supplier balance
+      if (purchase.supplierId != null && purchase.dueAmount > 0) {
+        await txn.rawUpdate(
+          'UPDATE contacts SET balance = MAX(0, balance - ?) WHERE id = ?',
+          [purchase.dueAmount, purchase.supplierId],
+        );
+      }
+
+      // 4. Restore payment account balance if paid
+      if (purchase.paidAmount > 0 && purchase.paymentAccountId != null) {
+        await txn.rawUpdate(
+          'UPDATE payment_accounts SET current_balance = current_balance + ? WHERE id = ?',
+          [purchase.paidAmount, purchase.paymentAccountId],
+        );
+      }
+
+      // 5. Delete contact_payment associated with this purchase ref
+      await txn.delete('contact_payments', where: 'ref_no = ? AND payment_type = ?', whereArgs: [purchase.refNo, 'pay']);
+
+      // 6. Delete purchase
+      await txn.delete('purchases', where: 'id = ?', whereArgs: [purchaseId]);
+
+      // 7. Sync queue
+      await txn.insert('sync_queue', {
+        'entity_type': 'purchase',
+        'entity_id': purchaseId.toString(),
+        'action': 'delete',
+        'payload_json': jsonEncode({'id': purchaseId, 'ref_no': purchase.refNo}),
+        'status': 'pending',
+        'retry_count': 0,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      return true;
+    });
   }
 
   Future<List<Purchase>> getPurchases() async {

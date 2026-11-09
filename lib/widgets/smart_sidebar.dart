@@ -58,7 +58,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
       _contactsExpanded = true;
     } else if ([2, 3, 11, 17, 18, 19, 20, 21, 22, 23].contains(index)) {
       _productsExpanded = true;
-    } else if ([5, 26].contains(index)) {
+    } else if ([5, 26, 41].contains(index)) {
       _purchasesExpanded = true;
     } else if ([1, 4, 25].contains(index)) {
       _sellExpanded = true;
@@ -419,7 +419,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
 
     // Check if parent sections are active
     final isProductsActive = [2, 3, 11, 17, 18, 19, 20, 21, 22, 23].contains(widget.selectedIndex);
-    final isPurchasesActive = [5, 26].contains(widget.selectedIndex);
+    final isPurchasesActive = [5, 26, 41].contains(widget.selectedIndex);
     final isSellActive = [1, 4, 25].contains(widget.selectedIndex);
     final isContactsActive = [6, 7].contains(widget.selectedIndex);
     final isTransfersActive = widget.selectedIndex == 13;
@@ -561,7 +561,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
       ),
       if (!widget.isCollapsed && _purchasesExpanded) ...[
         _subItem(title: 'Purchases List (خریداری لسٹ)', index: 5),
-        _subItem(title: 'Add Purchase (نئی خریداری درج کریں)', index: 5),
+        _subItem(title: 'Add Purchase (نئی خریداری درج کریں)', index: 41),
         if (_isModEnabled(BusinessSettings.moduleReturns))
           _subItem(title: 'Purchase Return (خریداری واپسی)', index: 26),
       ],

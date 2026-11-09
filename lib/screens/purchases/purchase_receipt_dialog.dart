@@ -268,12 +268,30 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                             if (items.isNotEmpty)
                               ...items.map((item) {
                                 final name = (item['product_name'] ?? 'Product').toString();
+                                final batch = (item['batch_number'] ?? item['lot_number'])?.toString() ?? '';
+                                final exp = (item['expiry_date'] ?? item['exp_date'])?.toString() ?? '';
                                 final qty = ((item['quantity'] as num?)?.toDouble() ?? 1.0).toStringAsFixed(1);
                                 final cost = ((item['purchase_price'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2);
                                 final sub = ((item['subtotal'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2);
                                 return TableRow(
                                   children: [
-                                    Padding(padding: const EdgeInsets.all(8), child: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                                          if (batch.isNotEmpty || exp.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 2),
+                                              child: Text(
+                                                '${batch.isNotEmpty ? "Batch: $batch " : ""}${exp.isNotEmpty ? "• Exp: $exp" : ""}',
+                                                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
                                     Padding(padding: const EdgeInsets.all(8), child: Text(qty, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
                                     Padding(padding: const EdgeInsets.all(8), child: Text('$currency$cost', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12))),
                                     Padding(padding: const EdgeInsets.all(8), child: Text('$currency$sub', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
@@ -300,7 +318,19 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                             width: 280,
                             child: Column(
                               children: [
-                                _sumRow('Total Purchase Amount:', '$currency${p.totalAmount.toStringAsFixed(2)}', isBold: true),
+                                if (p.discountAmount > 0) ...[
+                                  _sumRow('Order Discount (-):', '$currency${p.discountAmount.toStringAsFixed(2)}', color: const Color(0xFFDC2626)),
+                                  const Divider(height: 12),
+                                ],
+                                if (p.taxAmount > 0) ...[
+                                  _sumRow('Purchase Tax (+):', '$currency${p.taxAmount.toStringAsFixed(2)}', color: const Color(0xFFD97706)),
+                                  const Divider(height: 12),
+                                ],
+                                if (p.shippingCharges > 0) ...[
+                                  _sumRow('Shipping / Freight (+):', '$currency${p.shippingCharges.toStringAsFixed(2)}', color: const Color(0xFF2563EB)),
+                                  const Divider(height: 12),
+                                ],
+                                _sumRow('Grand Total Amount:', '$currency${p.totalAmount.toStringAsFixed(2)}', isBold: true),
                                 const Divider(height: 12),
                                 _sumRow('Paid to Supplier:', '$currency${p.paidAmount.toStringAsFixed(2)}', color: const Color(0xFF16A34A)),
                                 if (p.dueAmount > 0) ...[

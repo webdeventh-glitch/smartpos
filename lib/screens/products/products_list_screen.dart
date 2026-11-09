@@ -11,6 +11,7 @@ import 'print_labels_screen.dart';
 import '../../services/print_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../purchases/add_purchase_dialog.dart';
+import '../purchases/add_purchase_screen.dart';
 
 class ProductsListScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -490,9 +491,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
                       label: const Text('Stock In / Purchase (خریداری)', style: TextStyle(fontWeight: FontWeight.w700)),
                       onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => AddPurchaseDialog(onPurchaseSaved: _load),
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => AddPurchaseScreen(
+                              settings: widget.settings,
+                              onPurchaseSaved: _load,
+                            ),
+                          ),
                         );
                       },
                     ),
