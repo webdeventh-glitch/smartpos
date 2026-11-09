@@ -3196,7 +3196,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                         color: cardBg,
                         child: Column(
                           children: [
-                            // Row 1: Customer selector + Add Customer + Credit + Search Product
+                            // Row 1: Dedicated Full-Width Customer Selector & Live Search (F3)
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
@@ -3204,83 +3204,83 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  // Customer Selector with Live Search (F3)
-                                  Container(
-                                    height: 38,
-                                    decoration: BoxDecoration(
-                                      color: inputBg,
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: inputBorder),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        InkWell(
-                                          onTap: _openCustomerSearchModal,
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(Icons.person_outline_rounded, size: 16, color: Color(0xFF4F46E5)),
-                                                const SizedBox(width: 6),
-                                                ConstrainedBox(
-                                                  constraints: const BoxConstraints(maxWidth: 110),
-                                                  child: Text(
-                                                    _selectedCustomer?.name ?? 'Walk-in Customer',
-                                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textPrimary),
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                // Dedicated "Search (F3)" badge button
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                                  decoration: BoxDecoration(
-                                                    color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                                                    borderRadius: BorderRadius.circular(4),
-                                                    border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Icon(Icons.search, size: 12, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        'Search (F3)',
-                                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
+                                  // Customer Selector with Live Search (F3) - Expanded
+                                  Expanded(
+                                    child: Container(
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        color: inputBg,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: inputBorder),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: InkWell(
+                                              onTap: _openCustomerSearchModal,
+                                              borderRadius: BorderRadius.circular(6),
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF4F46E5)),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Text(
+                                                        _selectedCustomer?.name ?? 'Walk-in Customer',
+                                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary),
+                                                        overflow: TextOverflow.ellipsis,
                                                       ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Icon(Icons.arrow_drop_down, size: 18, color: textSecondary),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        if (_selectedCustomer != null && !_selectedCustomer!.name.toLowerCase().contains('walk-in')) ...[
-                                          Padding(
-                                            padding: const EdgeInsets.only(right: 6),
-                                            child: Tooltip(
-                                              message: 'Reset to Walk-in Customer',
-                                              child: InkWell(
-                                                onTap: _resetToWalkInCustomer,
-                                                borderRadius: BorderRadius.circular(12),
-                                                child: Container(
-                                                  padding: const EdgeInsets.all(2),
-                                                  decoration: BoxDecoration(
-                                                    color: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2),
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                  child: const Icon(Icons.close, size: 13, color: Color(0xFFDC2626)),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    // Dedicated "Search (F3)" badge button
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                      decoration: BoxDecoration(
+                                                        color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                        border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(Icons.search, size: 12, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            'Search (F3)',
+                                                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Icon(Icons.arrow_drop_down, size: 18, color: textSecondary),
+                                                  ],
                                                 ),
                                               ),
                                             ),
                                           ),
+                                          if (_selectedCustomer != null && !_selectedCustomer!.name.toLowerCase().contains('walk-in'))
+                                            Padding(
+                                              padding: const EdgeInsets.only(right: 6),
+                                              child: Tooltip(
+                                                message: 'Reset to Walk-in Customer',
+                                                child: InkWell(
+                                                  onTap: _resetToWalkInCustomer,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.all(2),
+                                                    decoration: BoxDecoration(
+                                                      color: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: const Icon(Icons.close, size: 13, color: Color(0xFFDC2626)),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                         ],
-                                      ],
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 6),
@@ -3309,7 +3309,6 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                     if (_selectedCustomer!.balance != 0)
                                       Container(
                                         height: 38,
-                                        margin: const EdgeInsets.only(right: 6),
                                         padding: const EdgeInsets.symmetric(horizontal: 8),
                                         decoration: BoxDecoration(
                                           color: _selectedCustomer!.balance > 0
@@ -3337,7 +3336,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                     if (_selectedCustomer!.loyaltyPoints > 0)
                                       Container(
                                         height: 38,
-                                        margin: const EdgeInsets.only(right: 6),
+                                        margin: const EdgeInsets.only(left: 6),
                                         padding: const EdgeInsets.symmetric(horizontal: 8),
                                         decoration: BoxDecoration(
                                           color: isDark ? const Color(0xFF451A03) : const Color(0xFFFFFBEB),
@@ -3391,55 +3390,6 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                       ),
                                     ),
                                   ],
-                                  const SizedBox(width: 10),
-
-                                  // Search product / barcode input
-                                  Expanded(
-                                    child: Container(
-                                      height: 38,
-                                      decoration: BoxDecoration(
-                                        color: inputBg,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: inputBorder),
-                                      ),
-                                      child: TextField(
-                                        controller: _searchController,
-                                        focusNode: _searchFocusNode,
-                                        onSubmitted: _onBarcodeSubmitted,
-                                        onChanged: (val) => _applyProductFilter(),
-                                        style: TextStyle(fontSize: 13, color: textPrimary),
-                                        decoration: InputDecoration(
-                                          hintText: 'Search product / barcode / SKU [F1]',
-                                          hintStyle: TextStyle(fontSize: 12, color: textSecondary),
-                                          prefixIcon: Icon(Icons.search, size: 18, color: textSecondary),
-                                          border: InputBorder.none,
-                                          enabledBorder: InputBorder.none,
-                                          focusedBorder: InputBorder.none,
-                                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                                          isDense: true,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-
-                                  // Blue [ + ] -> Add Open / Custom Item on the fly
-                                  Tooltip(
-                                    message: 'Add Open / Custom Item (F11 / اوپن پراڈکٹ)',
-                                    child: InkWell(
-                                      onTap: _openCustomProductDialog,
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: Container(
-                                        width: 38,
-                                        height: 38,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF4F46E5),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: const Icon(Icons.add, color: Colors.white, size: 20),
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ),
                             ),
@@ -4106,169 +4056,239 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                       flex: 5,
                       child: Container(
                         color: subtleBg,
-                        padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Filter Pills & View Layout Switcher (Grid vs List)
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
+                            // Row 1: Dedicated Full-Width Product Search & Barcode Scanner (F1)
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                border: Border(bottom: BorderSide(color: borderColor)),
+                              ),
+                              child: Row(
+                                children: [
+                                  // Search product / barcode input (Expanded)
+                                  Expanded(
+                                    child: Container(
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        color: inputBg,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: inputBorder),
+                                      ),
+                                      child: TextField(
+                                        controller: _searchController,
+                                        focusNode: _searchFocusNode,
+                                        onSubmitted: _onBarcodeSubmitted,
+                                        onChanged: (val) => _applyProductFilter(),
+                                        style: TextStyle(fontSize: 13, color: textPrimary),
+                                        decoration: InputDecoration(
+                                          hintText: 'Search product / barcode / SKU [F1]',
+                                          hintStyle: TextStyle(fontSize: 12, color: textSecondary),
+                                          prefixIcon: Icon(Icons.search, size: 18, color: textSecondary),
+                                          suffixIcon: _searchController.text.isNotEmpty
+                                              ? IconButton(
+                                                  icon: const Icon(Icons.clear, size: 16),
+                                                  onPressed: () {
+                                                    _searchController.clear();
+                                                    _applyProductFilter();
+                                                  },
+                                                  tooltip: 'Clear',
+                                                )
+                                              : null,
+                                          border: InputBorder.none,
+                                          enabledBorder: InputBorder.none,
+                                          focusedBorder: InputBorder.none,
+                                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                                          isDense: true,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+
+                                  // Blue [ + ] -> Add Open / Custom Item on the fly
+                                  Tooltip(
+                                    message: 'Add Open / Custom Item (F11 / اوپن پراڈکٹ)',
+                                    child: InkWell(
+                                      onTap: _openCustomProductDialog,
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Container(
+                                        width: 38,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF4F46E5),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Icon(Icons.add, color: Colors.white, size: 20),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Row 2: Filter Pills & View Layout Switcher (Directly above products)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                border: Border(
+                                  bottom: BorderSide(color: borderColor, width: 0.8),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: [
+                                          _filterBtn(
+                                            icon: Icons.grid_view_outlined,
+                                            label: _selectedCategoryId != null
+                                                ? 'Category: ${_categories.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => Category(name: 'Category', code: '')).name}'
+                                                : 'Category',
+                                            count: _selectedCategoryId != null ? null : _categories.length,
+                                            isSelected: _selectedCategoryId != null,
+                                            onTap: _showCategoryFilterDialog,
+                                            onClear: _selectedCategoryId != null
+                                                ? () {
+                                                    setState(() => _selectedCategoryId = null);
+                                                    _applyProductFilter();
+                                                  }
+                                                : null,
+                                            isDark: isDark,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _filterBtn(
+                                            icon: Icons.branding_watermark_outlined,
+                                            label: _selectedBrandId != null
+                                                ? 'Brand: ${_brands.firstWhere((b) => b.id == _selectedBrandId, orElse: () => Brand(name: 'Brand')).name}'
+                                                : 'Brands',
+                                            count: _selectedBrandId != null ? null : _brands.length,
+                                            isSelected: _selectedBrandId != null,
+                                            onTap: _showBrandFilterDialog,
+                                            onClear: _selectedBrandId != null
+                                                ? () {
+                                                    setState(() => _selectedBrandId = null);
+                                                    _applyProductFilter();
+                                                  }
+                                                : null,
+                                            isDark: isDark,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _filterBtn(
+                                            icon: Icons.star_border,
+                                            label: 'Featured Products',
+                                            count: null,
+                                            isSelected: _filterFeatured,
+                                            onTap: () {
+                                              setState(() => _filterFeatured = !_filterFeatured);
+                                              _applyProductFilter();
+                                            },
+                                            isDark: isDark,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+
+                                  // Segmented Layout Switcher: [ ⊞ Grid ] [ List ]
+                                  Container(
+                                    height: 30,
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: inputBorder),
+                                    ),
                                     child: Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        _filterBtn(
-                                          icon: Icons.grid_view_outlined,
-                                          label: _selectedCategoryId != null
-                                              ? 'Category: ${_categories.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => Category(name: 'Category', code: '')).name}'
-                                              : 'Category',
-                                          count: _selectedCategoryId != null ? null : _categories.length,
-                                          isSelected: _selectedCategoryId != null,
-                                          onTap: _showCategoryFilterDialog,
-                                          onClear: _selectedCategoryId != null
-                                              ? () {
-                                                  setState(() => _selectedCategoryId = null);
-                                                  _applyProductFilter();
-                                                }
-                                              : null,
-                                          isDark: isDark,
+                                        // Grid View Button
+                                        Tooltip(
+                                          message: 'Grid View [F5]',
+                                          child: InkWell(
+                                            onTap: () {
+                                              if (!_isGridView) {
+                                                _toggleProductLayout();
+                                              }
+                                            },
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: _isGridView ? const Color(0xFF4F46E5) : Colors.transparent,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.grid_view_rounded,
+                                                    size: 13,
+                                                    color: _isGridView ? Colors.white : textSecondary,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Grid',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: _isGridView ? Colors.white : textSecondary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        _filterBtn(
-                                          icon: Icons.branding_watermark_outlined,
-                                          label: _selectedBrandId != null
-                                              ? 'Brand: ${_brands.firstWhere((b) => b.id == _selectedBrandId, orElse: () => Brand(name: 'Brand')).name}'
-                                              : 'Brands',
-                                          count: _selectedBrandId != null ? null : _brands.length,
-                                          isSelected: _selectedBrandId != null,
-                                          onTap: _showBrandFilterDialog,
-                                          onClear: _selectedBrandId != null
-                                              ? () {
-                                                  setState(() => _selectedBrandId = null);
-                                                  _applyProductFilter();
-                                                }
-                                              : null,
-                                          isDark: isDark,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        _filterBtn(
-                                          icon: Icons.star_border,
-                                          label: 'Featured Products',
-                                          count: null,
-                                          isSelected: _filterFeatured,
-                                          onTap: () {
-                                            setState(() => _filterFeatured = !_filterFeatured);
-                                            _applyProductFilter();
-                                          },
-                                          isDark: isDark,
+                                        const SizedBox(width: 2),
+
+                                        // List View Button
+                                        Tooltip(
+                                          message: 'List View [F5]',
+                                          child: InkWell(
+                                            onTap: () {
+                                              if (_isGridView) {
+                                                _toggleProductLayout();
+                                              }
+                                            },
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: !_isGridView ? const Color(0xFF4F46E5) : Colors.transparent,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.format_list_bulleted_rounded,
+                                                    size: 14,
+                                                    color: !_isGridView ? Colors.white : textSecondary,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'List',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: !_isGridView ? Colors.white : textSecondary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-
-                                // Segmented Layout Switcher: [ ⊞ Grid ] [ List ]
-                                Container(
-                                  height: 36,
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: inputBorder),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // Grid View Button
-                                      Tooltip(
-                                        message: 'Grid View [F5]',
-                                        child: InkWell(
-                                          onTap: () {
-                                            if (!_isGridView) {
-                                              _toggleProductLayout();
-                                            }
-                                          },
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                                            decoration: BoxDecoration(
-                                              color: _isGridView ? const Color(0xFF4F46E5) : Colors.transparent,
-                                              borderRadius: BorderRadius.circular(6),
-                                              boxShadow: _isGridView
-                                                  ? [BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.25), blurRadius: 4, offset: const Offset(0, 1))]
-                                                  : null,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.grid_view_rounded,
-                                                  size: 15,
-                                                  color: _isGridView ? Colors.white : textSecondary,
-                                                ),
-                                                const SizedBox(width: 5),
-                                                Text(
-                                                  'Grid',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: _isGridView ? Colors.white : textSecondary,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-
-                                      // List View Button
-                                      Tooltip(
-                                        message: 'List View [F5]',
-                                        child: InkWell(
-                                          onTap: () {
-                                            if (_isGridView) {
-                                              _toggleProductLayout();
-                                            }
-                                          },
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                                            decoration: BoxDecoration(
-                                              color: !_isGridView ? const Color(0xFF4F46E5) : Colors.transparent,
-                                              borderRadius: BorderRadius.circular(6),
-                                              boxShadow: !_isGridView
-                                                  ? [BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.25), blurRadius: 4, offset: const Offset(0, 1))]
-                                                  : null,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.format_list_bulleted_rounded,
-                                                  size: 16,
-                                                  color: !_isGridView ? Colors.white : textSecondary,
-                                                ),
-                                                const SizedBox(width: 5),
-                                                Text(
-                                                  'List',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: !_isGridView ? Colors.white : textSecondary,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 12),
 
                             // Switchable Product Layout: Grid OR List View
                             Expanded(
@@ -4356,6 +4376,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                 final double childAspectRatio = width >= 860 ? 0.78 : (width >= 560 ? 0.82 : 0.88);
 
                                                 return GridView.builder(
+                                                  padding: const EdgeInsets.all(10),
                                                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                                     crossAxisCount: crossAxisCount,
                                                     childAspectRatio: childAspectRatio,
@@ -4561,6 +4582,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                               },
                                             )
                                           : ListView.separated(
+                                              padding: const EdgeInsets.all(10),
                                               itemCount: _products.length,
                                               separatorBuilder: (_, __) => const SizedBox(height: 6),
                                               itemBuilder: (context, index) {
