@@ -43,7 +43,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   String _typeFilter = 'all'; // 'all', 'single', 'variable'
   String _search = '';
   bool _loading = true;
-  bool _maskCostPrice = false;
 
   // Pagination States
   int _currentPage = 1;
@@ -727,13 +726,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               constraints: BoxConstraints(minWidth: minWidth),
                               child: Table(
                                 columnWidths: const {
-                                  0: FlexColumnWidth(3.4), // Product Item & Type
+                                  0: FlexColumnWidth(3.6), // Product Item & Type
                                   1: FlexColumnWidth(1.8), // SKU & Barcode
-                                  2: FlexColumnWidth(1.9), // Category / Brand
-                                  3: FlexColumnWidth(1.3), // Cost Price
-                                  4: FlexColumnWidth(1.5), // Selling Price (Margin)
-                                  5: FlexColumnWidth(1.9), // Stock Quantity & Quick Stock In
-                                  6: FlexColumnWidth(1.7), // Actions
+                                  2: FlexColumnWidth(1.8), // Category / Brand
+                                  3: FlexColumnWidth(1.6), // Selling Price
+                                  4: FlexColumnWidth(2.0), // Stock Quantity & Quick Stock In
+                                  5: FlexColumnWidth(1.7), // Actions
                                 },
                                 children: [
                                   TableRow(
@@ -742,56 +740,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                       _th('Product Item', isDark: isDark),
                                       _th('SKU / Barcode', isDark: isDark),
                                       _th('Category / Brand', isDark: isDark),
-                                      Builder(
-                                        builder: (context) {
-                                          final user = AuthService.currentUser;
-                                          final isSuperAdmin = user?.isSuperAdmin == true || (user?.role.toLowerCase() == 'superadmin');
-                                          return Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  'Cost Price',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-                                                  ),
-                                                ),
-                                                if (isSuperAdmin) ...[
-                                                  const SizedBox(width: 4),
-                                                  Tooltip(
-                                                    message: _maskCostPrice ? 'Unhide Cost Prices' : 'Mask Cost Prices',
-                                                    child: InkWell(
-                                                      onTap: () => setState(() => _maskCostPrice = !_maskCostPrice),
-                                                      borderRadius: BorderRadius.circular(4),
-                                                      child: Padding(
-                                                        padding: const EdgeInsets.all(2),
-                                                        child: Icon(
-                                                          _maskCostPrice ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                                          size: 14,
-                                                          color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                      ),
                                       _th('Selling Price', isDark: isDark),
                                       _th('Current Stock', isDark: isDark),
                                       _th('Actions', alignRight: true, isDark: isDark),
                                     ],
                                   ),
                                   ...paginatedProducts.map((p) {
-                        final margin = p.purchasePrice > 0
-                            ? (((p.sellingPrice - p.purchasePrice) / p.purchasePrice) * 100)
-                            : 0.0;
-
                         return TableRow(
                           decoration: BoxDecoration(
                             border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
@@ -920,56 +874,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               ),
                             ),
 
-                            // Cost Price (Super Admin Authorization Protected)
-                            Builder(
-                              builder: (context) {
-                                final user = AuthService.currentUser;
-                                final isSuperAdmin = user?.isSuperAdmin == true || (user?.role.toLowerCase() == 'superadmin');
-                                final canViewCost = (isSuperAdmin || (user?.canViewCostPrice == true)) && !_maskCostPrice;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  child: canViewCost
-                                      ? Text(
-                                          '$currency${p.purchasePrice.toStringAsFixed(2)}',
-                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
-                                        )
-                                      : Tooltip(
-                                          message: isSuperAdmin
-                                              ? 'Cost price masked (Click Eye icon in table header to unhide)'
-                                              : 'Cost price masked (Super Admin Protected)',
-                                          child: Text(
-                                            '••••••',
-                                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2, color: isDark ? const Color(0xFF64748B) : Colors.grey),
-                                          ),
-                                        ),
-                                );
-                              },
-                            ),
-
-                            // Selling Price & Margin
-                            Builder(
-                              builder: (context) {
-                                final user = AuthService.currentUser;
-                                final isSuperAdmin = user?.isSuperAdmin == true || (user?.role.toLowerCase() == 'superadmin');
-                                final canViewCost = (isSuperAdmin || (user?.canViewCostPrice == true)) && !_maskCostPrice;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '$currency${p.sellingPrice.toStringAsFixed(2)}',
-                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
-                                      ),
-                                      if (canViewCost)
-                                        Text(
-                                          '+${margin.toStringAsFixed(1)}% margin',
-                                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
-                                        ),
-                                    ],
-                                  ),
-                                );
-                              },
+                            // Selling Price
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Text(
+                                '$currency${p.sellingPrice.toStringAsFixed(2)}',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
+                              ),
                             ),
 
                             // Stock Quantity & Alert Status

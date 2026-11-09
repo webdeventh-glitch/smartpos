@@ -24,6 +24,9 @@ class ProductDetailDialog extends StatefulWidget {
 
 class _ProductDetailDialogState extends State<ProductDetailDialog> {
   List<ProductVariation> _variations = [];
+  double _totalSold = 0.0;
+  double _totalTransferred = 0.0;
+  double _totalAdjusted = 0.0;
   bool _loading = true;
 
   @override
@@ -34,11 +37,53 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
 
   Future<void> _load() async {
     if (widget.product.id != null) {
-      final db = await DatabaseService.initialize();
-      final vars = await db.getProductVariations(widget.product.id!);
+      final dbService = await DatabaseService.initialize();
+      final vars = await dbService.getProductVariations(widget.product.id!);
+
+      // 1. Calculate total units sold
+      double sold = 0.0;
+      try {
+        final soldRes = await dbService.db.rawQuery(
+          "SELECT SUM(si.quantity) as total_sold FROM sale_items si JOIN sales s ON si.sale_id = s.id WHERE si.product_id = ? AND s.sale_status = 'final'",
+          [widget.product.id],
+        );
+        sold = (soldRes.first['total_sold'] as num?)?.toDouble() ?? 0.0;
+      } catch (_) {}
+
+      // 2. Calculate total transferred
+      double transferred = 0.0;
+      try {
+        final transfers = await dbService.getStockTransfers();
+        for (final t in transfers) {
+          if (t.status == 'completed') {
+            for (final item in t.getItems()) {
+              if (item.productId == widget.product.id) {
+                transferred += item.quantity;
+              }
+            }
+          }
+        }
+      } catch (_) {}
+
+      // 3. Calculate total adjusted
+      double adjusted = 0.0;
+      try {
+        final adjustments = await dbService.getStockAdjustments();
+        for (final a in adjustments) {
+          for (final item in a.getItems()) {
+            if (item.productId == widget.product.id) {
+              adjusted += item.quantity;
+            }
+          }
+        }
+      } catch (_) {}
+
       if (mounted) {
         setState(() {
           _variations = vars;
+          _totalSold = sold;
+          _totalTransferred = transferred;
+          _totalAdjusted = adjusted;
           _loading = false;
         });
       }
@@ -51,114 +96,59 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final p = widget.product;
-    final currency = widget.settings.currencySymbol;
+    final currency = widget.settings.currencySymbol.isNotEmpty ? widget.settings.currencySymbol : 'Rs';
     final margin = p.purchasePrice > 0
         ? (((p.sellingPrice - p.purchasePrice) / p.purchasePrice) * 100)
         : 0.0;
-    final unitProfit = p.sellingPrice - p.purchasePrice;
-    final totalInventoryValue = p.stockQuantity * p.sellingPrice;
-    final totalCostValue = p.stockQuantity * p.purchasePrice;
 
     final user = AuthService.currentUser;
     final isSuperAdmin = user?.isSuperAdmin == true || (user?.role.toLowerCase() == 'superadmin');
     final canViewCost = isSuperAdmin || (user?.canViewCostPrice == true);
+    final locationName = widget.settings.businessName.isNotEmpty ? widget.settings.businessName : 'Main Branch HQ';
+
+    const greenHeaderColor = Color(0xFF10B981);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final rowAltBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
 
     return Dialog(
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       surfaceTintColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: borderColor),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 780, maxHeight: 720),
+        constraints: const BoxConstraints(maxWidth: 960, maxHeight: 760),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Modal Header
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                border: Border(bottom: BorderSide(color: borderColor)),
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
-                    ),
-                    child: (p.imageColor != null && File(p.imageColor!).existsSync())
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.file(File(p.imageColor!), fit: BoxFit.cover),
-                          )
-                        : Icon(Icons.inventory_2_rounded, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5), size: 24),
-                  ),
-                  const SizedBox(width: 14),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                p.name,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: p.isVariable
-                                    ? (isDark ? const Color(0xFF581C87).withValues(alpha: 0.4) : const Color(0xFFF3E8FF))
-                                    : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5)),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: p.isVariable
-                                      ? (isDark ? const Color(0xFF7E22CE) : const Color(0xFFD8B4FE))
-                                      : (isDark ? const Color(0xFF047857) : const Color(0xFFA7F3D0)),
-                                ),
-                              ),
-                              child: Text(
-                                p.isVariable ? 'Variable Product' : 'Single Product',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: p.isVariable
-                                      ? (isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED))
-                                      : (isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'SKU: ${p.sku}  •  Barcode: ${p.barcode} (${p.barcodeType})',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      p.name,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.close_rounded, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                    onPressed: () => Navigator.pop(context),
+                  InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    ),
                   ),
                 ],
               ),
@@ -171,235 +161,314 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Top Overview Metrics Grid
+                    // Top Section: 3-column Specifications + Product Image
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Left: Specifications Grid
                         Expanded(
-                          child: _statPill(
-                            title: 'Purchase Cost',
-                            value: canViewCost ? '$currency${p.purchasePrice.toStringAsFixed(2)}' : '••••••',
-                            subtitle: canViewCost ? 'Default supplier cost' : 'Super Admin Protected',
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
-                            bgColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                            isDark: isDark,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Column 1
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _specField('SKU', p.sku, isDark),
+                                        const SizedBox(height: 8),
+                                        _specField('Brand', p.brandName.isNotEmpty ? p.brandName : 'Standard', isDark),
+                                        const SizedBox(height: 8),
+                                        _specField('Unit', p.unit, isDark),
+                                        const SizedBox(height: 8),
+                                        _specField('Barcode Type', p.barcodeType, isDark),
+                                        const SizedBox(height: 8),
+                                        _specField('Available in locations', locationName, isDark),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Column 2
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _specField('Category', p.categoryName, isDark),
+                                        const SizedBox(height: 8),
+                                        _specField('Sub category', 'None', isDark),
+                                        const SizedBox(height: 8),
+                                        _specField('Manage Stock?', 'Yes', isDark),
+                                        const SizedBox(height: 8),
+                                        _specField('Alert quantity', p.alertQuantity.toStringAsFixed(4), isDark),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Column 3
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _specField('Expires in', p.expiryDate?.isNotEmpty == true ? p.expiryDate! : 'Not Applicable', isDark),
+                                        const SizedBox(height: 8),
+                                        _specField('Applicable Tax', 'None', isDark),
+                                        const SizedBox(height: 8),
+                                        _specField('Selling Price Tax Type', 'Exclusive', isDark),
+                                        const SizedBox(height: 8),
+                                        _specField('Product Type', p.isVariable ? 'Variable' : 'Single', isDark),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              // Description / Additional details
+                              Text(
+                                p.warranty?.isNotEmpty == true
+                                    ? 'Warranty Policy: ${p.warranty!}'
+                                    : (p.batchNumber?.isNotEmpty == true ? 'Batch: ${p.batchNumber!}' : p.name),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _statPill(
-                            title: 'Selling Price',
-                            value: '$currency${p.sellingPrice.toStringAsFixed(2)}',
-                            subtitle: 'Retail list price',
-                            color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
-                            bgColor: isDark ? const Color(0xFF312E81).withValues(alpha: 0.3) : const Color(0xFFEEF2FF),
-                            isDark: isDark,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _statPill(
-                            title: 'Profit Margin',
-                            value: canViewCost ? '${margin.toStringAsFixed(1)}%' : '••••••',
-                            subtitle: canViewCost ? '+$currency${unitProfit.toStringAsFixed(2)} profit / unit' : 'Super Admin Protected',
-                            color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
-                            bgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFECFDF5),
-                            isDark: isDark,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _statPill(
-                            title: 'Stock in Hand',
-                            value: '${p.stockQuantity.toStringAsFixed(1)} ${p.unit}',
-                            subtitle: p.isOutOfStock
-                                ? 'Out of Stock'
-                                : (p.isLowStock ? 'Low Stock Warning' : 'Optimal Inventory'),
-                            color: p.isOutOfStock
-                                ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                : (p.isLowStock ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)) : (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))),
-                            bgColor: p.isOutOfStock
-                                ? (isDark ? const Color(0xFF450A0A).withValues(alpha: 0.4) : const Color(0xFFFEF2F2))
-                                : (p.isLowStock ? (isDark ? const Color(0xFF451A03).withValues(alpha: 0.4) : const Color(0xFFFFFBEB)) : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFF0FDF4))),
-                            isDark: isDark,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
 
-                    // Specification Details Card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'General Specifications',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(child: _specItem('Category', p.categoryName, isDark)),
-                              Expanded(child: _specItem('Brand', p.brandName, isDark)),
-                              Expanded(child: _specItem('Standard Unit', p.unit, isDark)),
-                              Expanded(child: _specItem('Alert Quantity', '${p.alertQuantity} ${p.unit}', isDark)),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _specItem(
-                                  'Warranty Policy',
-                                  p.warranty?.isNotEmpty == true ? p.warranty! : 'No Warranty',
-                                  isDark,
-                                ),
-                              ),
-                              Expanded(
-                                child: _specItem(
-                                  'Batch / Lot Number',
-                                  p.batchNumber?.isNotEmpty == true ? p.batchNumber! : 'N/A',
-                                  isDark,
-                                ),
-                              ),
-                              Expanded(
-                                child: _specItem(
-                                  'Expiry Date',
-                                  p.expiryDate?.isNotEmpty == true ? p.expiryDate! : 'N/A',
-                                  isDark,
-                                ),
-                              ),
-                              Expanded(
-                                child: _specItem(
-                                  'Bonus Scheme',
-                                  (p.bonusQty > 0) ? '+${p.bonusQty} Free Units' : 'None',
-                                  isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _specItem(
-                                  'Inventory Valuation (Cost)',
-                                  canViewCost ? '$currency${totalCostValue.toStringAsFixed(2)}' : '•••••• (Super Admin Protected)',
-                                  isDark,
-                                ),
-                              ),
-                              Expanded(
-                                child: _specItem(
-                                  'Inventory Valuation (Retail)',
-                                  '$currency${totalInventoryValue.toStringAsFixed(2)}',
-                                  isDark,
-                                ),
-                              ),
-                              Expanded(
-                                child: _specItem(
-                                  'Pack Multiplier',
-                                  '${p.packSize} units/pack',
-                                  isDark,
-                                ),
-                              ),
-                              Expanded(
-                                child: _specItem(
-                                  'Status',
-                                  p.isOutOfStock ? 'Out of Stock' : (p.isLowStock ? 'Low Stock' : 'Active'),
-                                  isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+                        const SizedBox(width: 24),
 
-                    // If Variable Product, Show Variations Matrix Table
-                    if (p.isVariable) ...[
-                      Text(
-                        'Product Variations & Sub-SKUs',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (_loading)
-                        const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
-                      else if (_variations.isEmpty)
+                        // Right: Square Image Container
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          width: 175,
+                          height: 175,
                           decoration: BoxDecoration(
                             color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                            border: Border.all(color: borderColor),
                           ),
-                          child: Text(
-                            'No variations recorded yet for this product.',
-                            style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                          ),
-                        )
-                      else
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
+                          child: (p.imageColor != null && File(p.imageColor!).existsSync())
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(7),
+                                  child: Image.file(File(p.imageColor!), fit: BoxFit.cover),
+                                )
+                              : Center(
+                                  child: Icon(
+                                    Icons.image_outlined,
+                                    size: 68,
+                                    color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Table 1: Pricing & Margin Table (Teal/Green header)
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: borderColor),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minWidth: 880),
                             child: Table(
+                              border: TableBorder(
+                                horizontalInside: BorderSide(color: borderColor),
+                                verticalInside: BorderSide(color: borderColor),
+                              ),
                               columnWidths: const {
-                                0: FlexColumnWidth(2.0),
-                                1: FlexColumnWidth(1.8),
-                                2: FlexColumnWidth(1.2),
-                                3: FlexColumnWidth(1.2),
-                                4: FlexColumnWidth(1.2),
+                                0: FlexColumnWidth(2.2), // Purchase Price (Exc. tax)
+                                1: FlexColumnWidth(2.2), // Purchase Price (Inc. tax)
+                                2: FlexColumnWidth(1.4), // Margin(%)
+                                3: FlexColumnWidth(2.2), // Selling Price (Exc. tax)
+                                4: FlexColumnWidth(2.2), // Selling Price (Inc. tax)
+                                5: FlexColumnWidth(1.6), // Variation Images
                               },
                               children: [
+                                // Green Table Header
                                 TableRow(
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                                  ),
+                                  decoration: const BoxDecoration(color: greenHeaderColor),
                                   children: [
-                                    _th('Variation / Attribute', isDark),
-                                    _th('Sub-SKU', isDark),
-                                    _th('Cost Price', isDark),
-                                    _th('Selling Price', isDark),
-                                    _th('Stock In Hand', isDark),
+                                    _tableHeaderCell('Default Purchase Price (Exc. tax)'),
+                                    _tableHeaderCell('Default Purchase Price (Inc. tax)'),
+                                    _tableHeaderCell('x Margin(%)'),
+                                    _tableHeaderCell('Default Selling Price (Exc. tax)'),
+                                    _tableHeaderCell('Default Selling Price (Inc. tax)'),
+                                    _tableHeaderCell('Variation Images'),
                                   ],
                                 ),
-                                ..._variations.map(
-                                  (v) => TableRow(
-                                    decoration: BoxDecoration(
-                                      border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                                // Main Product Row
+                                TableRow(
+                                  decoration: BoxDecoration(color: isDark ? const Color(0xFF1E293B) : Colors.white),
+                                  children: [
+                                    _tableBodyCell(
+                                      canViewCost ? '$currency ${p.purchasePrice.toStringAsFixed(2)}' : '••••••',
+                                      isDark: isDark,
                                     ),
-                                    children: [
-                                      _td(v.name, isBold: true, isDark: isDark),
-                                      _td(v.subSku, isDark: isDark),
-                                      _td(canViewCost ? '$currency${v.purchasePrice.toStringAsFixed(2)}' : '••••••', isDark: isDark),
-                                      _td('$currency${v.sellingPrice.toStringAsFixed(2)}', isPrimary: true, isDark: isDark),
-                                      _td('${v.stockQuantity.toStringAsFixed(1)} ${p.unit}', isDark: isDark),
-                                    ],
-                                  ),
+                                    _tableBodyCell(
+                                      canViewCost ? '$currency ${p.purchasePrice.toStringAsFixed(2)}' : '••••••',
+                                      isDark: isDark,
+                                    ),
+                                    _tableBodyCell(
+                                      canViewCost ? margin.toStringAsFixed(2) : '••••••',
+                                      isDark: isDark,
+                                    ),
+                                    _tableBodyCell(
+                                      '$currency ${p.sellingPrice.toStringAsFixed(2)}',
+                                      isDark: isDark,
+                                    ),
+                                    _tableBodyCell(
+                                      '$currency ${p.sellingPrice.toStringAsFixed(2)}',
+                                      isDark: isDark,
+                                    ),
+                                    _tableBodyImageCell(p.imageColor, isDark),
+                                  ],
                                 ),
+                                // Variation Rows (if variable product)
+                                if (p.isVariable && _variations.isNotEmpty)
+                                  ..._variations.map((v) {
+                                    final vMargin = v.purchasePrice > 0
+                                        ? (((v.sellingPrice - v.purchasePrice) / v.purchasePrice) * 100)
+                                        : 0.0;
+                                    return TableRow(
+                                      decoration: BoxDecoration(color: rowAltBg),
+                                      children: [
+                                        _tableBodyCell(
+                                          canViewCost ? '$currency ${v.purchasePrice.toStringAsFixed(2)}' : '••••••',
+                                          isDark: isDark,
+                                        ),
+                                        _tableBodyCell(
+                                          canViewCost ? '$currency ${v.purchasePrice.toStringAsFixed(2)}' : '••••••',
+                                          isDark: isDark,
+                                        ),
+                                        _tableBodyCell(
+                                          canViewCost ? vMargin.toStringAsFixed(2) : '••••••',
+                                          isDark: isDark,
+                                        ),
+                                        _tableBodyCell(
+                                          '$currency ${v.sellingPrice.toStringAsFixed(2)}',
+                                          isDark: isDark,
+                                        ),
+                                        _tableBodyCell(
+                                          '$currency ${v.sellingPrice.toStringAsFixed(2)}',
+                                          isDark: isDark,
+                                        ),
+                                        _tableBodyImageCell(p.imageColor, isDark),
+                                      ],
+                                    );
+                                  }),
                               ],
                             ),
                           ),
                         ),
-                    ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Section 2: Product Stock Details
+                    Text(
+                      'Product Stock Details',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Table 2: Product Stock Details Table (Teal/Green header)
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: borderColor),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minWidth: 880),
+                            child: Table(
+                              border: TableBorder(
+                                horizontalInside: BorderSide(color: borderColor),
+                                verticalInside: BorderSide(color: borderColor),
+                              ),
+                              columnWidths: const {
+                                0: FlexColumnWidth(1.2), // SKU
+                                1: FlexColumnWidth(2.3), // Product
+                                2: FlexColumnWidth(1.6), // Location
+                                3: FlexColumnWidth(1.4), // Unit Price
+                                4: FlexColumnWidth(1.3), // Current stock
+                                5: FlexColumnWidth(1.7), // Current Stock Value
+                                6: FlexColumnWidth(1.4), // Total unit sold
+                                7: FlexColumnWidth(1.5), // Total Unit Transfered
+                                8: FlexColumnWidth(1.4), // Total Unit Adjusted
+                              },
+                              children: [
+                                // Green Table Header
+                                TableRow(
+                                  decoration: const BoxDecoration(color: greenHeaderColor),
+                                  children: [
+                                    _tableHeaderCell('SKU'),
+                                    _tableHeaderCell('Product'),
+                                    _tableHeaderCell('Location'),
+                                    _tableHeaderCell('Unit Price'),
+                                    _tableHeaderCell('Current stock'),
+                                    _tableHeaderCell('Current Stock Value'),
+                                    _tableHeaderCell('Total unit sold'),
+                                    _tableHeaderCell('Total Unit Transfered'),
+                                    _tableHeaderCell('Total Unit Adjusted'),
+                                  ],
+                                ),
+                                // Main Stock Row
+                                TableRow(
+                                  decoration: BoxDecoration(color: isDark ? const Color(0xFF1E293B) : Colors.white),
+                                  children: [
+                                    _tableBodyCell(p.sku, isDark: isDark),
+                                    _tableBodyCell(p.name, isDark: isDark),
+                                    _tableBodyCell(locationName, isDark: isDark),
+                                    _tableBodyCell('$currency ${p.sellingPrice.toStringAsFixed(2)}', isDark: isDark),
+                                    _tableBodyCell('${p.stockQuantity.toStringAsFixed(2)}${p.unit}', isDark: isDark),
+                                    _tableBodyCell('$currency ${(p.stockQuantity * p.sellingPrice).toStringAsFixed(2)}', isDark: isDark),
+                                    _tableBodyCell('${_totalSold.toStringAsFixed(2)}${p.unit}', isDark: isDark),
+                                    _tableBodyCell('${_totalTransferred.toStringAsFixed(2)}${p.unit}', isDark: isDark),
+                                    _tableBodyCell('${_totalAdjusted.toStringAsFixed(2)}${p.unit}', isDark: isDark),
+                                  ],
+                                ),
+                                // Variation Stock Rows (if variable product)
+                                if (p.isVariable && _variations.isNotEmpty)
+                                  ..._variations.map((v) {
+                                    return TableRow(
+                                      decoration: BoxDecoration(color: rowAltBg),
+                                      children: [
+                                        _tableBodyCell(v.subSku, isDark: isDark),
+                                        _tableBodyCell('${p.name} - ${v.name}', isDark: isDark),
+                                        _tableBodyCell(locationName, isDark: isDark),
+                                        _tableBodyCell('$currency ${v.sellingPrice.toStringAsFixed(2)}', isDark: isDark),
+                                        _tableBodyCell('${v.stockQuantity.toStringAsFixed(2)}${p.unit}', isDark: isDark),
+                                        _tableBodyCell('$currency ${(v.stockQuantity * v.sellingPrice).toStringAsFixed(2)}', isDark: isDark),
+                                        _tableBodyCell('0.00${p.unit}', isDark: isDark),
+                                        _tableBodyCell('0.00${p.unit}', isDark: isDark),
+                                        _tableBodyCell('0.00${p.unit}', isDark: isDark),
+                                      ],
+                                    );
+                                  }),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -409,36 +478,38 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                border: Border(top: BorderSide(color: borderColor)),
                 color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (widget.onPrintLabels != null)
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B),
-                        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.qr_code_2_rounded, size: 18),
-                      label: const Text('Print Labels'),
-                      onPressed: () {
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2563EB),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                    icon: const Icon(Icons.print_rounded, size: 18),
+                    label: const Text('Print', style: TextStyle(fontWeight: FontWeight.w700)),
+                    onPressed: () {
+                      if (widget.onPrintLabels != null) {
                         Navigator.pop(context);
                         widget.onPrintLabels!();
-                      },
-                    ),
-                  const SizedBox(width: 10),
-                  if (widget.onEdit != null)
+                      }
+                    },
+                  ),
+                  if (widget.onEdit != null) ...[
+                    const SizedBox(width: 10),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4F46E5),
+                        backgroundColor: const Color(0xFF6366F1),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                       ),
                       icon: const Icon(Icons.edit_outlined, size: 17),
                       label: const Text('Edit Product', style: TextStyle(fontWeight: FontWeight.w700)),
@@ -447,10 +518,18 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                         widget.onEdit!();
                       },
                     ),
+                  ],
                   const SizedBox(width: 10),
-                  TextButton(
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1E293B),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
                     onPressed: () => Navigator.pop(context),
-                    child: Text('Close', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                    child: const Text('Close', style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -461,68 +540,81 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
     );
   }
 
-  Widget _statPill({
-    required String title,
-    required String value,
-    required String subtitle,
-    required Color color,
-    required Color bgColor,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _specField(String label, String value, bool isDark) {
+    return Text.rich(
+      TextSpan(
         children: [
-          Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade700)),
-          const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: color)),
-          const SizedBox(height: 2),
-          Text(subtitle, style: TextStyle(fontSize: 10, color: isDark ? const Color(0xFF64748B) : Colors.grey.shade600, fontWeight: FontWeight.w500)),
+          TextSpan(
+            text: '$label: ',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A),
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: TextStyle(
+              fontWeight: FontWeight.w400,
+              fontSize: 13,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _specItem(String label, String value, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w600)),
-        const SizedBox(height: 2),
-        Text(
-          value.isNotEmpty ? value : '-',
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1E293B)),
-        ),
-      ],
-    );
-  }
-
-  Widget _th(String text, bool isDark) {
+  Widget _tableHeaderCell(String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Text(
         text,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
       ),
     );
   }
 
-  Widget _td(String text, {bool isBold = false, bool isPrimary = false, required bool isDark}) {
+  Widget _tableBodyCell(String text, {required bool isDark}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       child: Text(
         text,
         style: TextStyle(
           fontSize: 12,
-          fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-          color: isPrimary ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)) : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
+          fontWeight: FontWeight.w500,
+          color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B),
         ),
+      ),
+    );
+  }
+
+  Widget _tableBodyImageCell(String? imagePath, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Center(
+        child: (imagePath != null && File(imagePath).existsSync())
+            ? Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: Image.file(File(imagePath), fit: BoxFit.cover),
+                ),
+              )
+            : Icon(
+                Icons.image_outlined,
+                size: 20,
+                color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+              ),
       ),
     );
   }
