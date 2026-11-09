@@ -4,8 +4,13 @@ import '../../services/database_service.dart';
 
 class ParkedSalesDialog extends StatefulWidget {
   final Function(ParkedSale) onResumeSale;
+  final String currencySymbol;
 
-  const ParkedSalesDialog({super.key, required this.onResumeSale});
+  const ParkedSalesDialog({
+    super.key,
+    required this.onResumeSale,
+    this.currencySymbol = 'Rs',
+  });
 
   @override
   State<ParkedSalesDialog> createState() => _ParkedSalesDialogState();
@@ -156,7 +161,7 @@ class _ParkedSalesDialogState extends State<ParkedSalesDialog> {
                                     ),
                                   ),
                                   Text(
-                                    '\$${p.total.toStringAsFixed(2)}',
+                                    '${widget.currencySymbol} ${p.total.toStringAsFixed(2)}',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w900,
                                       fontSize: 16,

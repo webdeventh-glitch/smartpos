@@ -2552,6 +2552,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     showDialog(
       context: context,
       builder: (_) => ParkedSalesDialog(
+        currencySymbol: widget.settings.currencySymbol,
         onResumeSale: (parked) {
           setState(() {
             _cart.clear();
