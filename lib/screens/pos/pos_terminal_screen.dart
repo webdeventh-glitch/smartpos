@@ -4372,16 +4372,24 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                           ? LayoutBuilder(
                                               builder: (context, constraints) {
                                                 final width = constraints.maxWidth;
-                                                final int crossAxisCount = width >= 860 ? 4 : (width >= 560 ? 3 : 2);
-                                                final double childAspectRatio = width >= 860 ? 0.78 : (width >= 560 ? 0.82 : 0.88);
+                                                // High-density responsive column count:
+                                                final int crossAxisCount = width >= 1100
+                                                    ? 6
+                                                    : (width >= 880
+                                                        ? 5
+                                                        : (width >= 660
+                                                            ? 4
+                                                            : (width >= 440 ? 3 : 2)));
+                                                // Fixed compact height so cards never stretch into giant blocks
+                                                const double cardHeight = 112.0;
 
                                                 return GridView.builder(
-                                                  padding: const EdgeInsets.all(10),
+                                                  padding: const EdgeInsets.all(8),
                                                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                                     crossAxisCount: crossAxisCount,
-                                                    childAspectRatio: childAspectRatio,
-                                                    crossAxisSpacing: 8,
-                                                    mainAxisSpacing: 8,
+                                                    mainAxisExtent: cardHeight,
+                                                    crossAxisSpacing: 6,
+                                                    mainAxisSpacing: 6,
                                                   ),
                                                   itemCount: _products.length,
                                                   itemBuilder: (context, index) {
@@ -4392,42 +4400,43 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
                                                     return Material(
                                                       color: cardBg,
-                                                      borderRadius: BorderRadius.circular(8),
+                                                      borderRadius: BorderRadius.circular(6),
                                                       elevation: 0,
                                                       clipBehavior: Clip.antiAlias,
                                                       child: InkWell(
                                                         onTap: () => _addToCart(p),
-                                                        borderRadius: BorderRadius.circular(8),
+                                                        borderRadius: BorderRadius.circular(6),
                                                         hoverColor: const Color(0xFF4F46E5).withOpacity(0.04),
                                                         child: Container(
-                                                          padding: const EdgeInsets.all(8),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
                                                           decoration: BoxDecoration(
-                                                            borderRadius: BorderRadius.circular(8),
+                                                            borderRadius: BorderRadius.circular(6),
                                                             border: Border.all(color: borderColor),
                                                           ),
                                                           child: Column(
                                                             crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                             children: [
                                                               // Top Row: Stock Badge & Unit
                                                               Row(
                                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                                 children: [
                                                                   Container(
-                                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
                                                                     decoration: BoxDecoration(
                                                                       color: isOutOfStock
                                                                           ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
                                                                           : (isLowStock
                                                                               ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
                                                                               : (isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7))),
-                                                                      borderRadius: BorderRadius.circular(4),
+                                                                      borderRadius: BorderRadius.circular(3),
                                                                     ),
                                                                     child: Text(
                                                                       isOutOfStock
                                                                           ? 'Out of stock'
-                                                                          : '${p.stockQuantity.toInt()} in stock',
+                                                                          : '${p.stockQuantity % 1 == 0 ? p.stockQuantity.toInt() : p.stockQuantity.toStringAsFixed(1)} in stock',
                                                                       style: TextStyle(
-                                                                        fontSize: 9,
+                                                                        fontSize: 8.5,
                                                                         fontWeight: FontWeight.bold,
                                                                         color: isOutOfStock
                                                                             ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
@@ -4441,113 +4450,100 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                     Flexible(
                                                                       child: Text(
                                                                         p.unit,
-                                                                        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600, color: textSecondary),
+                                                                        style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w600, color: textSecondary),
                                                                         overflow: TextOverflow.ellipsis,
                                                                       ),
                                                                     ),
                                                                 ],
                                                               ),
-                                                              const SizedBox(height: 6),
 
-                                                              // Thumbnail Graphic (Fixed height so it NEVER collides with text)
-                                                              Container(
-                                                                height: 38,
-                                                                alignment: Alignment.center,
-                                                                decoration: BoxDecoration(
-                                                                  color: subtleBg,
-                                                                  borderRadius: BorderRadius.circular(6),
-                                                                ),
-                                                                child: Icon(
-                                                                  Icons.inventory_2_outlined,
-                                                                  size: 22,
-                                                                  color: const Color(0xFF4F46E5).withOpacity(0.85),
-                                                                ),
-                                                              ),
-                                                              const SizedBox(height: 4),
-
-                                                              // Product Title & Details in Expanded so it adapts vertically without overlapping
+                                                              // Product Title & Details
                                                               Expanded(
-                                                                child: Column(
-                                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                                  children: [
-                                                                    Text(
-                                                                      p.name,
-                                                                      style: TextStyle(
-                                                                        fontWeight: FontWeight.bold,
-                                                                        fontSize: 11,
-                                                                        color: textPrimary,
-                                                                        height: 1.15,
+                                                                child: Padding(
+                                                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                                                  child: Column(
+                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                                    children: [
+                                                                      Text(
+                                                                        p.name,
+                                                                        style: TextStyle(
+                                                                          fontWeight: FontWeight.bold,
+                                                                          fontSize: 11,
+                                                                          color: textPrimary,
+                                                                          height: 1.15,
+                                                                        ),
+                                                                        maxLines: 2,
+                                                                        overflow: TextOverflow.ellipsis,
                                                                       ),
-                                                                      textAlign: TextAlign.center,
-                                                                      maxLines: 2,
-                                                                      overflow: TextOverflow.ellipsis,
-                                                                    ),
-                                                                    const SizedBox(height: 2),
-                                                                    Text(
-                                                                      '(${p.sku})',
-                                                                      style: TextStyle(fontSize: 9.5, color: textSecondary),
-                                                                      textAlign: TextAlign.center,
-                                                                      maxLines: 1,
-                                                                      overflow: TextOverflow.ellipsis,
-                                                                    ),
-                                                                    if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
-                                                                      Builder(
-                                                                        builder: (_) {
-                                                                          final pExp = _getDaysUntilExpiry(p.expiryDate);
-                                                                          if (pExp == null || pExp > 60) return const SizedBox.shrink();
-                                                                          final isExp = pExp < 0;
-                                                                          return Padding(
-                                                                            padding: const EdgeInsets.only(top: 2),
-                                                                            child: Container(
-                                                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                                              decoration: BoxDecoration(
-                                                                                color: isExp
-                                                                                    ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
-                                                                                    : (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7)),
-                                                                                borderRadius: BorderRadius.circular(3),
-                                                                                border: Border.all(
-                                                                                  color: isExp ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
-                                                                                  width: 0.5,
-                                                                                ),
-                                                                              ),
-                                                                              child: Row(
-                                                                                mainAxisSize: MainAxisSize.min,
-                                                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                                                children: [
-                                                                                  Icon(
-                                                                                    isExp ? Icons.cancel_outlined : Icons.warning_amber_rounded,
-                                                                                    size: 9,
+                                                                      const SizedBox(height: 1),
+                                                                      Row(
+                                                                        children: [
+                                                                          Expanded(
+                                                                            child: Text(
+                                                                              p.sku,
+                                                                              style: TextStyle(fontSize: 9, color: textSecondary),
+                                                                              maxLines: 1,
+                                                                              overflow: TextOverflow.ellipsis,
+                                                                            ),
+                                                                          ),
+                                                                          if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
+                                                                            Builder(
+                                                                              builder: (_) {
+                                                                                final pExp = _getDaysUntilExpiry(p.expiryDate);
+                                                                                if (pExp == null || pExp > 60) return const SizedBox.shrink();
+                                                                                final isExp = pExp < 0;
+                                                                                return Container(
+                                                                                  margin: const EdgeInsets.only(left: 3),
+                                                                                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                                                                                  decoration: BoxDecoration(
                                                                                     color: isExp
-                                                                                        ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                                        : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
-                                                                                  ),
-                                                                                  const SizedBox(width: 2),
-                                                                                  Text(
-                                                                                    isExp ? 'Expired' : 'Exp: ${pExp}d',
-                                                                                    textAlign: TextAlign.center,
-                                                                                    style: TextStyle(
-                                                                                      fontSize: 8.5,
-                                                                                      fontWeight: FontWeight.bold,
-                                                                                      color: isExp
-                                                                                          ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                                          : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
+                                                                                        ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
+                                                                                        : (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7)),
+                                                                                    borderRadius: BorderRadius.circular(3),
+                                                                                    border: Border.all(
+                                                                                      color: isExp ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+                                                                                      width: 0.5,
                                                                                     ),
                                                                                   ),
-                                                                                ],
-                                                                              ),
+                                                                                  child: Row(
+                                                                                    mainAxisSize: MainAxisSize.min,
+                                                                                    children: [
+                                                                                      Icon(
+                                                                                        isExp ? Icons.cancel_outlined : Icons.warning_amber_rounded,
+                                                                                        size: 8,
+                                                                                        color: isExp
+                                                                                            ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                                            : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
+                                                                                      ),
+                                                                                      const SizedBox(width: 1.5),
+                                                                                      Text(
+                                                                                        isExp ? 'Expired' : '${pExp}d',
+                                                                                        style: TextStyle(
+                                                                                          fontSize: 7.5,
+                                                                                          fontWeight: FontWeight.bold,
+                                                                                          color: isExp
+                                                                                              ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                                              : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
+                                                                                        ),
+                                                                                      ),
+                                                                                    ],
+                                                                                  ),
+                                                                                );
+                                                                              },
                                                                             ),
-                                                                          );
-                                                                        },
+                                                                          ],
+                                                                        ],
                                                                       ),
                                                                     ],
-                                                                  ],
+                                                                  ),
                                                                 ),
                                                               ),
-                                                              const SizedBox(height: 4),
 
                                                               // Price & Add Button Row
                                                               Row(
                                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                crossAxisAlignment: CrossAxisAlignment.center,
                                                                 children: [
                                                                   Expanded(
                                                                     child: Text(
@@ -4555,20 +4551,20 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                       style: TextStyle(
                                                                         fontSize: 11.5,
                                                                         fontWeight: FontWeight.w900,
-                                                                        color: textPrimary,
+                                                                        color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
                                                                       ),
                                                                       maxLines: 1,
                                                                       overflow: TextOverflow.ellipsis,
                                                                     ),
                                                                   ),
                                                                   Container(
-                                                                    width: 22,
-                                                                    height: 22,
+                                                                    width: 20,
+                                                                    height: 20,
                                                                     decoration: BoxDecoration(
                                                                       color: const Color(0xFF4F46E5),
                                                                       borderRadius: BorderRadius.circular(4),
                                                                     ),
-                                                                    child: const Icon(Icons.add, color: Colors.white, size: 14),
+                                                                    child: const Icon(Icons.add, color: Colors.white, size: 13),
                                                                   ),
                                                                 ],
                                                               ),
