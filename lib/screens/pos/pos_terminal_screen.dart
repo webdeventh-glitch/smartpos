@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -19,6 +20,7 @@ import 'recent_transactions_dialog.dart';
 import '../../widgets/calculator_dialog.dart';
 import '../products/add_product_dialog.dart';
 import '../../services/currency_rate_service.dart';
+import '../../services/number_to_words_service.dart';
 
 class PosTerminalScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -79,12 +81,93 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
   // Wholesale vs Retail Counter Pricing Tier
   bool _isWholesaleMode = false;
   final double _wholesaleDiscountPercent = 10.0;
+  late String _wordsLanguage;
 
   @override
   void initState() {
     super.initState();
+    _wordsLanguage = widget.settings.totalInWordsLanguage.isNotEmpty
+        ? widget.settings.totalInWordsLanguage
+        : 'ur';
     _dbFuture = DatabaseService.initialize();
     _loadInitialData();
+  }
+
+  void _showWordsLanguageDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.translate, color: Color(0xFF10B981), size: 22),
+            const SizedBox(width: 10),
+            Text(
+              'Amount in Words Language',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 340,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: NumberToWordsService.supportedLanguages.map((lang) {
+              final isSelected = _wordsLanguage == lang.code;
+              final previewVal = _grandTotal > 0 ? _grandTotal : 865.0;
+              final previewText = NumberToWordsService.convert(
+                previewVal,
+                language: lang.code,
+                currencySymbol: widget.settings.currencySymbol,
+                currencyCode: widget.settings.currencyCode,
+              );
+              return ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                tileColor: isSelected
+                    ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
+                    : null,
+                title: Text(
+                  '${lang.name} (${lang.nativeName})',
+                  style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? const Color(0xFF16A34A) : (isDark ? Colors.white : Colors.black87),
+                  ),
+                ),
+                subtitle: Text(
+                  previewText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isSelected
+                        ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF15803D))
+                        : (isDark ? Colors.white60 : Colors.black54),
+                  ),
+                ),
+                trailing: isSelected
+                    ? const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20)
+                    : null,
+                onTap: () async {
+                  setState(() => _wordsLanguage = lang.code);
+                  Navigator.pop(ctx);
+                  try {
+                    final db = await _dbFuture;
+                    final updated = widget.settings.copyWith(totalInWordsLanguage: lang.code);
+                    await db.updateBusinessSettings(updated);
+                  } catch (_) {}
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _loadInitialData() async {
@@ -4036,35 +4119,83 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                   ),
                                   const SizedBox(width: 16),
 
-                                  // Big Green TOTAL PAYABLE Box
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF064E3B) : Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: isDark ? const Color(0xFF059669) : const Color(0xFF86EFAC)),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          'TOTAL PAYABLE',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w900,
-                                            color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A),
-                                            letterSpacing: 0.8,
-                                          ),
+                                  // Big Green TOTAL PAYABLE Box with Words (Urdu & Multi-language)
+                                  InkWell(
+                                    onTap: _showWordsLanguageDialog,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Tooltip(
+                                      message: 'Click to change words language (${_wordsLanguage.toUpperCase()}) / زبان تبدیل کریں',
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                        constraints: const BoxConstraints(minWidth: 160),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF064E3B) : Colors.white,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: isDark ? const Color(0xFF059669) : const Color(0xFF86EFAC)),
                                         ),
-                                        Text(
-                                          _grandTotal.toStringAsFixed(2),
-                                          style: TextStyle(
-                                            fontSize: 26,
-                                            fontWeight: FontWeight.w900,
-                                            color: isDark ? Colors.white : const Color(0xFF15803D),
-                                          ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.translate,
+                                                  size: 11,
+                                                  color: isDark ? const Color(0xFF6EE7B7).withOpacity(0.8) : const Color(0xFF16A34A).withOpacity(0.8),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'TOTAL PAYABLE',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w900,
+                                                    color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A),
+                                                    letterSpacing: 0.8,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Text(
+                                              _grandTotal.toStringAsFixed(2),
+                                              style: TextStyle(
+                                                fontSize: 26,
+                                                fontWeight: FontWeight.w900,
+                                                color: isDark ? Colors.white : const Color(0xFF15803D),
+                                                height: 1.1,
+                                              ),
+                                            ),
+                                            if (_grandTotal > 0)
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 2),
+                                                child: ConstrainedBox(
+                                                  constraints: const BoxConstraints(maxWidth: 240),
+                                                  child: Text(
+                                                    NumberToWordsService.convert(
+                                                      _grandTotal,
+                                                      language: _wordsLanguage,
+                                                      currencySymbol: widget.settings.currencySymbol,
+                                                      currencyCode: widget.settings.currencyCode,
+                                                    ),
+                                                    textDirection: NumberToWordsService.isRtl(_wordsLanguage)
+                                                        ? ui.TextDirection.rtl
+                                                        : ui.TextDirection.ltr,
+                                                    textAlign: TextAlign.right,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      height: 1.2,
+                                                      color: isDark ? const Color(0xFFA7F3D0) : const Color(0xFF166534),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
                                         ),
-                                      ],
+                                      ),
                                     ),
                                   ),
                                 ],

@@ -1040,6 +1040,7 @@ class DatabaseService {
     try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_sku_on_invoice INTEGER DEFAULT 1"); } catch (_) {}
     try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_warranty_on_invoice INTEGER DEFAULT 1"); } catch (_) {}
     try { await db.execute("ALTER TABLE business_settings ADD COLUMN show_total_in_words INTEGER DEFAULT 1"); } catch (_) {}
+    try { await db.execute("ALTER TABLE business_settings ADD COLUMN total_in_words_language TEXT DEFAULT 'ur'"); } catch (_) {}
     try { await db.execute("ALTER TABLE business_settings ADD COLUMN invoice_heading TEXT DEFAULT 'TAX INVOICE'"); } catch (_) {}
     try { await db.execute("UPDATE business_settings SET sync_branch_id = 1 WHERE sync_branch_id IS NULL OR sync_branch_id = ''"); } catch (_) {}
     try { await db.execute("ALTER TABLE sales ADD COLUMN sale_type TEXT DEFAULT 'final'"); } catch (_) {}
@@ -1448,6 +1449,7 @@ class DatabaseService {
         show_sku_on_invoice INTEGER DEFAULT 1,
         show_warranty_on_invoice INTEGER DEFAULT 1,
         show_total_in_words INTEGER DEFAULT 1,
+        total_in_words_language TEXT DEFAULT 'ur',
         invoice_heading TEXT DEFAULT 'TAX INVOICE'
       )
     ''');

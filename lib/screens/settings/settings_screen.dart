@@ -13,6 +13,7 @@ import '../../services/regional_data_service.dart';
 import '../../services/currency_rate_service.dart';
 import '../../services/print_service.dart';
 import '../../services/ai_assistant_service.dart';
+import '../../services/number_to_words_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -125,6 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   bool _showSkuOnInvoice = true;
   bool _showWarrantyOnInvoice = true;
   bool _showTotalInWords = true;
+  String _totalInWordsLanguage = 'ur';
   late TextEditingController _invoiceHeadingCtrl;
 
   // Multi-Currency & Live Exchange Rates State
@@ -211,6 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _showSkuOnInvoice = s.showSkuOnInvoice;
     _showWarrantyOnInvoice = s.showWarrantyOnInvoice;
     _showTotalInWords = s.showTotalInWords;
+    _totalInWordsLanguage = s.totalInWordsLanguage.isNotEmpty ? s.totalInWordsLanguage : 'ur';
     _invoiceHeadingCtrl = TextEditingController(text: s.invoiceHeading.isNotEmpty ? s.invoiceHeading : 'TAX INVOICE');
 
     _multiCurrencyEnabled = s.multiCurrencyEnabled;
@@ -1051,6 +1054,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         showSkuOnInvoice: _showSkuOnInvoice,
         showWarrantyOnInvoice: _showWarrantyOnInvoice,
         showTotalInWords: _showTotalInWords,
+        totalInWordsLanguage: _totalInWordsLanguage,
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
       );
 
@@ -5419,6 +5423,52 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ),
             ],
           ),
+          if (_showTotalInWords) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.translate, size: 20, color: Color(0xFF10B981)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Amount in Words Language (الفاظ کی زبان)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        Text(
+                          'Choose language to spell totals on POS screen and print receipts (Urdu, Pashto, Farsi, etc.)',
+                          style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  DropdownButton<String>(
+                    value: _totalInWordsLanguage,
+                    underline: const SizedBox(),
+                    items: NumberToWordsService.supportedLanguages.map((l) {
+                      return DropdownMenuItem<String>(
+                        value: l.code,
+                        child: Text('${l.name} (${l.nativeName})', style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _totalInWordsLanguage = val);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 16),
@@ -5571,6 +5621,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         showSkuOnInvoice: _showSkuOnInvoice,
         showWarrantyOnInvoice: _showWarrantyOnInvoice,
         showTotalInWords: _showTotalInWords,
+        totalInWordsLanguage: _totalInWordsLanguage,
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
       );
 
@@ -5673,6 +5724,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       showSkuOnInvoice: _showSkuOnInvoice,
       showWarrantyOnInvoice: _showWarrantyOnInvoice,
       showTotalInWords: _showTotalInWords,
+      totalInWordsLanguage: _totalInWordsLanguage,
       invoiceHeading: _invoiceHeadingCtrl.text.trim(),
     );
 
@@ -5707,6 +5759,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       showSkuOnInvoice: _showSkuOnInvoice,
       showWarrantyOnInvoice: _showWarrantyOnInvoice,
       showTotalInWords: _showTotalInWords,
+      totalInWordsLanguage: _totalInWordsLanguage,
       invoiceHeading: _invoiceHeadingCtrl.text.trim(),
     );
 
@@ -6411,7 +6464,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
         if (_showTotalInWords) ...[
           const SizedBox(height: 2),
-          const Text('Words: One Thousand Eight Hundred Fifty Only', style: TextStyle(fontFamily: 'monospace', fontStyle: FontStyle.italic, fontSize: 7.5, color: Colors.black87)),
+          Text(
+            'Words: ${NumberToWordsService.convert(1850.0, language: _totalInWordsLanguage, currencySymbol: _currencySymCtrl.text)}',
+            style: const TextStyle(fontFamily: 'monospace', fontStyle: FontStyle.italic, fontSize: 7.5, color: Colors.black87),
+          ),
         ],
 
         if (_showCustomerBalanceOnReceipt) ...[

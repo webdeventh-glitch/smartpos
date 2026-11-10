@@ -12,6 +12,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
 
 $ProjectRoot = Resolve-Path "$PSScriptRoot\.."
 $ReleaseDir = Join-Path $ProjectRoot "build\windows\x64\runner\Release"

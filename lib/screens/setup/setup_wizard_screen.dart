@@ -8,6 +8,7 @@ import '../../services/qulop_service.dart';
 import '../../services/mysql_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../services/currency_rate_service.dart';
+import '../../services/number_to_words_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class SetupWizardScreen extends StatefulWidget {
@@ -50,6 +51,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   String? _logoPath;
   String _timeZone = 'Asia/Karachi';
   CurrencyInfo? _selectedCurrency;
+  String _totalInWordsLanguage = 'ur';
 
   // Selected Industry Preset (Strict Single Business Mode - ایک وقت میں صرف ایک کاروبار)
   String _selectedPreset = 'universal';
@@ -120,6 +122,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     _timeZone = widget.settings.timeZone.isNotEmpty ? widget.settings.timeZone : 'Asia/Karachi';
     _selectedCurrency = RegionalDataService.findCurrency(_currencyCodeCtrl.text) ??
         RegionalDataService.findCurrency('PKR');
+    _totalInWordsLanguage = widget.settings.totalInWordsLanguage.isNotEmpty
+        ? widget.settings.totalInWordsLanguage
+        : 'ur';
 
     // Parse business industry preset (Single exclusive selection from 16 models)
     final bType = widget.settings.businessType.toLowerCase();
@@ -521,6 +526,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         logoPath: _logoPath ?? '',
         isConfigured: true,
         multiCurrencyEnabled: true,
+        showTotalInWords: true,
+        totalInWordsLanguage: _totalInWordsLanguage,
         exchangeRatesJson: CurrencyRateService.encodeRatesJson(
           CurrencyRateService.defaultRatesForBase(_currencyCodeCtrl.text.trim().isNotEmpty ? _currencyCodeCtrl.text.trim() : 'PKR'),
         ),
@@ -1751,6 +1758,86 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 14),
+
+        // Primary Language for Totals & Receipts (الفاظ کی زبان)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.translate, color: Color(0xFF10B981), size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _fieldLabel('Language for Totals & Invoices (الفاظ کی زبان) *', isDark),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('Setup', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Choose primary language for invoice totals in words (Urdu, Pashto, Farsi, English, Spanish, Dutch)',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              DropdownButton<String>(
+                value: _totalInWordsLanguage,
+                underline: const SizedBox(),
+                borderRadius: BorderRadius.circular(8),
+                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                items: NumberToWordsService.supportedLanguages.map((lang) {
+                  return DropdownMenuItem<String>(
+                    value: lang.code,
+                    child: Text(
+                      '${lang.name} (${lang.nativeName})',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _totalInWordsLanguage = val);
+                },
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 14),
 

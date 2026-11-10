@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
+import 'number_to_words_service.dart';
 
 class PrintService {
   /// Opens Windows print dialog via an optimized, print-ready HTML page
@@ -754,40 +755,19 @@ class PrintService {
 ''';
   }
 
-  /// Converts numeric amounts into Pakistani English Rupee words (Crore, Lakh, Thousand)
-  static String numberToWords(double amount) {
-    if (amount <= 0) return 'Zero';
-    final units = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
-      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-    final tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-    String convertBelowThousand(int n) {
-      if (n == 0) return '';
-      if (n < 20) return units[n];
-      if (n < 100) return '${tens[n ~/ 10]}${n % 10 != 0 ? ' ${units[n % 10]}' : ''}';
-      return '${units[n ~/ 100]} Hundred${n % 100 != 0 ? ' and ${convertBelowThousand(n % 100)}' : ''}';
-    }
-
-    int intPart = amount.floor();
-    if (intPart == 0) return 'Zero';
-
-    final parts = <String>[];
-    if (intPart >= 10000000) {
-      parts.add('${convertBelowThousand(intPart ~/ 10000000)} Crore');
-      intPart %= 10000000;
-    }
-    if (intPart >= 100000) {
-      parts.add('${convertBelowThousand(intPart ~/ 100000)} Lakh');
-      intPart %= 100000;
-    }
-    if (intPart >= 1000) {
-      parts.add('${convertBelowThousand(intPart ~/ 1000)} Thousand');
-      intPart %= 1000;
-    }
-    if (intPart > 0) {
-      parts.add(convertBelowThousand(intPart));
-    }
-    return '${parts.join(' ')} Only';
+  /// Converts numeric amounts into written words using NumberToWordsService
+  static String numberToWords(
+    double amount, {
+    String language = 'en',
+    String? currencySymbol,
+    String? currencyCode,
+  }) {
+    return NumberToWordsService.convert(
+      amount,
+      language: language,
+      currencySymbol: currencySymbol,
+      currencyCode: currencyCode,
+    );
   }
 
   /// Full 9-Column Boxed A4 Agency Invoice (Pixel-perfect match with Preview dialog)
@@ -1078,7 +1058,7 @@ class PrintService {
     <!-- Numbers of Products & Amount in Words -->
     <div class="words-bar">
       <div class="bold">Numbers of Products: &nbsp;${items.length}</div>
-      ${showWords ? '<div style="font-style: italic;">Amount in Words: ' + numberToWords(sale.totalAmount) + '</div>' : ''}
+      ${showWords ? '<div style="font-style: italic;">Amount in Words: ' + numberToWords(sale.totalAmount, language: settings.totalInWordsLanguage, currencySymbol: settings.currencySymbol, currencyCode: settings.currencyCode) + '</div>' : ''}
     </div>
 
     ${(!isWalkIn && settings.showCustomerBalanceOnReceipt) ? '''

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
 import '../../services/print_service.dart';
+import '../../services/number_to_words_service.dart';
 
 class ReceiptDialog extends StatefulWidget {
   final Sale sale;
@@ -39,38 +40,12 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
   }
 
   String _numberToWords(double amount) {
-    if (amount <= 0) return 'Zero';
-    final units = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
-      'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-    final tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-    String convertBelowThousand(int n) {
-      if (n == 0) return '';
-      if (n < 20) return units[n];
-      if (n < 100) return '${tens[n ~/ 10]}${n % 10 != 0 ? ' ${units[n % 10]}' : ''}';
-      return '${units[n ~/ 100]} Hundred${n % 100 != 0 ? ' and ${convertBelowThousand(n % 100)}' : ''}';
-    }
-
-    int intPart = amount.floor();
-    if (intPart == 0) return 'Zero';
-
-    final parts = <String>[];
-    if (intPart >= 10000000) {
-      parts.add('${convertBelowThousand(intPart ~/ 10000000)} Crore');
-      intPart %= 10000000;
-    }
-    if (intPart >= 100000) {
-      parts.add('${convertBelowThousand(intPart ~/ 100000)} Lakh');
-      intPart %= 100000;
-    }
-    if (intPart >= 1000) {
-      parts.add('${convertBelowThousand(intPart ~/ 1000)} Thousand');
-      intPart %= 1000;
-    }
-    if (intPart > 0) {
-      parts.add(convertBelowThousand(intPart));
-    }
-    return '${parts.join(' ')} Only';
+    return NumberToWordsService.convert(
+      amount,
+      language: widget.settings.totalInWordsLanguage,
+      currencySymbol: widget.settings.currencySymbol,
+      currencyCode: widget.settings.currencyCode,
+    );
   }
 
   String _generateWhatsAppInvoiceText() {

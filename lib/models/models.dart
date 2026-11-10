@@ -241,6 +241,7 @@ class BusinessSettings {
   final bool showSkuOnInvoice;
   final bool showWarrantyOnInvoice;
   final bool showTotalInWords;
+  final String totalInWordsLanguage;
   final String invoiceHeading;
 
   BusinessSettings({
@@ -318,6 +319,7 @@ class BusinessSettings {
     this.showSkuOnInvoice = true,
     this.showWarrantyOnInvoice = true,
     this.showTotalInWords = true,
+    this.totalInWordsLanguage = 'ur',
     this.invoiceHeading = 'TAX INVOICE',
   });
 
@@ -747,6 +749,7 @@ class BusinessSettings {
     bool? showSkuOnInvoice,
     bool? showWarrantyOnInvoice,
     bool? showTotalInWords,
+    String? totalInWordsLanguage,
     String? invoiceHeading,
   }) {
     return BusinessSettings(
@@ -830,6 +833,7 @@ class BusinessSettings {
       showWarrantyOnInvoice:
           showWarrantyOnInvoice ?? this.showWarrantyOnInvoice,
       showTotalInWords: showTotalInWords ?? this.showTotalInWords,
+      totalInWordsLanguage: totalInWordsLanguage ?? this.totalInWordsLanguage,
       invoiceHeading: invoiceHeading ?? this.invoiceHeading,
     );
   }
@@ -909,6 +913,7 @@ class BusinessSettings {
         'show_sku_on_invoice': showSkuOnInvoice ? 1 : 0,
         'show_warranty_on_invoice': showWarrantyOnInvoice ? 1 : 0,
         'show_total_in_words': showTotalInWords ? 1 : 0,
+        'total_in_words_language': totalInWordsLanguage,
         'invoice_heading': invoiceHeading,
       };
 
@@ -997,6 +1002,7 @@ class BusinessSettings {
         showSkuOnInvoice: _asBool(map['show_sku_on_invoice'], true),
         showWarrantyOnInvoice: _asBool(map['show_warranty_on_invoice'], true),
         showTotalInWords: _asBool(map['show_total_in_words'], true),
+        totalInWordsLanguage: _asString(map['total_in_words_language'], 'ur'),
         invoiceHeading: _asString(map['invoice_heading'], 'TAX INVOICE'),
       );
 }

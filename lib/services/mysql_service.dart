@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:mysql_client_plus/mysql_client_plus.dart';
+import 'package:path/path.dart' as p;
 import '../models/models.dart';
 import 'database_service.dart';
 
@@ -17,6 +19,99 @@ class MySqlService {
     return h;
   }
 
+  /// Scans all local drives (C:, D:, E:, F:, etc.) for Laragon, XAMPP, or standalone MySQL installations
+  /// and automatically launches mysqld if it is not currently responding on port 3306.
+  static Future<bool> tryAutoStartLocalMySql() async {
+    if (!Platform.isWindows) return false;
+
+    // 1. Quick probe to see if port 3306 is already actively listening
+    try {
+      final socket = await Socket.connect('127.0.0.1', 3306, timeout: const Duration(milliseconds: 350));
+      await socket.close();
+      return true; // MySQL is already online and responding!
+    } catch (_) {
+      // 3306 is not listening, proceed to scan all drives
+    }
+
+    const driveLetters = ['C', 'D', 'E', 'F', 'G'];
+    final candidateDirs = <Directory>[];
+
+    for (final drive in driveLetters) {
+      // 1. Laragon MySQL bin folders (e.g. C:\laragon\bin\mysql\mysql-8.0.30-winx64, D:\laragon\bin\mysql\...)
+      final laragonMysql = Directory('$drive:\\laragon\\bin\\mysql');
+      if (laragonMysql.existsSync()) {
+        try {
+          for (final entity in laragonMysql.listSync()) {
+            if (entity is Directory) {
+              candidateDirs.add(entity);
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 2. XAMPP MySQL bin folder
+      final xamppMysql = Directory('$drive:\\xampp\\mysql');
+      if (xamppMysql.existsSync()) {
+        candidateDirs.add(xamppMysql);
+      }
+
+      // 3. Official MySQL Server in Program Files
+      final progFiles = Directory('$drive:\\Program Files\\MySQL');
+      if (progFiles.existsSync()) {
+        try {
+          for (final entity in progFiles.listSync()) {
+            if (entity is Directory && entity.path.toLowerCase().contains('server')) {
+              candidateDirs.add(entity);
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 4. Standalone drive-root mysql (e.g. C:\mysql, D:\mysql)
+      final rootMysql = Directory('$drive:\\mysql');
+      if (rootMysql.existsSync()) {
+        candidateDirs.add(rootMysql);
+      }
+    }
+
+    // Try starting mysqld from candidates
+    for (final dir in candidateDirs) {
+      final mysqld = File(p.join(dir.path, 'bin', 'mysqld.exe'));
+      if (mysqld.existsSync()) {
+        final myIni = File(p.join(dir.path, 'my.ini'));
+        final args = <String>[];
+        if (myIni.existsSync()) {
+          args.add('--defaults-file=${myIni.path}');
+        }
+        args.add('--standalone');
+
+        try {
+          debugPrint('[SmartPOS] Auto-starting MySQL engine from ${mysqld.path}...');
+          await Process.start(
+            mysqld.path,
+            args,
+            mode: ProcessStartMode.detached,
+          );
+
+          // Wait up to 3.5 seconds for MySQL port to open
+          for (int i = 0; i < 7; i++) {
+            await Future.delayed(const Duration(milliseconds: 500));
+            try {
+              final testSocket = await Socket.connect('127.0.0.1', 3306, timeout: const Duration(milliseconds: 400));
+              await testSocket.close();
+              debugPrint('[SmartPOS] MySQL successfully started and responding on port 3306!');
+              return true;
+            } catch (_) {}
+          }
+        } catch (e) {
+          debugPrint('[SmartPOS] Error launching mysqld: $e');
+        }
+      }
+    }
+
+    return false;
+  }
+
   /// Test connection to MySQL server with authentication credentials
   static Future<Map<String, dynamic>> testConnection({
     required String host,
@@ -29,6 +124,9 @@ class MySqlService {
     try {
       final sw = Stopwatch()..start();
       final targetHost = normalizeHost(host);
+      if (targetHost == '127.0.0.1') {
+        await tryAutoStartLocalMySql();
+      }
       conn = await MySQLConnection.createConnection(
         host: targetHost,
         port: port,
@@ -160,20 +258,36 @@ class MySqlService {
   }) async {
     if (!settings.isMySql) return;
 
+    final targetHost = normalizeHost(settings.dbHost);
+    if (targetHost == '127.0.0.1') {
+      await tryAutoStartLocalMySql();
+    }
+
     MySQLConnection? conn;
     try {
       final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
       conn = await MySQLConnection.createConnection(
-        host: normalizeHost(settings.dbHost),
+        host: targetHost,
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
         userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
         password: settings.dbPassword,
-        databaseName: safeDbName,
         secure: false,
       );
       await conn.connect();
       isMySqlOnline.value = true;
-      connectionStatus.value = 'Connected ($safeDbName)';
+
+      // Select database or alias
+      final dbRes = await conn.execute("SHOW DATABASES LIKE '$safeDbName'");
+      String activeDb = safeDbName;
+      if (dbRes.rows.isEmpty) {
+        final alias = safeDbName == 'smartpos' ? 'smart_pos_db' : 'smartpos';
+        final aliasRes = await conn.execute("SHOW DATABASES LIKE '$alias'");
+        if (aliasRes.rows.isNotEmpty) {
+          activeDb = alias;
+        }
+      }
+      await conn.execute("USE `$activeDb`");
+      connectionStatus.value = 'Connected ($activeDb)';
 
       // Auto-flush pending sync queue
       await flushPendingQueue(conn, localDb);
@@ -195,24 +309,45 @@ class MySqlService {
   static Future<bool> isMySqlDatabaseConfigured(BusinessSettings settings) async {
     if (!settings.isMySql) return true;
 
+    final targetHost = normalizeHost(settings.dbHost);
+    if (targetHost == '127.0.0.1') {
+      await tryAutoStartLocalMySql();
+    }
+
     MySQLConnection? conn;
     try {
       final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
+      // Connect to server without database first so missing DB doesn't trigger handshake error
       conn = await MySQLConnection.createConnection(
-        host: normalizeHost(settings.dbHost),
+        host: targetHost,
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
         userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
         password: settings.dbPassword,
-        databaseName: safeDbName,
         secure: false,
       );
       await conn.connect();
+      isMySqlOnline.value = true;
+
+      // Check if target database or alias exists
+      final dbCheck = await conn.execute("SHOW DATABASES LIKE '$safeDbName'");
+      String activeDb = safeDbName;
+      if (dbCheck.rows.isEmpty) {
+        final alias = safeDbName == 'smartpos' ? 'smart_pos_db' : 'smartpos';
+        final aliasCheck = await conn.execute("SHOW DATABASES LIKE '$alias'");
+        if (aliasCheck.rows.isNotEmpty) {
+          activeDb = alias;
+        } else {
+          connectionStatus.value = 'Uninitialized (Database $safeDbName missing)';
+          return false;
+        }
+      }
+
+      await conn.execute("USE `$activeDb`");
 
       // Check if business_settings table exists
       final res = await conn.execute("SHOW TABLES LIKE 'business_settings'");
       if (res.rows.isEmpty) {
-        isMySqlOnline.value = true;
-        connectionStatus.value = 'Uninitialized (0 tables in $safeDbName)';
+        connectionStatus.value = 'Uninitialized (0 tables in $activeDb)';
         return false;
       }
 
@@ -221,8 +356,7 @@ class MySqlService {
         return false;
       }
 
-      isMySqlOnline.value = true;
-      connectionStatus.value = 'Active ($safeDbName @ ${settings.dbHost})';
+      connectionStatus.value = 'Active ($activeDb @ ${settings.dbHost})';
       return true;
     } catch (e) {
       debugPrint('MySqlService isMySqlDatabaseConfigured notice: $e');
@@ -245,19 +379,34 @@ class MySqlService {
   }) async {
     if (!settings.isMySql) return;
 
+    final targetHost = normalizeHost(settings.dbHost);
+    if (targetHost == '127.0.0.1') {
+      await tryAutoStartLocalMySql();
+    }
+
     MySQLConnection? conn;
     DatabaseService.suppressSync = true;
     try {
       final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
       conn = await MySQLConnection.createConnection(
-        host: normalizeHost(settings.dbHost),
+        host: targetHost,
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
         userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
         password: settings.dbPassword,
-        databaseName: safeDbName,
         secure: false,
       );
       await conn.connect();
+
+      final dbRes = await conn.execute("SHOW DATABASES LIKE '$safeDbName'");
+      String activeDb = safeDbName;
+      if (dbRes.rows.isEmpty) {
+        final alias = safeDbName == 'smartpos' ? 'smart_pos_db' : 'smartpos';
+        final aliasRes = await conn.execute("SHOW DATABASES LIKE '$alias'");
+        if (aliasRes.rows.isNotEmpty) {
+          activeDb = alias;
+        }
+      }
+      await conn.execute("USE `$activeDb`");
 
       // Pull products
       try {
@@ -913,6 +1062,7 @@ class MySqlService {
         `show_sku_on_invoice` TINYINT(1) DEFAULT 1,
         `show_warranty_on_invoice` TINYINT(1) DEFAULT 1,
         `show_total_in_words` TINYINT(1) DEFAULT 1,
+        `total_in_words_language` VARCHAR(20) DEFAULT 'ur',
         `invoice_heading` VARCHAR(150) DEFAULT 'TAX INVOICE',
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
