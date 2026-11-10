@@ -129,10 +129,17 @@ class _SmartSidebarState extends State<SmartSidebar> {
   }
 
   String? _getLocalizedSubtitle(String title, String? defaultUrduSubtitle) {
-    final lang = (widget.settings?.totalInWordsLanguage ?? 'en').toLowerCase().trim();
-    if (lang == 'en') return null; // In English, DO NOT show secondary language labels!
+    // If secondary language is disabled (unchecked), ONLY show the primary language!
+    final enableSecondary = widget.settings?.enableSecondaryLanguage ?? false;
+    if (!enableSecondary) return null;
 
-    if (lang == 'fa') {
+    final primary = (widget.settings?.totalInWordsLanguage ?? 'en').toLowerCase().trim();
+    final sec = (widget.settings?.secondaryLanguage ?? 'ur').toLowerCase().trim();
+
+    // If secondary is same as primary, don't show duplicate
+    if (sec == primary) return null;
+
+    if (sec == 'fa') {
       const farsiSubtitles = {
         'Dashboard': 'داشبورد اصلی',
         'POS Terminal': 'ترمینال فروش',
@@ -157,7 +164,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
       return farsiSubtitles[title] ?? defaultUrduSubtitle;
     }
 
-    if (lang == 'ps') {
+    if (sec == 'ps') {
       const pashtoSubtitles = {
         'Dashboard': 'مرکزي ډشبورډ',
         'POS Terminal': 'د خرڅلاو ترمینل',
@@ -182,8 +189,62 @@ class _SmartSidebarState extends State<SmartSidebar> {
       return pashtoSubtitles[title] ?? defaultUrduSubtitle;
     }
 
-    if (lang == 'ur') {
+    if (sec == 'ur') {
       return defaultUrduSubtitle;
+    }
+
+    if (sec == 'es') {
+      const spanishSubtitles = {
+        'Dashboard': 'Panel Principal',
+        'POS Terminal': 'Terminal POS',
+        'Products': 'Productos e Inventario',
+        'Stock Transfers': 'Transferencias',
+        'Stock Adjustments': 'Ajustes de Stock',
+        'Sales': 'Ventas y Facturas',
+        'Purchases': 'Compras y Pedidos',
+        'Expenses': 'Gastos y Caja Chica',
+        'Contacts': 'Clientes y Proveedores',
+        'User Management': 'Usuarios y Permisos',
+        'Reports': 'Informes y Finanzas',
+        'SMS & WhatsApp Alerts': 'Alertas y Mensajes',
+        'Settings': 'Configuración',
+        'Business Settings': 'Ajustes del Negocio',
+        'Payment Accounts': 'Cuentas de Pago',
+        'Annual Fiscal Closing': 'Cierre Fiscal Anual',
+        'Cloud & MySQL Sync': 'Sincronización Cloud',
+        'Modular Features': 'Módulos',
+        'Specialized Industry Modules': 'Módulos Especiales',
+      };
+      return spanishSubtitles[title] ?? defaultUrduSubtitle;
+    }
+
+    if (sec == 'nl') {
+      const dutchSubtitles = {
+        'Dashboard': 'Hoofddashboard',
+        'POS Terminal': 'Kassasysteem POS',
+        'Products': 'Producten en Voorraad',
+        'Stock Transfers': 'Voorraadoverdracht',
+        'Stock Adjustments': 'Voorraadcorrecties',
+        'Sales': 'Verkopen en Facturen',
+        'Purchases': 'Inkopen en Bestellingen',
+        'Expenses': 'Uitgaven en Kasboek',
+        'Contacts': 'Klanten en Leveranciers',
+        'User Management': 'Gebruikersbeheer',
+        'Reports': 'Rapporten en Financiën',
+        'SMS & WhatsApp Alerts': 'Notificaties',
+        'Settings': 'Instellingen',
+        'Business Settings': 'Bedrijfsinstellingen',
+        'Payment Accounts': 'Betaalrekeningen',
+        'Annual Fiscal Closing': 'Fiscaal Jaarafsluiting',
+        'Cloud & MySQL Sync': 'Cloud & MySQL Sync',
+        'Modular Features': 'Modules',
+        'Specialized Industry Modules': 'Branchemodules',
+      };
+      return dutchSubtitles[title] ?? defaultUrduSubtitle;
+    }
+
+    if (sec == 'en') {
+      return title;
     }
 
     return null;

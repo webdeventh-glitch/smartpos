@@ -1162,74 +1162,84 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     final String badgeLabel;
     final List<Map<String, dynamic>> presets;
 
+    final enSec = widget.settings.enableSecondaryLanguage;
+
     if (isWeight) {
-      dlgTitle = 'Adjust Weight (تولنے والا وزن)';
-      dlgSubTitle = 'ترازو وزن • ${item.product.name}';
+      dlgTitle = enSec ? 'Adjust Weight (تولنے والا وزن)' : 'Adjust Weight';
+      dlgSubTitle = enSec ? 'ترازو وزن • ${item.product.name}' : 'Weight Scale • ${item.product.name}';
       dlgIcon = Icons.scale_rounded;
       dlgColor = const Color(0xFFD97706);
-      inputLabel = 'Enter Weight in ${item.product.unit.isNotEmpty ? item.product.unit : "Kg"} (اعشاریہ وزن مثلاً 1.5, 0.50)';
-      badgeLabel = 'Weighed / Weight Scale (تولنے والا وزن)';
+      inputLabel = enSec
+          ? 'Enter Weight in ${item.product.unit.isNotEmpty ? item.product.unit : "Kg"} (اعشاریہ وزن مثلاً 1.5, 0.50)'
+          : 'Enter Weight in ${item.product.unit.isNotEmpty ? item.product.unit : "Kg"} (e.g. 1.5, 0.50)';
+      badgeLabel = enSec ? 'Weighed / Weight Scale (تولنے والا وزن)' : 'Weighed / Weight Scale';
       presets = [
-        {'label': '0.25 (Pao / پاؤ)', 'val': 0.25},
-        {'label': '0.50 (Aadha / آدھا کلو)', 'val': 0.50},
-        {'label': '0.75 (3 Pao / تین پاؤ)', 'val': 0.75},
-        {'label': '1.0 (1 Kg / کلو)', 'val': 1.0},
-        {'label': '1.5 (ڈیڑھ کلو)', 'val': 1.5},
+        {'label': enSec ? '0.25 (Pao / پاؤ)' : '0.25 (Pao)', 'val': 0.25},
+        {'label': enSec ? '0.50 (Aadha / آدھا کلو)' : '0.50 (Half Kg)', 'val': 0.50},
+        {'label': enSec ? '0.75 (3 Pao / تین پاؤ)' : '0.75 (3 Pao)', 'val': 0.75},
+        {'label': enSec ? '1.0 (1 Kg / کلو)' : '1.0 (1 Kg)', 'val': 1.0},
+        {'label': enSec ? '1.5 (ڈیڑھ کلو)' : '1.5 (1.5 Kg)', 'val': 1.5},
         {'label': '2.0 (2 Kg)', 'val': 2.0},
-        {'label': '2.5 (ڈھائی کلو)', 'val': 2.5},
-        {'label': '5.0 (Dhari / دھڑی)', 'val': 5.0},
+        {'label': enSec ? '2.5 (ڈھائی کلو)' : '2.5 (2.5 Kg)', 'val': 2.5},
+        {'label': enSec ? '5.0 (Dhari / دھڑی)' : '5.0 (Dhari 5Kg)', 'val': 5.0},
         {'label': '10.0 (10 Kg)', 'val': 10.0},
-        {'label': '20.0 (آدھا من)', 'val': 20.0},
-        {'label': '40.0 (Mann / من)', 'val': 40.0},
+        {'label': enSec ? '20.0 (آدھا من)' : '20.0 (Half Mann)', 'val': 20.0},
+        {'label': enSec ? '40.0 (Mann / من)' : '40.0 (Mann 40Kg)', 'val': 40.0},
       ];
     } else if (isMeasurement) {
-      dlgTitle = 'Adjust Measurement (پیمائش / لمبائی)';
-      dlgSubTitle = 'کپڑا / پائپ / تار کی لمبائی • ${item.product.name}';
+      dlgTitle = enSec ? 'Adjust Measurement (پیمائش / لمبائی)' : 'Adjust Measurement';
+      dlgSubTitle = enSec ? 'کپڑا / پائپ / تار کی لمبائی • ${item.product.name}' : 'Length / Fabric / Cable • ${item.product.name}';
       dlgIcon = Icons.straighten_rounded;
       dlgColor = const Color(0xFF0D9488);
-      inputLabel = 'Enter Length in ${item.product.unit.isNotEmpty ? item.product.unit : "Meter"} (میٹر / گز / فٹ)';
-      badgeLabel = 'Measurement / Fabric (پیمائش والے یونٹس)';
+      inputLabel = enSec
+          ? 'Enter Length in ${item.product.unit.isNotEmpty ? item.product.unit : "Meter"} (میٹر / گز / فٹ)'
+          : 'Enter Length in ${item.product.unit.isNotEmpty ? item.product.unit : "Meter"} (Meter, Yard, Feet)';
+      badgeLabel = enSec ? 'Measurement / Fabric (پیمائش والے یونٹس)' : 'Measurement / Fabric';
       presets = [
-        {'label': '0.50 (آدھا میٹر)', 'val': 0.50},
-        {'label': '1.0 (1 میٹر)', 'val': 1.0},
-        {'label': '1.5 (ڈیڑھ میٹر)', 'val': 1.5},
-        {'label': '2.0 (2 میٹر)', 'val': 2.0},
-        {'label': '2.25 (شلوار 2¼m)', 'val': 2.25},
-        {'label': '2.50 (سوٹ / قمیض 2½m)', 'val': 2.50},
-        {'label': '3.0 (3 میٹر)', 'val': 3.0},
-        {'label': '4.0 (فل مردانہ سوٹ / 4m)', 'val': 4.0},
-        {'label': '4.50 (بڑا سوٹ / 4½m)', 'val': 4.50},
-        {'label': '5.0 (5 میٹر)', 'val': 5.0},
-        {'label': '10.0 (10 میٹر)', 'val': 10.0},
-        {'label': '25.0 (تھان / Roll)', 'val': 25.0},
+        {'label': enSec ? '0.50 (آدھا میٹر)' : '0.50 (0.5 Meter)', 'val': 0.50},
+        {'label': enSec ? '1.0 (1 میٹر)' : '1.0 (1 Meter)', 'val': 1.0},
+        {'label': enSec ? '1.5 (ڈیڑھ میٹر)' : '1.5 (1.5 Meter)', 'val': 1.5},
+        {'label': enSec ? '2.0 (2 میٹر)' : '2.0 (2 Meters)', 'val': 2.0},
+        {'label': '2.25 (2¼m)', 'val': 2.25},
+        {'label': '2.50 (2½m)', 'val': 2.50},
+        {'label': enSec ? '3.0 (3 میٹر)' : '3.0 (3 Meters)', 'val': 3.0},
+        {'label': '4.0 (4 Meters)', 'val': 4.0},
+        {'label': '4.50 (4½ Meters)', 'val': 4.50},
+        {'label': enSec ? '5.0 (5 میٹر)' : '5.0 (5 Meters)', 'val': 5.0},
+        {'label': enSec ? '10.0 (10 میٹر)' : '10.0 (10 Meters)', 'val': 10.0},
+        {'label': '25.0 (Roll / Thaan)', 'val': 25.0},
       ];
     } else if (isLiquid) {
-      dlgTitle = 'Adjust Volume (مائع / لیٹر درج کریں)';
-      dlgSubTitle = 'دودھ / آئل / مائع حجم • ${item.product.name}';
+      dlgTitle = enSec ? 'Adjust Volume (مائع / لیٹر درج کریں)' : 'Adjust Volume';
+      dlgSubTitle = enSec ? 'دودھ / آئل / مائع حجم • ${item.product.name}' : 'Liquid Volume • ${item.product.name}';
       dlgIcon = Icons.water_drop_outlined;
       dlgColor = const Color(0xFF0284C7);
-      inputLabel = 'Enter Volume in ${item.product.unit.isNotEmpty ? item.product.unit : "Liter"} (لیٹر / ملی لیٹر)';
-      badgeLabel = 'Liquid Volume (مائع حجم والے یونٹس)';
+      inputLabel = enSec
+          ? 'Enter Volume in ${item.product.unit.isNotEmpty ? item.product.unit : "Liter"} (لیٹر / ملی لیٹر)'
+          : 'Enter Volume in ${item.product.unit.isNotEmpty ? item.product.unit : "Liter"} (Liter / Milliliter)';
+      badgeLabel = enSec ? 'Liquid Volume (مائع حجم والے یونٹس)' : 'Liquid Volume';
       presets = [
-        {'label': '0.25 (پاؤ / 250ml)', 'val': 0.25},
-        {'label': '0.50 (آدھا لیٹر / 500ml)', 'val': 0.50},
-        {'label': '0.75 (تین پاؤ / 750ml)', 'val': 0.75},
-        {'label': '1.0 (1 لیٹر)', 'val': 1.0},
-        {'label': '1.5 (ڈیڑھ لیٹر)', 'val': 1.5},
-        {'label': '2.0 (2 لیٹر)', 'val': 2.0},
-        {'label': '2.5 (ڈھائی لیٹر)', 'val': 2.5},
-        {'label': '5.0 (گیلن / Can)', 'val': 5.0},
-        {'label': '10.0 (10 لیٹر)', 'val': 10.0},
-        {'label': '16.0 (گھی ٹن 16L)', 'val': 16.0},
+        {'label': enSec ? '0.25 (پاؤ / 250ml)' : '0.25 (250ml)', 'val': 0.25},
+        {'label': enSec ? '0.50 (آدھا لیٹر / 500ml)' : '0.50 (500ml)', 'val': 0.50},
+        {'label': enSec ? '0.75 (تین پاؤ / 750ml)' : '0.75 (750ml)', 'val': 0.75},
+        {'label': enSec ? '1.0 (1 لیٹر)' : '1.0 (1 Liter)', 'val': 1.0},
+        {'label': enSec ? '1.5 (ڈیڑھ لیٹر)' : '1.5 (1.5 Liter)', 'val': 1.5},
+        {'label': enSec ? '2.0 (2 لیٹر)' : '2.0 (2 Liters)', 'val': 2.0},
+        {'label': enSec ? '2.5 (ڈھائی لیٹر)' : '2.5 (2.5 Liters)', 'val': 2.5},
+        {'label': '5.0 (Gallon / 5L)', 'val': 5.0},
+        {'label': enSec ? '10.0 (10 لیٹر)' : '10.0 (10 Liters)', 'val': 10.0},
+        {'label': '16.0 (Tin / 16L)', 'val': 16.0},
       ];
     } else {
       // Discrete / Count Units: Pieces, Boxes, Packs, Strips, Tablets, Cartons, Dozens, Bottles, etc.
-      dlgTitle = 'Adjust Quantity (تعداد / مقدار درج کریں)';
-      dlgSubTitle = 'گنتی / تعداد • ${item.product.name}';
+      dlgTitle = enSec ? 'Adjust Quantity (تعداد / مقدار درج کریں)' : 'Adjust Quantity';
+      dlgSubTitle = enSec ? 'گنتی / تعداد • ${item.product.name}' : 'Quantity / Count • ${item.product.name}';
       dlgIcon = Icons.inventory_2_outlined;
       dlgColor = const Color(0xFF4F46E5);
-      inputLabel = 'Enter Quantity in ${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"} (تعداد درج کریں)';
-      badgeLabel = 'Count / Discrete Item (گنتی و تعداد والے یونٹس)';
+      inputLabel = enSec
+          ? 'Enter Quantity in ${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"} (تعداد درج کریں)'
+          : 'Enter Quantity in ${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"}';
+      badgeLabel = enSec ? 'Count / Discrete Item (گنتی و تعداد والے یونٹس)' : 'Count / Discrete Item';
       presets = [
         {'label': '1', 'val': 1.0},
         {'label': '2', 'val': 2.0},
@@ -1318,7 +1328,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Unit of Measure (یونٹ)', style: TextStyle(fontSize: 10, color: textSecondary)),
+                              Text(
+                                widget.settings.enableSecondaryLanguage ? 'Unit of Measure (یونٹ)' : 'Unit of Measure',
+                                style: TextStyle(fontSize: 10, color: textSecondary),
+                              ),
                               Text(item.selectedUnitName ?? (item.product.unit.isNotEmpty ? item.product.unit : 'Standard Unit'),
                                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
                             ],
@@ -1355,8 +1368,12 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Change Active Selling Unit (یونٹ تبدیل کریں):',
-                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary)),
+                              Text(
+                                widget.settings.enableSecondaryLanguage
+                                    ? 'Change Active Selling Unit (یونٹ تبدیل کریں):'
+                                    : 'Change Active Selling Unit:',
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary),
+                              ),
                               const SizedBox(height: 6),
                               Wrap(
                                 spacing: 6,
@@ -2388,8 +2405,12 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
   void _quickCashCheckout() {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('کارٹ خالی ہے! پہلے بل میں پروڈکٹس شامل کریں۔ (Cart is empty! Add products first)'),
+        SnackBar(
+          content: Text(
+            widget.settings.enableSecondaryLanguage
+                ? 'کارٹ خالی ہے! پہلے بل میں پروڈکٹس شامل کریں۔ (Cart is empty! Add products first)'
+                : 'Cart is empty! Please add products first.',
+          ),
           backgroundColor: Colors.orange,
           duration: Duration(seconds: 2),
         ),
@@ -2424,10 +2445,15 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         builder: (ctx, setModalState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Row(
-            children: const [
-              Icon(Icons.credit_card_rounded, color: Color(0xFF4338CA), size: 24),
-              SizedBox(width: 8),
-              Text('کارڈ ادائیگی (Debit / Credit Card)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            children: [
+              const Icon(Icons.credit_card_rounded, color: Color(0xFF4338CA), size: 24),
+              const SizedBox(width: 8),
+              Text(
+                widget.settings.enableSecondaryLanguage
+                    ? 'کارڈ ادائیگی (Debit / Credit Card)'
+                    : 'Card Payment (Debit / Credit Card)',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           content: SingleChildScrollView(
@@ -2445,13 +2471,15 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                       border: Border.all(color: const Color(0xFFF59E0B)),
                     ),
                     child: Row(
-                      children: const [
-                        Icon(Icons.cloud_off_rounded, color: Color(0xFFB45309), size: 20),
-                        SizedBox(width: 8),
+                      children: [
+                        const Icon(Icons.cloud_off_rounded, color: Color(0xFFB45309), size: 20),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'سسٹم آف لائن موڈ میں ہے۔ بیرونی بینک EDC مشین سے کارڈ سوائپ کریں اور تصدیقی سلپ نمبر / Auth Code درج کریں۔',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF78350F), fontWeight: FontWeight.w600),
+                            widget.settings.enableSecondaryLanguage
+                                ? 'سسٹم آف لائن موڈ میں ہے۔ بیرونی بینک EDC مشین سے کارڈ سوائپ کریں اور تصدیقی سلپ نمبر / Auth Code درج کریں۔'
+                                : 'Offline Mode: Swipe or tap card on external bank EDC POS machine, then enter authorization slip number below.',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF78350F), fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
@@ -2462,7 +2490,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
                 ),
                 const SizedBox(height: 12),
-                const Text('بینک مشین سلپ نمبر / Auth Code:*', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                Text(
+                  widget.settings.enableSecondaryLanguage ? 'بینک مشین سلپ نمبر / Auth Code:*' : 'Bank Slip # / Auth Code:*',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
                 TextField(
                   controller: cardRefCtrl,
@@ -2474,7 +2505,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text('کارڈ نیٹ ورک:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                Text(
+                  widget.settings.enableSecondaryLanguage ? 'کارڈ نیٹ ورک:' : 'Card Network:',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
                   value: selectedCardType,
@@ -2498,7 +2532,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('کینسل (Cancel)'),
+              child: Text(widget.settings.enableSecondaryLanguage ? 'کینسل (Cancel)' : 'Cancel'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -2509,8 +2543,12 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                 final ref = cardRefCtrl.text.trim();
                 if (isOffline && ref.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('آف لائن موڈ میں بینک مشین کا سلپ نمبر / Auth Code درج کرنا ضروری ہے۔'),
+                    SnackBar(
+                      content: Text(
+                        widget.settings.enableSecondaryLanguage
+                            ? 'آف لائن موڈ میں بینک مشین کا سلپ نمبر / Auth Code درج کرنا ضروری ہے۔'
+                            : 'Slip # or Auth Code is required for card checkout.',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -2526,7 +2564,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                   note: ref.isNotEmpty ? 'Card Payment ($selectedCardType) - Auth/Slip #$ref' : 'Card Payment ($selectedCardType)',
                 );
               },
-              child: const Text('کارڈ ادائیگی مکمل کریں'),
+              child: Text(widget.settings.enableSecondaryLanguage ? 'کارڈ ادائیگی مکمل کریں' : 'Complete Card Payment'),
             ),
           ],
         ),
@@ -2548,20 +2586,27 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Row(
-            children: const [
-              Icon(Icons.block_rounded, color: Colors.red, size: 24),
-              SizedBox(width: 8),
-              Text('واک اِن کسٹمر کو ادھار سیل ممنوع ہے', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            children: [
+              const Icon(Icons.block_rounded, color: Colors.red, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                widget.settings.enableSecondaryLanguage
+                    ? 'واک اِن کسٹمر کو ادھار سیل ممنوع ہے'
+                    : 'Credit Sale Not Allowed for Walk-in Customer',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
-          content: const Text(
-            'واک اِن (Walk-in / Cash Customer) کا کھاتہ درج نہیں ہوتا، لہٰذا کریڈٹ / ادھار سیل کی اجازت نہیں ہے۔\n\nاگر کسٹمر ادھار پر سامان خرید رہا ہے تو برائے مہربانی اس کا باقاعدہ رجسٹرڈ کھاتہ منتخب کریں یا نیا کسٹمر اکاؤنٹ شامل کریں۔',
-            style: TextStyle(fontSize: 13, height: 1.4),
+          content: Text(
+            widget.settings.enableSecondaryLanguage
+                ? 'واک اِن (Walk-in / Cash Customer) کا کھاتہ درج نہیں ہوتا، لہٰذا کریڈٹ / ادھار سیل کی اجازت نہیں ہے۔\n\nاگر کسٹمر ادھار پر سامان خرید رہا ہے تو برائے مہربانی اس کا باقاعدہ رجسٹرڈ کھاتہ منتخب کریں یا نیا کسٹمر اکاؤنٹ شامل کریں۔'
+                : 'Walk-in cash customers do not have a credit ledger account. Credit sales require a registered customer account.\n\nPlease select an existing customer account (F3) or register a new customer to proceed with this credit sale.',
+            style: const TextStyle(fontSize: 13, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('کینسل (Cancel)'),
+              child: Text(widget.settings.enableSecondaryLanguage ? 'کینسل (Cancel)' : 'Cancel'),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -2569,7 +2614,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.person_search, size: 16),
-              label: const Text('کسٹمر کھاتہ منتخب کریں (F3)'),
+              label: Text(widget.settings.enableSecondaryLanguage ? 'کسٹمر کھاتہ منتخب کریں (F3)' : 'Select Customer (F3)'),
               onPressed: () {
                 Navigator.pop(ctx);
                 _openCustomerSearchModal();
@@ -2605,24 +2650,31 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Row(
-            children: const [
-              Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 24),
-              SizedBox(width: 8),
-              Text('واک اِن کسٹمر - ملٹیپل پیمنٹ پابندی', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 24),
+              const SizedBox(width: 8),
+              Text(
+                widget.settings.enableSecondaryLanguage
+                    ? 'واک اِن کسٹمر - ملٹیپل پیمنٹ پابندی'
+                    : 'Multiple Payment Restricted for Walk-in Customer',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
-          content: const Text(
-            'واک اِن کاؤنٹر کسٹمرز کے لیے اسپلٹ یا ملٹیپل پیمنٹ کی سہولت دستیاب نہیں ہے کیونکہ ان کا بقایا بیلنس کھاتے میں محفوظ نہیں کیا جا سکتا۔\n\nاگر کسٹمر ایک سے زائد ذرائع سے ادائیگی کرنا چاہتا ہے یا ادھار رکھنا چاہتا ہے تو اس کا باقاعدہ کسٹمر اکاؤنٹ منتخب کریں۔',
-            style: TextStyle(fontSize: 13, height: 1.4),
+          content: Text(
+            widget.settings.enableSecondaryLanguage
+                ? 'واک اِن کاؤنٹر کسٹمرز کے لیے اسپلٹ یا ملٹیپل پیمنٹ کی سہولت دستیاب نہیں ہے کیونکہ ان کا بقایا بیلنس کھاتے میں محفوظ نہیں کیا جا سکتا۔\n\nاگر کسٹمر ایک سے زائد ذرائع سے ادائیگی کرنا چاہتا ہے یا ادھار رکھنا چاہتا ہے تو اس کا باقاعدہ کسٹمر اکاؤنٹ منتخب کریں۔'
+                : 'Split and multiple payment mode is only available for registered customers with a ledger account.\n\nPlease select a registered customer (F3) or proceed with single Cash or Card payment.',
+            style: const TextStyle(fontSize: 13, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('کینسل (Cancel)'),
+              child: Text(widget.settings.enableSecondaryLanguage ? 'کینسل (Cancel)' : 'Cancel'),
             ),
             OutlinedButton.icon(
               icon: const Icon(Icons.person_search, size: 16),
-              label: const Text('کسٹمر منتخب کریں (F3)'),
+              label: Text(widget.settings.enableSecondaryLanguage ? 'کسٹمر منتخب کریں (F3)' : 'Select Customer (F3)'),
               onPressed: () {
                 Navigator.pop(ctx);
                 _openCustomerSearchModal();
@@ -2634,7 +2686,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.payments, size: 16),
-              label: const Text('کیش وصول کریں (F2)'),
+              label: Text(widget.settings.enableSecondaryLanguage ? 'کیش وصول کریں (F2)' : 'Receive Cash (F2)'),
               onPressed: () {
                 Navigator.pop(ctx);
                 _quickCashCheckout();
@@ -4129,7 +4181,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                     onTap: _showWordsLanguageDialog,
                                     borderRadius: BorderRadius.circular(8),
                                     child: Tooltip(
-                                      message: 'Click to change words language (${_wordsLanguage.toUpperCase()}) / زبان تبدیل کریں',
+                                      message: widget.settings.enableSecondaryLanguage
+                                          ? 'Click to change words language (${_wordsLanguage.toUpperCase()}) / زبان تبدیل کریں'
+                                          : 'Click to change words language (${_wordsLanguage.toUpperCase()})',
                                       child: Container(
                                         padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 10 : 16, vertical: isSmallScreen ? 4 : 6),
                                         constraints: BoxConstraints(minWidth: isSmallScreen ? 130 : 160),
@@ -4621,7 +4675,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                  'کیٹلاگ میں ابھی کوئی پروڈکٹ موجود نہیں ہے',
+                                                  widget.settings.enableSecondaryLanguage
+                                                      ? 'کیٹلاگ میں ابھی کوئی پروڈکٹ موجود نہیں ہے'
+                                                      : 'No products in catalog yet',
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w700,

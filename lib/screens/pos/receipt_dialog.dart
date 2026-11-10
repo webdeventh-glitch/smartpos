@@ -817,11 +817,20 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _ledgerItem('PREVIOUS BALANCE (پچھلا بقایا)', '$currency${(widget.customerPreviousBalance ?? 0.0).toStringAsFixed(2)}'),
-                _ledgerItem('CURRENT INVOICE (موجودہ بل)', '$currency${widget.sale.totalAmount.toStringAsFixed(2)}'),
-                _ledgerItem('RECEIVED TODAY (آج وصولی)', '$currency${widget.sale.paidAmount.toStringAsFixed(2)}'),
                 _ledgerItem(
-                  'NET CLOSING KHATA (کل واجب الادا)',
+                  widget.settings.enableSecondaryLanguage ? 'PREVIOUS BALANCE (پچھلا بقایا)' : 'PREVIOUS BALANCE',
+                  '$currency${(widget.customerPreviousBalance ?? 0.0).toStringAsFixed(2)}',
+                ),
+                _ledgerItem(
+                  widget.settings.enableSecondaryLanguage ? 'CURRENT INVOICE (موجودہ بل)' : 'CURRENT INVOICE',
+                  '$currency${widget.sale.totalAmount.toStringAsFixed(2)}',
+                ),
+                _ledgerItem(
+                  widget.settings.enableSecondaryLanguage ? 'RECEIVED TODAY (آج وصولی)' : 'RECEIVED TODAY',
+                  '$currency${widget.sale.paidAmount.toStringAsFixed(2)}',
+                ),
+                _ledgerItem(
+                  widget.settings.enableSecondaryLanguage ? 'NET CLOSING KHATA (کل واجب الادا)' : 'NET CLOSING KHATA',
                   '$currency${((widget.customerPreviousBalance ?? 0.0) + widget.sale.totalAmount - widget.sale.paidAmount).toStringAsFixed(2)}',
                   isBoldRed: true,
                 ),
@@ -860,15 +869,21 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('Checked By _______________________', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-              Directionality(
-                textDirection: TextDirection.rtl,
-                child: Text(
-                  'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFB91C1C)),
+            children: [
+              const Text('Checked By _______________________', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+              if (widget.settings.enableSecondaryLanguage)
+                const Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Text(
+                    'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFB91C1C)),
+                  ),
+                )
+              else
+                const Text(
+                  'Note: Report expiries with original bill.',
+                  style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                 ),
-              ),
             ],
           ),
         ] else ...[

@@ -127,6 +127,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   bool _showWarrantyOnInvoice = true;
   bool _showTotalInWords = true;
   String _totalInWordsLanguage = 'ur';
+  bool _enableSecondaryLanguage = false;
+  String _secondaryLanguage = 'ur';
   late TextEditingController _invoiceHeadingCtrl;
 
   // Multi-Currency & Live Exchange Rates State
@@ -213,6 +215,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _showWarrantyOnInvoice = s.showWarrantyOnInvoice;
     _showTotalInWords = s.showTotalInWords;
     _totalInWordsLanguage = s.totalInWordsLanguage.isNotEmpty ? s.totalInWordsLanguage : 'ur';
+    _enableSecondaryLanguage = s.enableSecondaryLanguage;
+    _secondaryLanguage = s.secondaryLanguage.isNotEmpty ? s.secondaryLanguage : 'ur';
     _invoiceHeadingCtrl = TextEditingController(text: s.invoiceHeading.isNotEmpty ? s.invoiceHeading : 'TAX INVOICE');
 
     _multiCurrencyEnabled = s.multiCurrencyEnabled;
@@ -727,7 +731,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   ),
                                 ),
                                 Text(
-                                  'کاروباری ماڈل تبدیل کریں • Adapt software units, categories & POS to your trade',
+                                  _enableSecondaryLanguage
+                                      ? 'کاروباری ماڈل تبدیل کریں • Adapt software units, categories & POS to your trade'
+                                      : 'Adapt software units, categories & POS to your trade',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
@@ -1054,6 +1060,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         showWarrantyOnInvoice: _showWarrantyOnInvoice,
         showTotalInWords: _showTotalInWords,
         totalInWordsLanguage: _totalInWordsLanguage,
+        enableSecondaryLanguage: _enableSecondaryLanguage,
+        secondaryLanguage: _secondaryLanguage,
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
       );
 
@@ -4278,7 +4286,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -5425,44 +5433,175 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           if (_showTotalInWords) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(10),
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.translate, size: 20, color: Color(0xFF10B981)),
-                  const SizedBox(width: 12),
-                  Expanded(
+                  // Row 1: Primary Language Selection
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.language, size: 20, color: Color(0xFF10B981)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Primary Language (بنیادی زبان)',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Text(
+                              'Choose primary language for invoice totals in words (English, Urdu, Pashto, Farsi, Spanish, Dutch)',
+                              style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      DropdownButton<String>(
+                        value: _totalInWordsLanguage,
+                        underline: const SizedBox(),
+                        dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        items: NumberToWordsService.supportedLanguages.map((l) {
+                          return DropdownMenuItem<String>(
+                            value: l.code,
+                            child: Text('${l.name} (${l.nativeName})', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _totalInWordsLanguage = val);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 10),
+
+                  // Row 2: Secondary Language Toggle & Dropdown
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _enableSecondaryLanguage,
+                        activeColor: const Color(0xFF4F46E5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        onChanged: (val) {
+                          setState(() => _enableSecondaryLanguage = val ?? false);
+                        },
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() => _enableSecondaryLanguage = !_enableSecondaryLanguage);
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Enable Secondary Language (ثانوی زبان - اختیاری)',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: _enableSecondaryLanguage
+                                          ? const Color(0xFF4F46E5).withValues(alpha: 0.12)
+                                          : (isDark ? Colors.white10 : const Color(0xFFF1F5F9)),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      _enableSecondaryLanguage ? 'Active' : 'Disabled (Clean UI)',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: _enableSecondaryLanguage ? const Color(0xFF4F46E5) : (isDark ? Colors.white54 : Colors.black45),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                _enableSecondaryLanguage
+                                    ? 'Show bilingual subtitles on navigation sidebar and secondary receipt translations'
+                                    : 'When disabled, only primary language is displayed across the entire app with zero clutter',
+                                style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_enableSecondaryLanguage) ...[
+                        const SizedBox(width: 12),
+                        DropdownButton<String>(
+                          value: _secondaryLanguage,
+                          underline: const SizedBox(),
+                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          items: NumberToWordsService.supportedLanguages.map((l) {
+                            return DropdownMenuItem<String>(
+                              value: l.code,
+                              child: Text('${l.name} (${l.nativeName})', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _secondaryLanguage = val);
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  // Row 3: Live Preview Banner
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFBFDBFE)),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Amount in Words Language',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        Row(
+                          children: [
+                            const Icon(Icons.preview_rounded, size: 14, color: Color(0xFF3B82F6)),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Live Words Preview (${_currencySymCtrl.text.trim().isNotEmpty ? _currencySymCtrl.text.trim() : "Rs"} 3,650.00):',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF3B82F6)),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 3),
                         Text(
-                          'Choose language to spell totals on POS screen and print receipts (Urdu, Pashto, Farsi, etc.)',
-                          style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                          'Primary (${_totalInWordsLanguage.toUpperCase()}): ${NumberToWordsService.convert(3650.0, language: _totalInWordsLanguage, currencySymbol: _currencySymCtrl.text.trim(), currencyCode: _currencyCodeCtrl.text.trim())}',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : const Color(0xFF1E293B)),
                         ),
+                        if (_enableSecondaryLanguage) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Secondary (${_secondaryLanguage.toUpperCase()}): ${NumberToWordsService.convert(3650.0, language: _secondaryLanguage, currencySymbol: _currencySymCtrl.text.trim(), currencyCode: _currencyCodeCtrl.text.trim())}',
+                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFA7F3D0) : const Color(0xFF059669)),
+                          ),
+                        ],
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  DropdownButton<String>(
-                    value: _totalInWordsLanguage,
-                    underline: const SizedBox(),
-                    items: NumberToWordsService.supportedLanguages.map((l) {
-                      return DropdownMenuItem<String>(
-                        value: l.code,
-                        child: Text('${l.name} (${l.nativeName})', style: const TextStyle(fontSize: 13)),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _totalInWordsLanguage = val);
-                    },
                   ),
                 ],
               ),
@@ -5621,6 +5760,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         showWarrantyOnInvoice: _showWarrantyOnInvoice,
         showTotalInWords: _showTotalInWords,
         totalInWordsLanguage: _totalInWordsLanguage,
+        enableSecondaryLanguage: _enableSecondaryLanguage,
+        secondaryLanguage: _secondaryLanguage,
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
       );
 
@@ -5724,6 +5865,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       showWarrantyOnInvoice: _showWarrantyOnInvoice,
       showTotalInWords: _showTotalInWords,
       totalInWordsLanguage: _totalInWordsLanguage,
+      enableSecondaryLanguage: _enableSecondaryLanguage,
+      secondaryLanguage: _secondaryLanguage,
       invoiceHeading: _invoiceHeadingCtrl.text.trim(),
     );
 
@@ -5759,6 +5902,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       showWarrantyOnInvoice: _showWarrantyOnInvoice,
       showTotalInWords: _showTotalInWords,
       totalInWordsLanguage: _totalInWordsLanguage,
+      enableSecondaryLanguage: _enableSecondaryLanguage,
+      secondaryLanguage: _secondaryLanguage,
       invoiceHeading: _invoiceHeadingCtrl.text.trim(),
     );
 

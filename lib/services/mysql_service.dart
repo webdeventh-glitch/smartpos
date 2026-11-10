@@ -132,12 +132,14 @@ class MySqlService {
         {'user': user, 'password': password},
       ];
 
-      // Auto-fallback: If user is root and password was provided, try empty password (Laragon/XAMPP default)
-      if (user.toLowerCase() == 'root' && password.isNotEmpty) {
-        candidateCredentials.add({'user': 'root', 'password': ''});
-        candidateCredentials.add({'user': 'root', 'password': 'root'});
-      } else if (user.toLowerCase() == 'root' && password.isEmpty) {
-        candidateCredentials.add({'user': 'root', 'password': 'root'});
+      // Auto-fallback: If user is root, try empty password, common local passwords, and smartpos credentials
+      if (user.toLowerCase() == 'root') {
+        if (password.isNotEmpty) {
+          candidateCredentials.add({'user': 'root', 'password': ''});
+          candidateCredentials.add({'user': 'root', 'password': 'root'});
+        } else {
+          candidateCredentials.add({'user': 'root', 'password': 'root'});
+        }
         candidateCredentials.add({'user': 'smartpos', 'password': 'smartpos123'});
       }
 
@@ -230,11 +232,14 @@ class MySqlService {
       final candidateCredentials = <Map<String, String>>[
         {'user': user, 'password': password},
       ];
-      if (user.toLowerCase() == 'root' && password.isNotEmpty) {
-        candidateCredentials.add({'user': 'root', 'password': ''});
-        candidateCredentials.add({'user': 'root', 'password': 'root'});
-      } else if (user.toLowerCase() == 'root' && password.isEmpty) {
-        candidateCredentials.add({'user': 'root', 'password': 'root'});
+      // Auto-fallback: If user is root, try empty password, common local passwords, and smartpos credentials
+      if (user.toLowerCase() == 'root') {
+        if (password.isNotEmpty) {
+          candidateCredentials.add({'user': 'root', 'password': ''});
+          candidateCredentials.add({'user': 'root', 'password': 'root'});
+        } else {
+          candidateCredentials.add({'user': 'root', 'password': 'root'});
+        }
         candidateCredentials.add({'user': 'smartpos', 'password': 'smartpos123'});
       }
 
@@ -337,6 +342,51 @@ class MySqlService {
     }
   }
 
+  /// Connects to MySQL with automatic credential fallback (tries specified user/pass,
+  /// then common local root passwords, and local smartpos/smartpos123 credentials on auth failure).
+  static Future<MySQLConnection> _connectWithFallback({
+    required String host,
+    required int port,
+    required String user,
+    required String password,
+    String? databaseName,
+  }) async {
+    final candidateCreds = <Map<String, String>>[
+      {'user': user.isNotEmpty ? user : 'root', 'password': password},
+    ];
+    if (user.isEmpty || user.toLowerCase() == 'root') {
+      if (password.isNotEmpty) {
+        candidateCreds.add({'user': 'root', 'password': ''});
+        candidateCreds.add({'user': 'root', 'password': 'root'});
+      } else {
+        candidateCreds.add({'user': 'root', 'password': 'root'});
+      }
+      candidateCreds.add({'user': 'smartpos', 'password': 'smartpos123'});
+    }
+
+    dynamic lastError;
+    for (final cred in candidateCreds) {
+      try {
+        final conn = await MySQLConnection.createConnection(
+          host: host,
+          port: port,
+          userName: cred['user']!,
+          password: cred['password']!,
+          databaseName: databaseName,
+          secure: false,
+        );
+        await conn.connect();
+        return conn;
+      } catch (e) {
+        lastError = e;
+        if (!e.toString().contains('1045')) {
+          break;
+        }
+      }
+    }
+    throw lastError ?? Exception('Could not connect to MySQL');
+  }
+
   /// Connect and synchronize pending offline SQLite records into MySQL
   static Future<void> connectAndSync({
     required BusinessSettings settings,
@@ -352,14 +402,12 @@ class MySqlService {
     MySQLConnection? conn;
     try {
       final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
-      conn = await MySQLConnection.createConnection(
+      conn = await _connectWithFallback(
         host: targetHost,
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
-        userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
+        user: settings.dbUser,
         password: settings.dbPassword,
-        secure: false,
       );
-      await conn.connect();
       isMySqlOnline.value = true;
 
       // Select database or alias
@@ -404,14 +452,12 @@ class MySqlService {
     try {
       final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
       // Connect to server without database first so missing DB doesn't trigger handshake error
-      conn = await MySQLConnection.createConnection(
+      conn = await _connectWithFallback(
         host: targetHost,
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
-        userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
+        user: settings.dbUser,
         password: settings.dbPassword,
-        secure: false,
       );
-      await conn.connect();
       isMySqlOnline.value = true;
 
       // Check if target database or alias exists
@@ -474,14 +520,12 @@ class MySqlService {
     DatabaseService.suppressSync = true;
     try {
       final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
-      conn = await MySQLConnection.createConnection(
+      conn = await _connectWithFallback(
         host: targetHost,
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
-        userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
+        user: settings.dbUser,
         password: settings.dbPassword,
-        secure: false,
       );
-      await conn.connect();
 
       final dbRes = await conn.execute("SHOW DATABASES LIKE '$safeDbName'");
       String activeDb = safeDbName;
@@ -824,15 +868,13 @@ class MySqlService {
     try {
       final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
       final targetHost = normalizeHost(settings.dbHost);
-      conn = await MySQLConnection.createConnection(
+      conn = await _connectWithFallback(
         host: targetHost,
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
-        userName: settings.dbUser.isNotEmpty ? settings.dbUser : 'root',
+        user: settings.dbUser,
         password: settings.dbPassword,
         databaseName: safeDbName,
-        secure: false,
       );
-      await conn.connect();
 
       // 1. Sync Categories
       try {
@@ -1015,15 +1057,13 @@ class MySqlService {
     MySQLConnection? conn;
     try {
       final safeDbName = databaseName.trim().isEmpty ? 'smartpos' : databaseName.trim();
-      conn = await MySQLConnection.createConnection(
+      conn = await _connectWithFallback(
         host: normalizeHost(host),
         port: port,
-        userName: user,
+        user: user,
         password: password,
         databaseName: safeDbName,
-        secure: false,
       );
-      await conn.connect();
 
       // Seed categories
       try {
@@ -1149,6 +1189,8 @@ class MySqlService {
         `show_warranty_on_invoice` TINYINT(1) DEFAULT 1,
         `show_total_in_words` TINYINT(1) DEFAULT 1,
         `total_in_words_language` VARCHAR(20) DEFAULT 'ur',
+        `enable_secondary_language` TINYINT(1) DEFAULT 0,
+        `secondary_language` VARCHAR(20) DEFAULT 'ur',
         `invoice_heading` VARCHAR(150) DEFAULT 'TAX INVOICE',
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

@@ -1058,26 +1058,26 @@ class PrintService {
     <!-- Numbers of Products & Amount in Words -->
     <div class="words-bar">
       <div class="bold">Numbers of Products: &nbsp;${items.length}</div>
-      ${showWords ? '<div style="font-style: italic;">Amount in Words: ' + numberToWords(sale.totalAmount, language: settings.totalInWordsLanguage, currencySymbol: settings.currencySymbol, currencyCode: settings.currencyCode) + '</div>' : ''}
+      ${showWords ? '<div style="font-style: italic;">Amount in Words: ' + numberToWords(sale.totalAmount, language: settings.totalInWordsLanguage, currencySymbol: settings.currencySymbol, currencyCode: settings.currencyCode) + (settings.enableSecondaryLanguage ? '<br><span style="font-size: 8.5px; font-weight: 600;">(' + numberToWords(sale.totalAmount, language: settings.secondaryLanguage, currencySymbol: settings.currencySymbol, currencyCode: settings.currencyCode) + ')</span>' : '') + '</div>' : ''}
     </div>
 
     ${(!isWalkIn && settings.showCustomerBalanceOnReceipt) ? '''
     <!-- Customer Khata Ledger Summary -->
     <div class="ledger-box">
       <div class="ledger-item">
-        <span class="ledger-label">PREVIOUS BALANCE (پچھلا بقایا)</span>
+        <span class="ledger-label">${_localizedLedgerLabel('prev_balance', enableSecondary: settings.enableSecondaryLanguage, secondaryLanguage: settings.secondaryLanguage)}</span>
         <span class="ledger-val">$cur${prevBal.toStringAsFixed(2)}</span>
       </div>
       <div class="ledger-item">
-        <span class="ledger-label">CURRENT INVOICE (موجودہ بل)</span>
+        <span class="ledger-label">${_localizedLedgerLabel('current_invoice', enableSecondary: settings.enableSecondaryLanguage, secondaryLanguage: settings.secondaryLanguage)}</span>
         <span class="ledger-val">$cur${currentBill.toStringAsFixed(2)}</span>
       </div>
       <div class="ledger-item">
-        <span class="ledger-label">RECEIVED TODAY (آج وصولی)</span>
+        <span class="ledger-label">${_localizedLedgerLabel('received_today', enableSecondary: settings.enableSecondaryLanguage, secondaryLanguage: settings.secondaryLanguage)}</span>
         <span class="ledger-val">$cur${paidToday.toStringAsFixed(2)}</span>
       </div>
       <div class="ledger-item">
-        <span class="ledger-label">NET CLOSING KHATA (کل واجب الادا)</span>
+        <span class="ledger-label">${_localizedLedgerLabel('net_closing', enableSecondary: settings.enableSecondaryLanguage, secondaryLanguage: settings.secondaryLanguage)}</span>
         <span class="ledger-val highlight">$cur${netClosing.toStringAsFixed(2)}</span>
       </div>
     </div>
@@ -1099,10 +1099,10 @@ class PrintService {
     </div>
     ''') : ''}
 
-    <!-- Signatures and Urdu Notice -->
+    <!-- Signatures and Notice -->
     <div class="footer-bar">
       <div>Checked By _______________________</div>
-      <div class="urdu-notice">نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔</div>
+      ${settings.enableSecondaryLanguage ? '<div class="urdu-notice">نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔</div>' : '<div style="font-size: 8.5px; color: #475569;">Note: Report expiries with original bill.</div>'}
     </div>
   </div>
 </body>
@@ -1125,10 +1125,16 @@ class PrintService {
     final cur = settings.currencySymbol;
     final isCustomer = contactType.toLowerCase() == 'customer';
     final nowFormatted = DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.now());
+    final enSec = settings.enableSecondaryLanguage;
+    final secL = settings.secondaryLanguage;
 
     final statusText = closingBalance > 0
-        ? (isCustomer ? 'Net Receivable / واجب الادا (Customer Owes)' : 'Net Payable / واجب الادا (You Owe Supplier)')
-        : (closingBalance < 0 ? 'Advance Balance / پیشگی جمع' : 'Balanced / Cleared (کھاتہ بے باق)');
+        ? (isCustomer
+            ? (enSec ? 'Net Receivable / واجب الادا (Customer Owes)' : 'Net Receivable (Customer Owes)')
+            : (enSec ? 'Net Payable / واجب الادا (You Owe Supplier)' : 'Net Payable (You Owe Supplier)'))
+        : (closingBalance < 0
+            ? (enSec ? 'Advance Balance / پیشگی جمع' : 'Advance Balance')
+            : (enSec ? 'Balanced / Cleared (کھاتہ بے باق)' : 'Balanced / Cleared'));
 
     final statusColor = closingBalance > 0 ? '#dc2626' : (closingBalance < 0 ? '#059669' : '#0f172a');
 
@@ -1139,19 +1145,19 @@ class PrintService {
       final isCredit = e.credit > 0;
       final dateClean = e.date.length > 16 ? e.date.substring(0, 16) : e.date;
       final balType = e.runningBalance > 0
-          ? (isCustomer ? "Dr (واجب)" : "Cr (واجب)")
-          : (e.runningBalance < 0 ? "Adv (جمع)" : "Nil");
+          ? (isCustomer ? (enSec ? "Dr (واجب)" : "Dr") : (enSec ? "Cr (واجب)" : "Cr"))
+          : (e.runningBalance < 0 ? (enSec ? "Adv (جمع)" : "Adv") : "Nil");
       final balColor = e.runningBalance > 0 ? "#dc2626" : (e.runningBalance < 0 ? "#059669" : "#334155");
 
       String typeLabel = e.transactionType.toUpperCase().replaceAll('_', ' ');
       if (e.transactionType.contains('payment')) {
-        typeLabel = 'PAYMENT / وصولی';
+        typeLabel = enSec ? 'PAYMENT / وصولی' : 'PAYMENT';
       } else if (e.transactionType.contains('sale')) {
-        typeLabel = 'INVOICE / بل';
+        typeLabel = enSec ? 'INVOICE / بل' : 'INVOICE';
       } else if (e.transactionType.contains('purchase')) {
-        typeLabel = 'PURCHASE / خریداری';
+        typeLabel = enSec ? 'PURCHASE / خریداری' : 'PURCHASE';
       } else if (e.transactionType.contains('return')) {
-        typeLabel = 'RETURN / واپسی';
+        typeLabel = enSec ? 'RETURN / واپسی' : 'RETURN';
       }
 
       rowsHtml.writeln('''
@@ -1347,14 +1353,14 @@ class PrintService {
 
     <div class="party-card">
       <div class="party-col">
-        <div style="font-size: 9.5px; font-weight: bold; color: #4338ca; text-transform: uppercase;">\${isCustomer ? "CUSTOMER / کھاتہ دار گاہک" : "SUPPLIER / وینڈر یا سپلائر"}</div>
+        <div style="font-size: 9.5px; font-weight: bold; color: #4338ca; text-transform: uppercase;">\${_localizedLedgerLabel(isCustomer ? "customer" : "supplier", enableSecondary: enSec, secondaryLanguage: secL)}</div>
         <div class="party-name">\${_escape(contact.name)}</div>
         <div class="meta-line"><strong>Business:</strong> \${_escape((contact.businessName != null && contact.businessName!.isNotEmpty) ? contact.businessName! : "N/A")}</div>
         <div class="meta-line"><strong>Phone / Mobile:</strong> \${_escape(contact.phone.isNotEmpty ? contact.phone : "N/A")}</div>
         <div class="meta-line"><strong>Address:</strong> \${_escape(contact.address.isNotEmpty ? contact.address : "Main City Market")}</div>
       </div>
       <div class="party-col" style="text-align: right;">
-        <div style="font-size: 9.5px; font-weight: bold; color: #64748b; text-transform: uppercase;">ACCOUNT STATUS &bull; کھاتہ کی حیثیت</div>
+        <div style="font-size: 9.5px; font-weight: bold; color: #64748b; text-transform: uppercase;">\${_localizedLedgerLabel("account_status", enableSecondary: enSec, secondaryLanguage: secL)}</div>
         <div style="font-size: 13px; font-weight: 900; color: \$statusColor; margin-top: 3px;">\$statusText</div>
         <div class="meta-line" style="margin-top: 5px;"><strong>Credit Limit:</strong> \$cur\${contact.creditLimit.toStringAsFixed(2)}</div>
         <div class="meta-line"><strong>Party Code / ID:</strong> #CON-\${contact.id ?? 1}</div>
@@ -1364,19 +1370,19 @@ class PrintService {
     <!-- 4 Summary KPI Boxes -->
     <div class="summary-grid">
       <div class="summary-box">
-        <div class="summary-label">Opening Balance / سابقہ بقایا</div>
+        <div class="summary-label">\${_localizedLedgerLabel("opening_balance", enableSecondary: enSec, secondaryLanguage: secL)}</div>
         <div class="summary-val">\$cur\${openingBalance.toStringAsFixed(2)}</div>
       </div>
       <div class="summary-box">
-        <div class="summary-label">\${isCustomer ? "Total Invoices (Dr) / بنام کل مال" : "Total Purchases (Cr) / کل خریداری"}</div>
+        <div class="summary-label">\${_localizedLedgerLabel(isCustomer ? "total_invoices" : "total_purchases", enableSecondary: enSec, secondaryLanguage: secL)}</div>
         <div class="summary-val" style="color: #1e40af;">\$cur\${(isCustomer ? totalDebit : totalCredit).toStringAsFixed(2)}</div>
       </div>
       <div class="summary-box">
-        <div class="summary-label">\${isCustomer ? "Total Received (Cr) / جمع کل وصولی" : "Total Payments (Dr) / کل ادا شدہ"}</div>
+        <div class="summary-label">\${_localizedLedgerLabel(isCustomer ? "total_received" : "total_payments", enableSecondary: enSec, secondaryLanguage: secL)}</div>
         <div class="summary-val" style="color: #047857;">\$cur\${(isCustomer ? totalCredit : totalDebit).toStringAsFixed(2)}</div>
       </div>
       <div class="summary-box highlight">
-        <div class="summary-label" style="color: \$statusColor;">Net Closing Balance / خالص بقایا رقم</div>
+        <div class="summary-label" style="color: \$statusColor;">\${_localizedLedgerLabel("net_balance", enableSecondary: enSec, secondaryLanguage: secL)}</div>
         <div class="summary-val highlight">\$cur\${closingBalance.toStringAsFixed(2)}</div>
       </div>
     </div>
@@ -1386,19 +1392,19 @@ class PrintService {
       <thead>
         <tr>
           <th style="width: 25px; text-align: center;">#</th>
-          <th style="width: 105px;">Date &amp; Time / تاریخ</th>
-          <th style="width: 85px;">Ref # / واؤچر</th>
-          <th style="width: 80px;">Type / قسم</th>
-          <th>Narration &amp; Details / مال کی تفصیل</th>
-          <th style="width: 85px; text-align: right;">Debit (Dr) / بنام</th>
-          <th style="width: 85px; text-align: right;">Credit (Cr) / جمع</th>
-          <th style="width: 100px; text-align: right;">Balance / بقایا</th>
+          <th style="width: 105px;">\${_localizedLedgerLabel("date_time", enableSecondary: enSec, secondaryLanguage: secL)}</th>
+          <th style="width: 85px;">\${_localizedLedgerLabel("ref", enableSecondary: enSec, secondaryLanguage: secL)}</th>
+          <th style="width: 80px;">\${_localizedLedgerLabel("type", enableSecondary: enSec, secondaryLanguage: secL)}</th>
+          <th>\${_localizedLedgerLabel("narration", enableSecondary: enSec, secondaryLanguage: secL)}</th>
+          <th style="width: 85px; text-align: right;">\${_localizedLedgerLabel("debit", enableSecondary: enSec, secondaryLanguage: secL)}</th>
+          <th style="width: 85px; text-align: right;">\${_localizedLedgerLabel("credit", enableSecondary: enSec, secondaryLanguage: secL)}</th>
+          <th style="width: 100px; text-align: right;">\${_localizedLedgerLabel("balance", enableSecondary: enSec, secondaryLanguage: secL)}</th>
         </tr>
       </thead>
       <tbody>
         \${entries.isEmpty ? '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #64748b;">No ledger records found for this period.</td></tr>' : rowsHtml.toString()}
         <tr class="totals-row">
-          <td colspan="5" style="text-align: right; padding-right: 12px;">TOTALS / کل میزان:</td>
+          <td colspan="5" style="text-align: right; padding-right: 12px;">\${_localizedLedgerLabel("totals", enableSecondary: enSec, secondaryLanguage: secL)}</td>
           <td style="text-align: right; color: #1e40af;">\$cur\${totalDebit.toStringAsFixed(2)}</td>
           <td style="text-align: right; color: #047857;">\$cur\${totalCredit.toStringAsFixed(2)}</td>
           <td style="text-align: right; color: \$statusColor;">\$cur\${closingBalance.toStringAsFixed(2)}</td>
@@ -1409,14 +1415,14 @@ class PrintService {
     <!-- Notice -->
     <div class="notice-box">
       <div>Note: This is an official computer-generated account statement. Any discrepancy must be reported within 7 days.</div>
-      <div style="direction: rtl; font-weight: bold;">نوٹ: یہ کمپیوٹر کا تیار کردہ سرکاری کھاتہ ہے۔ کسی بھی غلطی کی صورت میں 7 یوم کے اندر مطلع فرمائیں۔</div>
+      \${enSec ? '<div style="direction: rtl; font-weight: bold;">نوٹ: یہ کمپیوٹر کا تیار کردہ سرکاری کھاتہ ہے۔ کسی بھی غلطی کی صورت میں 7 یوم کے اندر مطلع فرمائیں۔</div>' : ''}
     </div>
 
     <!-- Signatures -->
     <div class="sign-row">
-      <div class="sign-box">Prepared By (تیار کنندہ / اکاؤنٹنٹ)</div>
-      <div class="sign-box">Audited &amp; Verified By (تصدیق کنندہ)</div>
-      <div class="sign-box">Customer / Party Signature (دستخط کھاتہ دار)</div>
+      <div class="sign-box">\${_localizedLedgerLabel("prepared_by", enableSecondary: enSec, secondaryLanguage: secL)}</div>
+      <div class="sign-box">\${_localizedLedgerLabel("audited_by", enableSecondary: enSec, secondaryLanguage: secL)}</div>
+      <div class="sign-box">\${_localizedLedgerLabel("party_sign", enableSecondary: enSec, secondaryLanguage: secL)}</div>
     </div>
   </div>
 </body>
@@ -1901,6 +1907,180 @@ class PrintService {
       return DateFormat('dd/MM/yyyy, hh:mm a').format(dt);
     } catch (_) {
       return raw;
+    }
+  }
+
+  static String _localizedLedgerLabel(String key, {required bool enableSecondary, required String secondaryLanguage}) {
+    if (!enableSecondary) {
+      switch (key) {
+        case 'prev_balance': return 'PREVIOUS BALANCE';
+        case 'current_invoice': return 'CURRENT INVOICE';
+        case 'received_today': return 'RECEIVED TODAY';
+        case 'net_closing': return 'NET CLOSING KHATA';
+        case 'customer': return 'CUSTOMER';
+        case 'supplier': return 'SUPPLIER';
+        case 'account_status': return 'ACCOUNT STATUS';
+        case 'opening_balance': return 'Opening Balance';
+        case 'total_invoices': return 'Total Invoices (Dr)';
+        case 'total_purchases': return 'Total Purchases (Cr)';
+        case 'total_received': return 'Total Received (Cr)';
+        case 'total_payments': return 'Total Payments (Dr)';
+        case 'net_balance': return 'Net Closing Balance';
+        case 'date_time': return 'Date & Time';
+        case 'ref': return 'Ref #';
+        case 'type': return 'Type';
+        case 'narration': return 'Narration & Details';
+        case 'debit': return 'Debit (Dr)';
+        case 'credit': return 'Credit (Cr)';
+        case 'balance': return 'Balance';
+        case 'totals': return 'TOTALS:';
+        case 'prepared_by': return 'Prepared By';
+        case 'audited_by': return 'Audited & Verified By';
+        case 'party_sign': return 'Customer / Party Signature';
+        default: return key;
+      }
+    }
+    final sec = secondaryLanguage.toLowerCase().trim();
+    if (sec == 'fa') {
+      switch (key) {
+        case 'prev_balance': return 'PREVIOUS BALANCE (مانده قبلی)';
+        case 'current_invoice': return 'CURRENT INVOICE (فاکتور جاری)';
+        case 'received_today': return 'RECEIVED TODAY (دریافتی امروز)';
+        case 'net_closing': return 'NET CLOSING KHATA (مانده نهایی)';
+        case 'customer': return 'CUSTOMER / مشتری';
+        case 'supplier': return 'SUPPLIER / تامین‌کننده';
+        case 'account_status': return 'ACCOUNT STATUS • وضعیت حساب';
+        case 'opening_balance': return 'Opening Balance / مانده پیشین';
+        case 'total_invoices': return 'Total Invoices (Dr) / کل فاکتورها';
+        case 'total_purchases': return 'Total Purchases (Cr) / کل خریدها';
+        case 'total_received': return 'Total Received (Cr) / کل دریافتی';
+        case 'total_payments': return 'Total Payments (Dr) / کل پرداختی';
+        case 'net_balance': return 'Net Closing Balance / مانده پایانی';
+        case 'date_time': return 'Date & Time / تاریخ';
+        case 'ref': return 'Ref # / شماره سند';
+        case 'type': return 'Type / نوع';
+        case 'narration': return 'Narration & Details / شرح سند';
+        case 'debit': return 'Debit (Dr) / بدهکار';
+        case 'credit': return 'Credit (Cr) / بستانکار';
+        case 'balance': return 'Balance / مانده';
+        case 'totals': return 'TOTALS / جمع کل:';
+        case 'prepared_by': return 'Prepared By (تنظیم کننده)';
+        case 'audited_by': return 'Audited & Verified By (تأیید کننده)';
+        case 'party_sign': return 'Customer / Party Signature (امضای طرف حساب)';
+        default: return key;
+      }
+    } else if (sec == 'ps') {
+      switch (key) {
+        case 'prev_balance': return 'PREVIOUS BALANCE (پخوانی باقی)';
+        case 'current_invoice': return 'CURRENT INVOICE (اوسنی بل)';
+        case 'received_today': return 'RECEIVED TODAY (نن ترلاسه شوی)';
+        case 'net_closing': return 'NET CLOSING KHATA (ټول واجب الادا)';
+        case 'customer': return 'CUSTOMER / پېرودونکی';
+        case 'supplier': return 'SUPPLIER / درمل پلورونکی';
+        case 'account_status': return 'ACCOUNT STATUS • د حساب حالت';
+        case 'opening_balance': return 'Opening Balance / پخوانی بیلانس';
+        case 'total_invoices': return 'Total Invoices (Dr) / ټول بلونه';
+        case 'total_purchases': return 'Total Purchases (Cr) / ټولې پېرودنې';
+        case 'total_received': return 'Total Received (Cr) / ټول ترلاسه شوي';
+        case 'total_payments': return 'Total Payments (Dr) / ټولې تادیات';
+        case 'net_balance': return 'Net Closing Balance / خالص باقی';
+        case 'date_time': return 'Date & Time / نېټه';
+        case 'ref': return 'Ref # / سند نمبر';
+        case 'type': return 'Type / ډول';
+        case 'narration': return 'Narration & Details / د توکو تفصیل';
+        case 'debit': return 'Debit (Dr) / نام';
+        case 'credit': return 'Credit (Cr) / جمع';
+        case 'balance': return 'Balance / باقی';
+        case 'totals': return 'TOTALS / ټول میزان:';
+        case 'prepared_by': return 'Prepared By (جوړوونکی)';
+        case 'audited_by': return 'Audited & Verified By (تصدیق کوونکی)';
+        case 'party_sign': return 'Customer / Party Signature (د پېرودونکي لاسلیک)';
+        default: return key;
+      }
+    } else if (sec == 'es') {
+      switch (key) {
+        case 'prev_balance': return 'PREVIOUS BALANCE (Saldo Anterior)';
+        case 'current_invoice': return 'CURRENT INVOICE (Factura Actual)';
+        case 'received_today': return 'RECEIVED TODAY (Cobrado Hoy)';
+        case 'net_closing': return 'NET CLOSING KHATA (Saldo Final)';
+        case 'customer': return 'CUSTOMER / Cliente';
+        case 'supplier': return 'SUPPLIER / Proveedor';
+        case 'account_status': return 'ACCOUNT STATUS • Estado de Cuenta';
+        case 'opening_balance': return 'Opening Balance / Saldo Inicial';
+        case 'total_invoices': return 'Total Invoices (Dr) / Total Facturas';
+        case 'total_purchases': return 'Total Purchases (Cr) / Total Compras';
+        case 'total_received': return 'Total Received (Cr) / Total Cobrado';
+        case 'total_payments': return 'Total Payments (Dr) / Total Pagado';
+        case 'net_balance': return 'Net Closing Balance / Saldo Neto';
+        case 'date_time': return 'Date & Time / Fecha y Hora';
+        case 'ref': return 'Ref # / N° Ref';
+        case 'type': return 'Type / Tipo';
+        case 'narration': return 'Narration & Details / Detalle';
+        case 'debit': return 'Debit (Dr) / Débito';
+        case 'credit': return 'Credit (Cr) / Crédito';
+        case 'balance': return 'Balance / Saldo';
+        case 'totals': return 'TOTALS / Totales:';
+        case 'prepared_by': return 'Prepared By (Elaborado Por)';
+        case 'audited_by': return 'Audited & Verified By (Auditado Por)';
+        case 'party_sign': return 'Customer / Party Signature (Firma del Cliente)';
+        default: return key;
+      }
+    } else if (sec == 'nl') {
+      switch (key) {
+        case 'prev_balance': return 'PREVIOUS BALANCE (Vorig Saldo)';
+        case 'current_invoice': return 'CURRENT INVOICE (Huidige Factuur)';
+        case 'received_today': return 'RECEIVED TODAY (Vandaag Ontvangen)';
+        case 'net_closing': return 'NET CLOSING KHATA (Eindsaldo)';
+        case 'customer': return 'CUSTOMER / Klant';
+        case 'supplier': return 'SUPPLIER / Leverancier';
+        case 'account_status': return 'ACCOUNT STATUS • Rekeningstatus';
+        case 'opening_balance': return 'Opening Balance / Beginsaldo';
+        case 'total_invoices': return 'Total Invoices (Dr) / Totaal Facturen';
+        case 'total_purchases': return 'Total Purchases (Cr) / Totaal Inkopen';
+        case 'total_received': return 'Total Received (Cr) / Totaal Ontvangen';
+        case 'total_payments': return 'Total Payments (Dr) / Totaal Betaald';
+        case 'net_balance': return 'Net Closing Balance / Netto Eindsaldo';
+        case 'date_time': return 'Date & Time / Datum & Tijd';
+        case 'ref': return 'Ref # / Ref Nr';
+        case 'type': return 'Type / Type';
+        case 'narration': return 'Narration & Details / Omschrijving';
+        case 'debit': return 'Debit (Dr) / Debet';
+        case 'credit': return 'Credit (Cr) / Credit';
+        case 'balance': return 'Balance / Saldo';
+        case 'totals': return 'TOTALS / Totalen:';
+        case 'prepared_by': return 'Prepared By (Opgesteld Door)';
+        case 'audited_by': return 'Audited & Verified By (Gecontroleerd Door)';
+        case 'party_sign': return 'Customer / Party Signature (Handtekening Klant)';
+        default: return key;
+      }
+    }
+    // Default: Urdu
+    switch (key) {
+      case 'prev_balance': return 'PREVIOUS BALANCE (پچھلا بقایا)';
+      case 'current_invoice': return 'CURRENT INVOICE (موجودہ بل)';
+      case 'received_today': return 'RECEIVED TODAY (آج وصولی)';
+      case 'net_closing': return 'NET CLOSING KHATA (کل واجب الادا)';
+      case 'customer': return 'CUSTOMER / کھاتہ دار گاہک';
+      case 'supplier': return 'SUPPLIER / وینڈر یا سپلائر';
+      case 'account_status': return 'ACCOUNT STATUS • کھاتہ کی حیثیت';
+      case 'opening_balance': return 'Opening Balance / سابقہ بقایا';
+      case 'total_invoices': return 'Total Invoices (Dr) / بنام کل مال';
+      case 'total_purchases': return 'Total Purchases (Cr) / کل خریداری';
+      case 'total_received': return 'Total Received (Cr) / جمع کل وصولی';
+      case 'total_payments': return 'Total Payments (Dr) / کل ادا شدہ';
+      case 'net_balance': return 'Net Closing Balance / خالص بقایا رقم';
+      case 'date_time': return 'Date & Time / تاریخ';
+      case 'ref': return 'Ref # / واؤچر';
+      case 'type': return 'Type / قسم';
+      case 'narration': return 'Narration & Details / مال کی تفصیل';
+      case 'debit': return 'Debit (Dr) / بنام';
+      case 'credit': return 'Credit (Cr) / جمع';
+      case 'balance': return 'Balance / بقایا';
+      case 'totals': return 'TOTALS / کل میزان:';
+      case 'prepared_by': return 'Prepared By (تیار کنندہ / اکاؤنٹنٹ)';
+      case 'audited_by': return 'Audited & Verified By (تصدیق کنندہ)';
+      case 'party_sign': return 'Customer / Party Signature (دستخط کھاتہ دار)';
+      default: return key;
     }
   }
 }
