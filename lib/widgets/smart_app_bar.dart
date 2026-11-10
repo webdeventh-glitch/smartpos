@@ -266,7 +266,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final dateStr = DateFormat('dd MMM yyyy').format(_currentTime);
     final timeStr = DateFormat('hh:mm a').format(_currentTime);
-    final inHand = _activeRegister != null ? _activeRegister!.totalCashInRegister : 250.0;
+    final isRegisterOpen = _activeRegister != null;
+    final inHand = isRegisterOpen ? _activeRegister!.totalCashInRegister : 0.0;
     final currency = widget.settings.currencySymbol;
 
     return Container(
@@ -508,26 +509,43 @@ class _SmartAppBarState extends State<SmartAppBar> {
 
               // Cash Register Drawer Status Pill
               InkWell(
-                onTap: widget.onOpenRegisterDetails,
+                onTap: () async {
+                  widget.onOpenRegisterDetails();
+                  await _loadRegisterAndLocations();
+                },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   height: 36,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.35) : const Color(0xFFF0FDF4),
+                    color: isRegisterOpen
+                        ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.35) : const Color(0xFFF0FDF4))
+                        : (isDark ? const Color(0xFF78350F).withValues(alpha: 0.35) : const Color(0xFFFEF3C7)),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: isDark ? const Color(0xFF059669) : const Color(0xFFBBF7D0)),
+                    border: Border.all(
+                      color: isRegisterOpen
+                          ? (isDark ? const Color(0xFF059669) : const Color(0xFFBBF7D0))
+                          : (isDark ? const Color(0xFFD97706) : const Color(0xFFFDE68A)),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.savings_outlined, color: Color(0xFF10B981), size: 15),
+                      Icon(
+                        isRegisterOpen ? Icons.savings_outlined : Icons.lock_clock_outlined,
+                        color: isRegisterOpen ? const Color(0xFF10B981) : const Color(0xFFD97706),
+                        size: 15,
+                      ),
                       const SizedBox(width: 5),
                       Text(
-                        'Cash: $currency${inHand.toStringAsFixed(2)}',
+                        isRegisterOpen
+                            ? 'Cash: $currency${inHand.toStringAsFixed(2)}'
+                            : 'Register Closed',
                         style: TextStyle(
-                          color: isDark ? const Color(0xFF34D399) : const Color(0xFF15803D),
+                          color: isRegisterOpen
+                              ? (isDark ? const Color(0xFF34D399) : const Color(0xFF15803D))
+                              : (isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309)),
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
                         ),

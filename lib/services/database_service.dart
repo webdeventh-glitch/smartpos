@@ -381,6 +381,11 @@ class DatabaseService {
       );
     ''');
 
+    // Phase 1: Expenses Payment Method column
+    try {
+      await db.execute("ALTER TABLE expenses ADD COLUMN payment_method TEXT DEFAULT 'cash'");
+    } catch (_) {}
+
     // Phase 6: Payment Accounts & Double-entry Transfers
     await db.execute('''
       CREATE TABLE IF NOT EXISTS payment_accounts (
@@ -1509,7 +1514,8 @@ class DatabaseService {
         amount REAL NOT NULL,
         ref_no TEXT,
         note TEXT,
-        date TEXT NOT NULL
+        date TEXT NOT NULL,
+        payment_method TEXT DEFAULT 'cash'
       )
     ''');
 
@@ -3935,7 +3941,16 @@ class DatabaseService {
   }
 
   Future<int> addExpense(Expense expense) async {
-    return await db.insert('expenses', expense.toMap());
+    return await db.transaction((txn) async {
+      final id = await txn.insert('expenses', expense.toMap());
+      if (expense.paymentMethod.toLowerCase() == 'cash') {
+        await txn.rawUpdate(
+          'UPDATE cash_registers SET total_sales_cash = total_sales_cash - ? WHERE status = \'open\'',
+          [expense.amount],
+        );
+      }
+      return id;
+    });
   }
 
   // Payment Accounts & Fund Transfers
@@ -3981,25 +3996,44 @@ class DatabaseService {
 
   // Cash Register
   Future<CashRegister?> getActiveRegister() async {
-    final rows = await db.query('cash_registers',
-        where: 'status = ?', whereArgs: ['open'], limit: 1);
+    final rows = await db.query(
+      'cash_registers',
+      where: 'status = ?',
+      whereArgs: ['open'],
+      orderBy: 'id DESC',
+      limit: 1,
+    );
     if (rows.isNotEmpty) return CashRegister.fromMap(rows.first);
     return null;
   }
 
   Future<void> openRegister(String cashierName, double openingAmount) async {
     final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-    await db.insert('cash_registers', {
-      'cashier_name': cashierName,
-      'opening_amount': openingAmount,
-      'closing_amount': 0.0,
-      'total_sales_cash': 0.0,
-      'total_sales_card': 0.0,
-      'total_sales_other': 0.0,
-      'status': 'open',
-      'opened_at': now,
-      'closed_at': null,
-      'note': '',
+    await db.transaction((txn) async {
+      // Close any lingering prior open register session
+      await txn.update(
+        'cash_registers',
+        {
+          'status': 'closed',
+          'closed_at': now,
+          'note': 'Auto-closed prior to opening new shift',
+        },
+        where: 'status = ?',
+        whereArgs: ['open'],
+      );
+
+      await txn.insert('cash_registers', {
+        'cashier_name': cashierName,
+        'opening_amount': openingAmount,
+        'closing_amount': 0.0,
+        'total_sales_cash': 0.0,
+        'total_sales_card': 0.0,
+        'total_sales_other': 0.0,
+        'status': 'open',
+        'opened_at': now,
+        'closed_at': null,
+        'note': '',
+      });
     });
   }
 
@@ -4013,8 +4047,8 @@ class DatabaseService {
         'closed_at': now,
         'note': note,
       },
-      where: 'id = ?',
-      whereArgs: [id],
+      where: id > 0 ? 'id = ?' : 'status = ?',
+      whereArgs: id > 0 ? [id] : ['open'],
     );
   }
 
@@ -6353,6 +6387,14 @@ class DatabaseService {
         await txn.rawUpdate(
           'UPDATE contacts SET balance = balance - ? WHERE id = ?',
           [sr.refundAmount, sr.customerId],
+        );
+      }
+
+      // If refund was paid out in cash, deduct from active cash register
+      if (sr.paymentMethod.toLowerCase() == 'cash' && sr.refundAmount > 0) {
+        await txn.rawUpdate(
+          'UPDATE cash_registers SET total_sales_cash = total_sales_cash - ? WHERE status = \'open\'',
+          [sr.refundAmount],
         );
       }
       return id;

@@ -1856,6 +1856,7 @@ class Expense {
   final String refNo;
   final String note;
   final String date;
+  final String paymentMethod;
 
   Expense({
     this.id,
@@ -1864,6 +1865,7 @@ class Expense {
     required this.refNo,
     this.note = '',
     required this.date,
+    this.paymentMethod = 'cash',
   });
 
   Map<String, dynamic> toMap() => {
@@ -1873,6 +1875,7 @@ class Expense {
         'ref_no': refNo,
         'note': note,
         'date': date,
+        'payment_method': paymentMethod,
       };
 
   factory Expense.fromMap(Map<String, dynamic> map) => Expense(
@@ -1882,6 +1885,7 @@ class Expense {
         refNo: map['ref_no'] as String? ?? '',
         note: map['note'] as String? ?? '',
         date: map['date'] as String,
+        paymentMethod: map['payment_method'] as String? ?? 'cash',
       );
 }
 

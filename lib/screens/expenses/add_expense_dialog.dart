@@ -85,6 +85,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
         refNo: _refCtrl.text.trim(),
         note: '[${_paymentMethod.toUpperCase()}] ${_noteCtrl.text.trim()}',
         date: now,
+        paymentMethod: _paymentMethod.toLowerCase(),
       ));
 
       if (mounted) {

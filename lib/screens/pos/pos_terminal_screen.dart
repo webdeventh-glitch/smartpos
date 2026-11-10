@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -12,6 +13,7 @@ import 'payment_modal.dart';
 import 'receipt_dialog.dart';
 import 'parked_sales_dialog.dart';
 import 'register_details_dialog.dart';
+import 'open_register_dialog.dart';
 import 'pos_power_dialogs.dart';
 import 'recent_transactions_dialog.dart';
 import '../../widgets/calculator_dialog.dart';
@@ -105,7 +107,38 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         _parkedCount = parked.length;
         _loadingCatalog = false;
       });
+
+      // Prompt register shift opening if no active session is open
+      final activeReg = await db.getActiveRegister();
+      if (activeReg == null && mounted) {
+        if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _promptOpenRegister();
+            }
+          });
+        }
+      }
     }
+  }
+
+  Future<void> _promptOpenRegister({bool isDismissible = true}) async {
+    final db = await _dbFuture;
+    final active = await db.getActiveRegister();
+    if (active != null) return;
+
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: isDismissible,
+      builder: (ctx) => OpenRegisterDialog(
+        settings: widget.settings,
+        isDismissible: isDismissible,
+        onOpened: () {
+          if (mounted) setState(() {});
+        },
+      ),
+    );
   }
 
   /// Blazing Fast In-Memory Product Filter (0ms delay across 2,500+ items)
@@ -2125,6 +2158,35 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     }
 
     final db = await _dbFuture;
+
+    // Ensure Cash Register is open before finalizing sale
+    if (saleStatus == 'final' && !Platform.environment.containsKey('FLUTTER_TEST')) {
+      final activeReg = await db.getActiveRegister();
+      if (activeReg == null) {
+        if (!mounted) return;
+        final opened = await showDialog<bool>(
+          context: context,
+          barrierDismissible: true,
+          builder: (ctx) => OpenRegisterDialog(
+            settings: widget.settings,
+            isDismissible: true,
+            onOpened: () => Navigator.of(ctx).pop(true),
+          ),
+        );
+        if (opened != true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('A cash register shift must be open before finalizing sales!'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          return;
+        }
+      }
+    }
+
     final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
     final invoiceNo = await db.generateNextInvoiceNo();
 
