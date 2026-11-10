@@ -282,7 +282,7 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
     );
   }
 
-  Future<void> _showTransferFundsDialog() async {
+  Future<void> _showTransferFundsDialog({PaymentAccount? initialFromAccount}) async {
     if (_accounts.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('At least 2 payment accounts are required to transfer funds.')),
@@ -293,8 +293,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
     final db = await DatabaseService.initialize();
     final nextRef = await db.generateNextAccountTransferRef();
 
-    PaymentAccount fromAcc = _accounts.first;
-    PaymentAccount toAcc = _accounts[1];
+    PaymentAccount fromAcc = initialFromAccount ?? _accounts.first;
+    PaymentAccount toAcc = _accounts.firstWhere((a) => a.id != fromAcc.id, orElse: () => _accounts.last);
     final amountCtrl = TextEditingController(text: '500.00');
     final noteCtrl = TextEditingController();
     final currency = widget.settings.currencySymbol;
@@ -512,6 +512,220 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
     );
   }
 
+  Future<void> _showDepositDialog(PaymentAccount acc) async {
+    final amountCtrl = TextEditingController(text: '1000.00');
+    final noteCtrl = TextEditingController();
+    String paymentMethod = 'cash';
+    final currency = widget.settings.currencySymbol;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Container(
+            width: 480,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [BoxShadow(color: Color(0x1F000000), blurRadius: 24, offset: Offset(0, 8))],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(22, 18, 16, 16),
+                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9)))),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.arrow_downward_rounded, color: Color(0xFF059669), size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Deposit Funds into ${acc.name}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                            const SizedBox(height: 2),
+                            Text('Current Balance: $currency${acc.currentBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF94A3B8)),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _fieldLabel('Deposit Amount ($currency)', isRequired: true),
+                      TextField(
+                        controller: amountCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          prefixText: '$currency ',
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _fieldLabel('Payment Method', isRequired: true),
+                      DropdownButtonFormField<String>(
+                        value: paymentMethod,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                          DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer / Cheque')),
+                          DropdownMenuItem(value: 'card', child: Text('Card / Online Terminal')),
+                          DropdownMenuItem(value: 'other', child: Text('Owner Capital / Other')),
+                        ],
+                        onChanged: (val) => setDlgState(() => paymentMethod = val ?? 'cash'),
+                      ),
+                      const SizedBox(height: 14),
+                      _fieldLabel('Description / Deposit Note'),
+                      TextField(
+                        controller: noteCtrl,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Cash top-up, Director loan, Bank profit...',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                    border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF475569),
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF059669),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.check_rounded, size: 18),
+                        label: const Text('Deposit Funds', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        onPressed: () async {
+                          final amt = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+                          if (amt <= 0) return;
+                          final db = await DatabaseService.initialize();
+                          await db.depositToAccount(
+                            accountId: acc.id!,
+                            amount: amt,
+                            note: noteCtrl.text.trim(),
+                            paymentMethod: paymentMethod,
+                          );
+                          Navigator.pop(ctx);
+                          _load();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Deposited $currency${amt.toStringAsFixed(2)} into ${acc.name}!'),
+                                backgroundColor: const Color(0xFF10B981),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteTransfer(AccountTransfer t) async {
+    final currency = widget.settings.currencySymbol;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reverse & Delete Fund Transfer?'),
+        content: Text(
+          'Are you sure you want to reverse transfer ${t.refNo}?\n\n'
+          'This will restore $currency${t.amount.toStringAsFixed(2)} back to "${t.fromAccountName}" and '
+          'deduct $currency${t.amount.toStringAsFixed(2)} from "${t.toAccountName}".',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Reverse Transfer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && t.id != null) {
+      final db = await DatabaseService.initialize();
+      final ok = await db.deleteAccountTransfer(t.id!);
+      if (ok) {
+        _load();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Transfer ${t.refNo} reversed and deleted.'),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   void _showStatementDialog(PaymentAccount acc) {
     showDialog(
       context: context,
@@ -658,17 +872,48 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                                         )),
                                         DataCell(Text(a.note.isNotEmpty ? a.note : '-', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
                                         DataCell(
-                                          ElevatedButton.icon(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFFEEF2FF),
-                                              foregroundColor: const Color(0xFF4F46E5),
-                                              elevation: 0,
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                            ),
-                                            icon: const Icon(Icons.receipt_long_rounded, size: 14),
-                                            label: const Text('Passbook / Statement', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                            onPressed: () => _showStatementDialog(a),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFFECFDF5),
+                                                  foregroundColor: const Color(0xFF059669),
+                                                  elevation: 0,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                ),
+                                                icon: const Icon(Icons.arrow_downward_rounded, size: 14),
+                                                label: const Text('Deposit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                onPressed: () => _showDepositDialog(a),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFFEFF6FF),
+                                                  foregroundColor: const Color(0xFF2563EB),
+                                                  elevation: 0,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                ),
+                                                icon: const Icon(Icons.sync_alt_rounded, size: 14),
+                                                label: const Text('Transfer', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                onPressed: () => _showTransferFundsDialog(initialFromAccount: a),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFFEEF2FF),
+                                                  foregroundColor: const Color(0xFF4F46E5),
+                                                  elevation: 0,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                ),
+                                                icon: const Icon(Icons.receipt_long_rounded, size: 14),
+                                                label: const Text('Statement', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                onPressed: () => _showStatementDialog(a),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ]);
@@ -697,6 +942,7 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                                       DataColumn(label: Text('TO ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold))),
                                       DataColumn(label: Text('AMOUNT TRANSFERRED', style: TextStyle(fontWeight: FontWeight.bold))),
                                       DataColumn(label: Text('NOTE', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold))),
                                     ],
                                     rows: _transfers.map((t) {
                                       return DataRow(cells: [
@@ -706,6 +952,13 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                                         DataCell(Text(t.toAccountName, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600))),
                                         DataCell(Text('$currency${t.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900))),
                                         DataCell(Text(t.note.isNotEmpty ? t.note : '-', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                                        DataCell(
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
+                                            tooltip: 'Reverse & Delete Transfer',
+                                            onPressed: () => _deleteTransfer(t),
+                                          ),
+                                        ),
                                       ]);
                                     }).toList(),
                                   ),

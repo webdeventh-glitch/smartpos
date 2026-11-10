@@ -4321,7 +4321,109 @@ class DatabaseService {
         [transfer.amount, transfer.toAccountId],
       );
 
+      // Queue for live MySQL sync
+      await txn.insert('sync_queue', {
+        'entity_type': 'account_transfer',
+        'entity_id': transferId.toString(),
+        'action': 'create',
+        'payload_json': jsonEncode(transfer.toMap()..['id'] = transferId),
+        'status': 'pending',
+        'retry_count': 0,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
       return transferId;
+    });
+  }
+
+  /// Reverses and deletes an inter-account fund transfer
+  Future<bool> deleteAccountTransfer(int transferId) async {
+    return await db.transaction((txn) async {
+      final rows = await txn.query('account_transfers', where: 'id = ?', whereArgs: [transferId], limit: 1);
+      if (rows.isEmpty) return false;
+      final transfer = AccountTransfer.fromMap(rows.first);
+
+      // Restore sender balance (add back)
+      await txn.rawUpdate(
+        'UPDATE payment_accounts SET current_balance = current_balance + ? WHERE id = ?',
+        [transfer.amount, transfer.fromAccountId],
+      );
+
+      // Restore receiver balance (subtract back)
+      await txn.rawUpdate(
+        'UPDATE payment_accounts SET current_balance = current_balance - ? WHERE id = ?',
+        [transfer.amount, transfer.toAccountId],
+      );
+
+      await txn.delete('account_transfers', where: 'id = ?', whereArgs: [transferId]);
+
+      await txn.insert('sync_queue', {
+        'entity_type': 'account_transfer',
+        'entity_id': transferId.toString(),
+        'action': 'delete',
+        'payload_json': jsonEncode({'id': transferId, 'ref_no': transfer.refNo}),
+        'status': 'pending',
+        'retry_count': 0,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      return true;
+    });
+  }
+
+  /// Deposit funds into a payment account (e.g. capital injection, bank interest, cash top-up)
+  Future<int> depositToAccount({
+    required int accountId,
+    required double amount,
+    required String note,
+    String paymentMethod = 'cash',
+  }) async {
+    return await db.transaction((txn) async {
+      final accRows = await txn.query('payment_accounts', where: 'id = ?', whereArgs: [accountId], limit: 1);
+      final accName = accRows.isNotEmpty ? (accRows.first['name'] as String? ?? 'Account') : 'Account';
+
+      // Increment account balance
+      await txn.rawUpdate(
+        'UPDATE payment_accounts SET current_balance = current_balance + ? WHERE id = ?',
+        [amount, accountId],
+      );
+
+      final ref = 'DEP-${DateTime.now().millisecondsSinceEpoch % 1000000}';
+
+      // Record in payment_transactions table
+      final txnId = await txn.insert('payment_transactions', {
+        'transaction_type': 'deposit',
+        'ref_no': ref,
+        'amount': amount,
+        'contact_id': null,
+        'contact_name': 'Bank Deposit / Self',
+        'payment_method': paymentMethod,
+        'account_id': accountId,
+        'account_name': accName,
+        'transaction_date': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+        'note': note.isNotEmpty ? note : 'Deposit to $accName',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      // Queue for live MySQL sync
+      await txn.insert('sync_queue', {
+        'entity_type': 'deposit',
+        'entity_id': txnId.toString(),
+        'action': 'create',
+        'payload_json': jsonEncode({
+          'account_id': accountId,
+          'account_name': accName,
+          'amount': amount,
+          'payment_method': paymentMethod,
+          'ref_no': ref,
+          'note': note,
+        }),
+        'status': 'pending',
+        'retry_count': 0,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      return txnId;
     });
   }
 
