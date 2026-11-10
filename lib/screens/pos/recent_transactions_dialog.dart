@@ -21,6 +21,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
   List<Sale> _filteredSales = [];
   String _searchQuery = '';
   String _selectedMethod = 'all';
+  String _selectedStatus = 'all'; // 'all', 'final', 'draft', 'quotation'
 
   final TextEditingController _searchCtrl = TextEditingController();
 
@@ -53,6 +54,9 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
     final query = _searchCtrl.text.trim().toLowerCase();
     setState(() {
       _filteredSales = _allSales.where((s) {
+        if (_selectedStatus != 'all' && s.saleStatus != _selectedStatus) {
+          return false;
+        }
         if (_selectedMethod != 'all' && s.paymentMethod.toLowerCase() != _selectedMethod) {
           return false;
         }
@@ -205,6 +209,29 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
+                ),
+              ),
+
+              // Status Tabs (All / Final / Drafts / Quotations)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  border: Border(bottom: BorderSide(color: borderColor)),
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildStatusChip('all', 'All (${_allSales.length})'),
+                      const SizedBox(width: 8),
+                      _buildStatusChip('final', 'Final Sales (${_allSales.where((s) => s.saleStatus == 'final').length})'),
+                      const SizedBox(width: 8),
+                      _buildStatusChip('draft', 'Drafts (${_allSales.where((s) => s.saleStatus == 'draft').length})', color: const Color(0xFF0284C7)),
+                      const SizedBox(width: 8),
+                      _buildStatusChip('quotation', 'Quotations (${_allSales.where((s) => s.saleStatus == 'quotation').length})', color: const Color(0xFF8B5CF6)),
+                    ],
+                  ),
                 ),
               ),
 
@@ -409,36 +436,67 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        // Reprint Button
-                                        OutlinedButton.icon(
-                                          style: OutlinedButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                            side: BorderSide(color: const Color(0xFF4F46E5).withValues(alpha: 0.5)),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        if (sale.saleStatus != 'final') ...[
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF10B981),
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              elevation: 0,
+                                            ),
+                                            icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 15),
+                                            label: Text(sale.saleStatus == 'draft' ? 'Resume Draft' : 'Load Quotation', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                            onPressed: () async {
+                                              final db = await DatabaseService.initialize();
+                                              final fullSale = await db.getSaleByInvoiceNo(sale.invoiceNo);
+                                              if (context.mounted) {
+                                                Navigator.pop(context, fullSale ?? sale);
+                                              }
+                                            },
                                           ),
-                                          icon: const Icon(Icons.print_outlined, size: 15, color: Color(0xFF4F46E5)),
-                                          label: const Text(
-                                            'Reprint',
-                                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF4444)),
+                                            tooltip: 'Delete ${sale.saleStatus.toUpperCase()}',
+                                            onPressed: () async {
+                                              final db = await DatabaseService.initialize();
+                                              await db.deleteSale(sale.id!);
+                                              _loadRecentSales();
+                                            },
                                           ),
-                                          onPressed: () => _reprintReceipt(sale),
-                                        ),
-                                        const SizedBox(width: 8),
+                                        ] else ...[
+                                          // Reprint Button
+                                          OutlinedButton.icon(
+                                            style: OutlinedButton.styleFrom(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                              side: BorderSide(color: const Color(0xFF4F46E5).withValues(alpha: 0.5)),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            ),
+                                            icon: const Icon(Icons.print_outlined, size: 15, color: Color(0xFF4F46E5)),
+                                            label: const Text(
+                                              'Reprint',
+                                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                            ),
+                                            onPressed: () => _reprintReceipt(sale),
+                                          ),
+                                          const SizedBox(width: 8),
 
-                                        // Return Button
-                                        OutlinedButton.icon(
-                                          style: OutlinedButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                            side: BorderSide(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          // Return Button
+                                          OutlinedButton.icon(
+                                            style: OutlinedButton.styleFrom(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                              side: BorderSide(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            ),
+                                            icon: const Icon(Icons.keyboard_return_rounded, size: 15, color: Color(0xFFD97706)),
+                                            label: const Text(
+                                              'Refund',
+                                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD97706)),
+                                            ),
+                                            onPressed: () => _initiateReturn(sale),
                                           ),
-                                          icon: const Icon(Icons.keyboard_return_rounded, size: 15, color: Color(0xFFD97706)),
-                                          label: const Text(
-                                            'Refund',
-                                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD97706)),
-                                          ),
-                                          onPressed: () => _initiateReturn(sale),
-                                        ),
+                                        ],
                                       ],
                                     ),
                                   ],
@@ -485,6 +543,24 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStatusChip(String status, String label, {Color color = const Color(0xFF4F46E5)}) {
+    final isSelected = _selectedStatus == status;
+    return ChoiceChip(
+      label: Text(label, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+      selected: isSelected,
+      onSelected: (_) {
+        setState(() {
+          _selectedStatus = status;
+          _applyFilter();
+        });
+      },
+      selectedColor: color,
+      labelStyle: TextStyle(color: isSelected ? Colors.white : null),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      visualDensity: VisualDensity.compact,
     );
   }
 

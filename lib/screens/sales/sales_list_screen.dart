@@ -11,8 +11,14 @@ import '../../widgets/universal_print_preview_dialog.dart';
 class SalesListScreen extends StatefulWidget {
   final BusinessSettings settings;
   final VoidCallback? onOpenPos;
+  final Function(Sale)? onResumeInPos;
 
-  const SalesListScreen({super.key, required this.settings, this.onOpenPos});
+  const SalesListScreen({
+    super.key,
+    required this.settings,
+    this.onOpenPos,
+    this.onResumeInPos,
+  });
 
   @override
   State<SalesListScreen> createState() => _SalesListScreenState();
@@ -24,6 +30,10 @@ class _SalesListScreenState extends State<SalesListScreen> {
   String _search = '';
   bool _loading = true;
   int _entriesPerPage = 25;
+  String _activeTab = 'final'; // 'final', 'draft', 'quotation'
+  int _finalCount = 0;
+  int _draftCount = 0;
+  int _quotationCount = 0;
   final ScrollController _tableScrollController = ScrollController();
 
   @override
@@ -40,12 +50,75 @@ class _SalesListScreenState extends State<SalesListScreen> {
 
   Future<void> _load() async {
     final db = await DatabaseService.initialize();
-    final list = await db.getSales(search: _search);
+    final allSales = await db.getSales();
+    final finals = allSales.where((s) => s.saleStatus == 'final').toList();
+    final drafts = allSales.where((s) => s.saleStatus == 'draft').toList();
+    final quotes = allSales.where((s) => s.saleStatus == 'quotation').toList();
+
+    List<Sale> target;
+    if (_activeTab == 'draft') {
+      target = drafts;
+    } else if (_activeTab == 'quotation') {
+      target = quotes;
+    } else {
+      target = finals;
+    }
+
+    if (_search.isNotEmpty) {
+      final q = _search.toLowerCase();
+      target = target.where((s) => s.invoiceNo.toLowerCase().contains(q) || s.customerName.toLowerCase().contains(q)).toList();
+    }
+
     if (mounted) {
       setState(() {
-        _sales = list;
+        _sales = target;
+        _finalCount = finals.length;
+        _draftCount = drafts.length;
+        _quotationCount = quotes.length;
         _loading = false;
       });
+    }
+  }
+
+  void _resumeInPos(Sale s) async {
+    final db = await DatabaseService.initialize();
+    final fullSale = await db.getSaleByInvoiceNo(s.invoiceNo);
+    if (widget.onResumeInPos != null) {
+      widget.onResumeInPos!(fullSale ?? s);
+    } else if (widget.onOpenPos != null) {
+      widget.onOpenPos!();
+    }
+  }
+
+  void _deleteSaleRecord(Sale s) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete ${s.saleStatus.toUpperCase()} #${s.invoiceNo}?'),
+        content: Text('Are you sure you want to permanently delete this ${s.saleStatus}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final db = await DatabaseService.initialize();
+      await db.deleteSale(s.id!);
+      _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${s.saleStatus.toUpperCase()} #${s.invoiceNo} deleted successfully.'),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
     }
   }
 
@@ -248,7 +321,28 @@ class _SalesListScreenState extends State<SalesListScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+
+                  // Segmented Tabs: All Final Sales / Drafts / Quotations
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _tabButton('final', 'All Final Sales', _finalCount, Icons.receipt_long_rounded, isDark),
+                        const SizedBox(width: 4),
+                        _tabButton('draft', 'Drafts', _draftCount, Icons.edit_note_rounded, isDark),
+                        const SizedBox(width: 4),
+                        _tabButton('quotation', 'Quotations / Estimates', _quotationCount, Icons.assignment_outlined, isDark),
+                      ],
+                    ),
+                  ),
 
                   // Actions and Export Buttons Toolbar (Adaptive)
                   LayoutBuilder(
@@ -422,62 +516,123 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                 children: [
                                                   // Action Button
                                                   _td(
-                                                    PopupMenuButton<String>(
-                                                      onSelected: (val) {
-                                                        if (val == 'receipt') {
-                                                          _printReceipt(s);
-                                                        } else if (val == 'quotation') {
-                                                          _printQuotation(s);
-                                                        } else if (val == 'pay_due') {
-                                                          showDialog(
-                                                            context: context,
-                                                            builder: (_) => PayDueDialog(
-                                                              settings: widget.settings,
-                                                              type: DuePaymentType.sale,
-                                                              entityId: s.id!,
-                                                              reference: s.invoiceNo,
-                                                              contactName: s.customerName,
-                                                              contactId: s.customerId,
-                                                              totalAmount: s.totalAmount,
-                                                              paidAmount: s.paidAmount,
-                                                              dueAmount: s.dueAmount,
-                                                              onPaymentSuccess: _load,
-                                                            ),
-                                                          );
-                                                        }
-                                                      },
-                                                      itemBuilder: (ctx) => [
-                                                        const PopupMenuItem(value: 'receipt', child: Text('Print Receipt')),
-                                                        const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
-                                                        if (s.dueAmount > 0)
-                                                          const PopupMenuItem(
-                                                            value: 'pay_due',
-                                                            child: Row(
-                                                              children: [
-                                                                Icon(Icons.payments_outlined, size: 16, color: Color(0xFF059669)),
-                                                                SizedBox(width: 8),
-                                                                Text('Pay Due / Collect', style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold)),
-                                                              ],
+                                                    s.saleStatus != 'final'
+                                                        ? Row(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              ElevatedButton.icon(
+                                                                style: ElevatedButton.styleFrom(
+                                                                  backgroundColor: const Color(0xFF10B981),
+                                                                  foregroundColor: Colors.white,
+                                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                                  elevation: 0,
+                                                                ),
+                                                                icon: const Icon(Icons.play_arrow_rounded, size: 14),
+                                                                label: const Text('Resume in POS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                                onPressed: () => _resumeInPos(s),
+                                                              ),
+                                                              const SizedBox(width: 4),
+                                                              PopupMenuButton<String>(
+                                                                onSelected: (val) {
+                                                                  if (val == 'quotation') {
+                                                                    _printQuotation(s);
+                                                                  } else if (val == 'delete') {
+                                                                    _deleteSaleRecord(s);
+                                                                  }
+                                                                },
+                                                                itemBuilder: (ctx) => [
+                                                                  const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
+                                                                  const PopupMenuItem(
+                                                                    value: 'delete',
+                                                                    child: Row(
+                                                                      children: [
+                                                                        Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
+                                                                        SizedBox(width: 8),
+                                                                        Text('Delete', style: TextStyle(color: Color(0xFFEF4444))),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                                child: Container(
+                                                                  padding: const EdgeInsets.all(5),
+                                                                  decoration: BoxDecoration(
+                                                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                                                    borderRadius: BorderRadius.circular(4),
+                                                                  ),
+                                                                  child: const Icon(Icons.more_vert, size: 14),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          )
+                                                        : PopupMenuButton<String>(
+                                                            onSelected: (val) {
+                                                              if (val == 'receipt') {
+                                                                _printReceipt(s);
+                                                              } else if (val == 'quotation') {
+                                                                _printQuotation(s);
+                                                              } else if (val == 'pay_due') {
+                                                                showDialog(
+                                                                  context: context,
+                                                                  builder: (_) => PayDueDialog(
+                                                                    settings: widget.settings,
+                                                                    type: DuePaymentType.sale,
+                                                                    entityId: s.id!,
+                                                                    reference: s.invoiceNo,
+                                                                    contactName: s.customerName,
+                                                                    contactId: s.customerId,
+                                                                    totalAmount: s.totalAmount,
+                                                                    paidAmount: s.paidAmount,
+                                                                    dueAmount: s.dueAmount,
+                                                                    onPaymentSuccess: _load,
+                                                                  ),
+                                                                );
+                                                              } else if (val == 'delete') {
+                                                                _deleteSaleRecord(s);
+                                                              }
+                                                            },
+                                                            itemBuilder: (ctx) => [
+                                                              const PopupMenuItem(value: 'receipt', child: Text('Print Receipt')),
+                                                              const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
+                                                              if (s.dueAmount > 0)
+                                                                const PopupMenuItem(
+                                                                  value: 'pay_due',
+                                                                  child: Row(
+                                                                    children: [
+                                                                      Icon(Icons.payments_outlined, size: 16, color: Color(0xFF059669)),
+                                                                      SizedBox(width: 8),
+                                                                      Text('Pay Due / Collect', style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold)),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                              const PopupMenuItem(value: 'view', child: Text('View Details')),
+                                                              const PopupMenuItem(
+                                                                value: 'delete',
+                                                                child: Row(
+                                                                  children: [
+                                                                    Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
+                                                                    SizedBox(width: 8),
+                                                                    Text('Delete Sale', style: TextStyle(color: Color(0xFFEF4444))),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ],
+                                                            child: Container(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                              decoration: BoxDecoration(
+                                                                color: const Color(0xFF004EEB),
+                                                                borderRadius: BorderRadius.circular(4),
+                                                              ),
+                                                              child: const Row(
+                                                                mainAxisSize: MainAxisSize.min,
+                                                                children: [
+                                                                  Text('Actions', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                                  SizedBox(width: 4),
+                                                                  Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
+                                                                ],
+                                                              ),
                                                             ),
                                                           ),
-                                                        const PopupMenuItem(value: 'view', child: Text('View Details')),
-                                                      ],
-                                                      child: Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                        decoration: BoxDecoration(
-                                                          color: const Color(0xFF004EEB),
-                                                          borderRadius: BorderRadius.circular(4),
-                                                        ),
-                                                        child: const Row(
-                                                          mainAxisSize: MainAxisSize.min,
-                                                          children: [
-                                                            Text('Actions', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                                                            SizedBox(width: 4),
-                                                            Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
                                                   ),
                                                   _td(Text(s.createdAt, style: const TextStyle(fontSize: 12))),
                                                   _td(Text(s.invoiceNo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
@@ -559,6 +714,81 @@ class _SalesListScreenState extends State<SalesListScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: child,
+    );
+  }
+
+  Widget _tabButton(String tabKey, String title, int count, IconData icon, bool isDark) {
+    final isSelected = _activeTab == tabKey;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _activeTab = tabKey;
+          _loading = true;
+        });
+        _load();
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? const Color(0xFF1E293B) : Colors.white)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected
+                  ? const Color(0xFF4F46E5)
+                  : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? (isDark ? Colors.white : const Color(0xFF0F172A))
+                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? const Color(0xFF4F46E5).withValues(alpha: 0.15)
+                    : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected
+                      ? const Color(0xFF4F46E5)
+                      : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

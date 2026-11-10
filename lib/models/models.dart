@@ -1545,6 +1545,34 @@ class CartItem {
         selectedUnitName: map['selected_unit_name'] as String?,
         unitMultiplier: (map['unit_multiplier'] as num?)?.toDouble() ?? 1.0,
       );
+
+  factory CartItem.fromSaleItem(SaleItem item, [Product? product]) {
+    final prod = product ??
+        Product(
+          id: item.productId,
+          name: item.productName,
+          sku: item.sku,
+          barcode: item.sku,
+          sellingPrice: item.unitPrice,
+          purchasePrice: 0.0,
+          stockQuantity: 999.0,
+          unit: item.unitName ?? 'Pc',
+          batchNumber: item.batchNumber,
+          expiryDate: item.expiryDate,
+        );
+    return CartItem(
+      product: prod,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      discount: item.discount,
+      batchNumber: item.batchNumber,
+      expiryDate: item.expiryDate,
+      bonusQuantity: item.bonusQuantity,
+      packDiscount: item.packDiscount,
+      selectedUnitName: item.unitName,
+      unitMultiplier: item.unitMultiplier > 0 ? item.unitMultiplier : 1.0,
+    );
+  }
 }
 
 /// Sale Invoice in Smart POS

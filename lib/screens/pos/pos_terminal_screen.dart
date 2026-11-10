@@ -23,11 +23,13 @@ import '../../services/currency_rate_service.dart';
 class PosTerminalScreen extends StatefulWidget {
   final BusinessSettings settings;
   final VoidCallback? onBackToDashboard;
+  final Sale? initialSaleToResume;
 
   const PosTerminalScreen({
     super.key,
     required this.settings,
     this.onBackToDashboard,
+    this.initialSaleToResume,
   });
 
   @override
@@ -36,6 +38,10 @@ class PosTerminalScreen extends StatefulWidget {
 
 class _PosTerminalScreenState extends State<PosTerminalScreen> {
   late Future<DatabaseService> _dbFuture;
+
+  // Resumed Draft / Quotation Tracking
+  int? _resumedSaleId;
+  String? _resumedInvoiceNo;
 
   // Cart State
   final List<CartItem> _cart = [];
@@ -107,6 +113,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         _parkedCount = parked.length;
         _loadingCatalog = false;
       });
+
+      if (widget.initialSaleToResume != null && _resumedSaleId == null) {
+        _loadResumedSale(widget.initialSaleToResume!);
+      }
 
       // Prompt register shift opening if no active session is open
       final activeReg = await db.getActiveRegister();
@@ -2188,7 +2198,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     }
 
     final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-    final invoiceNo = await db.generateNextInvoiceNo();
+    final invoiceNo = _resumedInvoiceNo ?? await db.generateNextInvoiceNo();
 
     // Loyalty points rewards calculation (1 point per 100 Rs spent)
     final earnedPoints = (paidAmount / 100).floorToDouble();
@@ -2227,11 +2237,21 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       createdAt: now,
     );
 
-    final completedSale = await db.createSale(
-      sale: sale,
-      items: List.from(_cart),
-      splitTenders: splitTenders,
-    );
+    final Sale completedSale;
+    if (_resumedSaleId != null) {
+      completedSale = await db.updateSale(
+        saleId: _resumedSaleId!,
+        sale: sale,
+        items: List.from(_cart),
+        splitTenders: splitTenders,
+      );
+    } else {
+      completedSale = await db.createSale(
+        sale: sale,
+        items: List.from(_cart),
+        splitTenders: splitTenders,
+      );
+    }
 
     if (mounted) {
       setState(() {
@@ -2240,20 +2260,37 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         _discountType = 'fixed';
         _orderTax = 0.0;
         _shippingCharge = 0.0;
+        _resumedSaleId = null;
+        _resumedInvoiceNo = null;
       });
       _loadInitialData();
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => ReceiptDialog(
-          sale: completedSale,
-          settings: widget.settings,
-          tenderedAmount: tendered,
-          changeReturn: changeReturn,
-          customerPreviousBalance: _selectedCustomer?.balance ?? 0.0,
-        ),
-      );
+      if (saleStatus == 'draft') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text('Draft #${completedSale.invoiceNo} saved! You can resume it anytime from Sales > Drafts.'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF0284C7),
+          ),
+        );
+      } else {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => ReceiptDialog(
+            sale: completedSale,
+            settings: widget.settings,
+            tenderedAmount: (saleStatus == 'quotation') ? 0.0 : tendered,
+            changeReturn: (saleStatus == 'quotation') ? 0.0 : changeReturn,
+            customerPreviousBalance: _selectedCustomer?.balance ?? 0.0,
+          ),
+        );
+      }
     }
   }
 
@@ -2630,6 +2667,59 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
+  void _loadResumedSale(Sale sale) {
+    setState(() {
+      _resumedSaleId = sale.id;
+      _resumedInvoiceNo = sale.invoiceNo;
+      _isQuotationMode = (sale.saleStatus == 'quotation');
+      _discountValue = sale.discount;
+      _orderTax = sale.taxAmount;
+      _shippingCharge = sale.shipping;
+
+      if (_customers.isNotEmpty && sale.customerId != null) {
+        try {
+          _selectedCustomer = _customers.firstWhere((c) => c.id == sale.customerId);
+        } catch (_) {}
+      }
+
+      if (sale.items != null && sale.items!.isNotEmpty) {
+        _cart.clear();
+        for (final item in sale.items!) {
+          Product? prod;
+          try {
+            prod = _allProducts.firstWhere((p) => p.id == item.productId);
+          } catch (_) {}
+          _cart.add(CartItem.fromSaleItem(item, prod));
+        }
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text('Loaded ${sale.saleStatus.toUpperCase()} #${sale.invoiceNo} into Cart!'),
+          ],
+        ),
+        backgroundColor: const Color(0xFF4F46E5),
+      ),
+    );
+  }
+
+  void _saveDraft() {
+    _processCheckout(
+      paymentMethod: 'none',
+      paidAmount: 0.0,
+      tendered: 0.0,
+      changeReturn: 0.0,
+      paymentStatus: 'due',
+      saleStatus: 'draft',
+      note: 'Temporary draft bill',
+    );
+  }
+
   void _saveQuotation() {
     _processCheckout(
       paymentMethod: 'none',
@@ -2677,6 +2767,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
               Navigator.pop(ctx);
               setState(() {
                 _cart.clear();
+                _resumedSaleId = null;
+                _resumedInvoiceNo = null;
                 _discountValue = 0.0;
                 _discountType = 'fixed';
                 _orderTax = 0.0;
@@ -2704,11 +2796,14 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
-  void _openRecentTransactionsModal() {
-    showDialog(
+  void _openRecentTransactionsModal() async {
+    final saleToResume = await showDialog<Sale>(
       context: context,
       builder: (_) => RecentTransactionsDialog(settings: widget.settings),
     );
+    if (saleToResume != null && mounted) {
+      _loadResumedSale(saleToResume);
+    }
   }
 
   void _openCustomerSearchModal() {
@@ -4007,7 +4102,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                         const SizedBox(width: 6),
 
                                         // [ Draft ]
-                                        _bottomOutlineBtn(icon: Icons.edit_note, label: 'Draft', onTap: _saveQuotation, isDark: isDark),
+                                        _bottomOutlineBtn(icon: Icons.edit_note, label: 'Draft', onTap: _saveDraft, isDark: isDark),
 
                                         // [ Quotation ]
                                         _bottomOutlineBtn(icon: Icons.assignment_outlined, label: 'Quotation', onTap: _saveQuotation, isDark: isDark),

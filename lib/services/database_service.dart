@@ -2696,8 +2696,8 @@ class DatabaseService {
         }
       }
 
-      // 3. Update customer balance if partial or due
-      if (sale.customerId != null && sale.dueAmount > 0) {
+      // 3. Update customer balance if partial or due (Final sales only)
+      if (sale.saleStatus == 'final' && sale.customerId != null && sale.dueAmount > 0) {
         await txn.rawUpdate(
           'UPDATE contacts SET balance = balance + ? WHERE id = ?',
           [sale.dueAmount, sale.customerId],
@@ -2836,6 +2836,158 @@ class DatabaseService {
     });
     triggerAsyncMySqlSync();
     return createdSale;
+  }
+
+  Future<Sale> updateSale({
+    required int saleId,
+    required Sale sale,
+    required List<CartItem> items,
+    List<Map<String, dynamic>>? splitTenders,
+  }) async {
+    final updated = await db.transaction((txn) async {
+      final oldSaleRows = await txn.query('sales', where: 'id = ?', whereArgs: [saleId], limit: 1);
+      final oldSale = oldSaleRows.isNotEmpty ? Sale.fromMap(oldSaleRows.first) : null;
+      final wasFinal = oldSale?.saleStatus == 'final';
+      final isNowFinal = sale.saleStatus == 'final';
+
+      // If it was already final, restore old item stock and customer balance first
+      if (wasFinal) {
+        final oldItems = await txn.query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
+        for (final row in oldItems) {
+          final item = SaleItem.fromMap(row);
+          if (item.productId != null) {
+            final restoreQty = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+            await txn.rawUpdate(
+              'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+              [restoreQty, item.productId],
+            );
+          }
+        }
+        if (oldSale?.customerId != null && (oldSale?.dueAmount ?? 0) > 0) {
+          await txn.rawUpdate(
+            'UPDATE contacts SET balance = balance - ? WHERE id = ?',
+            [oldSale!.dueAmount, oldSale.customerId],
+          );
+        }
+      }
+
+      // Update the sales record
+      final updateMap = sale.toMap();
+      updateMap.remove('id');
+      await txn.update('sales', updateMap, where: 'id = ?', whereArgs: [saleId]);
+
+      // Delete old sale_items
+      await txn.delete('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
+
+      // Insert new sale items and decrement stock if now final
+      for (final item in items) {
+        await txn.insert('sale_items', item.toMap(saleId));
+
+        if (isNowFinal && item.product.id != null) {
+          final baseDeduction = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+          await txn.rawUpdate(
+            'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+            [baseDeduction, item.product.id],
+          );
+        }
+      }
+
+      // Update customer balance if now final and due
+      if (isNowFinal && sale.customerId != null && sale.dueAmount > 0) {
+        await txn.rawUpdate(
+          'UPDATE contacts SET balance = balance + ? WHERE id = ?',
+          [sale.dueAmount, sale.customerId],
+        );
+      }
+
+      // Update cash register if now final (and was not final before)
+      if (isNowFinal && !wasFinal) {
+        if (splitTenders != null && splitTenders.isNotEmpty) {
+          for (final st in splitTenders) {
+            final amt = (st['amount'] as num?)?.toDouble() ?? 0.0;
+            final m = (st['method'] as String?)?.toLowerCase() ?? 'cash';
+            if (amt > 0) {
+              if (m == 'cash') {
+                await txn.rawUpdate(
+                  'UPDATE cash_registers SET total_sales_cash = total_sales_cash + ? WHERE status = \'open\'',
+                  [amt],
+                );
+              } else if (m == 'card') {
+                await txn.rawUpdate(
+                  'UPDATE cash_registers SET total_sales_card = total_sales_card + ? WHERE status = \'open\'',
+                  [amt],
+                );
+              } else {
+                await txn.rawUpdate(
+                  'UPDATE cash_registers SET total_sales_other = total_sales_other + ? WHERE status = \'open\'',
+                  [amt],
+                );
+              }
+            }
+          }
+        } else {
+          if (sale.paymentMethod.toLowerCase() == 'cash' && sale.paidAmount > 0) {
+            await txn.rawUpdate(
+              'UPDATE cash_registers SET total_sales_cash = total_sales_cash + ? WHERE status = \'open\'',
+              [sale.paidAmount],
+            );
+          } else if (sale.paymentMethod.toLowerCase() == 'card' && sale.paidAmount > 0) {
+            await txn.rawUpdate(
+              'UPDATE cash_registers SET total_sales_card = total_sales_card + ? WHERE status = \'open\'',
+              [sale.paidAmount],
+            );
+          }
+        }
+      }
+
+      return Sale.fromMap(updateMap..['id'] = saleId);
+    });
+    triggerAsyncMySqlSync();
+    return updated;
+  }
+
+  Future<void> deleteSale(int saleId) async {
+    await db.transaction((txn) async {
+      final saleRows = await txn.query('sales', where: 'id = ?', whereArgs: [saleId], limit: 1);
+      if (saleRows.isEmpty) return;
+      final sale = Sale.fromMap(saleRows.first);
+
+      // If sale was final, revert stock and customer balance
+      if (sale.saleStatus == 'final') {
+        final itemRows = await txn.query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
+        for (final row in itemRows) {
+          final item = SaleItem.fromMap(row);
+          if (item.productId != null) {
+            final qtyToRestore = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+            await txn.rawUpdate(
+              'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+              [qtyToRestore, item.productId],
+            );
+          }
+        }
+
+        // Revert customer balance if due amount was added
+        if (sale.customerId != null && sale.dueAmount > 0) {
+          await txn.rawUpdate(
+            'UPDATE contacts SET balance = balance - ? WHERE id = ?',
+            [sale.dueAmount, sale.customerId],
+          );
+        }
+
+        // Revert cash register if paid in cash
+        if (sale.paymentMethod.toLowerCase() == 'cash' && sale.paidAmount > 0) {
+          await txn.rawUpdate(
+            'UPDATE cash_registers SET total_sales_cash = total_sales_cash - ? WHERE status = \'open\'',
+            [sale.paidAmount],
+          );
+        }
+      }
+
+      // Delete items & sale record
+      await txn.delete('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
+      await txn.delete('sales', where: 'id = ?', whereArgs: [saleId]);
+    });
+    triggerAsyncMySqlSync();
   }
 
   Future<List<Sale>> getSales({String? status, String? search}) async {

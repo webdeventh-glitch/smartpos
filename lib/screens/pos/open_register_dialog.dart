@@ -352,3 +352,4 @@ class _OpenRegisterDialogState extends State<OpenRegisterDialog> {
     );
   }
 }
+

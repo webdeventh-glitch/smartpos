@@ -83,9 +83,18 @@ class _MainShellState extends State<MainShell> {
 
   Product? _productToEdit;
   Product? _productToPrintLabel;
+  Sale? _saleToResumeInPos;
 
-  void _onOpenPos() {
+  void _onOpenPos({Sale? saleToResume}) {
     final isCompact = MediaQuery.of(context).size.width < 1400;
+    _saleToResumeInPos = saleToResume;
+    if (saleToResume != null) {
+      setState(() {
+        _selectedIndex = 1;
+        if (isCompact) _sidebarCollapsed = true;
+      });
+      return;
+    }
     if (_settings.isRestaurant) {
       setState(() {
         _selectedIndex = 29; // Restaurant Tables & KOT
@@ -138,7 +147,14 @@ class _MainShellState extends State<MainShell> {
           onNavigateToTab: (index) => setState(() => _selectedIndex = index),
         );
       case 1:
-        return PosTerminalScreen(settings: _settings);
+        return PosTerminalScreen(
+          settings: _settings,
+          initialSaleToResume: _saleToResumeInPos,
+          onBackToDashboard: () => setState(() {
+            _saleToResumeInPos = null;
+            _selectedIndex = 0;
+          }),
+        );
       case 2:
         return ProductsListScreen(
           settings: _settings,
@@ -158,7 +174,11 @@ class _MainShellState extends State<MainShell> {
       case 3:
         return CategoriesScreen(settings: _settings);
       case 4:
-        return SalesListScreen(settings: _settings, onOpenPos: _onOpenPos);
+        return SalesListScreen(
+          settings: _settings,
+          onOpenPos: _onOpenPos,
+          onResumeInPos: (sale) => _onOpenPos(saleToResume: sale),
+        );
       case 5:
         return PurchasesListScreen(
           settings: _settings,
