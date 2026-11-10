@@ -12,6 +12,7 @@ import '../../services/mysql_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../services/currency_rate_service.dart';
 import '../../services/print_service.dart';
+import '../../services/ai_assistant_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -133,10 +134,18 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   String _lastRatesSync = '';
   CurrencyInfo? _selectedCurrencyInfo;
 
+  // AI Business Advisor State (BYO Gemini / OpenAI)
+  AiSettings _aiSettings = AiSettings();
+  late TextEditingController _aiApiKeyCtrl;
+  bool _obscureAiKey = true;
+  bool _isTestingAi = false;
+  String _aiTestResponse = '';
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 8, vsync: this);
+    _tabController = TabController(length: 9, vsync: this);
+    _aiApiKeyCtrl = TextEditingController();
     _loadBackups();
     final s = widget.settings;
     _bizNameCtrl = TextEditingController(text: s.businessName);
@@ -308,6 +317,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   @override
   void dispose() {
     _tabController.dispose();
+    _aiApiKeyCtrl.dispose();
     _bizNameCtrl.dispose();
     _branchCtrl.dispose();
     _currencySymCtrl.dispose();
@@ -570,11 +580,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final locs = await db.getBusinessLocations();
     final taxes = await db.getTaxRates();
     final scs = await db.getInvoiceSchemes();
+    final ai = await db.getAiSettings();
     if (mounted) {
       setState(() {
         _locations = locs;
         _taxRates = taxes;
         _schemes = scs;
+        _aiSettings = ai;
+        _aiApiKeyCtrl.text = ai.apiKey;
         _isLoading = false;
       });
     }
@@ -2052,6 +2065,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             Tab(icon: Icon(Icons.storage_rounded, size: 18), text: 'Purge & Medicine Engine'),
             Tab(icon: Icon(Icons.system_update_alt_rounded, size: 18), text: 'Software Update & Backup'),
             Tab(icon: Icon(Icons.print_rounded, size: 18), text: 'Bill Customization & Printing'),
+            Tab(icon: Icon(Icons.auto_awesome_rounded, size: 18), text: 'AI Business Advisor'),
           ],
         ),
       ),
@@ -5041,6 +5055,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
           // Tab 7: Bill Customization & Universal Printing Setup
           _buildBillCustomizationTab(isDark, primaryColor),
+
+          // Tab 8: AI Business Advisor (BYO Gemini / OpenAI)
+          _buildAiSettingsTab(isDark, primaryColor),
         ],
       ),
     );
@@ -6632,6 +6649,333 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   }
                 });
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiSettingsTab(bool isDark, Color primaryColor) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Banner
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 32),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Smart POS AI Business Advisor & Intelligence',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Bring Your Own (BYO) API Key: Connect Google Gemini (100% Free) or OpenAI GPT-4o to analyze financial turnover, predict inventory reorders, and guide staff in Roman Urdu.',
+                        style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.3),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Main Configuration Card
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('AI Engine Configuration', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          const Text('Enable AI Integration:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: _aiSettings.isEnabled,
+                            activeColor: const Color(0xFF7C3AED),
+                            onChanged: (v) {
+                              setState(() {
+                                _aiSettings = _aiSettings.copyWith(isEnabled: v);
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Provider Selector
+                  const Text('Select AI Model Provider:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _aiSettings = _aiSettings.copyWith(
+                                provider: 'gemini',
+                                modelName: 'gemini-1.5-flash',
+                              );
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: _aiSettings.provider == 'gemini'
+                                  ? const Color(0xFFEEF2FF)
+                                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: _aiSettings.provider == 'gemini' ? const Color(0xFF4F46E5) : const Color(0xFFCBD5E1),
+                                width: _aiSettings.provider == 'gemini' ? 2 : 1,
+                              ),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.bolt_rounded, color: Color(0xFF4F46E5), size: 22),
+                                SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Google Gemini 1.5 Flash', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                    Text('100% Free • Recommended • Fast', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _aiSettings = _aiSettings.copyWith(
+                                provider: 'openai',
+                                modelName: 'gpt-4o-mini',
+                              );
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: _aiSettings.provider == 'openai'
+                                  ? const Color(0xFFECFDF5)
+                                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: _aiSettings.provider == 'openai' ? const Color(0xFF059669) : const Color(0xFFCBD5E1),
+                                width: _aiSettings.provider == 'openai' ? 2 : 1,
+                              ),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.auto_awesome, color: Color(0xFF059669), size: 22),
+                                SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('OpenAI GPT-4o Mini', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                    Text('High Intelligence • Paid Key', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // API Key Field
+                  TextField(
+                    controller: _aiApiKeyCtrl,
+                    obscureText: _obscureAiKey,
+                    onChanged: (val) {
+                      _aiSettings = _aiSettings.copyWith(apiKey: val.trim());
+                    },
+                    decoration: InputDecoration(
+                      labelText: _aiSettings.provider == 'gemini' ? 'Google Gemini API Key *' : 'OpenAI Secret API Key *',
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.key_rounded),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscureAiKey ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => _obscureAiKey = !_obscureAiKey),
+                      ),
+                      helperText: _aiSettings.provider == 'gemini'
+                          ? 'Get your free key in 30 seconds from: https://aistudio.google.com/app/apikey'
+                          : 'From your OpenAI account platform: https://platform.openai.com/api-keys',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Advisory Language
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _aiSettings.preferredLanguage,
+                          decoration: const InputDecoration(labelText: 'AI Advisory Language', border: OutlineInputBorder()),
+                          items: const [
+                            DropdownMenuItem(value: 'roman_urdu', child: Text('Roman Urdu (اردو/English - Recommended)')),
+                            DropdownMenuItem(value: 'urdu', child: Text('Urdu (اردو رسم الخط)')),
+                            DropdownMenuItem(value: 'english', child: Text('English (Executive Business Standard)')),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) setState(() => _aiSettings = _aiSettings.copyWith(preferredLanguage: v));
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4F46E5),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        ),
+                        icon: const Icon(Icons.save_rounded, size: 18),
+                        label: const Text('Save AI Credentials', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () async {
+                          final key = _aiApiKeyCtrl.text.trim();
+                          final updated = _aiSettings.copyWith(apiKey: key);
+                          final db = await DatabaseService.initialize();
+                          await db.saveAiSettings(updated);
+                          setState(() => _aiSettings = updated);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('AI Assistant settings saved successfully!'), backgroundColor: Color(0xFF10B981)),
+                            );
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        ),
+                        icon: const Icon(Icons.network_check_rounded, size: 18),
+                        label: Text(_isTestingAi ? 'Connecting to AI...' : 'Test AI Connection'),
+                        onPressed: _isTestingAi
+                            ? null
+                            : () async {
+                                final key = _aiApiKeyCtrl.text.trim();
+                                if (key.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Please enter an API key first!'), backgroundColor: Colors.orange),
+                                  );
+                                  return;
+                                }
+
+                                setState(() {
+                                  _isTestingAi = true;
+                                  _aiTestResponse = '';
+                                });
+
+                                final testSettings = _aiSettings.copyWith(apiKey: key);
+                                final response = await AiAssistantService.generate(
+                                  prompt: 'Hello! Please confirm in one short sentence that you are connected and ready to assist Smart POS.',
+                                  settingsOverride: testSettings,
+                                );
+
+                                if (mounted) {
+                                  setState(() {
+                                    _isTestingAi = false;
+                                    _aiTestResponse = response;
+                                  });
+
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('AI Connection Test Result'),
+                                      content: Text(response),
+                                      actions: [
+                                        ElevatedButton(onPressed: () => Navigator.pop(ctx), child: const Text('Done')),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Google AI Studio Free Setup Guide
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Row(
+                  children: [
+                    Icon(Icons.help_outline_rounded, color: Color(0xFF4F46E5), size: 20),
+                    SizedBox(width: 8),
+                    Text('How to get a 100% FREE Google Gemini API Key:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Text('1. Go to Google AI Studio: https://aistudio.google.com/app/apikey in your browser.', style: TextStyle(fontSize: 12)),
+                Text('2. Sign in with any standard Gmail / Google account.', style: TextStyle(fontSize: 12)),
+                Text('3. Click the blue button: "Create API key".', style: TextStyle(fontSize: 12)),
+                Text('4. Copy your key, paste it into the box above, and click "Save AI Credentials".', style: TextStyle(fontSize: 12)),
+                Text('5. You will get 15 free AI requests every minute with zero billing required!', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+              ],
             ),
           ),
         ],

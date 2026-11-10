@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/messaging_service.dart';
 import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import '../pos/receipt_dialog.dart';
@@ -150,6 +151,79 @@ class _SalesListScreenState extends State<SalesListScreen> {
         ),
       );
     }
+  }
+
+  void _sendWhatsAppBill(Sale s) async {
+    final db = await DatabaseService.initialize();
+    String customerPhone = '';
+    if (s.customerId != null) {
+      final contact = await db.getContactById(s.customerId!);
+      customerPhone = contact?.phone ?? '';
+    }
+
+    final phoneCtrl = TextEditingController(text: customerPhone);
+    final saleItems = s.items ?? await db.getSaleItems(s.id!);
+
+    final text = MessagingService.formatSaleReceiptMessage(
+      sale: s,
+      settings: widget.settings,
+      items: saleItems,
+    );
+
+    if (customerPhone.isNotEmpty) {
+      MessagingService.sendWhatsAppDirect(to: customerPhone, message: text, recipientName: s.customerName);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Opening WhatsApp for ${s.customerName}...'), backgroundColor: const Color(0xFF25D366)),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.chat_rounded, color: Color(0xFF25D366)),
+            SizedBox(width: 8),
+            Text('Send WhatsApp Bill Receipt'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Enter WhatsApp mobile number for ${s.customerName}:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'WhatsApp Number (e.g. 03001234567)', border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white),
+            icon: const Icon(Icons.send_rounded, size: 16),
+            label: const Text('Send via WhatsApp'),
+            onPressed: () {
+              final p = phoneCtrl.text.trim();
+              if (p.isNotEmpty) {
+                MessagingService.sendWhatsAppDirect(to: p, message: text, recipientName: s.customerName);
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Opening WhatsApp for ${s.customerName}...'), backgroundColor: const Color(0xFF25D366)),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _printQuotation(Sale s) async {
@@ -603,6 +677,8 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                     onPaymentSuccess: _load,
                                                                   ),
                                                                 );
+                                                              } else if (val == 'whatsapp') {
+                                                                _sendWhatsAppBill(s);
                                                               } else if (val == 'delete') {
                                                                 _deleteSaleRecord(s);
                                                               }
@@ -611,6 +687,16 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                               final canDel = AuthService.currentUser?.hasPermission('sales.delete') ?? true;
                                                               return [
                                                                 const PopupMenuItem(value: 'receipt', child: Text('Print Receipt')),
+                                                                const PopupMenuItem(
+                                                                  value: 'whatsapp',
+                                                                  child: Row(
+                                                                    children: [
+                                                                      Icon(Icons.chat_rounded, size: 16, color: Color(0xFF25D366)),
+                                                                      SizedBox(width: 8),
+                                                                      Text('Send WhatsApp Bill', style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.bold)),
+                                                                    ],
+                                                                  ),
+                                                                ),
                                                                 const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
                                                                 if (s.dueAmount > 0)
                                                                   const PopupMenuItem(

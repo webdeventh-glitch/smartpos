@@ -5,6 +5,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/print_service.dart';
+import '../../services/ai_assistant_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../pos/pos_power_dialogs.dart';
 import '../products/product_detail_dialog.dart';
@@ -272,6 +273,139 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     );
   }
 
+  void _showAiReportAnalysisModal() {
+    bool analyzing = true;
+    String aiResponse = '';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          if (analyzing && aiResponse.isEmpty) {
+            AiAssistantService.explainBusinessReports(
+              report: _report,
+              expiries: _stockExpiryReports,
+              lowStock: _lowStock,
+              settings: widget.settings,
+            ).then((res) {
+              if (ctx.mounted) {
+                setDlgState(() {
+                  analyzing = false;
+                  aiResponse = res;
+                });
+              }
+            }).catchError((err) {
+              if (ctx.mounted) {
+                setDlgState(() {
+                  analyzing = false;
+                  aiResponse = 'Analysis error: $err';
+                });
+              }
+            });
+          }
+
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            actionsPadding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3E8FF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF7C3AED), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AI Business Intelligence & Advisory',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const Text(
+                      'Powered by Google Gemini / OpenAI - Executive Analysis in Roman Urdu',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 680,
+              height: 480,
+              child: analyzing
+                  ? const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: Color(0xFF7C3AED)),
+                          SizedBox(height: 16),
+                          Text(
+                            'AI is analyzing your store sales, margins, expenses, and batch expirations...',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          SizedBox(height: 6),
+                          Text('Generating executive Roman Urdu summary and strategic advice...', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                        ),
+                        child: SelectableText(
+                          aiResponse,
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.6,
+                            color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B),
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+            actions: [
+              if (!analyzing && aiResponse.isNotEmpty)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  label: const Text('Copy to Clipboard'),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: aiResponse));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('AI Summary copied to clipboard!'), backgroundColor: Color(0xFF10B981)),
+                    );
+                  },
+                ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C3AED),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cur = widget.settings.currencySymbol;
@@ -373,6 +507,18 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       onPressed: _load,
                     ),
                     const SizedBox(width: 6),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7C3AED),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                      label: const Text('Ask AI Business Advisor', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: _showAiReportAnalysisModal,
+                    ),
+                    const SizedBox(width: 8),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4F46E5),

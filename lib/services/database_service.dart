@@ -217,6 +217,97 @@ class DatabaseService {
       );
     ''');
 
+    // SMS Gateways Table (Zong, Ufone, Jazz, Telenor, Twilio, Generic REST)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sms_gateways (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        api_url TEXT NOT NULL,
+        api_key TEXT,
+        api_secret TEXT,
+        sender_id TEXT,
+        http_method TEXT DEFAULT 'POST',
+        payload_format TEXT,
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT NOT NULL
+      );
+    ''');
+
+    // Message Logs (SMS & WhatsApp outgoing delivery tracker)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS message_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        recipient_name TEXT,
+        phone_number TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        message_body TEXT NOT NULL,
+        status TEXT NOT NULL,
+        gateway_name TEXT,
+        error_details TEXT,
+        created_at TEXT NOT NULL
+      );
+    ''');
+
+    // AI Assistant Settings (BYO Google Gemini / OpenAI key)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ai_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT DEFAULT 'gemini',
+        api_key TEXT,
+        model_name TEXT DEFAULT 'gemini-1.5-flash',
+        is_enabled INTEGER DEFAULT 1,
+        preferred_language TEXT DEFAULT 'roman_urdu',
+        system_prompt TEXT
+      );
+    ''');
+
+    // Seed default Pakistan SMS Gateways if empty
+    try {
+      final gwCount = await db.rawQuery('SELECT COUNT(*) as c FROM sms_gateways');
+      if (((gwCount.first['c'] as int?) ?? 0) == 0) {
+        await db.insert('sms_gateways', {
+          'name': 'Zong Corporate Branded SMS',
+          'provider': 'zong',
+          'api_url': 'https://api.domain.com/sms/send',
+          'api_key': '',
+          'api_secret': '',
+          'sender_id': 'SMARTPOS',
+          'http_method': 'POST',
+          'payload_format': '{"to":"{to}","message":"{message}","mask":"{mask}"}',
+          'is_active': 1,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+        await db.insert('sms_gateways', {
+          'name': 'Generic Pakistan REST SMS API',
+          'provider': 'generic_http',
+          'api_url': 'https://sendpk.com/api/sms.php?username={key}&password={secret}&sender={mask}&mobile={to}&message={message}',
+          'api_key': '',
+          'api_secret': '',
+          'sender_id': 'SMARTPOS',
+          'http_method': 'GET',
+          'payload_format': '',
+          'is_active': 0,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+      }
+    } catch (_) {}
+
+    // Seed default AI settings if empty
+    try {
+      final aiCount = await db.rawQuery('SELECT COUNT(*) as c FROM ai_settings');
+      if (((aiCount.first['c'] as int?) ?? 0) == 0) {
+        await db.insert('ai_settings', {
+          'provider': 'gemini',
+          'api_key': '',
+          'model_name': 'gemini-1.5-flash',
+          'is_enabled': 1,
+          'preferred_language': 'roman_urdu',
+          'system_prompt': 'Aap Smart POS ke AI Business Advisor hain. Shop owner ko unke store ke sales, profit, stock aur products ka behtareen mashwara Roman Urdu me dein.',
+        });
+      }
+    } catch (_) {}
+
     // Add optional columns to products table if missing
     try {
       await db.execute("ALTER TABLE products ADD COLUMN type TEXT DEFAULT 'single'");
@@ -2184,6 +2275,63 @@ class DatabaseService {
 
   Future<void> deleteTaxRate(int id) async {
     await db.delete('tax_rates', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ===================== SMS GATEWAYS =====================
+  Future<List<SmsGateway>> getSmsGateways() async {
+    final rows = await db.query('sms_gateways', orderBy: 'id ASC');
+    return rows.map((r) => SmsGateway.fromMap(r)).toList();
+  }
+
+  Future<SmsGateway?> getActiveSmsGateway() async {
+    final rows = await db.query('sms_gateways', where: 'is_active = 1', limit: 1);
+    if (rows.isNotEmpty) {
+      return SmsGateway.fromMap(rows.first);
+    }
+    return null;
+  }
+
+  Future<int> addSmsGateway(SmsGateway gateway) async {
+    return await db.insert('sms_gateways', gateway.toMap());
+  }
+
+  Future<void> updateSmsGateway(SmsGateway gateway) async {
+    if (gateway.id != null) {
+      await db.update('sms_gateways', gateway.toMap(), where: 'id = ?', whereArgs: [gateway.id]);
+    }
+  }
+
+  Future<void> deleteSmsGateway(int id) async {
+    await db.delete('sms_gateways', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ===================== MESSAGE LOGS =====================
+  Future<List<MessageLog>> getMessageLogs({int limit = 100}) async {
+    final rows = await db.query('message_logs', orderBy: 'id DESC', limit: limit);
+    return rows.map((r) => MessageLog.fromMap(r)).toList();
+  }
+
+  Future<int> addMessageLog(MessageLog log) async {
+    return await db.insert('message_logs', log.toMap());
+  }
+
+  // ===================== AI SETTINGS =====================
+  Future<AiSettings> getAiSettings() async {
+    final rows = await db.query('ai_settings', limit: 1);
+    if (rows.isNotEmpty) {
+      return AiSettings.fromMap(rows.first);
+    }
+    return AiSettings();
+  }
+
+  Future<void> saveAiSettings(AiSettings settings) async {
+    final countRes = await db.rawQuery('SELECT COUNT(*) as c FROM ai_settings');
+    final count = (countRes.first['c'] as int?) ?? 0;
+    if (count == 0) {
+      await db.insert('ai_settings', settings.toMap());
+    } else {
+      await db.update('ai_settings', settings.toMap());
+    }
   }
 
   // Invoice Schemes

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
+import '../../services/messaging_service.dart';
 
 class PaymentReminderDialog extends StatefulWidget {
   final Contact contact;
@@ -101,14 +102,11 @@ Thank you!''';
       return;
     }
 
-    final text = Uri.encodeComponent(_messageCtrl.text.trim());
-    final url = 'https://wa.me/$phone?text=$text';
-
-    try {
-      if (Platform.isWindows) {
-        Process.run('cmd', ['/c', 'start', '', url]);
-      }
-    } catch (_) {}
+    MessagingService.sendWhatsAppDirect(
+      to: phone,
+      message: _messageCtrl.text.trim(),
+      recipientName: widget.contact.name,
+    );
 
     Clipboard.setData(ClipboardData(text: _messageCtrl.text.trim()));
     if (mounted) {
@@ -122,23 +120,28 @@ Thank you!''';
     }
   }
 
-  void _sendViaSms() {
+  void _sendViaSms() async {
     final phone = _formatInternationalPhone(_phoneCtrl.text);
-    final text = Uri.encodeComponent(_messageCtrl.text.trim());
-    final url = 'sms:$phone?body=$text';
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid mobile number!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
 
-    try {
-      if (Platform.isWindows) {
-        Process.run('cmd', ['/c', 'start', '', url]);
-      }
-    } catch (_) {}
+    final sent = await MessagingService.sendSms(
+      to: phone,
+      message: _messageCtrl.text.trim(),
+      recipientName: widget.contact.name,
+    );
 
-    Clipboard.setData(ClipboardData(text: _messageCtrl.text.trim()));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('SMS ready! Message copied to clipboard.'),
-          backgroundColor: Color(0xFF0284C7),
+        SnackBar(
+          content: Text(sent
+              ? 'SMS dispatched successfully via active SMS Gateway!'
+              : 'SMS dispatched to queue. Check SMS Gateway status in Settings.'),
+          backgroundColor: sent ? const Color(0xFF10B981) : Colors.orange,
         ),
       );
       Navigator.pop(context);

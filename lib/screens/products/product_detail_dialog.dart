@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/print_service.dart';
 
 class ProductDetailDialog extends StatefulWidget {
   final Product product;
@@ -495,12 +496,38 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                     icon: const Icon(Icons.print_rounded, size: 18),
                     label: const Text('Print', style: TextStyle(fontWeight: FontWeight.w700)),
                     onPressed: () {
-                      if (widget.onPrintLabels != null) {
-                        Navigator.pop(context);
-                        widget.onPrintLabels!();
-                      }
+                      final html = PrintService.generateProductDetailHtml(
+                        product: p,
+                        settings: widget.settings,
+                        variations: _variations,
+                        totalSold: _totalSold,
+                        totalTransferred: _totalTransferred,
+                        totalAdjusted: _totalAdjusted,
+                        canViewCost: canViewCost,
+                      );
+                      PrintService.openPrintWindow(
+                        htmlContent: html,
+                        title: 'Product_${p.sku}',
+                      );
                     },
                   ),
+                  if (widget.onPrintLabels != null) ...[
+                    const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                        side: BorderSide(color: borderColor),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                      icon: const Icon(Icons.qr_code_2_rounded, size: 17),
+                      label: const Text('Print Labels', style: TextStyle(fontWeight: FontWeight.w600)),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        widget.onPrintLabels!();
+                      },
+                    ),
+                  ],
                   if (widget.onEdit != null) ...[
                     const SizedBox(width: 10),
                     ElevatedButton.icon(

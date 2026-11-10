@@ -3430,3 +3430,200 @@ class AuditLog {
         timestamp: map['timestamp'] as String? ?? '',
       );
 }
+
+/// SMS Gateway Configuration (Zong, Ufone, Jazz, Generic REST, Twilio)
+class SmsGateway {
+  final int? id;
+  final String name;
+  final String provider; // 'zong', 'ufone', 'jazz', 'telenor', 'sendpk', 'generic_http', 'twilio'
+  final String apiUrl;
+  final String apiKey;
+  final String apiSecret;
+  final String senderId; // Mask or sender phone
+  final String httpMethod; // 'GET' or 'POST'
+  final String payloadFormat;
+  final bool isActive;
+  final String createdAt;
+
+  SmsGateway({
+    this.id,
+    required this.name,
+    required this.provider,
+    required this.apiUrl,
+    this.apiKey = '',
+    this.apiSecret = '',
+    this.senderId = 'SMARTPOS',
+    this.httpMethod = 'POST',
+    this.payloadFormat = '',
+    this.isActive = true,
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'provider': provider,
+        'api_url': apiUrl,
+        'api_key': apiKey,
+        'api_secret': apiSecret,
+        'sender_id': senderId,
+        'http_method': httpMethod,
+        'payload_format': payloadFormat,
+        'is_active': isActive ? 1 : 0,
+        'created_at': createdAt,
+      };
+
+  factory SmsGateway.fromMap(Map<String, dynamic> map) => SmsGateway(
+        id: map['id'] as int?,
+        name: map['name'] as String? ?? 'Custom SMS Gateway',
+        provider: map['provider'] as String? ?? 'generic_http',
+        apiUrl: map['api_url'] as String? ?? '',
+        apiKey: map['api_key'] as String? ?? '',
+        apiSecret: map['api_secret'] as String? ?? '',
+        senderId: map['sender_id'] as String? ?? 'SMARTPOS',
+        httpMethod: map['http_method'] as String? ?? 'POST',
+        payloadFormat: map['payload_format'] as String? ?? '',
+        isActive: (map['is_active'] as int? ?? 1) == 1,
+        createdAt: map['created_at'] as String? ?? DateTime.now().toIso8601String(),
+      );
+
+  SmsGateway copyWith({
+    int? id,
+    String? name,
+    String? provider,
+    String? apiUrl,
+    String? apiKey,
+    String? apiSecret,
+    String? senderId,
+    String? httpMethod,
+    String? payloadFormat,
+    bool? isActive,
+    String? createdAt,
+  }) {
+    return SmsGateway(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      provider: provider ?? this.provider,
+      apiUrl: apiUrl ?? this.apiUrl,
+      apiKey: apiKey ?? this.apiKey,
+      apiSecret: apiSecret ?? this.apiSecret,
+      senderId: senderId ?? this.senderId,
+      httpMethod: httpMethod ?? this.httpMethod,
+      payloadFormat: payloadFormat ?? this.payloadFormat,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+}
+
+/// Outgoing Message Log (SMS & WhatsApp delivery tracking)
+class MessageLog {
+  final int? id;
+  final String recipientName;
+  final String phoneNumber;
+  final String channel; // 'sms' or 'whatsapp'
+  final String messageBody;
+  final String status; // 'sent', 'failed', 'delivered'
+  final String gatewayName;
+  final String errorDetails;
+  final String createdAt;
+
+  MessageLog({
+    this.id,
+    this.recipientName = 'Customer',
+    required this.phoneNumber,
+    this.channel = 'sms',
+    required this.messageBody,
+    this.status = 'sent',
+    this.gatewayName = '',
+    this.errorDetails = '',
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'recipient_name': recipientName,
+        'phone_number': phoneNumber,
+        'channel': channel,
+        'message_body': messageBody,
+        'status': status,
+        'gateway_name': gatewayName,
+        'error_details': errorDetails,
+        'created_at': createdAt,
+      };
+
+  factory MessageLog.fromMap(Map<String, dynamic> map) => MessageLog(
+        id: map['id'] as int?,
+        recipientName: map['recipient_name'] as String? ?? 'Customer',
+        phoneNumber: map['phone_number'] as String? ?? '',
+        channel: map['channel'] as String? ?? 'sms',
+        messageBody: map['message_body'] as String? ?? '',
+        status: map['status'] as String? ?? 'sent',
+        gatewayName: map['gateway_name'] as String? ?? '',
+        errorDetails: map['error_details'] as String? ?? '',
+        createdAt: map['created_at'] as String? ?? DateTime.now().toIso8601String(),
+      );
+}
+
+/// AI Assistant Configuration (BYO Google Gemini / OpenAI key)
+class AiSettings {
+  final int? id;
+  final String provider; // 'gemini' or 'openai'
+  final String apiKey;
+  final String modelName; // 'gemini-1.5-flash', 'gemini-1.5-pro', 'gpt-4o-mini', 'gpt-4o'
+  final bool isEnabled;
+  final String preferredLanguage; // 'roman_urdu', 'urdu', 'english'
+  final String systemPrompt;
+
+  AiSettings({
+    this.id,
+    this.provider = 'gemini',
+    this.apiKey = '',
+    this.modelName = 'gemini-1.5-flash',
+    this.isEnabled = false,
+    this.preferredLanguage = 'roman_urdu',
+    this.systemPrompt = '',
+  });
+
+  bool get hasValidKey => apiKey.trim().isNotEmpty;
+
+  Map<String, dynamic> toMap() => {
+        if (id != null) 'id': id,
+        'provider': provider,
+        'api_key': apiKey,
+        'model_name': modelName,
+        'is_enabled': isEnabled ? 1 : 0,
+        'preferred_language': preferredLanguage,
+        'system_prompt': systemPrompt,
+      };
+
+  factory AiSettings.fromMap(Map<String, dynamic> map) => AiSettings(
+        id: map['id'] as int?,
+        provider: map['provider'] as String? ?? 'gemini',
+        apiKey: map['api_key'] as String? ?? '',
+        modelName: map['model_name'] as String? ?? 'gemini-1.5-flash',
+        isEnabled: (map['is_enabled'] as int? ?? 0) == 1,
+        preferredLanguage: map['preferred_language'] as String? ?? 'roman_urdu',
+        systemPrompt: map['system_prompt'] as String? ?? '',
+      );
+
+  AiSettings copyWith({
+    int? id,
+    String? provider,
+    String? apiKey,
+    String? modelName,
+    bool? isEnabled,
+    String? preferredLanguage,
+    String? systemPrompt,
+  }) {
+    return AiSettings(
+      id: id ?? this.id,
+      provider: provider ?? this.provider,
+      apiKey: apiKey ?? this.apiKey,
+      modelName: modelName ?? this.modelName,
+      isEnabled: isEnabled ?? this.isEnabled,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
+      systemPrompt: systemPrompt ?? this.systemPrompt,
+    );
+  }
+}

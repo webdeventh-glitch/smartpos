@@ -1742,6 +1742,169 @@ class PrintService {
     ''';
   }
 
+  // ================= 8. PRODUCT SPECIFICATION & DETAIL SHEET =================
+  static String generateProductDetailHtml({
+    required Product product,
+    required BusinessSettings settings,
+    List<ProductVariation> variations = const [],
+    double totalSold = 0.0,
+    double totalTransferred = 0.0,
+    double totalAdjusted = 0.0,
+    bool canViewCost = true,
+  }) {
+    final cur = settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs';
+    final p = product;
+    final margin = p.purchasePrice > 0
+        ? (((p.sellingPrice - p.purchasePrice) / p.purchasePrice) * 100)
+        : 0.0;
+    final locationName = settings.businessName.isNotEmpty ? settings.businessName : 'Main Branch HQ';
+
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Product Details - ${_escape(p.name)}</title>
+  <style>
+    @page { size: A4 portrait; margin: 12mm; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #1e293b; margin: 0; padding: 0; line-height: 1.4; }
+    .header { border-bottom: 2px solid #10b981; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .title { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0; }
+    .subtitle { font-size: 12px; color: #64748b; margin-top: 4px; }
+    .meta-box { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+    .meta-col { flex: 1; }
+    .meta-row { margin-bottom: 6px; font-size: 12px; }
+    .meta-label { font-weight: 700; color: #0f172a; }
+    .meta-val { color: #475569; }
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; margin-bottom: 22px; }
+    th { background: #10b981; color: #ffffff; padding: 8px 10px; font-size: 11px; text-align: left; font-weight: 700; }
+    td { padding: 8px 10px; border: 1px solid #e2e8f0; font-size: 11.5px; }
+    .section-title { font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 16px; margin-bottom: 6px; }
+    .text-right { text-align: right; }
+    .bold { font-weight: 700; }
+    @media print { body { margin: 0; } }
+  </style>
+  <script>
+    window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 250); });
+  </script>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1 class="title">${_escape(p.name)}</h1>
+      <div class="subtitle">${_escape(settings.businessName)} • Product Specification Sheet</div>
+    </div>
+    <div style="text-align: right; font-size: 11px; color: #64748b;">
+      <div>Printed: ${DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.now())}</div>
+      <div>Status: Active</div>
+    </div>
+  </div>
+
+  <div class="meta-box">
+    <div class="meta-col">
+      <div class="meta-row"><span class="meta-label">SKU:</span> <span class="meta-val">${_escape(p.sku)}</span></div>
+      <div class="meta-row"><span class="meta-label">Brand:</span> <span class="meta-val">${_escape(p.brandName.isNotEmpty ? p.brandName : 'Standard')}</span></div>
+      <div class="meta-row"><span class="meta-label">Unit:</span> <span class="meta-val">${_escape(p.unit)}</span></div>
+      <div class="meta-row"><span class="meta-label">Barcode Type:</span> <span class="meta-val">${_escape(p.barcodeType)}</span></div>
+      <div class="meta-row"><span class="meta-label">Available in locations:</span> <span class="meta-val">${_escape(locationName)}</span></div>
+    </div>
+    <div class="meta-col">
+      <div class="meta-row"><span class="meta-label">Category:</span> <span class="meta-val">${_escape(p.categoryName)}</span></div>
+      <div class="meta-row"><span class="meta-label">Sub category:</span> <span class="meta-val">None</span></div>
+      <div class="meta-row"><span class="meta-label">Manage Stock?:</span> <span class="meta-val">Yes</span></div>
+      <div class="meta-row"><span class="meta-label">Alert quantity:</span> <span class="meta-val">${p.alertQuantity.toStringAsFixed(4)}</span></div>
+    </div>
+    <div class="meta-col">
+      <div class="meta-row"><span class="meta-label">Expires in:</span> <span class="meta-val">${_escape(p.expiryDate?.isNotEmpty == true ? p.expiryDate! : 'Not Applicable')}</span></div>
+      <div class="meta-row"><span class="meta-label">Applicable Tax:</span> <span class="meta-val">None</span></div>
+      <div class="meta-row"><span class="meta-label">Selling Price Tax Type:</span> <span class="meta-val">Exclusive</span></div>
+      <div class="meta-row"><span class="meta-label">Product Type:</span> <span class="meta-val">${p.isVariable ? 'Variable' : 'Single'}</span></div>
+    </div>
+  </div>
+
+  <div class="section-title">Pricing & Margins</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Default Purchase Price (Exc. tax)</th>
+        <th>Default Purchase Price (Inc. tax)</th>
+        <th>x Margin(%)</th>
+        <th>Default Selling Price (Exc. tax)</th>
+        <th>Default Selling Price (Inc. tax)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>${canViewCost ? '$cur ' + p.purchasePrice.toStringAsFixed(2) : '••••••'}</td>
+        <td>${canViewCost ? '$cur ' + p.purchasePrice.toStringAsFixed(2) : '••••••'}</td>
+        <td>${canViewCost ? margin.toStringAsFixed(2) + '%' : '••••••'}</td>
+        <td class="bold">$cur ${p.sellingPrice.toStringAsFixed(2)}</td>
+        <td class="bold">$cur ${p.sellingPrice.toStringAsFixed(2)}</td>
+      </tr>
+      ${variations.map((v) {
+        final vMargin = v.purchasePrice > 0 ? (((v.sellingPrice - v.purchasePrice) / v.purchasePrice) * 100) : 0.0;
+        return '''
+        <tr>
+          <td>${canViewCost ? '$cur ' + v.purchasePrice.toStringAsFixed(2) : '••••••'}</td>
+          <td>${canViewCost ? '$cur ' + v.purchasePrice.toStringAsFixed(2) : '••••••'}</td>
+          <td>${canViewCost ? vMargin.toStringAsFixed(2) + '%' : '••••••'}</td>
+          <td class="bold">$cur ${v.sellingPrice.toStringAsFixed(2)}</td>
+          <td class="bold">$cur ${v.sellingPrice.toStringAsFixed(2)}</td>
+        </tr>
+        ''';
+      }).join()}
+    </tbody>
+  </table>
+
+  <div class="section-title">Product Stock Details</div>
+  <table>
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Product</th>
+        <th>Location</th>
+        <th>Unit Price</th>
+        <th>Current stock</th>
+        <th>Current Stock Value</th>
+        <th>Total unit sold</th>
+        <th>Total Unit Transfered</th>
+        <th>Total Unit Adjusted</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>${_escape(p.sku)}</td>
+        <td class="bold">${_escape(p.name)}</td>
+        <td>${_escape(locationName)}</td>
+        <td>$cur ${p.sellingPrice.toStringAsFixed(2)}</td>
+        <td class="bold">${p.stockQuantity.toStringAsFixed(2)} ${p.unit}</td>
+        <td class="bold">$cur ${(p.stockQuantity * p.sellingPrice).toStringAsFixed(2)}</td>
+        <td>${totalSold.toStringAsFixed(2)} ${p.unit}</td>
+        <td>${totalTransferred.toStringAsFixed(2)} ${p.unit}</td>
+        <td>${totalAdjusted.toStringAsFixed(2)} ${p.unit}</td>
+      </tr>
+      ${variations.map((v) {
+        return '''
+        <tr>
+          <td>${_escape(v.subSku)}</td>
+          <td class="bold">${_escape(p.name)} - ${_escape(v.name)}</td>
+          <td>${_escape(locationName)}</td>
+          <td>$cur ${v.sellingPrice.toStringAsFixed(2)}</td>
+          <td class="bold">${v.stockQuantity.toStringAsFixed(2)} ${p.unit}</td>
+          <td class="bold">$cur ${(v.stockQuantity * v.sellingPrice).toStringAsFixed(2)}</td>
+          <td>0.00 ${p.unit}</td>
+          <td>0.00 ${p.unit}</td>
+          <td>0.00 ${p.unit}</td>
+        </tr>
+        ''';
+      }).join()}
+    </tbody>
+  </table>
+</body>
+</html>
+''';
+  }
+
   static String _escape(String input) {
     return input
         .replaceAll('&', '&amp;')

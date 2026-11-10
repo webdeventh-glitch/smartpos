@@ -8,6 +8,7 @@ import '../services/database_service.dart';
 import '../services/theme_service.dart';
 import '../services/cloud_sync_service.dart';
 import 'calculator_dialog.dart';
+import 'ai_assistant_chat_dialog.dart';
 
 class SmartAppBar extends StatefulWidget implements PreferredSizeWidget {
   final VoidCallback onOpenPos;
@@ -598,6 +599,18 @@ class _SmartAppBarState extends State<SmartAppBar> {
                   },
                   tooltip: 'Quick Calculator',
                 ),
+
+              // Smart AI Business Assistant Shortcut
+              _squareBtn(
+                icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF7C3AED), size: 18),
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => AiAssistantChatDialog(settings: widget.settings),
+                  );
+                },
+                tooltip: 'Smart AI Business Assistant',
+              ),
 
               // Dark / Light Mode Toggle Button
               ValueListenableBuilder<ThemeMode>(
