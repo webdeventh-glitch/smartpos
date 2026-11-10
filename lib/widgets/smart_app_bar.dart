@@ -69,7 +69,10 @@ class _SmartAppBarState extends State<SmartAppBar> {
     if (mounted) {
       setState(() {
         _activeRegister = reg;
-        _locations = locs;
+        _locations = locs.where((l) => l.isActive).toList();
+        if (_locations.isEmpty && locs.isNotEmpty) {
+          _locations = locs;
+        }
         _alertProducts = lowStock;
         _expiringProducts = expiring;
         if (_locations.isNotEmpty && !_locations.any((l) => l.name == _currentLocation)) {

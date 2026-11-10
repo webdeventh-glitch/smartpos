@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import '../pos/receipt_dialog.dart';
@@ -91,6 +92,17 @@ class _SalesListScreenState extends State<SalesListScreen> {
   }
 
   void _deleteSaleRecord(Sale s) async {
+    final currentUser = AuthService.currentUser;
+    if (currentUser != null && !currentUser.canDeleteSale && !currentUser.isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Access Denied: You do not have permission to delete sales invoices. Contact Super Admin.'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -541,19 +553,23 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                     _deleteSaleRecord(s);
                                                                   }
                                                                 },
-                                                                itemBuilder: (ctx) => [
-                                                                  const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
-                                                                  const PopupMenuItem(
-                                                                    value: 'delete',
-                                                                    child: Row(
-                                                                      children: [
-                                                                        Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
-                                                                        SizedBox(width: 8),
-                                                                        Text('Delete', style: TextStyle(color: Color(0xFFEF4444))),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                ],
+                                                                itemBuilder: (ctx) {
+                                                                  final canDel = AuthService.currentUser?.hasPermission('sales.delete') ?? true;
+                                                                  return [
+                                                                    const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
+                                                                    if (canDel)
+                                                                      const PopupMenuItem(
+                                                                        value: 'delete',
+                                                                        child: Row(
+                                                                          children: [
+                                                                            Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
+                                                                            SizedBox(width: 8),
+                                                                            Text('Delete', style: TextStyle(color: Color(0xFFEF4444))),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                  ];
+                                                                },
                                                                 child: Container(
                                                                   padding: const EdgeInsets.all(5),
                                                                   decoration: BoxDecoration(
@@ -591,32 +607,36 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                 _deleteSaleRecord(s);
                                                               }
                                                             },
-                                                            itemBuilder: (ctx) => [
-                                                              const PopupMenuItem(value: 'receipt', child: Text('Print Receipt')),
-                                                              const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
-                                                              if (s.dueAmount > 0)
-                                                                const PopupMenuItem(
-                                                                  value: 'pay_due',
-                                                                  child: Row(
-                                                                    children: [
-                                                                      Icon(Icons.payments_outlined, size: 16, color: Color(0xFF059669)),
-                                                                      SizedBox(width: 8),
-                                                                      Text('Pay Due / Collect', style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold)),
-                                                                    ],
+                                                            itemBuilder: (ctx) {
+                                                              final canDel = AuthService.currentUser?.hasPermission('sales.delete') ?? true;
+                                                              return [
+                                                                const PopupMenuItem(value: 'receipt', child: Text('Print Receipt')),
+                                                                const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
+                                                                if (s.dueAmount > 0)
+                                                                  const PopupMenuItem(
+                                                                    value: 'pay_due',
+                                                                    child: Row(
+                                                                      children: [
+                                                                        Icon(Icons.payments_outlined, size: 16, color: Color(0xFF059669)),
+                                                                        SizedBox(width: 8),
+                                                                        Text('Pay Due / Collect', style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold)),
+                                                                      ],
+                                                                    ),
                                                                   ),
-                                                                ),
-                                                              const PopupMenuItem(value: 'view', child: Text('View Details')),
-                                                              const PopupMenuItem(
-                                                                value: 'delete',
-                                                                child: Row(
-                                                                  children: [
-                                                                    Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
-                                                                    SizedBox(width: 8),
-                                                                    Text('Delete Sale', style: TextStyle(color: Color(0xFFEF4444))),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            ],
+                                                                const PopupMenuItem(value: 'view', child: Text('View Details')),
+                                                                if (canDel)
+                                                                  const PopupMenuItem(
+                                                                    value: 'delete',
+                                                                    child: Row(
+                                                                      children: [
+                                                                        Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
+                                                                        SizedBox(width: 8),
+                                                                        Text('Delete Sale', style: TextStyle(color: Color(0xFFEF4444))),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                              ];
+                                                            },
                                                             child: Container(
                                                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                                               decoration: BoxDecoration(

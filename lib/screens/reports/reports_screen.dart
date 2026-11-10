@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/auth_service.dart';
 import '../../services/print_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../pos/pos_power_dialogs.dart';
@@ -281,6 +282,52 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     final totalPurchases = (_report['totalPurchases'] as double?) ?? 0.0;
     final stockVal = _report['stockValuation'] as Map<String, dynamic>? ?? {};
     final stockCost = (stockVal['stockValueCost'] as double?) ?? 0.0;
+
+    final user = AuthService.currentUser;
+    if (user != null && !user.canAccessReports && !user.isAdmin) {
+      return Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        body: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 480),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFEE2E2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.lock_rounded, size: 48, color: Color(0xFFDC2626)),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Access Restricted',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Your account does not have permission to view Business Intelligence, Profit/Loss, and Sales Reports. Please contact your Super Administrator.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),

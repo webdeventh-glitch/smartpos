@@ -1427,69 +1427,437 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void _showAddLocationDialog() {
     final nameCtrl = TextEditingController();
     final locIdCtrl = TextEditingController(text: 'BL000${_locations.length + 1}');
+    final landmarkCtrl = TextEditingController();
     final cityCtrl = TextEditingController();
+    final stateCtrl = TextEditingController();
+    final countryCtrl = TextEditingController(text: 'Pakistan');
+    final zipCtrl = TextEditingController();
     final mobileCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final schemeCtrl = TextEditingController(text: 'INV-');
+    bool isActive = true;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Row(
-          children: [
-            Icon(Icons.store, color: Color(0xFF0038B8)),
-            SizedBox(width: 8),
-            Text('Add Business Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: SizedBox(
-          width: 440,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Row(
             children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Location / Branch Name *', isDense: true),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: locIdCtrl,
-                decoration: const InputDecoration(labelText: 'Location ID (e.g. BL0003)', isDense: true),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: cityCtrl,
-                decoration: const InputDecoration(labelText: 'City / Area', isDense: true),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: mobileCtrl,
-                decoration: const InputDecoration(labelText: 'Contact Mobile', isDense: true),
-              ),
+              Icon(Icons.add_business_rounded, color: Color(0xFF0038B8)),
+              SizedBox(width: 10),
+              Text('Add Business Location / Branch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             ],
           ),
+          content: SizedBox(
+            width: 580,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          controller: nameCtrl,
+                          decoration: const InputDecoration(labelText: 'Location / Branch Name *', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 1,
+                        child: TextField(
+                          controller: locIdCtrl,
+                          decoration: const InputDecoration(labelText: 'Location ID *', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: landmarkCtrl,
+                          decoration: const InputDecoration(labelText: 'Landmark / Area / Street', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: cityCtrl,
+                          decoration: const InputDecoration(labelText: 'City *', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: stateCtrl,
+                          decoration: const InputDecoration(labelText: 'State / Province', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: countryCtrl,
+                          decoration: const InputDecoration(labelText: 'Country', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: zipCtrl,
+                          decoration: const InputDecoration(labelText: 'Zip / Postal Code', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: mobileCtrl,
+                          decoration: const InputDecoration(labelText: 'Contact Mobile / Phone', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: emailCtrl,
+                          decoration: const InputDecoration(labelText: 'Email Address', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: schemeCtrl,
+                          decoration: const InputDecoration(labelText: 'Invoice Scheme / Prefix (e.g. INV-, BL1-)', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Row(
+                        children: [
+                          const Text('Active Status:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: isActive,
+                            activeColor: const Color(0xFF0038B8),
+                            onChanged: (val) => setDlgState(() => isActive = val),
+                          ),
+                          Text(isActive ? 'Active' : 'Inactive', style: TextStyle(color: isActive ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0038B8), foregroundColor: Colors.white),
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter location/branch name'), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+                final loc = BusinessLocation(
+                  name: name,
+                  locationId: locIdCtrl.text.trim().isEmpty ? 'BL0001' : locIdCtrl.text.trim(),
+                  landmark: landmarkCtrl.text.trim(),
+                  city: cityCtrl.text.trim(),
+                  state: stateCtrl.text.trim(),
+                  country: countryCtrl.text.trim(),
+                  zipCode: zipCtrl.text.trim(),
+                  mobile: mobileCtrl.text.trim(),
+                  email: emailCtrl.text.trim(),
+                  invoiceScheme: schemeCtrl.text.trim().isEmpty ? 'INV-' : schemeCtrl.text.trim(),
+                  isActive: isActive,
+                );
+                final db = await DatabaseService.initialize();
+                await db.addBusinessLocation(loc);
+                if (ctx.mounted) Navigator.pop(ctx);
+                _loadSubData();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Business location "$name" added successfully.'), backgroundColor: const Color(0xFF10B981)),
+                  );
+                }
+              },
+              child: const Text('Add Location'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditLocationDialog(BusinessLocation loc) {
+    final nameCtrl = TextEditingController(text: loc.name);
+    final locIdCtrl = TextEditingController(text: loc.locationId);
+    final landmarkCtrl = TextEditingController(text: loc.landmark);
+    final cityCtrl = TextEditingController(text: loc.city);
+    final stateCtrl = TextEditingController(text: loc.state);
+    final countryCtrl = TextEditingController(text: loc.country);
+    final zipCtrl = TextEditingController(text: loc.zipCode);
+    final mobileCtrl = TextEditingController(text: loc.mobile);
+    final emailCtrl = TextEditingController(text: loc.email);
+    final schemeCtrl = TextEditingController(text: loc.invoiceScheme);
+    bool isActive = loc.isActive;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Row(
+            children: [
+              const Icon(Icons.edit_location_alt_rounded, color: Color(0xFF0038B8)),
+              const SizedBox(width: 10),
+              Text('Edit Location: ${loc.name}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: SizedBox(
+            width: 580,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          controller: nameCtrl,
+                          decoration: const InputDecoration(labelText: 'Location / Branch Name *', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 1,
+                        child: TextField(
+                          controller: locIdCtrl,
+                          decoration: const InputDecoration(labelText: 'Location ID *', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: landmarkCtrl,
+                          decoration: const InputDecoration(labelText: 'Landmark / Area / Street', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: cityCtrl,
+                          decoration: const InputDecoration(labelText: 'City *', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: stateCtrl,
+                          decoration: const InputDecoration(labelText: 'State / Province', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: countryCtrl,
+                          decoration: const InputDecoration(labelText: 'Country', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: zipCtrl,
+                          decoration: const InputDecoration(labelText: 'Zip / Postal Code', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: mobileCtrl,
+                          decoration: const InputDecoration(labelText: 'Contact Mobile / Phone', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: emailCtrl,
+                          decoration: const InputDecoration(labelText: 'Email Address', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: schemeCtrl,
+                          decoration: const InputDecoration(labelText: 'Invoice Scheme / Prefix (e.g. INV-, BL1-)', isDense: true, border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Row(
+                        children: [
+                          const Text('Active Status:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          const SizedBox(width: 8),
+                          Switch(
+                            value: isActive,
+                            activeColor: const Color(0xFF0038B8),
+                            onChanged: (val) => setDlgState(() => isActive = val),
+                          ),
+                          Text(isActive ? 'Active' : 'Inactive', style: TextStyle(color: isActive ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0038B8), foregroundColor: Colors.white),
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter location/branch name'), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+                final updated = loc.copyWith(
+                  name: name,
+                  locationId: locIdCtrl.text.trim().isEmpty ? loc.locationId : locIdCtrl.text.trim(),
+                  landmark: landmarkCtrl.text.trim(),
+                  city: cityCtrl.text.trim(),
+                  state: stateCtrl.text.trim(),
+                  country: countryCtrl.text.trim(),
+                  zipCode: zipCtrl.text.trim(),
+                  mobile: mobileCtrl.text.trim(),
+                  email: emailCtrl.text.trim(),
+                  invoiceScheme: schemeCtrl.text.trim().isEmpty ? 'INV-' : schemeCtrl.text.trim(),
+                  isActive: isActive,
+                );
+                final db = await DatabaseService.initialize();
+                await db.updateBusinessLocation(updated);
+                if (ctx.mounted) Navigator.pop(ctx);
+                _loadSubData();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Location "${updated.name}" updated successfully.'), backgroundColor: const Color(0xFF10B981)),
+                  );
+                }
+              },
+              child: const Text('Save Changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleLocationActive(BusinessLocation loc) async {
+    if (loc.isActive) {
+      final activeCount = _locations.where((l) => l.isActive).length;
+      if (activeCount <= 1) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot deactivate the only active business location.'),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
+        return;
+      }
+    }
+    final db = await DatabaseService.initialize();
+    final updated = loc.copyWith(isActive: !loc.isActive);
+    await db.updateBusinessLocation(updated);
+    _loadSubData();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Location "${loc.name}" is now ${updated.isActive ? "Active" : "Inactive"}.'),
+          backgroundColor: updated.isActive ? const Color(0xFF10B981) : Colors.orange,
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteLocation(BusinessLocation loc) async {
+    if (_locations.length <= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot delete the primary/only business location.'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete Location "${loc.name}"?'),
+        content: Text(
+          'Are you sure you want to delete "${loc.name}" (ID: ${loc.locationId})?\n\n'
+          'Past transactions associated with this location will retain their history, but new transactions cannot be assigned to this branch.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0038B8), foregroundColor: Colors.white),
-            onPressed: () async {
-              if (nameCtrl.text.trim().isEmpty) return;
-              final loc = BusinessLocation(
-                name: nameCtrl.text.trim(),
-                locationId: locIdCtrl.text.trim().isEmpty ? 'BL0001' : locIdCtrl.text.trim(),
-                city: cityCtrl.text.trim(),
-                mobile: mobileCtrl.text.trim(),
-              );
-              final db = await DatabaseService.initialize();
-              await db.addBusinessLocation(loc);
-              if (ctx.mounted) Navigator.pop(ctx);
-              _loadSubData();
-            },
-            child: const Text('Add Location'),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete Location'),
           ),
         ],
       ),
     );
+
+    if (confirmed == true && loc.id != null) {
+      final db = await DatabaseService.initialize();
+      await db.deleteBusinessLocation(loc.id!);
+      _loadSubData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Location "${loc.name}" deleted.'),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
+    }
   }
 
   void _showAddTaxDialog() {
@@ -2902,32 +3270,111 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                 borderRadius: BorderRadius.circular(10),
                                 side: const BorderSide(color: Color(0xFFE2E8F0)),
                               ),
-                              child: ListTile(
-                                leading: Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEFF6FF),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.store, color: Color(0xFF0038B8)),
-                                ),
-                                title: Text(loc.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                subtitle: Text('ID: ${loc.locationId} • ${loc.city.isNotEmpty ? loc.city : "City not set"} • Mobile: ${loc.mobile.isNotEmpty ? loc.mobile : "N/A"}'),
-                                trailing: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: loc.isActive ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    loc.isActive ? 'Active' : 'Inactive',
-                                    style: TextStyle(
-                                      color: loc.isActive ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEFF6FF),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(Icons.store, color: Color(0xFF0038B8), size: 24),
                                     ),
-                                  ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(loc.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFF1F5F9),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                                                ),
+                                                child: Text(loc.locationId, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFEDE9FE),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text('Prefix: ${loc.invoiceScheme}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF6D28D9))),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            [
+                                              if (loc.landmark.isNotEmpty) loc.landmark,
+                                              if (loc.city.isNotEmpty) loc.city,
+                                              if (loc.state.isNotEmpty) loc.state,
+                                              if (loc.country.isNotEmpty) loc.country,
+                                              if (loc.zipCode.isNotEmpty) 'Zip: ${loc.zipCode}',
+                                            ].join(' • '),
+                                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Phone: ${loc.mobile.isNotEmpty ? loc.mobile : "N/A"} • Email: ${loc.email.isNotEmpty ? loc.email : "N/A"}',
+                                            style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    // Active Status Toggle Pill
+                                    InkWell(
+                                      onTap: () => _toggleLocationActive(loc),
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: loc.isActive ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              loc.isActive ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                                              size: 14,
+                                              color: loc.isActive ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              loc.isActive ? 'Active' : 'Inactive',
+                                              style: TextStyle(
+                                                color: loc.isActive ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, size: 20, color: Color(0xFF0284C7)),
+                                      tooltip: 'Edit Location',
+                                      onPressed: () => _showEditLocationDialog(loc),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, size: 20, color: Color(0xFFEF4444)),
+                                      tooltip: 'Delete Location',
+                                      onPressed: () => _deleteLocation(loc),
+                                    ),
+                                  ],
                                 ),
                               ),
                             );

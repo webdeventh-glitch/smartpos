@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import 'add_purchase_dialog.dart';
@@ -71,6 +72,17 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
   }
 
   Future<void> _deletePurchase(Purchase p) async {
+    final currentUser = AuthService.currentUser;
+    if (currentUser != null && !currentUser.isAdmin && !currentUser.canAccessInventory) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Access Denied: Only Administrators or Inventory Managers can delete purchase invoices.'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

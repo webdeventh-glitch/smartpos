@@ -195,7 +195,12 @@ class _MainShellState extends State<MainShell> {
       case 10:
         return SettingsScreen(
           settings: _settings,
-          onSettingsUpdated: (updated) => setState(() => _settings = updated),
+          onSettingsUpdated: (updated) => setState(() {
+            _settings = updated;
+            if (updated.branchName.isNotEmpty) {
+              _activeLocationName = updated.branchName;
+            }
+          }),
         );
       case 11:
         return AddProductScreen(
@@ -281,7 +286,12 @@ class _MainShellState extends State<MainShell> {
       case 40:
         return CloudSyncScreen(
           settings: _settings,
-          onSettingsUpdated: (updated) => setState(() => _settings = updated),
+          onSettingsUpdated: (updated) => setState(() {
+            _settings = updated;
+            if (updated.branchName.isNotEmpty) {
+              _activeLocationName = updated.branchName;
+            }
+          }),
         );
       case 41:
         return AddPurchaseScreen(
@@ -307,10 +317,16 @@ class _MainShellState extends State<MainShell> {
           SmartAppBar(
             onOpenPos: _onOpenPos,
             onOpenRegisterDetails: _onOpenRegister,
-            onToggleSidebar: () => setState(() => _sidebarCollapsed = !_sidebarCollapsed),
+            onToggleSidebar: () =>
+                setState(() => _sidebarCollapsed = !_sidebarCollapsed),
             settings: _settings,
             activeLocationName: _activeLocationName,
-            onLocationChanged: (loc) => setState(() => _activeLocationName = loc),
+            onLocationChanged: (loc) {
+              setState(() {
+                _activeLocationName = loc;
+                _settings = _settings.copyWith(branchName: loc);
+              });
+            },
             onOpenSettings: () => setState(() => _selectedIndex = 10),
           ),
 
@@ -318,30 +334,40 @@ class _MainShellState extends State<MainShell> {
           ValueListenableBuilder<QulopStatus?>(
             valueListenable: QulopService.qulopNotifier,
             builder: (context, qulopStatus, _) {
-              if (qulopStatus != null && qulopStatus.isNearExpiry && qulopStatus.isValid) {
+              if (qulopStatus != null &&
+                  qulopStatus.isNearExpiry &&
+                  qulopStatus.isValid) {
                 return Container(
                   width: double.infinity,
                   color: const Color(0xFFFEF3C7),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   child: Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 18),
+                      const Icon(Icons.warning_amber_rounded,
+                          color: Color(0xFFD97706), size: 18),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'Qulop License Warning: Your Smart POS ${qulopStatus.tierLabel} will expire in ${qulopStatus.remainingDays} days. Please contact vendor (+92 300 1234567) to renew.',
-                          style: const TextStyle(color: Color(0xFF92400E), fontSize: 12, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Color(0xFF92400E),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                       TextButton(
                         style: TextButton.styleFrom(
                           backgroundColor: const Color(0xFFD97706),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
                           visualDensity: VisualDensity.compact,
                         ),
                         onPressed: () => setState(() => _selectedIndex = 23),
-                        child: const Text('Renew / Activate Key', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        child: const Text('Renew / Activate Key',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 11)),
                       ),
                     ],
                   ),
@@ -360,7 +386,8 @@ class _MainShellState extends State<MainShell> {
                   onSelect: (idx) {
                     setState(() {
                       _selectedIndex = idx;
-                      if (idx == 1 && MediaQuery.of(context).size.width < 1400) {
+                      if (idx == 1 &&
+                          MediaQuery.of(context).size.width < 1400) {
                         _sidebarCollapsed = true;
                       }
                     });
