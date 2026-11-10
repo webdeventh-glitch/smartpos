@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../widgets/record_contact_payment_dialog.dart';
 import 'contact_ledger_screen.dart';
 import 'payment_reminder_dialog.dart';
 
@@ -154,106 +155,20 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
   }
 
   Future<void> _openQuickPaymentModal() async {
-    final isCustomer = widget.contactType.toLowerCase() == 'customer';
     final contact = _updatedContact ?? widget.contact;
-    final db = await DatabaseService.initialize();
-    final nextRef = await db.generateNextPaymentRef();
-    final amountCtrl = TextEditingController(text: contact.balance > 0 ? contact.balance.toStringAsFixed(2) : '0.00');
-    final noteCtrl = TextEditingController();
-    String paymentMethod = 'cash';
-
-    if (!mounted) return;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(
-            isCustomer ? 'Receive Customer Payment' : 'Pay Supplier',
-            style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Party: ${contact.name}',
-                style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: InputDecoration(
-                  labelText: 'Payment Amount (${widget.settings.currencySymbol})*',
-                  prefixText: '${widget.settings.currencySymbol} ',
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: paymentMethod,
-                isDense: true,
-                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: const InputDecoration(labelText: 'Payment Method*', border: OutlineInputBorder(), isDense: true),
-                items: const [
-                  DropdownMenuItem(value: 'cash', child: Text('Cash Till')),
-                  DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer / Online')),
-                  DropdownMenuItem(value: 'card', child: Text('Card / POS Terminal')),
-                  DropdownMenuItem(value: 'cheque', child: Text('Cheque')),
-                ],
-                onChanged: (val) => setDlgState(() => paymentMethod = val ?? paymentMethod),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: noteCtrl,
-                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: const InputDecoration(labelText: 'Reference / Note', hintText: 'Receipt # or Cheque #', border: OutlineInputBorder(), isDense: true),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF059669),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () async {
-                final amt = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
-                if (amt <= 0) return;
-
-                final payment = ContactPayment(
-                  contactId: contact.id!,
-                  contactName: contact.name,
-                  paymentType: isCustomer ? 'receive' : 'pay',
-                  amount: amt,
-                  paymentMethod: paymentMethod,
-                  date: DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
-                  refNo: nextRef,
-                  note: noteCtrl.text.trim(),
-                );
-
-                await db.addContactPayment(payment);
-                Navigator.pop(ctx);
-                _loadLedger();
-                widget.onPaymentRecorded?.call();
-              },
-              child: const Text('Save Payment & Update Khata'),
-            ),
-          ],
-        ),
-      ),
+    await RecordContactPaymentDialog.show(
+      context,
+      contact: contact,
+      contactType: widget.contactType,
+      settings: widget.settings,
+      totalDebit: _totalDebit,
+      totalCredit: _totalCredit,
+      openingBalance: _openingBalance,
+      closingBalance: _closingBalance,
+      onPaymentRecorded: () {
+        _loadLedger();
+        widget.onPaymentRecorded?.call();
+      },
     );
   }
 

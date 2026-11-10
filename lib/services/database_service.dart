@@ -468,9 +468,13 @@ class DatabaseService {
         payment_method TEXT DEFAULT 'cash',
         date TEXT NOT NULL,
         ref_no TEXT,
-        note TEXT
+        note TEXT,
+        document_path TEXT
       );
     ''');
+    try {
+      await db.execute("ALTER TABLE contact_payments ADD COLUMN document_path TEXT");
+    } catch (_) {}
 
     // Phase 1: Expenses Payment Method column
     try {
@@ -1787,7 +1791,8 @@ class DatabaseService {
         payment_method TEXT DEFAULT 'cash',
         date TEXT NOT NULL,
         ref_no TEXT,
-        note TEXT
+        note TEXT,
+        document_path TEXT
       )
     ''');
 
@@ -2239,7 +2244,7 @@ class DatabaseService {
       // Lock business type permanently to the first-installation configuration
       map['business_type'] = current.businessType;
     }
-    final targetId = settings.id ?? current.id;
+    final targetId = settings.id != 0 ? settings.id : current.id;
     map['id'] = targetId;
     final count = await db.update('business_settings', map, where: 'id = ?', whereArgs: [targetId]);
     if (count == 0) {
@@ -4983,7 +4988,7 @@ class DatabaseService {
     final totalPurchases = (purchasesRes.first['total_purchases'] as num?)?.toDouble() ?? 0.0;
     final totalPaidPurchases = (purchasesRes.first['total_paid'] as num?)?.toDouble() ?? 0.0;
     final totalDuePurchases = (purchasesRes.first['total_due'] as num?)?.toDouble() ?? 0.0;
-    final inputTax = 0.0; // Input tax credit when applicable
+    const inputTax = 0.0; // Input tax credit when applicable
 
     // 4. Expenses Summary & Breakdown
     final expRes = await db.rawQuery(

@@ -6,6 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/print_service.dart';
+import '../../widgets/record_contact_payment_dialog.dart';
 import 'payment_reminder_dialog.dart';
 
 class ContactLedgerScreen extends StatefulWidget {
@@ -197,111 +198,20 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
   }
 
   Future<void> _openQuickPaymentModal() async {
-    final isCustomer = widget.contactType.toLowerCase() == 'customer';
     final contact = _updatedContact ?? widget.contact;
-    final db = await DatabaseService.initialize();
-    final nextRef = await db.generateNextPaymentRef();
-    final amountCtrl = TextEditingController(text: contact.balance > 0 ? contact.balance.toStringAsFixed(2) : '0.00');
-    final noteCtrl = TextEditingController();
-    String paymentMethod = 'cash';
-
-    if (!mounted) return;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(
-            isCustomer ? 'Receive Customer Payment / گاہک سے رقم وصول کریں' : 'Pay Supplier / سپلائر کو ادائیگی کریں',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Party: ${contact.name}',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: InputDecoration(
-                  labelText: 'Payment Amount (${widget.settings.currencySymbol})*',
-                  prefixText: '${widget.settings.currencySymbol} ',
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: paymentMethod,
-                isDense: true,
-                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: const InputDecoration(labelText: 'Payment Method*', border: OutlineInputBorder(), isDense: true),
-                items: const [
-                  DropdownMenuItem(value: 'cash', child: Text('Cash Till / کیش دراز')),
-                  DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer / بینک ٹرانسفر')),
-                  DropdownMenuItem(value: 'card', child: Text('Card / POS Machine')),
-                  DropdownMenuItem(value: 'cheque', child: Text('Cheque / چیک')),
-                ],
-                onChanged: (val) => setDlgState(() => paymentMethod = val ?? paymentMethod),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: noteCtrl,
-                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: const InputDecoration(
-                  labelText: 'Reference / Note (تفصیل یا رسید نمبر)',
-                  hintText: 'Receipt #, Bank Slip #, or Cheque #',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel / منسوخ', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF059669),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () async {
-                final amt = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
-                if (amt <= 0) return;
-
-                final payment = ContactPayment(
-                  contactId: contact.id!,
-                  contactName: contact.name,
-                  paymentType: isCustomer ? 'receive' : 'pay',
-                  amount: amt,
-                  paymentMethod: paymentMethod,
-                  date: DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
-                  refNo: nextRef,
-                  note: noteCtrl.text.trim(),
-                );
-
-                await db.addContactPayment(payment);
-                Navigator.pop(ctx);
-                _loadLedger();
-                widget.onPaymentRecorded?.call();
-              },
-              child: const Text('Save Payment & Update Khata'),
-            ),
-          ],
-        ),
-      ),
+    await RecordContactPaymentDialog.show(
+      context,
+      contact: contact,
+      contactType: widget.contactType,
+      settings: widget.settings,
+      totalDebit: _totalDebit,
+      totalCredit: _totalCredit,
+      openingBalance: _openingBalance,
+      closingBalance: _closingBalance,
+      onPaymentRecorded: () {
+        _loadLedger();
+        widget.onPaymentRecorded?.call();
+      },
     );
   }
 
@@ -574,7 +484,7 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
               label: Text(
                 screenWidth < 850
                     ? (isCustomer ? '+ Receive' : '+ Pay')
-                    : (screenWidth < 1180
+                    : (screenWidth < 1180 || !widget.settings.enableSecondaryLanguage
                         ? (isCustomer ? '+ Receive Payment' : '+ Pay Supplier')
                         : (isCustomer ? '+ Receive Payment (رقم وصول کریں)' : '+ Pay Supplier (ادائیگی کریں)')),
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -622,7 +532,6 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
 
     final isDue = _closingBalance > 0;
     final isClear = _closingBalance == 0;
-    final isAdvance = _closingBalance < 0;
 
     final statusBg = isDue
         ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEF2F2))
@@ -1212,16 +1121,18 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
               'No ledger entries found for this period.',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'اس منتخب مدت میں کوئی لین دین یا بل ریکارڈ نہیں ہے۔',
-              style: TextStyle(fontSize: 12, color: textSecondary),
-            ),
+            if (widget.settings.enableSecondaryLanguage) ...[
+              const SizedBox(height: 4),
+              Text(
+                'اس منتخب مدت میں کوئی لین دین یا بل ریکارڈ نہیں ہے۔',
+                style: TextStyle(fontSize: 12, color: textSecondary),
+              ),
+            ],
             const SizedBox(height: 16),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669), foregroundColor: Colors.white),
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Record Payment / نئی وصولی درج کریں'),
+              label: Text(widget.settings.enableSecondaryLanguage ? 'Record Payment / نئی وصولی درج کریں' : 'Record Payment'),
               onPressed: _openQuickPaymentModal,
             ),
           ],

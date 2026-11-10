@@ -97,9 +97,9 @@ DateTime? parseExpiryDate(String? expiryDate) {
             if (num > 31) {
               year = num < 100 ? num + 2000 : num;
             } else if (day == null) {
-              day = num;
-            } else if (year == null) {
-              year = num < 100 ? num + 2000 : num;
+              day ??= num;
+            } else {
+              year ??= num < 100 ? num + 2000 : num;
             }
           }
         }
@@ -1805,7 +1805,7 @@ class Sale {
     this.items,
     this.userName,
     String? cashierName,
-  }) : this.cashierName = cashierName ?? userName ?? 'Cashier';
+  }) : cashierName = cashierName ?? userName ?? 'Cashier';
 
   final String cashierName;
 
@@ -2436,6 +2436,7 @@ class ContactPayment {
   final String date;
   final String refNo;
   final String note;
+  final String? documentPath;
 
   ContactPayment({
     this.id,
@@ -2447,6 +2448,7 @@ class ContactPayment {
     required this.date,
     required this.refNo,
     this.note = '',
+    this.documentPath,
   });
 
   Map<String, dynamic> toMap() => {
@@ -2459,6 +2461,7 @@ class ContactPayment {
         'date': date,
         'ref_no': refNo,
         'note': note,
+        if (documentPath != null && documentPath!.isNotEmpty) 'document_path': documentPath,
       };
 
   factory ContactPayment.fromMap(Map<String, dynamic> map) => ContactPayment(
@@ -2471,6 +2474,7 @@ class ContactPayment {
         date: map['date'] as String,
         refNo: map['ref_no'] as String? ?? '',
         note: map['note'] as String? ?? '',
+        documentPath: map['document_path'] as String?,
       );
 }
 

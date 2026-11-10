@@ -393,6 +393,35 @@ if (\$dialog.ShowDialog(\$form) -eq [System.Windows.Forms.DialogResult]::OK) {
       return null;
     }
   }
+
+  /// Opens native Windows file dialog to pick an invoice or payment receipt document (.pdf, .jpg, .png, .csv, .doc, .zip)
+  static Future<String?> pickPaymentDocument() async {
+    try {
+      final pickedPath = await _runNativeDialog(
+        title: 'Select Payment Document / Receipt (.pdf, .jpg, .png, .csv, .doc, .zip)',
+        filter: 'Supported Documents (*.pdf;*.jpg;*.jpeg;*.png;*.csv;*.doc;*.docx;*.zip)|*.pdf;*.jpg;*.jpeg;*.png;*.csv;*.doc;*.docx;*.zip|All Files (*.*)|*.*',
+      );
+      if (pickedPath == null) return null;
+
+      // Persistently copy into AppData/Local/SmartPOS/documents
+      final base = Platform.environment['LOCALAPPDATA'] ??
+          Platform.environment['APPDATA'] ??
+          Directory.current.path;
+      final docDir = Directory(p.join(base, 'SmartPOS', 'documents'));
+      if (!docDir.existsSync()) {
+        await docDir.create(recursive: true);
+      }
+
+      final ext = p.extension(pickedPath);
+      final filename = 'pay_doc_${DateTime.now().millisecondsSinceEpoch}$ext';
+      final destination = p.join(docDir.path, filename);
+      await File(pickedPath).copy(destination);
+      return destination;
+    } catch (e) {
+      debugPrint('Error picking payment document: $e');
+      return null;
+    }
+  }
 }
 
 /// Searchable Currency Selector Dialog

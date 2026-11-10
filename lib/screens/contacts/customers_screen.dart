@@ -1,14 +1,13 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../pos/quick_customer_dialog.dart';
-import 'contact_ledger_dialog.dart';
 import 'contact_ledger_screen.dart';
 import 'payment_reminder_dialog.dart';
 import '../../services/print_service.dart';
+import '../../widgets/record_contact_payment_dialog.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 
 class CustomersScreen extends StatefulWidget {
@@ -59,236 +58,13 @@ class _CustomersScreenState extends State<CustomersScreen> {
     );
   }
 
-  Widget _fieldLabel(String label, {bool isDark = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
-        ),
-      ),
-    );
-  }
-
   Future<void> _openPayDueDialog(Contact customer) async {
-    final db = await DatabaseService.initialize();
-    final nextRef = await db.generateNextPaymentRef();
-    final amountCtrl = TextEditingController(text: customer.balance.toStringAsFixed(2));
-    final noteCtrl = TextEditingController();
-    String paymentMethod = 'cash';
-
-    if (!mounted) return;
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          elevation: 8,
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          child: Container(
-            width: 480,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(Icons.payments_rounded, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF059669), size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Receive Due Payment',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                              ),
-                            ),
-                            Text(
-                              'Customer: ${customer.name}',
-                              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                      onPressed: () => Navigator.pop(ctx),
-                      splashRadius: 18,
-                    ),
-                  ],
-                ),
-                Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-
-                // Outstanding Due Card
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF450A0A).withValues(alpha: 0.4) : const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Total Outstanding Balance Due:',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B), fontSize: 13),
-                      ),
-                      Text(
-                        '${widget.settings.currencySymbol}${customer.balance.toStringAsFixed(2)}',
-                        style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626), fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Amount
-                _fieldLabel('Amount Received (${widget.settings.currencySymbol}) *', isDark: isDark),
-                TextField(
-                  controller: amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 15),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.attach_money_rounded, size: 18),
-                    hintText: '0.00',
-                    filled: true,
-                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Payment Method
-                _fieldLabel('Payment Method *', isDark: isDark),
-                DropdownButtonFormField<String>(
-                  initialValue: paymentMethod,
-                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    isDense: true,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'cash', child: Text('Cash in Hand')),
-                    DropdownMenuItem(value: 'card', child: Text('Debit / Credit Card')),
-                    DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer / Online')),
-                    DropdownMenuItem(value: 'cheque', child: Text('Cheque Payment')),
-                  ],
-                  onChanged: (val) => setDlgState(() => paymentMethod = val ?? 'cash'),
-                ),
-                const SizedBox(height: 14),
-
-                // Note
-                _fieldLabel('Payment Note / Ref No', isDark: isDark),
-                TextField(
-                  controller: noteCtrl,
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Cleared invoice balance, Bank Slip #...',
-                    filled: true,
-                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Actions
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.check_circle_rounded, size: 18),
-                      label: const Text('Record Payment', style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: () async {
-                        final amt = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
-                        if (amt <= 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please enter a valid received amount!'), backgroundColor: Colors.red),
-                          );
-                          return;
-                        }
-
-                        final payment = ContactPayment(
-                          contactId: customer.id!,
-                          contactName: customer.name,
-                          paymentType: 'receive',
-                          amount: amt,
-                          paymentMethod: paymentMethod,
-                          date: DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
-                          refNo: nextRef,
-                          note: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : 'Due payment collected',
-                        );
-
-                        await db.addContactPayment(payment);
-
-                        Navigator.pop(ctx);
-                        _load();
-
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Collected ${widget.settings.currencySymbol}${amt.toStringAsFixed(2)} from ${customer.name}!'),
-                              backgroundColor: const Color(0xFF10B981),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    await RecordContactPaymentDialog.show(
+      context,
+      contact: customer,
+      contactType: 'customer',
+      settings: widget.settings,
+      onPaymentRecorded: _load,
     );
   }
 
@@ -813,34 +589,6 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 color: isSelected ? Colors.white : (isHighlight ? const Color(0xFFDC2626) : const Color(0xFF475569)),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _mini(String label, String value, Color color, {required bool isDark}) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color), overflow: TextOverflow.ellipsis),
           ],
         ),
       ),

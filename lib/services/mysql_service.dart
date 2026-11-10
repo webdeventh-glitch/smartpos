@@ -1576,9 +1576,13 @@ class MySqlService {
         `date` VARCHAR(50) NOT NULL,
         `ref_no` VARCHAR(100) NULL,
         `note` TEXT NULL,
+        `document_path` VARCHAR(500) NULL,
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB;
     ''');
+    try {
+      await conn.execute("ALTER TABLE `contact_payments` ADD COLUMN `document_path` VARCHAR(500) NULL");
+    } catch (_) {}
 
     // 27. payment_accounts
     await conn.execute('''
