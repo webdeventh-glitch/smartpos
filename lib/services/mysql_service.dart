@@ -127,23 +127,64 @@ class MySqlService {
       if (targetHost == '127.0.0.1') {
         await tryAutoStartLocalMySql();
       }
-      conn = await MySQLConnection.createConnection(
-        host: targetHost,
-        port: port,
-        userName: user,
-        password: password,
-        databaseName: (databaseName != null && databaseName.isNotEmpty) ? databaseName : null,
-        secure: false,
-      );
-      await conn.connect();
-      sw.stop();
-      isMySqlOnline.value = true;
-      connectionStatus.value = 'Connected ($host:$port)';
-      return {
-        'success': true,
-        'latencyMs': sw.elapsedMilliseconds,
-        'message': 'Connected to MySQL server successfully (${sw.elapsedMilliseconds}ms)!',
-      };
+
+      final candidateCredentials = <Map<String, String>>[
+        {'user': user, 'password': password},
+      ];
+
+      // Auto-fallback: If user is root and password was provided, try empty password (Laragon/XAMPP default)
+      if (user.toLowerCase() == 'root' && password.isNotEmpty) {
+        candidateCredentials.add({'user': 'root', 'password': ''});
+        candidateCredentials.add({'user': 'root', 'password': 'root'});
+      } else if (user.toLowerCase() == 'root' && password.isEmpty) {
+        candidateCredentials.add({'user': 'root', 'password': 'root'});
+        candidateCredentials.add({'user': 'smartpos', 'password': 'smartpos123'});
+      }
+
+      dynamic lastAuthError;
+      for (int i = 0; i < candidateCredentials.length; i++) {
+        final cred = candidateCredentials[i];
+        final currUser = cred['user']!;
+        final currPass = cred['password']!;
+        try {
+          conn = await MySQLConnection.createConnection(
+            host: targetHost,
+            port: port,
+            userName: currUser,
+            password: currPass,
+            databaseName: (databaseName != null && databaseName.isNotEmpty) ? databaseName : null,
+            secure: false,
+          );
+          await conn.connect();
+          sw.stop();
+          isMySqlOnline.value = true;
+          connectionStatus.value = 'Connected ($host:$port)';
+          final usedFallback = i > 0;
+          final extraNote = usedFallback
+              ? (currPass.isEmpty
+                  ? ' (Auto-connected with Laragon/XAMPP default empty password)'
+                  : ' (Auto-connected with user "$currUser")')
+              : '';
+          return {
+            'success': true,
+            'latencyMs': sw.elapsedMilliseconds,
+            'resolvedUser': currUser,
+            'resolvedPassword': currPass,
+            'message': 'Connected to MySQL server successfully (${sw.elapsedMilliseconds}ms)!$extraNote',
+          };
+        } catch (e) {
+          lastAuthError = e;
+          try {
+            await conn?.close();
+          } catch (_) {}
+          // If error is not auth access denied (1045), don't keep trying passwords
+          if (!e.toString().contains('1045')) {
+            break;
+          }
+        }
+      }
+
+      throw lastAuthError ?? Exception('Connection failed');
     } catch (e) {
       isMySqlOnline.value = false;
       connectionStatus.value = 'Offline ($e)';
@@ -182,18 +223,57 @@ class MySqlService {
     try {
       final safeDbName = databaseName.trim().isEmpty ? 'smartpos' : databaseName.trim();
       final targetHost = normalizeHost(host);
+      if (targetHost == '127.0.0.1') {
+        await tryAutoStartLocalMySql();
+      }
+
+      final candidateCredentials = <Map<String, String>>[
+        {'user': user, 'password': password},
+      ];
+      if (user.toLowerCase() == 'root' && password.isNotEmpty) {
+        candidateCredentials.add({'user': 'root', 'password': ''});
+        candidateCredentials.add({'user': 'root', 'password': 'root'});
+      } else if (user.toLowerCase() == 'root' && password.isEmpty) {
+        candidateCredentials.add({'user': 'root', 'password': 'root'});
+        candidateCredentials.add({'user': 'smartpos', 'password': 'smartpos123'});
+      }
+
+      String activeUser = user;
+      String activePassword = password;
+      bool connected = false;
+      dynamic lastAuthError;
 
       // Step 1: Connect to server without database to create target DB if missing
-      conn = await MySQLConnection.createConnection(
-        host: targetHost,
-        port: port,
-        userName: user,
-        password: password,
-        secure: false,
-      );
-      await conn.connect();
+      for (final cred in candidateCredentials) {
+        try {
+          conn = await MySQLConnection.createConnection(
+            host: targetHost,
+            port: port,
+            userName: cred['user']!,
+            password: cred['password']!,
+            secure: false,
+          );
+          await conn.connect();
+          activeUser = cred['user']!;
+          activePassword = cred['password']!;
+          connected = true;
+          break;
+        } catch (e) {
+          lastAuthError = e;
+          try {
+            await conn?.close();
+          } catch (_) {}
+          if (!e.toString().contains('1045')) {
+            break;
+          }
+        }
+      }
 
-      await conn.execute(
+      if (!connected) {
+        throw lastAuthError ?? Exception('Could not connect to MySQL server');
+      }
+
+      await conn!.execute(
         'CREATE DATABASE IF NOT EXISTS `$safeDbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
       );
       await conn.close();
@@ -202,8 +282,8 @@ class MySqlService {
       conn = await MySQLConnection.createConnection(
         host: targetHost,
         port: port,
-        userName: user,
-        password: password,
+        userName: activeUser,
+        password: activePassword,
         databaseName: safeDbName,
         secure: false,
       );
@@ -214,7 +294,11 @@ class MySqlService {
 
       // Step 4: Seed initial business settings and admin user if provided
       if (initialSettings != null) {
-        await _seedSettings(conn, initialSettings);
+        final syncedSettings = initialSettings.copyWith(
+          dbUser: activeUser,
+          dbPassword: activePassword,
+        );
+        await _seedSettings(conn, syncedSettings);
       }
       if (initialAdminUser != null) {
         await _seedAdminUser(conn, initialAdminUser);
@@ -225,6 +309,8 @@ class MySqlService {
 
       return {
         'success': true,
+        'resolvedUser': activeUser,
+        'resolvedPassword': activePassword,
         'message': 'Database "$safeDbName" and all tables successfully initialized in MySQL!',
       };
     } catch (e) {

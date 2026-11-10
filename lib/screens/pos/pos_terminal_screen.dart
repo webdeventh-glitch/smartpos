@@ -3058,6 +3058,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     final currency = widget.settings.currencySymbol;
     final nowTime = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 1200;
 
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final screenBg = isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9);
@@ -4082,7 +4084,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
                             // ================= CART BOTTOM SUMMARY BAR =================
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 10 : 16, vertical: isSmallScreen ? 6 : 12),
                               decoration: BoxDecoration(
                                 color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4),
                                 border: Border(top: BorderSide(color: isDark ? const Color(0xFF1E3A2F) : const Color(0xFFBBF7D0))),
@@ -4094,10 +4096,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                       scrollDirection: Axis.horizontal,
                                       child: Row(
                                         children: [
-                                          _summaryBlock('ITEMS', _totalQuantity.toStringAsFixed(2), isDark: isDark),
-                                          const SizedBox(width: 14),
-                                          _summaryBlock('SUBTOTAL', '$currency ${_subtotal.toStringAsFixed(2)}', isDark: isDark),
-                                          const SizedBox(width: 14),
+                                          _summaryBlock('ITEMS', _totalQuantity.toStringAsFixed(2), isDark: isDark, isSmall: isSmallScreen),
+                                          SizedBox(width: isSmallScreen ? 8 : 14),
+                                          _summaryBlock('SUBTOTAL', '$currency ${_subtotal.toStringAsFixed(2)}', isDark: isDark, isSmall: isSmallScreen),
+                                          SizedBox(width: isSmallScreen ? 8 : 14),
                                           _summaryBlock(
                                             'DISCOUNT(-)',
                                             _discountValue <= 0
@@ -4108,16 +4110,17 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                             isEditable: true,
                                             onEdit: _showOrderDiscountDialog,
                                             isDark: isDark,
+                                            isSmall: isSmallScreen,
                                           ),
-                                          const SizedBox(width: 14),
-                                          _summaryBlock('ORDER TAX(+)', '$currency ${_orderTax.toStringAsFixed(2)}', isEditable: true, onEdit: _showOrderTaxDialog, isDark: isDark),
-                                          const SizedBox(width: 14),
-                                          _summaryBlock('SHIPPING(+)', '$currency ${_shippingCharge.toStringAsFixed(2)}', isEditable: true, onEdit: _showShippingDialog, isDark: isDark),
+                                          SizedBox(width: isSmallScreen ? 8 : 14),
+                                          _summaryBlock('ORDER TAX(+)', '$currency ${_orderTax.toStringAsFixed(2)}', isEditable: true, onEdit: _showOrderTaxDialog, isDark: isDark, isSmall: isSmallScreen),
+                                          SizedBox(width: isSmallScreen ? 8 : 14),
+                                          _summaryBlock('SHIPPING(+)', '$currency ${_shippingCharge.toStringAsFixed(2)}', isEditable: true, onEdit: _showShippingDialog, isDark: isDark, isSmall: isSmallScreen),
                                         ],
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
+                                  SizedBox(width: isSmallScreen ? 8 : 16),
 
                                   // Big Green TOTAL PAYABLE Box with Words (Urdu & Multi-language)
                                   InkWell(
@@ -4126,8 +4129,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                     child: Tooltip(
                                       message: 'Click to change words language (${_wordsLanguage.toUpperCase()}) / زبان تبدیل کریں',
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                        constraints: const BoxConstraints(minWidth: 160),
+                                        padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 10 : 16, vertical: isSmallScreen ? 4 : 6),
+                                        constraints: BoxConstraints(minWidth: isSmallScreen ? 130 : 160),
                                         decoration: BoxDecoration(
                                           color: isDark ? const Color(0xFF064E3B) : Colors.white,
                                           borderRadius: BorderRadius.circular(8),
@@ -4142,17 +4145,17 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                               children: [
                                                 Icon(
                                                   Icons.translate,
-                                                  size: 11,
+                                                  size: isSmallScreen ? 10 : 11,
                                                   color: isDark ? const Color(0xFF6EE7B7).withOpacity(0.8) : const Color(0xFF16A34A).withOpacity(0.8),
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   'TOTAL PAYABLE',
                                                   style: TextStyle(
-                                                    fontSize: 11,
+                                                    fontSize: isSmallScreen ? 10 : 11,
                                                     fontWeight: FontWeight.w900,
                                                     color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A),
-                                                    letterSpacing: 0.8,
+                                                    letterSpacing: isSmallScreen ? 0.4 : 0.8,
                                                   ),
                                                 ),
                                               ],
@@ -4160,7 +4163,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                             Text(
                                               _grandTotal.toStringAsFixed(2),
                                               style: TextStyle(
-                                                fontSize: 26,
+                                                fontSize: isSmallScreen ? 20 : 26,
                                                 fontWeight: FontWeight.w900,
                                                 color: isDark ? Colors.white : const Color(0xFF15803D),
                                                 height: 1.1,
@@ -4170,7 +4173,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                               Padding(
                                                 padding: const EdgeInsets.only(top: 2),
                                                 child: ConstrainedBox(
-                                                  constraints: const BoxConstraints(maxWidth: 240),
+                                                  constraints: BoxConstraints(maxWidth: isSmallScreen ? 180 : 240),
                                                   child: Text(
                                                     NumberToWordsService.convert(
                                                       _grandTotal,
@@ -4185,7 +4188,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                     maxLines: 2,
                                                     overflow: TextOverflow.ellipsis,
                                                     style: TextStyle(
-                                                      fontSize: 11,
+                                                      fontSize: isSmallScreen ? 9.5 : 11,
                                                       fontWeight: FontWeight.w700,
                                                       height: 1.2,
                                                       color: isDark ? const Color(0xFFA7F3D0) : const Color(0xFF166534),
@@ -4204,7 +4207,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
                             // ================= BOTTOM ACTIONS ROW =================
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: isSmallScreen ? 4 : 8),
                               decoration: BoxDecoration(
                                 color: cardBg,
                                 border: Border(top: BorderSide(color: borderColor)),
@@ -4222,30 +4225,30 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                           style: OutlinedButton.styleFrom(
                                             side: const BorderSide(color: Color(0xFFEF4444)),
                                             foregroundColor: const Color(0xFFEF4444),
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                            padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 6 : 10, vertical: isSmallScreen ? 4 : 8),
                                             visualDensity: VisualDensity.compact,
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                           ),
                                           icon: const Icon(Icons.close, size: 14),
-                                          label: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                          label: Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmallScreen ? 10 : 11)),
                                           onPressed: _clearCart,
                                         ),
-                                        const SizedBox(width: 6),
+                                        SizedBox(width: isSmallScreen ? 4 : 6),
 
                                         // [ Draft ]
-                                        _bottomOutlineBtn(icon: Icons.edit_note, label: 'Draft', onTap: _saveDraft, isDark: isDark),
+                                        _bottomOutlineBtn(icon: Icons.edit_note, label: 'Draft', onTap: _saveDraft, isDark: isDark, isSmall: isSmallScreen),
 
                                         // [ Quotation ]
-                                        _bottomOutlineBtn(icon: Icons.assignment_outlined, label: 'Quotation', onTap: _saveQuotation, isDark: isDark),
+                                        _bottomOutlineBtn(icon: Icons.assignment_outlined, label: 'Quotation', onTap: _saveQuotation, isDark: isDark, isSmall: isSmallScreen),
 
                                         // [ Suspend ]
                                         Tooltip(
                                           message: 'Suspend / Hold Sale [F4]',
-                                          child: _bottomOutlineBtn(icon: Icons.pause, label: 'Suspend', color: const Color(0xFFD97706), onTap: _suspendSale, isDark: isDark),
+                                          child: _bottomOutlineBtn(icon: Icons.pause, label: 'Suspend', color: const Color(0xFFD97706), onTap: _suspendSale, isDark: isDark, isSmall: isSmallScreen),
                                         ),
 
                                         // [ Credit Sale ]
-                                        _bottomOutlineBtn(icon: Icons.check, label: 'Credit Sale', onTap: _quickCreditCheckout, isDark: isDark),
+                                        _bottomOutlineBtn(icon: Icons.check, label: 'Credit Sale', onTap: _quickCreditCheckout, isDark: isDark, isSmall: isSmallScreen),
 
                                         // [ Recent Sales F9 ]
                                         OutlinedButton.icon(
@@ -4253,18 +4256,18 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                             side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
                                             backgroundColor: isDark ? const Color(0xFF312E81).withOpacity(0.3) : const Color(0xFFEEF2FF),
                                             foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                            padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 6 : 10, vertical: isSmallScreen ? 4 : 8),
                                             visualDensity: VisualDensity.compact,
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                           ),
                                           icon: const Icon(Icons.access_time_rounded, size: 14),
-                                          label: const Text('Recent Sales [F9]', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                          label: Text('Recent Sales [F9]', style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmallScreen ? 10 : 11)),
                                           onPressed: _openRecentTransactionsModal,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  SizedBox(height: isSmallScreen ? 4 : 8),
 
                                   // 2. Primary Checkout Buttons (Card, Multiple Pay [F7], Cash [F2])
                                   // Always fully visible across the entire bottom without any horizontal scroll
@@ -4275,14 +4278,14 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                         style: OutlinedButton.styleFrom(
                                           side: const BorderSide(color: Color(0xFFEC4899)),
                                           foregroundColor: const Color(0xFFEC4899),
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                                          padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 8 : 14, vertical: isSmallScreen ? 7 : 11),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                         ),
                                         icon: const Icon(Icons.credit_card, size: 16),
-                                        label: const Text('Card', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                        label: Text('Card', style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmallScreen ? 11 : 12)),
                                         onPressed: _quickCardCheckout,
                                       ),
-                                      const SizedBox(width: 8),
+                                      SizedBox(width: isSmallScreen ? 6 : 8),
 
                                       // [ Multiple Pay ]
                                       Expanded(
@@ -4293,20 +4296,20 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1E293B),
                                               foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                              padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 6 : 10, vertical: isSmallScreen ? 7 : 12),
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                             ),
                                             icon: const Icon(Icons.payments_outlined, size: 16),
-                                            label: const Text(
+                                            label: Text(
                                               'Multiple Pay',
-                                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
+                                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSmallScreen ? 11 : 12.5),
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                             onPressed: _handleMultiplePayClick,
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
+                                      SizedBox(width: isSmallScreen ? 6 : 8),
 
                                       // [ Cash ]
                                       Expanded(
@@ -4317,13 +4320,13 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: const Color(0xFF10B981),
                                               foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                              padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 8 : 12, vertical: isSmallScreen ? 7 : 12),
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                             ),
                                             icon: const Icon(Icons.money, size: 16),
-                                            label: const Text(
+                                            label: Text(
                                               'Cash',
-                                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: isSmallScreen ? 11.5 : 13.5),
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                             onPressed: _quickCashCheckout,
@@ -5069,7 +5072,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
-  Widget _summaryBlock(String label, String value, {bool isEditable = false, VoidCallback? onEdit, bool isDark = false}) {
+  Widget _summaryBlock(String label, String value, {bool isEditable = false, VoidCallback? onEdit, bool isDark = false, bool isSmall = false}) {
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
     final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
@@ -5078,15 +5081,15 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       children: [
         Row(
           children: [
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary)),
+            Text(label, style: TextStyle(fontSize: isSmall ? 8.5 : 10, fontWeight: FontWeight.bold, color: textSecondary)),
             if (isEditable) ...[
-              const SizedBox(width: 4),
-              const Icon(Icons.edit, size: 10, color: Color(0xFF4F46E5)),
+              const SizedBox(width: 3),
+              Icon(Icons.edit, size: isSmall ? 8.5 : 10, color: const Color(0xFF4F46E5)),
             ],
           ],
         ),
-        const SizedBox(height: 2),
-        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
+        SizedBox(height: isSmall ? 1 : 2),
+        Text(value, style: TextStyle(fontSize: isSmall ? 11 : 13, fontWeight: FontWeight.bold, color: textPrimary)),
       ],
     );
 
@@ -5095,7 +5098,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         onTap: onEdit,
         borderRadius: BorderRadius.circular(4),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          padding: EdgeInsets.symmetric(horizontal: isSmall ? 2 : 4, vertical: isSmall ? 1 : 2),
           child: content,
         ),
       );
@@ -5109,6 +5112,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     Color? color,
     VoidCallback? onTap,
     bool isDark = false,
+    bool isSmall = false,
     EdgeInsetsGeometry? padding,
   }) {
     final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
@@ -5116,17 +5120,17 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     final iconColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return Padding(
-      padding: const EdgeInsets.only(right: 6),
+      padding: EdgeInsets.only(right: isSmall ? 4 : 6),
       child: OutlinedButton.icon(
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: borderColor),
           foregroundColor: color ?? textPrimary,
-          padding: padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: padding ?? EdgeInsets.symmetric(horizontal: isSmall ? 6 : 10, vertical: isSmall ? 4 : 8),
           visualDensity: VisualDensity.compact,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
-        icon: Icon(icon, size: 14, color: color ?? iconColor),
-        label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+        icon: Icon(icon, size: isSmall ? 12 : 14, color: color ?? iconColor),
+        label: Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmall ? 10 : 11)),
         onPressed: onTap,
       ),
     );

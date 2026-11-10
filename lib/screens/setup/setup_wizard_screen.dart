@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/models.dart';
@@ -88,6 +89,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   bool _obscurePass = true;
   bool _obscureConfirmPass = true;
   bool _obscureLanDbPass = true;
+  bool _isCompact = false;
+  bool _isNarrow = false;
+  bool _isMobile = false;
 
   @override
   void initState() {
@@ -343,6 +347,16 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           _isTestingConnection = false;
           _connectionSuccess = res['success'] == true;
           _connectionTestResult = res['message'] as String;
+          if (res['success'] == true) {
+            final resPass = res['resolvedPassword'] as String?;
+            final resUser = res['resolvedUser'] as String?;
+            if (resPass != null && resPass != _lanDbPassCtrl.text) {
+              _lanDbPassCtrl.text = resPass;
+            }
+            if (resUser != null && resUser != _lanDbUserCtrl.text) {
+              _lanDbUserCtrl.text = resUser;
+            }
+          }
         });
         return;
       }
@@ -493,7 +507,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       final rawHost = _lanHostCtrl.text.trim();
       final effectiveDbHost = MySqlService.normalizeHost(rawHost);
 
-      final updated = BusinessSettings(
+      var updated = BusinessSettings(
         id: widget.settings.id,
         businessName: _bizNameCtrl.text.trim().isNotEmpty ? _bizNameCtrl.text.trim() : 'Smart POS Enterprise',
         branchName: _branchCtrl.text.trim().isNotEmpty ? _branchCtrl.text.trim() : 'Main Branch HQ',
@@ -654,6 +668,21 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           }
         } else {
           // MySQL provisioned successfully!
+          final resPass = mySqlRes['resolvedPassword'] as String?;
+          final resUser = mySqlRes['resolvedUser'] as String?;
+          if ((resPass != null && resPass != updated.dbPassword) ||
+              (resUser != null && resUser != updated.dbUser)) {
+            updated = updated.copyWith(
+              dbUser: resUser ?? updated.dbUser,
+              dbPassword: resPass ?? updated.dbPassword,
+            );
+            finalized = finalized.copyWith(
+              dbUser: resUser ?? finalized.dbUser,
+              dbPassword: resPass ?? finalized.dbPassword,
+            );
+            if (resPass != null) _lanDbPassCtrl.text = resPass;
+            if (resUser != null) _lanDbUserCtrl.text = resUser;
+          }
           // Push starter catalog (products, categories, brands, units, contacts) to MySQL
           if (_seedSampleData) {
             setState(() => _seedStatus = 'Synchronizing starter commercial catalog into MySQL tables...');
@@ -773,19 +802,20 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final isNarrow = constraints.maxWidth < 720;
-            final isMobile = constraints.maxWidth < 500;
+            _isNarrow = constraints.maxWidth < 720;
+            _isMobile = constraints.maxWidth < 500;
+            _isCompact = constraints.maxWidth < 860;
 
             return Center(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 12 : 24,
-                  vertical: isMobile ? 12 : 24,
+                  horizontal: _isMobile ? 8 : (_isCompact ? 14 : 24),
+                  vertical: _isMobile ? 8 : (_isCompact ? 14 : 24),
                 ),
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 880),
                   width: double.infinity,
-                  padding: EdgeInsets.all(isMobile ? 16 : (isNarrow ? 22 : 32)),
+                  padding: EdgeInsets.all(_isMobile ? 12 : (_isNarrow ? 16 : (_isCompact ? 20 : 28))),
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1E293B) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
@@ -799,8 +829,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       Row(
                         children: [
                           Container(
-                            width: isMobile ? 44 : 52,
-                            height: isMobile ? 44 : 52,
+                            width: _isMobile ? 44 : 52,
+                            height: _isMobile ? 44 : 52,
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -832,7 +862,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                     Text(
                                       'Smart POS',
                                       style: TextStyle(
-                                        fontSize: isMobile ? 18 : 22,
+                                        fontSize: _isMobile ? 18 : 22,
                                         fontWeight: FontWeight.w900,
                                         color: isDark ? Colors.white : const Color(0xFF0F172A),
                                         letterSpacing: -0.5,
@@ -860,7 +890,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   'Multi-Industry Commercial POS Ecosystem — Guided System Installation',
-                                  style: TextStyle(fontSize: isMobile ? 11 : 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                  style: TextStyle(fontSize: _isMobile ? 11 : 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                                 ),
                               ],
                             ),
@@ -870,7 +900,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       const SizedBox(height: 20),
 
                       // Responsive Step Progress Indicators
-                      if (isNarrow)
+                      if (_isNarrow)
                         Column(
                           children: [
                             Row(
@@ -948,17 +978,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
                 // Bottom Action Buttons
                 if (!_isSeeding && !_isInstallationComplete) ...[
-                  const Divider(height: 36),
+                  Divider(height: _isCompact ? 22 : 36),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       if (_currentStep > 0)
                         OutlinedButton.icon(
                           onPressed: _prevStep,
-                          icon: const Icon(Icons.arrow_back, size: 16),
-                          label: const Text('Back'),
+                          icon: Icon(Icons.arrow_back, size: _isCompact ? 14 : 16),
+                          label: Text(_translateLabel('Back')),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            padding: EdgeInsets.symmetric(horizontal: _isCompact ? 14 : 20, vertical: _isCompact ? 10 : 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         )
@@ -966,12 +996,15 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         const SizedBox.shrink(),
                       ElevatedButton.icon(
                         onPressed: _currentStep == 3 ? _completeInstallation : _nextStep,
-                        icon: Icon(_currentStep == 3 ? Icons.rocket_launch_rounded : Icons.arrow_forward, size: 18),
-                        label: Text(_currentStep == 3 ? 'Complete Installation & Launch' : 'Continue to Next Step'),
+                        icon: Icon(_currentStep == 3 ? Icons.rocket_launch_rounded : Icons.arrow_forward, size: _isCompact ? 16 : 18),
+                        label: Text(
+                          _translateLabel(_currentStep == 3 ? 'Complete Installation & Launch' : 'Continue to Next Step'),
+                          style: TextStyle(fontSize: _isCompact ? 12 : 14, fontWeight: FontWeight.bold),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4F46E5),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                          padding: EdgeInsets.symmetric(horizontal: _isCompact ? 18 : 28, vertical: _isCompact ? 10 : 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           elevation: 2,
                         ),
@@ -1771,16 +1804,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
             ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.translate, color: Color(0xFF10B981), size: 18),
-              ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.translate, color: Color(0xFF10B981), size: 18),
+                  ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1838,8 +1874,11 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 14),
+          _buildLanguagePreviewBanner(isDark),
+        ],
+      ),
+    ),
+    SizedBox(height: _isCompact ? 10 : 14),
 
         // Contact Email and Address
         Row(
@@ -2500,16 +2539,31 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             decoration: InputDecoration(
                               hintText: 'Leave empty if no password',
                               isDense: true,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscureLanDbPass ? Icons.visibility_off : Icons.visibility,
-                                  size: 18,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscureLanDbPass = !_obscureLanDbPass;
-                                  });
-                                },
+                              suffixIcon: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_lanDbPassCtrl.text.isNotEmpty)
+                                    IconButton(
+                                      tooltip: 'Clear password for Laragon / XAMPP default root',
+                                      icon: const Icon(Icons.backspace_outlined, size: 16, color: Colors.orange),
+                                      onPressed: () {
+                                        setState(() {
+                                          _lanDbPassCtrl.clear();
+                                        });
+                                      },
+                                    ),
+                                  IconButton(
+                                    icon: Icon(
+                                      _obscureLanDbPass ? Icons.visibility_off : Icons.visibility,
+                                      size: 18,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscureLanDbPass = !_obscureLanDbPass;
+                                      });
+                                    },
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -2519,12 +2573,48 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password (leave DB Password completely empty). Or use username "smartpos" with password "smartpos123".',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password (DB Password خالی رکھیں). Or use "smartpos" / "smartpos123".',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                    if (_lanDbPassCtrl.text.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _lanDbPassCtrl.clear();
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.clear, size: 12, color: Colors.orange),
+                              SizedBox(width: 4),
+                              Text(
+                                'Clear for Laragon',
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
 
@@ -2915,6 +3005,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   Widget _stepPill(int step, String label, IconData icon, bool isDark) {
     final isActive = !_isInstallationComplete && _currentStep == step;
     final isDone = _isInstallationComplete || _currentStep > step;
+    final translatedLabel = _translateLabel(label);
 
     return Expanded(
       child: InkWell(
@@ -2926,7 +3017,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         },
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          padding: EdgeInsets.symmetric(vertical: _isCompact ? 7 : 10, horizontal: _isCompact ? 6 : 8),
           decoration: BoxDecoration(
             color: isActive
                 ? const Color(0xFF4F46E5)
@@ -2947,19 +3038,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             children: [
               Icon(
                 isDone ? Icons.check_circle_rounded : icon,
-                size: 16,
+                size: _isCompact ? 13 : 16,
                 color: isActive
                     ? Colors.white
                     : isDone
                         ? const Color(0xFF10B981)
                         : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: _isCompact ? 4 : 6),
               Flexible(
                 child: Text(
-                  label,
+                  translatedLabel,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: _isCompact ? 10 : 11,
                     fontWeight: FontWeight.bold,
                     color: isActive
                         ? Colors.white
@@ -3170,17 +3261,288 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     );
   }
 
+  Widget _buildLanguagePreviewBanner(bool isDark) {
+    const previewAmount1 = 865.0;
+    const previewAmount2 = 1255.0;
+    final curSymbol = _currencySymCtrl.text.trim().isNotEmpty ? _currencySymCtrl.text.trim() : 'Rs';
+    final curCode = _currencyCodeCtrl.text.trim().isNotEmpty ? _currencyCodeCtrl.text.trim() : 'PKR';
+    final words1 = NumberToWordsService.convert(previewAmount1, language: _totalInWordsLanguage, currencySymbol: curSymbol, currencyCode: curCode);
+    final words2 = NumberToWordsService.convert(previewAmount2, language: _totalInWordsLanguage, currencySymbol: curSymbol, currencyCode: curCode);
+    final isRtl = NumberToWordsService.isRtl(_totalInWordsLanguage);
+
+    String title;
+    switch (_totalInWordsLanguage) {
+      case 'fa':
+        title = 'پیش‌نمایش زنده مبالغ به حروف (Live Preview):';
+        break;
+      case 'ur':
+        title = 'رقم کی لفظی صورت کا براہ راست پیش منظر (Live Preview):';
+        break;
+      case 'ps':
+        title = 'په تورو کې د پیسو ژوندی بڼه (Live Preview):';
+        break;
+      case 'es':
+        title = 'Vista previa de totales en letras:';
+        break;
+      case 'nl':
+        title = 'Voorbeeld van bedrag in woorden:';
+        break;
+      default:
+        title = 'Live Total in Words Preview:';
+    }
+
+    return Container(
+      margin: EdgeInsets.only(top: _isCompact ? 6 : 8),
+      padding: EdgeInsets.symmetric(horizontal: _isCompact ? 10 : 12, vertical: _isCompact ? 6 : 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.15 : 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: Color(0xFF10B981), size: 14),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Text('865.00 ➔ ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : const Color(0xFF334155))),
+              Expanded(
+                child: Text(
+                  words1,
+                  textDirection: isRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF059669)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Text('1,255.00 ➔ ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : const Color(0xFF334155))),
+              Expanded(
+                child: Text(
+                  words2,
+                  textDirection: isRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF059669)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _translateLabel(String label) {
+    final langDict = _labelTranslations[_totalInWordsLanguage];
+    if (langDict != null && langDict.containsKey(label)) {
+      return langDict[label]!;
+    }
+    final clean = label.replaceAll('*', '').trim();
+    if (langDict != null && langDict.containsKey(clean)) {
+      final trans = langDict[clean]!;
+      return label.contains('*') ? '$trans *' : trans;
+    }
+    return label;
+  }
+
   Widget _fieldLabel(String label, bool isDark) {
+    final translated = _translateLabel(label);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: EdgeInsets.only(bottom: _isCompact ? 4 : 6),
       child: Text(
-        label,
+        translated,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: _isCompact ? 11 : 12,
           fontWeight: FontWeight.bold,
           color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
         ),
       ),
     );
   }
+
+  static const Map<String, Map<String, String>> _labelTranslations = {
+    'fa': {
+      '1. License Lock': '۱. لایسنس (License)',
+      '2. Business & Presets': '۲. کسب و کار (Business)',
+      '3. Topology & DB': '۳. شبکه و دیتابیس (DB)',
+      '4. Master Admin': '۴. مدیر ارشد (Admin)',
+      'Back': 'بازگشت (Back)',
+      'Continue to Next Step': 'ادامه به مرحله بعد (Next)',
+      'Complete Installation & Launch': 'تکمیل نصب و راه‌اندازی (Launch)',
+      'Smart POS Activation Key *': 'کلید فعال‌سازی سیستم *',
+      'Business Logo': 'لوگوی فروشگاه (Logo)',
+      'Business / Store Name *': 'نام فروشگاه / کسب و کار *',
+      'Branch / Outlet': 'نام شعبه (Branch)',
+      'NTN / Tax ID': 'شماره مالیاتی (Tax ID)',
+      'Contact Phone': 'شماره تماس (Phone)',
+      'Official Currency *': 'واحد پول رسمی (Currency) *',
+      'Regional Time Zone *': 'منطقه زمانی (Time Zone) *',
+      'Language for Totals & Invoices (الفاظ کی زبان) *': 'زبان مبالغ به حروف (در فاکتور و رسید) *',
+      'Contact Email': 'ایمیل تماس (Email)',
+      'Physical Address': 'آدرس فیزیکی (Address)',
+      'Receipt Footer Note': 'یادداشت پایین رسید (Receipt Footer)',
+      'Local Embedded API Server Port': 'پورت سرور محلی (API Port)',
+      'Primary Server Local IP *': 'آدرس آی‌پی سرور اصلی *',
+      'API Port': 'پورت API',
+      'Remote Cloud API URL *': 'آدرس API ابری (Cloud URL) *',
+      'Branch ID': 'شناسه شعبه (Branch ID)',
+      'Cloud API Secret Key': 'کلید امنیتی کلود (API Key)',
+      'Primary Database Host / IP': 'هاست پایگاه داده (Host / IP)',
+      'Port': 'پورت (Port)',
+      'Database Name': 'نام دیتابیس (DB Name)',
+      'DB Username': 'نام کاربری دیتابیس (DB User)',
+      'DB Password': 'رمز عبور دیتابیس (DB Password)',
+      'Admin Full Name *': 'نام کامل مدیر ارشد *',
+      'Master Username *': 'نام کاربری مدیر اصلی *',
+      'Email Address': 'آدرس ایمیل مدیر',
+      'Mobile Number': 'شماره موبایل مدیر',
+      'Master Password *': 'رمز عبور اصلی مدیر *',
+      'Confirm Master Password *': 'تأیید رمز عبور مدیر *',
+    },
+    'ur': {
+      '1. License Lock': '1. لائسنس کی (License)',
+      '2. Business & Presets': '2. کاروباری تفصیلات (Business)',
+      '3. Topology & DB': '3. نیٹ ورک و ڈیٹا بیس (DB)',
+      '4. Master Admin': '4. ماسٹر ایڈمن (Admin)',
+      'Back': 'واپس (Back)',
+      'Continue to Next Step': 'اگلا مرحلہ (Next)',
+      'Complete Installation & Launch': 'انسٹالیشن مکمل کریں اور چلائیں',
+      'Smart POS Activation Key *': 'ایکٹیویشن لائسنس کی *',
+      'Business Logo': 'کاروباری لوگو (Logo)',
+      'Business / Store Name *': 'کاروبار / دکان کا نام *',
+      'Branch / Outlet': 'برانچ یا آؤٹ لیٹ کا نام',
+      'NTN / Tax ID': 'ٹیکس نمبر (NTN / Tax ID)',
+      'Contact Phone': 'رابطہ فون نمبر',
+      'Official Currency *': 'سرکاری کرنسی (Currency) *',
+      'Regional Time Zone *': 'علاقائی ٹائم زون (Time Zone) *',
+      'Language for Totals & Invoices (الفاظ کی زبان) *': 'رقم کی لفظی زبان (انوائس اور رسید) *',
+      'Contact Email': 'رابطہ ای میل (Email)',
+      'Physical Address': 'کاروبار کا پتہ (Address)',
+      'Receipt Footer Note': 'رسید کا نچلا نوٹ (Receipt Footer)',
+      'Local Embedded API Server Port': 'مقامی سرور پورٹ',
+      'Primary Server Local IP *': 'پرائمری سرور آئی پی *',
+      'API Port': 'اے پی آئی پورٹ',
+      'Remote Cloud API URL *': 'کلاؤڈ سرور ایڈریس *',
+      'Branch ID': 'برانچ کوڈ',
+      'Cloud API Secret Key': 'کلاؤڈ سیکیورٹی کی',
+      'Primary Database Host / IP': 'ڈیٹا بیس ہوسٹ (Host / IP)',
+      'Port': 'پورٹ (Port)',
+      'Database Name': 'ڈیٹا بیس کا نام (DB Name)',
+      'DB Username': 'ڈیٹا بیس یوزر (DB User)',
+      'DB Password': 'ڈیٹا بیس پاسورڈ (DB Password)',
+      'Admin Full Name *': 'سپر ایڈمن کا پورا نام *',
+      'Master Username *': 'ایڈمن یوزر نیم *',
+      'Email Address': 'ای میل ایڈریس',
+      'Mobile Number': 'موبائل نمبر',
+      'Master Password *': 'ایڈمن پاسورڈ *',
+      'Confirm Master Password *': 'پاسورڈ کی تصدیق *',
+    },
+    'ps': {
+      '1. License Lock': '1. لایسنس (License)',
+      '2. Business & Presets': '2. سوداګري (Business)',
+      '3. Topology & DB': '3. شبکه او ډیټابیس (DB)',
+      '4. Master Admin': '4. عمومي مدیر (Admin)',
+      'Back': 'شاته (Back)',
+      'Continue to Next Step': 'بل پړاو ته لاړ شئ (Next)',
+      'Complete Installation & Launch': 'انسټالیشن بشپړ کړئ او پیل کړئ',
+      'Smart POS Activation Key *': 'د سمارټ پوز لایسنس کلي *',
+      'Business Logo': 'د سوداګرۍ نښه (Logo)',
+      'Business / Store Name *': 'د پلورنځي / سوداګرۍ نوم *',
+      'Branch / Outlet': 'د څانګې نوم',
+      'NTN / Tax ID': 'مالیاتي شمېره (Tax ID)',
+      'Contact Phone': 'د اړیکې ټلیفون',
+      'Official Currency *': 'رسمي اسعار / پیسې *',
+      'Regional Time Zone *': 'سیمه ییز وخت زون *',
+      'Language for Totals & Invoices (الفاظ کی زبان) *': 'په تورو کې د پیسو ژبه (رسید) *',
+      'Contact Email': 'د اړیکې بریښنالیک',
+      'Physical Address': 'د سوداګرۍ بشپړ پته',
+      'Receipt Footer Note': 'د رسید لاندې یادښت',
+      'Primary Database Host / IP': 'د ډیټابیس هاست (Host / IP)',
+      'Port': 'پورټ',
+      'Database Name': 'د ډیټابیس نوم',
+      'DB Username': 'د کارن نوم (User)',
+      'DB Password': 'پټنوم / پاسورډ',
+      'Admin Full Name *': 'د عمومي مدیر پوره نوم *',
+      'Master Username *': 'د مدیر کارن نوم *',
+      'Email Address': 'بریښنالیک پته',
+      'Mobile Number': 'د موبایل شمېره',
+      'Master Password *': 'د مدیر پاسورډ *',
+      'Confirm Master Password *': 'د پاسورډ تایید *',
+    },
+    'es': {
+      '1. License Lock': '1. Licencia',
+      '2. Business & Presets': '2. Negocio',
+      '3. Topology & DB': '3. Servidor y DB',
+      '4. Master Admin': '4. Administrador',
+      'Back': 'Atrás (Back)',
+      'Continue to Next Step': 'Continuar (Next)',
+      'Complete Installation & Launch': 'Completar y Ejecutar',
+      'Smart POS Activation Key *': 'Clave de Activación *',
+      'Business Logo': 'Logotipo del Negocio',
+      'Business / Store Name *': 'Nombre del Negocio *',
+      'Branch / Outlet': 'Sucursal',
+      'NTN / Tax ID': 'Identificación Fiscal',
+      'Contact Phone': 'Teléfono de Contacto',
+      'Official Currency *': 'Moneda Oficial *',
+      'Regional Time Zone *': 'Zona Horaria *',
+      'Language for Totals & Invoices (الفاظ کی زبان) *': 'Idioma de Totales en Letras *',
+      'Contact Email': 'Correo Electrónico',
+      'Physical Address': 'Dirección Física',
+      'Receipt Footer Note': 'Pie de Recibo',
+      'Primary Database Host / IP': 'Host / IP de Base de Datos',
+      'Port': 'Puerto (Port)',
+      'Database Name': 'Nombre de Base de Datos',
+      'DB Username': 'Usuario de DB',
+      'DB Password': 'Contraseña de DB',
+      'Admin Full Name *': 'Nombre del Administrador *',
+      'Master Username *': 'Usuario Administrador *',
+      'Email Address': 'Correo Electrónico',
+      'Mobile Number': 'Teléfono Móvil',
+      'Master Password *': 'Contraseña de Administrador *',
+      'Confirm Master Password *': 'Confirmar Contraseña *',
+    },
+    'nl': {
+      '1. License Lock': '1. Licentie',
+      '2. Business & Presets': '2. Bedrijf',
+      '3. Topology & DB': '3. Netwerk & DB',
+      '4. Master Admin': '4. Beheerder',
+      'Back': 'Terug (Back)',
+      'Continue to Next Step': 'Volgende Stap (Next)',
+      'Complete Installation & Launch': 'Installatie Voltooien & Starten',
+      'Smart POS Activation Key *': 'Smart POS Activeringssleutel *',
+      'Business Logo': 'Bedrijfslogo',
+      'Business / Store Name *': 'Bedrijfs- / Winkelnaam *',
+      'Branch / Outlet': 'Filiaal',
+      'NTN / Tax ID': 'Btw-nummer / KvK',
+      'Contact Phone': 'Telefoonnummer',
+      'Official Currency *': 'Officiële Valuta *',
+      'Regional Time Zone *': 'Tijdzone *',
+      'Language for Totals & Invoices (الفاظ کی زبان) *': 'Taal voor Bedragen in Woorden *',
+      'Contact Email': 'E-mailadres',
+      'Physical Address': 'Vestigingsadres',
+      'Receipt Footer Note': 'Voettekst Bon',
+      'Primary Database Host / IP': 'Database Host / IP',
+      'Port': 'Poort (Port)',
+      'Database Name': 'Databasenaam',
+      'DB Username': 'DB Gebruikersnaam',
+      'DB Password': 'DB Wachtwoord',
+      'Admin Full Name *': 'Naam Beheerder *',
+      'Master Username *': 'Gebruikersnaam Beheerder *',
+      'Email Address': 'E-mailadres',
+      'Mobile Number': 'Mobiel Nummer',
+      'Master Password *': 'Wachtwoord Beheerder *',
+      'Confirm Master Password *': 'Bevestig Wachtwoord *',
+    },
+  };
 }
