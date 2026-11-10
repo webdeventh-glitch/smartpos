@@ -2535,6 +2535,8 @@ class DatabaseService {
 
   Future<int> insertProduct(Product product) => addProduct(product);
 
+  Future<Product?> getProduct(int id) => getProductById(id);
+
   Future<Product?> getProductById(int id) async {
     final rows = await db.query('products', where: 'id = ?', whereArgs: [id], limit: 1);
     if (rows.isEmpty) return null;
@@ -4483,6 +4485,164 @@ class DatabaseService {
       where: id > 0 ? 'id = ?' : 'status = ?',
       whereArgs: id > 0 ? [id] : ['open'],
     );
+  }
+
+  /// Ultimate POS Register & Cashier Shift Report
+  Future<List<Map<String, dynamic>>> getRegisterReport({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? status,
+    String? cashierName,
+  }) async {
+    final conditions = <String>[];
+    final args = <dynamic>[];
+
+    if (status != null && status != 'all' && status.isNotEmpty) {
+      conditions.add('status = ?');
+      args.add(status);
+    }
+
+    if (cashierName != null && cashierName.trim().isNotEmpty) {
+      conditions.add('cashier_name LIKE ?');
+      args.add('%${cashierName.trim()}%');
+    }
+
+    if (startDate != null && endDate != null) {
+      final startStr = DateFormat('yyyy-MM-dd 00:00:00').format(startDate);
+      final endStr = DateFormat('yyyy-MM-dd 23:59:59').format(endDate);
+      conditions.add('opened_at >= ? AND opened_at <= ?');
+      args.addAll([startStr, endStr]);
+    }
+
+    final whereClause = conditions.isNotEmpty ? 'WHERE ${conditions.join(' AND ')}' : '';
+    final rows = await db.rawQuery(
+      'SELECT * FROM cash_registers $whereClause ORDER BY id DESC',
+      args,
+    );
+
+    return rows.map((r) {
+      final map = Map<String, dynamic>.from(r);
+      final opening = (map['opening_amount'] as num?)?.toDouble() ?? 0.0;
+      final cashSales = (map['total_sales_cash'] as num?)?.toDouble() ?? 0.0;
+      final cardSales = (map['total_sales_card'] as num?)?.toDouble() ?? 0.0;
+      final otherSales = (map['total_sales_other'] as num?)?.toDouble() ?? 0.0;
+      final closing = (map['closing_amount'] as num?)?.toDouble() ?? 0.0;
+      final st = (map['status'] as String?) ?? 'closed';
+
+      final totalSales = cashSales + cardSales + otherSales;
+      final expectedCash = opening + cashSales;
+      final diff = st == 'closed' ? (closing - expectedCash) : 0.0;
+
+      map['total_sales'] = totalSales;
+      map['expected_cash'] = expectedCash;
+      map['difference'] = diff;
+      return map;
+    }).toList();
+  }
+
+  /// Ultimate POS Stock Expiry & Batch Traceability Report
+  Future<List<Map<String, dynamic>>> getStockExpiryReport({
+    String? filter,
+    String? searchQuery,
+  }) async {
+    final rows = await db.rawQuery('''
+      SELECT 
+        p.id as product_id,
+        p.name as product_name,
+        p.sku,
+        p.barcode,
+        p.batch_number,
+        p.expiry_date,
+        p.stock_quantity,
+        p.purchase_price,
+        p.selling_price,
+        c.name as category_name
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.expiry_date IS NOT NULL 
+        AND TRIM(p.expiry_date) != '' 
+        AND p.stock_quantity > 0
+      ORDER BY p.name ASC
+    ''');
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final results = <Map<String, dynamic>>[];
+
+    for (final r in rows) {
+      final pName = (r['product_name'] as String?) ?? 'Product';
+      final sku = (r['sku'] as String?) ?? '';
+      final batch = (r['batch_number'] as String?) ?? '-';
+      final expStr = (r['expiry_date'] as String?) ?? '';
+      final stockQty = (r['stock_quantity'] as num?)?.toDouble() ?? 0.0;
+      final cost = (r['purchase_price'] as num?)?.toDouble() ?? 0.0;
+      final price = (r['selling_price'] as num?)?.toDouble() ?? 0.0;
+
+      if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+        final q = searchQuery.toLowerCase().trim();
+        final match = pName.toLowerCase().contains(q) ||
+            sku.toLowerCase().contains(q) ||
+            batch.toLowerCase().contains(q);
+        if (!match) continue;
+      }
+
+      final expDate = parseExpiryDate(expStr);
+      int? daysRemaining;
+      String statusCategory = 'valid';
+
+      if (expDate != null) {
+        final expDay = DateTime(expDate.year, expDate.month, expDate.day);
+        daysRemaining = expDay.difference(today).inDays;
+        if (daysRemaining < 0) {
+          statusCategory = 'expired';
+        } else if (daysRemaining <= 30) {
+          statusCategory = '30_days';
+        } else if (daysRemaining <= 60) {
+          statusCategory = '60_days';
+        } else if (daysRemaining <= 90) {
+          statusCategory = '90_days';
+        } else {
+          statusCategory = 'valid';
+        }
+      }
+
+      if (filter != null && filter != 'all') {
+        if (filter == 'expired' && statusCategory != 'expired') continue;
+        if (filter == '30_days' && statusCategory != '30_days' && statusCategory != 'expired') continue;
+        if (filter == '60_days' && statusCategory != '30_days' && statusCategory != '60_days' && statusCategory != 'expired') continue;
+        if (filter == '90_days' && statusCategory != '30_days' && statusCategory != '60_days' && statusCategory != '90_days' && statusCategory != 'expired') continue;
+      }
+
+      final costRisk = stockQty * cost;
+      final retailRisk = stockQty * price;
+
+      results.add({
+        'product_id': r['product_id'],
+        'product_name': pName,
+        'sku': sku,
+        'barcode': r['barcode'] ?? '',
+        'batch_number': batch,
+        'expiry_date': expStr,
+        'parsed_expiry': expDate?.toIso8601String(),
+        'days_remaining': daysRemaining,
+        'status_category': statusCategory,
+        'stock_quantity': stockQty,
+        'purchase_price': cost,
+        'selling_price': price,
+        'stock_value_cost': costRisk,
+        'stock_value_retail': retailRisk,
+        'category_name': r['category_name'] ?? 'General',
+      });
+    }
+
+    results.sort((a, b) {
+      final daysA = a['days_remaining'] as int? ?? 999999;
+      final daysB = b['days_remaining'] as int? ?? 999999;
+      return daysA.compareTo(daysB);
+    });
+
+    return results;
   }
 
   // Dashboard Aggregates

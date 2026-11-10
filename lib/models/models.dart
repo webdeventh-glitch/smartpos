@@ -50,6 +50,46 @@ DateTime? parseExpiryDate(String? expiryDate) {
   if (expiryDate == null || expiryDate.trim().isEmpty) return null;
   try {
     final trimmed = expiryDate.trim();
+
+    // Check for textual month formats like "15 Dec 2026" or "Dec 2026" or "15-Dec-2026"
+    final monthMap = {
+      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+      'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+      'january': 1, 'february': 2, 'march': 3, 'april': 4, 'june': 6,
+      'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12
+    };
+
+    final tokens = trimmed.replaceAll('-', ' ').replaceAll('/', ' ').replaceAll(',', ' ').split(RegExp(r'\s+'));
+    if (tokens.any((t) => monthMap.containsKey(t.toLowerCase()))) {
+      int? day;
+      int? month;
+      int? year;
+      for (final t in tokens) {
+        final lower = t.toLowerCase();
+        if (monthMap.containsKey(lower)) {
+          month = monthMap[lower];
+        } else {
+          final num = int.tryParse(t);
+          if (num != null) {
+            if (num > 31) {
+              year = num < 100 ? num + 2000 : num;
+            } else if (day == null) {
+              day = num;
+            } else if (year == null) {
+              year = num < 100 ? num + 2000 : num;
+            }
+          }
+        }
+      }
+      if (year != null && month != null) {
+        if (day != null) {
+          return DateTime(year, month, day, 23, 59, 59);
+        } else {
+          return DateTime(year, month + 1, 0, 23, 59, 59);
+        }
+      }
+    }
+
     final separator = trimmed.contains('-') ? '-' : (trimmed.contains('/') ? '/' : null);
     if (separator != null) {
       final rawParts = trimmed.split(separator).map((s) => int.tryParse(s.trim())).toList();

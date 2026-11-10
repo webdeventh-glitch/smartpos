@@ -1444,6 +1444,304 @@ class PrintService {
     ''';
   }
 
+  // ================= 8. CASH REGISTER & SHIFT AUDIT REPORT =================
+  static String generateRegisterReportHtml({
+    required List<Map<String, dynamic>> registers,
+    required BusinessSettings settings,
+    String period = '',
+  }) {
+    final cur = settings.currencySymbol;
+    final now = DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now());
+
+    double totalOpening = 0.0;
+    double totalCash = 0.0;
+    double totalCard = 0.0;
+    double totalClosing = 0.0;
+    double totalVariance = 0.0;
+
+    final rowsHtml = StringBuffer();
+    for (int i = 0; i < registers.length; i++) {
+      final r = registers[i];
+      final id = r['id'] ?? (i + 1);
+      final cashier = _escape((r['cashier_name'] as String?) ?? 'Unknown');
+      final status = (r['status'] as String?) ?? 'closed';
+      final openedAt = _formatDateTime(r['opened_at'] as String?);
+      final closedAt = status == 'open' ? 'Active Shift' : _formatDateTime(r['closed_at'] as String?);
+      final opening = (r['opening_amount'] as num?)?.toDouble() ?? 0.0;
+      final cash = (r['total_sales_cash'] as num?)?.toDouble() ?? 0.0;
+      final card = (r['total_sales_card'] as num?)?.toDouble() ?? 0.0;
+      final other = (r['total_sales_other'] as num?)?.toDouble() ?? 0.0;
+      final totalSales = (r['total_sales'] as num?)?.toDouble() ?? (cash + card + other);
+      final closing = (r['closing_amount'] as num?)?.toDouble() ?? 0.0;
+      final diff = (r['difference'] as num?)?.toDouble() ?? (status == 'closed' ? (closing - (opening + cash)) : 0.0);
+
+      totalOpening += opening;
+      totalCash += cash;
+      totalCard += (card + other);
+      if (status == 'closed') {
+        totalClosing += closing;
+        totalVariance += diff;
+      }
+
+      final statusBadge = status == 'open'
+          ? '<span style="background: #ecfdf5; color: #047857; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #a7f3d0;">OPEN</span>'
+          : '<span style="background: #f1f5f9; color: #475569; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1;">CLOSED</span>';
+
+      final diffText = status == 'open'
+          ? '--'
+          : (diff == 0.0
+              ? '<span style="color: #047857; font-weight: bold;">Exact Match</span>'
+              : (diff > 0
+                  ? '<span style="color: #047857; font-weight: bold;">+$cur${diff.toStringAsFixed(2)} Surplus</span>'
+                  : '<span style="color: #dc2626; font-weight: bold;">-$cur${(-diff).toStringAsFixed(2)} Shortage</span>'));
+
+      rowsHtml.writeln('''
+        <tr>
+          <td style="text-align: center;">#$id</td>
+          <td class="bold">$cashier</td>
+          <td style="text-align: center;">$statusBadge</td>
+          <td>$openedAt</td>
+          <td>$closedAt</td>
+          <td class="text-right">$cur${opening.toStringAsFixed(2)}</td>
+          <td class="text-right">$cur${cash.toStringAsFixed(2)}</td>
+          <td class="text-right">$cur${(card + other).toStringAsFixed(2)}</td>
+          <td class="text-right bold">$cur${totalSales.toStringAsFixed(2)}</td>
+          <td class="text-right">${status == 'closed' ? '$cur${closing.toStringAsFixed(2)}' : '--'}</td>
+          <td class="text-right">$diffText</td>
+        </tr>
+      ''');
+    }
+
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Cash Register Shifts Audit Report - ${settings.businessName}</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 11px; color: #0f172a; margin: 0; padding: 0; }
+    .header { text-align: center; margin-bottom: 14px; border-bottom: 2px solid #0f172a; padding-bottom: 8px; }
+    .title { font-size: 18px; font-weight: 900; text-transform: uppercase; color: #1e3a8a; }
+    .subtitle { font-size: 11px; color: #475569; margin-top: 3px; }
+    .kpi-row { display: flex; gap: 10px; margin-bottom: 14px; }
+    .kpi-card { flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; }
+    .kpi-title { font-size: 9.5px; font-weight: bold; color: #64748b; text-transform: uppercase; }
+    .kpi-val { font-size: 15px; font-weight: 900; color: #0f172a; margin-top: 2px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { background: #1e3a8a; color: #fff; padding: 6px 8px; font-size: 10px; text-align: left; }
+    td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-size: 10.5px; }
+    .text-right { text-align: right; }
+    .bold { font-weight: bold; }
+    .totals-row td { background: #f1f5f9; font-weight: 900; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; }
+    @media print { body { margin: 0; } }
+  </style>
+  <script>window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 250); });</script>
+</head>
+<body>
+  <div class="header">
+    <div class="title">${settings.businessName} - CASH REGISTER &amp; SHIFT REPORT</div>
+    <div class="subtitle">Location: ${settings.branchName} &bull; Period: ${period.isNotEmpty ? period : 'All Shifts'} &bull; Generated: $now</div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-title">Total Shifts Audited</div>
+      <div class="kpi-val">${registers.length} Shifts</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Total Cash Sales</div>
+      <div class="kpi-val" style="color: #047857;">$cur${totalCash.toStringAsFixed(2)}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Total Card / Digital Sales</div>
+      <div class="kpi-val" style="color: #1e40af;">$cur${totalCard.toStringAsFixed(2)}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Total Counted Cash</div>
+      <div class="kpi-val">$cur${totalClosing.toStringAsFixed(2)}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Net Cash Variance</div>
+      <div class="kpi-val" style="color: ${totalVariance >= 0 ? '#047857' : '#dc2626'};">${totalVariance >= 0 ? '+' : ''}$cur${totalVariance.toStringAsFixed(2)}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 50px; text-align: center;">Shift #</th>
+        <th>Cashier Name</th>
+        <th style="width: 70px; text-align: center;">Status</th>
+        <th>Shift Opened</th>
+        <th>Shift Closed</th>
+        <th class="text-right">Opening Float</th>
+        <th class="text-right">Cash Sales</th>
+        <th class="text-right">Card/Other</th>
+        <th class="text-right">Total Sales</th>
+        <th class="text-right">Closing Cash</th>
+        <th class="text-right">Discrepancy</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml.toString()}
+      <tr class="totals-row">
+        <td colspan="5" style="text-align: right;">GRAND TOTALS:</td>
+        <td class="text-right">$cur${totalOpening.toStringAsFixed(2)}</td>
+        <td class="text-right" style="color: #047857;">$cur${totalCash.toStringAsFixed(2)}</td>
+        <td class="text-right" style="color: #1e40af;">$cur${totalCard.toStringAsFixed(2)}</td>
+        <td class="text-right">$cur${(totalCash + totalCard).toStringAsFixed(2)}</td>
+        <td class="text-right">$cur${totalClosing.toStringAsFixed(2)}</td>
+        <td class="text-right" style="color: ${totalVariance >= 0 ? '#047857' : '#dc2626'};">${totalVariance >= 0 ? '+' : ''}$cur${totalVariance.toStringAsFixed(2)}</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
+    ''';
+  }
+
+  // ================= 9. STOCK EXPIRY & BATCH AUDIT REPORT =================
+  static String generateStockExpiryReportHtml({
+    required List<Map<String, dynamic>> expiryItems,
+    required BusinessSettings settings,
+    String filterLabel = 'All Monitored Stock',
+  }) {
+    final cur = settings.currencySymbol;
+    final now = DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now());
+
+    int expiredCount = 0;
+    int criticalCount = 0;
+    double totalCostRisk = 0.0;
+    double totalRetailRisk = 0.0;
+
+    final rowsHtml = StringBuffer();
+    for (int i = 0; i < expiryItems.length; i++) {
+      final item = expiryItems[i];
+      final sku = _escape((item['sku'] as String?) ?? '-');
+      final name = _escape((item['product_name'] as String?) ?? 'Product');
+      final category = _escape((item['category_name'] as String?) ?? 'General');
+      final batch = _escape((item['batch_number'] as String?) ?? '-');
+      final expDate = (item['expiry_date'] as String?) ?? '-';
+      final days = item['days_remaining'] as int?;
+      final qty = (item['stock_quantity'] as num?)?.toDouble() ?? 0.0;
+      final cost = (item['purchase_price'] as num?)?.toDouble() ?? 0.0;
+      final costVal = (item['stock_value_cost'] as num?)?.toDouble() ?? (qty * cost);
+      final retailVal = (item['stock_value_retail'] as num?)?.toDouble() ?? 0.0;
+
+      totalCostRisk += costVal;
+      totalRetailRisk += retailVal;
+
+      String badge;
+      if (days == null) {
+        badge = '<span style="color: #64748b;">Not Set</span>';
+      } else if (days < 0) {
+        expiredCount++;
+        badge = '<span style="background: #fef2f2; color: #dc2626; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecaca;">EXPIRED (${-days}d ago)</span>';
+      } else if (days <= 30) {
+        criticalCount++;
+        badge = '<span style="background: #fff7ed; color: #ea580c; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #fed7aa;">CRITICAL ($days days left)</span>';
+      } else if (days <= 60) {
+        badge = '<span style="background: #fefce8; color: #ca8a04; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #fef08a;">WARNING ($days days)</span>';
+      } else {
+        badge = '<span style="background: #ecfdf5; color: #047857; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #a7f3d0;">VALID ($days days)</span>';
+      }
+
+      rowsHtml.writeln('''
+        <tr>
+          <td style="font-family: monospace;">$sku</td>
+          <td class="bold">$name</td>
+          <td>$category</td>
+          <td style="font-family: monospace;">$batch</td>
+          <td class="bold">$expDate</td>
+          <td style="text-align: center;">$badge</td>
+          <td class="text-right bold">${qty.toInt()}</td>
+          <td class="text-right">$cur${cost.toStringAsFixed(2)}</td>
+          <td class="text-right bold" style="color: #dc2626;">$cur${costVal.toStringAsFixed(2)}</td>
+        </tr>
+      ''');
+    }
+
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Stock Expiry &amp; Batch Traceability Report - ${settings.businessName}</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 11px; color: #0f172a; margin: 0; padding: 0; }
+    .header { text-align: center; margin-bottom: 14px; border-bottom: 2px solid #dc2626; padding-bottom: 8px; }
+    .title { font-size: 18px; font-weight: 900; text-transform: uppercase; color: #991b1b; }
+    .subtitle { font-size: 11px; color: #475569; margin-top: 3px; }
+    .kpi-row { display: flex; gap: 10px; margin-bottom: 14px; }
+    .kpi-card { flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; }
+    .kpi-title { font-size: 9.5px; font-weight: bold; color: #64748b; text-transform: uppercase; }
+    .kpi-val { font-size: 15px; font-weight: 900; color: #0f172a; margin-top: 2px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { background: #991b1b; color: #fff; padding: 6px 8px; font-size: 10px; text-align: left; }
+    td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-size: 10.5px; }
+    .text-right { text-align: right; }
+    .bold { font-weight: bold; }
+    .totals-row td { background: #fef2f2; font-weight: 900; border-top: 2px solid #991b1b; border-bottom: 2px solid #991b1b; }
+    @media print { body { margin: 0; } }
+  </style>
+  <script>window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 250); });</script>
+</head>
+<body>
+  <div class="header">
+    <div class="title">${settings.businessName} - STOCK EXPIRY &amp; BATCH REPORT</div>
+    <div class="subtitle">Location: ${settings.branchName} &bull; Filter: $filterLabel &bull; Generated: $now</div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-title">Total Monitored Items</div>
+      <div class="kpi-val">${expiryItems.length} Products</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Already Expired Stock</div>
+      <div class="kpi-val" style="color: #dc2626;">$expiredCount Items</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Expiring in &le; 30 Days</div>
+      <div class="kpi-val" style="color: #ea580c;">$criticalCount Items</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Total Cost Value at Risk</div>
+      <div class="kpi-val" style="color: #dc2626;">$cur${totalCostRisk.toStringAsFixed(2)}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 80px;">SKU / Code</th>
+        <th>Product Name</th>
+        <th>Category</th>
+        <th style="width: 80px;">Batch #</th>
+        <th style="width: 80px;">Expiry Date</th>
+        <th style="width: 130px; text-align: center;">Status / Days</th>
+        <th class="text-right" style="width: 60px;">Stock</th>
+        <th class="text-right" style="width: 80px;">Cost Price</th>
+        <th class="text-right" style="width: 95px;">Cost at Risk</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml.toString()}
+      <tr class="totals-row">
+        <td colspan="6" style="text-align: right;">TOTAL RISK VALUE:</td>
+        <td class="text-right">${expiryItems.fold<double>(0.0, (acc, item) => acc + ((item['stock_quantity'] as num?)?.toDouble() ?? 0.0)).toInt()}</td>
+        <td class="text-right">--</td>
+        <td class="text-right" style="color: #dc2626;">$cur${totalCostRisk.toStringAsFixed(2)}</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
+    ''';
+  }
+
   static String _escape(String input) {
     return input
         .replaceAll('&', '&amp;')
