@@ -1034,7 +1034,7 @@ class BusinessIndustryInfo {
 const List<BusinessIndustryInfo> allSupportedIndustries = [
   BusinessIndustryInfo(
     key: 'universal',
-    title: 'Universal Business (Wholesale & Retail / ہمہ جہت کاروبار - ہول سیل و ریٹیل)',
+    title: 'Universal Business (Wholesale & Retail)',
     category: 'Universal & Multi-Trade',
     icon: FontAwesomeIcons.briefcase,
     color: Color(0xFF0284C7),
@@ -1042,7 +1042,7 @@ const List<BusinessIndustryInfo> allSupportedIndustries = [
   ),
   BusinessIndustryInfo(
     key: 'custom_other',
-    title: 'Other / Custom Business (دیگر کسٹم کاروبار)',
+    title: 'Other / Custom Business',
     category: 'Custom & Unlisted Trade',
     icon: FontAwesomeIcons.sliders,
     color: Color(0xFF6366F1),
@@ -1178,7 +1178,7 @@ const List<BusinessIndustryInfo> allSupportedIndustries = [
   ),
   BusinessIndustryInfo(
     key: 'dairy_milk',
-    title: 'Dairy, Milk & Eggs / دودھ، دہی، مکھن اور انڈے',
+    title: 'Dairy, Milk & Eggs',
     category: 'Dairy & Farm Products',
     icon: FontAwesomeIcons.cow,
     color: Color(0xFF0284C7),
@@ -1186,7 +1186,7 @@ const List<BusinessIndustryInfo> allSupportedIndustries = [
   ),
   BusinessIndustryInfo(
     key: 'tyres_battery',
-    title: 'Tyre Shop, Rims & Battery / ٹائر، رمز، وہیل الائنمنٹ اور بیٹری',
+    title: 'Tyre Shop, Rims & Battery',
     category: 'Automotive & Tyres',
     icon: FontAwesomeIcons.car,
     color: Color(0xFFDC2626),
@@ -1194,7 +1194,7 @@ const List<BusinessIndustryInfo> allSupportedIndustries = [
   ),
   BusinessIndustryInfo(
     key: 'hardware_tools',
-    title: 'Hardware, Tools & Paint / ہارڈویئر، اوزار اور پینٹ',
+    title: 'Hardware, Tools & Paint',
     category: 'Hardware & Construction',
     icon: FontAwesomeIcons.hammer,
     color: Color(0xFFD97706),
@@ -1202,7 +1202,7 @@ const List<BusinessIndustryInfo> allSupportedIndustries = [
   ),
   BusinessIndustryInfo(
     key: 'auto_parts',
-    title: 'Auto Spare Parts & Automotive / آٹو سپیئر پارٹس اور پرزہ جات',
+    title: 'Auto Spare Parts & Automotive',
     category: 'Automotive & Machinery',
     icon: FontAwesomeIcons.gears,
     color: Color(0xFF4F46E5),
@@ -1210,7 +1210,7 @@ const List<BusinessIndustryInfo> allSupportedIndustries = [
   ),
   BusinessIndustryInfo(
     key: 'meat_butchery',
-    title: 'Meat, Butchery & Poultry / گوشت، بیف، مٹن اور چکن',
+    title: 'Meat, Butchery & Poultry',
     category: 'Livestock & Meat',
     icon: FontAwesomeIcons.drumstickBite,
     color: Color(0xFFBE123C),
@@ -1218,7 +1218,7 @@ const List<BusinessIndustryInfo> allSupportedIndustries = [
   ),
   BusinessIndustryInfo(
     key: 'fabrics_textile',
-    title: 'Fabrics & Cloth (Meter / Gazz) / کپڑا، تھان اور کٹ پیس',
+    title: 'Fabrics & Cloth (Meter / Gazz)',
     category: 'Textile & Fabrics',
     icon: FontAwesomeIcons.scissors,
     color: Color(0xFF7C3AED),
@@ -1226,7 +1226,7 @@ const List<BusinessIndustryInfo> allSupportedIndustries = [
   ),
   BusinessIndustryInfo(
     key: 'lubricants_oil',
-    title: 'Mobile Oil & Lubricants / موبائل آئل، لبریکنٹس اور فلٹرز',
+    title: 'Mobile Oil & Lubricants',
     category: 'Automotive & Energy',
     icon: FontAwesomeIcons.droplet,
     color: Color(0xFFEAB308),
@@ -1234,7 +1234,7 @@ const List<BusinessIndustryInfo> allSupportedIndustries = [
   ),
   BusinessIndustryInfo(
     key: 'sanitary_tiles',
-    title: 'Sanitary, Tiles & Bath Fittings / سینیٹری، سیرامک ٹائلز اور باتھ روم فٹنگز',
+    title: 'Sanitary, Tiles & Bath Fittings',
     category: 'Ceramics & Building',
     icon: FontAwesomeIcons.bath,
     color: Color(0xFF0D9488),

@@ -476,33 +476,33 @@ class BusinessSettings {
         return 'Poultry Farm & Trading';
       case 'dairy_milk':
       case 'dairy':
-        return 'Dairy, Milk & Eggs / دودھ، دہی اور انڈے';
+        return 'Dairy, Milk & Eggs';
       case 'tyres_battery':
       case 'tyres':
-        return 'Tyre Shop, Rims & Battery / ٹائر، رمز اور بیٹری';
+        return 'Tyre Shop, Rims & Battery';
       case 'hardware_tools':
       case 'hardware':
-        return 'Hardware, Tools & Paint / ہارڈویئر اور اوزار';
+        return 'Hardware, Tools & Paint';
       case 'auto_parts':
-        return 'Auto Spare Parts / آٹو سپیئر پارٹس';
+        return 'Auto Spare Parts';
       case 'meat_butchery':
       case 'meat':
-        return 'Meat, Butchery & Poultry / گوشت، مرغی اور مچھلی';
+        return 'Meat, Butchery & Poultry';
       case 'fabrics_textile':
       case 'fabrics':
-        return 'Fabrics & Cloth (Meter / Gazz) / کپڑا اور تھان';
+        return 'Fabrics & Cloth (Meter / Gazz)';
       case 'lubricants_oil':
       case 'lubricants':
-        return 'Mobile Oil & Lubricants / موبائل آئل اور لبریکنٹس';
+        return 'Mobile Oil & Lubricants';
       case 'sanitary_tiles':
       case 'sanitary':
-        return 'Sanitary, Tiles & Bath / سینیٹری اور ٹائلز';
+        return 'Sanitary, Tiles & Bath';
       case 'universal':
-        return 'Universal Business (Wholesale & Retail / ہمہ جہت کاروبار - ہول سیل و ریٹیل)';
+        return 'Universal Business (Wholesale & Retail)';
       case 'custom_other':
       case 'other':
       case 'custom':
-        return 'Other / Custom Business (دیگر کسٹم کاروبار)';
+        return 'Other / Custom Business';
       case 'general':
       default:
         return 'General Retail / Supermarket / Wholesale';

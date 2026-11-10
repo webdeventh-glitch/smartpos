@@ -1824,7 +1824,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   children: [
                     Row(
                       children: [
-                        _fieldLabel('Language for Totals & Invoices (الفاظ کی زبان) *', isDark),
+                        _fieldLabel('Language for Totals & Invoices *', isDark),
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -3388,7 +3388,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       'Contact Phone': 'شماره تماس (Phone)',
       'Official Currency *': 'واحد پول رسمی (Currency) *',
       'Regional Time Zone *': 'منطقه زمانی (Time Zone) *',
-      'Language for Totals & Invoices (الفاظ کی زبان) *': 'زبان مبالغ به حروف (در فاکتور و رسید) *',
+      'Language for Totals & Invoices *': 'زبان مبالغ به حروف (در فاکتور و رسید) *',
       'Contact Email': 'ایمیل تماس (Email)',
       'Physical Address': 'آدرس فیزیکی (Address)',
       'Receipt Footer Note': 'یادداشت پایین رسید (Receipt Footer)',
@@ -3426,7 +3426,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       'Contact Phone': 'رابطہ فون نمبر',
       'Official Currency *': 'سرکاری کرنسی (Currency) *',
       'Regional Time Zone *': 'علاقائی ٹائم زون (Time Zone) *',
-      'Language for Totals & Invoices (الفاظ کی زبان) *': 'رقم کی لفظی زبان (انوائس اور رسید) *',
+      'Language for Totals & Invoices *': 'رقم کی لفظی زبان (انوائس اور رسید) *',
       'Contact Email': 'رابطہ ای میل (Email)',
       'Physical Address': 'کاروبار کا پتہ (Address)',
       'Receipt Footer Note': 'رسید کا نچلا نوٹ (Receipt Footer)',
@@ -3464,7 +3464,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       'Contact Phone': 'د اړیکې ټلیفون',
       'Official Currency *': 'رسمي اسعار / پیسې *',
       'Regional Time Zone *': 'سیمه ییز وخت زون *',
-      'Language for Totals & Invoices (الفاظ کی زبان) *': 'په تورو کې د پیسو ژبه (رسید) *',
+      'Language for Totals & Invoices *': 'په تورو کې د پیسو ژبه (رسید) *',
       'Contact Email': 'د اړیکې بریښنالیک',
       'Physical Address': 'د سوداګرۍ بشپړ پته',
       'Receipt Footer Note': 'د رسید لاندې یادښت',
@@ -3496,7 +3496,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       'Contact Phone': 'Teléfono de Contacto',
       'Official Currency *': 'Moneda Oficial *',
       'Regional Time Zone *': 'Zona Horaria *',
-      'Language for Totals & Invoices (الفاظ کی زبان) *': 'Idioma de Totales en Letras *',
+      'Language for Totals & Invoices *': 'Idioma de Totales en Letras *',
       'Contact Email': 'Correo Electrónico',
       'Physical Address': 'Dirección Física',
       'Receipt Footer Note': 'Pie de Recibo',
@@ -3528,7 +3528,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       'Contact Phone': 'Telefoonnummer',
       'Official Currency *': 'Officiële Valuta *',
       'Regional Time Zone *': 'Tijdzone *',
-      'Language for Totals & Invoices (الفاظ کی زبان) *': 'Taal voor Bedragen in Woorden *',
+      'Language for Totals & Invoices *': 'Taal voor Bedragen in Woorden *',
       'Contact Email': 'E-mailadres',
       'Physical Address': 'Vestigingsadres',
       'Receipt Footer Note': 'Voettekst Bon',

@@ -128,6 +128,67 @@ class _SmartSidebarState extends State<SmartSidebar> {
     );
   }
 
+  String? _getLocalizedSubtitle(String title, String? defaultUrduSubtitle) {
+    final lang = (widget.settings?.totalInWordsLanguage ?? 'en').toLowerCase().trim();
+    if (lang == 'en') return null; // In English, DO NOT show secondary language labels!
+
+    if (lang == 'fa') {
+      const farsiSubtitles = {
+        'Dashboard': 'داشبورد اصلی',
+        'POS Terminal': 'ترمینال فروش',
+        'Products': 'محصولات و موجودی',
+        'Stock Transfers': 'انتقال کالا و انبار',
+        'Stock Adjustments': 'تعدیل و کسری موجودی',
+        'Sales': 'فروش و صورتحساب',
+        'Purchases': 'خرید و ورود کالا',
+        'Expenses': 'هزینه‌ها و تنخواه',
+        'Contacts': 'مشتریان و تامین‌کنندگان',
+        'User Management': 'کاربران و اختیارات',
+        'Reports': 'گزارش‌ها و تحلیل مالی',
+        'SMS & WhatsApp Alerts': 'اعلان‌ها و پیامک',
+        'Settings': 'تنظیمات و پیکربندی',
+        'Business Settings': 'اطلاعات کسب و کار',
+        'Payment Accounts': 'بانک و نقدینگی',
+        'Annual Fiscal Closing': 'بستن حساب سال مالی',
+        'Cloud & MySQL Sync': 'همگام‌سازی ابری',
+        'Modular Features': 'ماژول‌های انتخابی',
+        'Specialized Industry Modules': 'ماژول‌های تخصصی',
+      };
+      return farsiSubtitles[title] ?? defaultUrduSubtitle;
+    }
+
+    if (lang == 'ps') {
+      const pashtoSubtitles = {
+        'Dashboard': 'مرکزي ډشبورډ',
+        'POS Terminal': 'د خرڅلاو ترمینل',
+        'Products': 'توکي او زېرمه',
+        'Stock Transfers': 'د توکو لېږد',
+        'Stock Adjustments': 'د زېرمې برابرول',
+        'Sales': 'پلور او بیلونه',
+        'Purchases': 'پېرل او توکي ترلاسه کول',
+        'Expenses': 'لګښتونه او پیټي کیش',
+        'Contacts': 'پېرودونکي او درمل پلورونکي',
+        'User Management': 'کاروونکي او واکونه',
+        'Reports': 'راپورونه او مالي تحلیل',
+        'SMS & WhatsApp Alerts': 'خبرتیاوې او پیغامونه',
+        'Settings': 'تنظیمات او سازونه',
+        'Business Settings': 'د سوداګرۍ معلومات',
+        'Payment Accounts': 'بانکي او نغدي حسابونه',
+        'Annual Fiscal Closing': 'کلنی حساب بندول',
+        'Cloud & MySQL Sync': 'کلاوډ همغږي',
+        'Modular Features': 'فعالې برخې',
+        'Specialized Industry Modules': 'ځانګړې برخې',
+      };
+      return pashtoSubtitles[title] ?? defaultUrduSubtitle;
+    }
+
+    if (lang == 'ur') {
+      return defaultUrduSubtitle;
+    }
+
+    return null;
+  }
+
   Widget _navItem({
     required IconData icon,
     required String title,
@@ -141,9 +202,10 @@ class _SmartSidebarState extends State<SmartSidebar> {
     VoidCallback? onToggleSubmenu,
     VoidCallback? onTapDirect,
   }) {
+    final activeSubtitle = _getLocalizedSubtitle(title, urduSubtitle);
     final matchesFilter = _filter.isEmpty ||
         title.toLowerCase().contains(_filter) ||
-        (urduSubtitle != null && urduSubtitle.toLowerCase().contains(_filter));
+        (activeSubtitle != null && activeSubtitle.toLowerCase().contains(_filter));
 
     if (!matchesFilter) {
       return const SizedBox.shrink();
@@ -162,7 +224,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 8),
         child: Tooltip(
-          message: '$title ${urduSubtitle != null ? "($urduSubtitle)" : ""}',
+          message: activeSubtitle != null && activeSubtitle.isNotEmpty ? '$title ($activeSubtitle)' : title,
           preferBelow: false,
           decoration: BoxDecoration(
             color: const Color(0xFF0F172A),
@@ -284,11 +346,11 @@ class _SmartSidebarState extends State<SmartSidebar> {
                           letterSpacing: -0.1,
                         ),
                       ),
-                      if (urduSubtitle != null && urduSubtitle.isNotEmpty)
+                      if (activeSubtitle != null && activeSubtitle.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 1),
                           child: Text(
-                            urduSubtitle,
+                            activeSubtitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -342,9 +404,10 @@ class _SmartSidebarState extends State<SmartSidebar> {
     String? urduSubtitle,
     required int index,
   }) {
+    final activeSubtitle = _getLocalizedSubtitle(title, urduSubtitle);
     final matchesFilter = _filter.isEmpty ||
         title.toLowerCase().contains(_filter) ||
-        (urduSubtitle != null && urduSubtitle.toLowerCase().contains(_filter));
+        (activeSubtitle != null && activeSubtitle.toLowerCase().contains(_filter));
 
     if (!matchesFilter) {
       return const SizedBox.shrink();
@@ -364,7 +427,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
       child: Material(
         color: Colors.transparent,
         child: Tooltip(
-          message: urduSubtitle != null && urduSubtitle.isNotEmpty ? '$title ($urduSubtitle)' : title,
+          message: activeSubtitle != null && activeSubtitle.isNotEmpty ? '$title ($activeSubtitle)' : title,
           waitDuration: const Duration(milliseconds: 350),
           child: InkWell(
             onTap: () => widget.onSelect(index),

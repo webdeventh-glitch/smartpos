@@ -141,7 +141,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   late TextEditingController _aiApiKeyCtrl;
   bool _obscureAiKey = true;
   bool _isTestingAi = false;
-  String _aiTestResponse = '';
 
   @override
   void initState() {
@@ -639,33 +638,33 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         return 'Solar & Inverter Systems';
       case 'dairy_milk':
       case 'dairy':
-        return 'Dairy, Milk & Eggs / دودھ، دہی، مکھن اور انڈے';
+        return 'Dairy, Milk & Eggs';
       case 'tyres_battery':
       case 'tyres':
-        return 'Tyre Shop, Rims & Battery / ٹائر، رمز اور بیٹری';
+        return 'Tyre Shop, Rims & Battery';
       case 'hardware_tools':
       case 'hardware':
-        return 'Hardware, Tools & Paint / ہارڈویئر اور اوزار';
+        return 'Hardware, Tools & Paint';
       case 'auto_parts':
-        return 'Auto Spare Parts / آٹو سپیئر پارٹس اور پرزہ جات';
+        return 'Auto Spare Parts';
       case 'meat_butchery':
       case 'meat':
-        return 'Meat, Butchery & Poultry / گوشت، بیف، مٹن اور چکن';
+        return 'Meat, Butchery & Poultry';
       case 'fabrics_textile':
       case 'fabrics':
-        return 'Fabrics & Cloth (Meter / Gazz) / کپڑا اور تھان';
+        return 'Fabrics & Cloth (Meter / Gazz)';
       case 'lubricants_oil':
       case 'lubricants':
-        return 'Mobile Oil & Lubricants / موبائل آئل اور لبریکنٹس';
+        return 'Mobile Oil & Lubricants';
       case 'sanitary_tiles':
       case 'sanitary':
-        return 'Sanitary, Tiles & Bath / سینیٹری اور سیرامک ٹائلز';
+        return 'Sanitary, Tiles & Bath';
       case 'universal':
-        return 'Universal Business (Wholesale & Retail / ہمہ جہت کاروبار - ہول سیل و ریٹیل)';
+        return 'Universal Business (Wholesale & Retail)';
       case 'custom_other':
       case 'other':
       case 'custom':
-        return 'Other / Custom Business (دیگر کسٹم کاروبار)';
+        return 'Other / Custom Business';
       case 'general':
       default:
         return 'General Retail / Supermarket / Wholesale';
@@ -2605,11 +2604,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const Text(
-                                        'Official Business Base Currency (بنیادی دفتری کرنسی)',
+                                        'Official Business Base Currency',
                                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                       ),
                                       Text(
-                                        'تمام دفتری کھاتے، اسٹاک انوینٹری، اور منافع/نقصان رپورٹس اس بنیادی کرنسی میں محفوظ ہوں گی',
+                                        'All ledger accounts, stock inventory valuation, and profit & loss reports are recorded in this base currency',
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
@@ -2637,7 +2636,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   );
                                 },
                                 icon: const Icon(Icons.search_rounded, size: 16),
-                                label: const Text('Search 140+ Currencies (کرنسی تلاش کریں)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                label: const Text('Search 140+ Currencies', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF4F46E5),
                                   foregroundColor: Colors.white,
@@ -2704,7 +2703,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                           ),
                                         ),
                                         Text(
-                                          'Symbol: ${_currencySymCtrl.text.isNotEmpty ? _currencySymCtrl.text : "Rs"}  •  کلک کر کے دنیا بھر کی کرنسیاں تلاش کریں',
+                                          'Symbol: ${_currencySymCtrl.text.isNotEmpty ? _currencySymCtrl.text : "Rs"}  •  Click to search and change currency',
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
@@ -2861,7 +2860,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                       Row(
                                         children: [
                                           const Text(
-                                            'Multi-Currency Sales & Live Exchange Rates (ملٹی کرنسی سیلز)',
+                                            'Multi-Currency Sales & Live Exchange Rates',
                                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                           ),
                                           const SizedBox(width: 8),
@@ -2876,7 +2875,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                         ],
                                       ),
                                       Text(
-                                        'اگر کسٹمر کاؤنٹر پر ڈالر، ریال یا درہم دیتا ہے تو خودکار ریٹ کے ساتھ رقم کنورٹ ہو گی',
+                                        'Automatically convert sales if customers tender in foreign currencies (USD, SAR, AED)',
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF15803D),
@@ -2889,7 +2888,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                               Row(
                                 children: [
                                   Text(
-                                    _multiCurrencyEnabled ? 'فعال (Active)' : 'غیر فعال (Disabled)',
+                                    _multiCurrencyEnabled ? 'Active' : 'Disabled',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -2918,8 +2917,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                     const Text('Foreign Currency Exchange Rates Table', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                                     Text(
                                       _lastRatesSync.isNotEmpty
-                                          ? 'آخری بار اپ ڈیٹ ہوا: ${_lastRatesSync.split("T").first}'
-                                          : 'ابھی تک لائیو سنک نہیں ہوا (آف لائن بیس لائن ریٹس فعال ہیں)',
+                                          ? 'Last updated: ${_lastRatesSync.split("T").first}'
+                                          : 'Offline baseline rates active (Not yet synced online)',
                                       style: TextStyle(fontSize: 10.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                                     ),
                                   ],
@@ -2930,7 +2929,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                       ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                                       : const Icon(Icons.sync_rounded, size: 16),
                                   label: Text(
-                                    _isSyncingRates ? 'Syncing...' : 'Sync Live Rates Now (مفت لائیو ریٹس حاصل کریں)',
+                                    _isSyncingRates ? 'Syncing...' : 'Sync Live Rates Now',
                                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                                   ),
                                   style: ElevatedButton.styleFrom(
@@ -2958,7 +2957,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'آپ کا آفیشل لیجر، اسٹاک ویلیوایشن، اور پرافٹ اینڈ لاس ہمیشہ آپ کی بنیادی کرنسی (${_currencyCodeCtrl.text}) میں محفوظ رہے گا۔ اگر گاہک ڈالر (USD) یا ریال (SAR) میں ادائیگی کرے تو کاؤنٹر پر خودکار ریٹ کے ساتھ رقم کنورٹ ہو جائے گی اور بقایا لوکل کرنسی میں لوٹایا جا سکتا ہے۔',
+                                      'All ledgers, inventory valuation, and profit & loss remain recorded in your base currency (${_currencyCodeCtrl.text}). When foreign currency is tendered at POS, automatic exchange rate conversion and local change calculations are applied.',
                                       style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155), height: 1.3),
                                     ),
                                   ),
@@ -5191,7 +5190,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Invoice Layouts & Print Designs (انوائس لے آؤٹ اور ڈیزائن)',
+                        'Invoice Layouts & Print Designs',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
@@ -5263,7 +5262,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
           // 1. Template Design Picker (Ultimate POS Style)
           const Text(
-            'Invoice Template Design (انوائس ڈیزائن ٹیمپلیٹ)',
+            'Invoice Template Design',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
@@ -5344,7 +5343,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
           // 2. Product Columns & Elements Visibility
           const Text(
-            'Product Columns & Print Elements (پروڈکٹ کالمز اور معلومات)',
+            'Product Columns & Print Elements',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
@@ -5359,56 +5358,56 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             runSpacing: 10,
             children: [
               _buildCheckboxChip(
-                label: 'Show Product Expiry Date (تاریخ تنسیخ / ایکسپائری)',
+                label: 'Show Product Expiry Date',
                 value: _showExpiryOnInvoice,
                 icon: Icons.event_available_rounded,
                 onChanged: (val) => setState(() => _showExpiryOnInvoice = val),
                 isDark: isDark,
               ),
               _buildCheckboxChip(
-                label: 'Show Batch / Lot Number (بیچ نمبر)',
+                label: 'Show Batch / Lot Number',
                 value: _showBatchOnInvoice,
                 icon: Icons.qr_code_scanner_rounded,
                 onChanged: (val) => setState(() => _showBatchOnInvoice = val),
                 isDark: isDark,
               ),
               _buildCheckboxChip(
-                label: 'Show Product Brand (برانڈ / مینوفیکچرر)',
+                label: 'Show Product Brand',
                 value: _showBrandOnInvoice,
                 icon: Icons.branding_watermark_rounded,
                 onChanged: (val) => setState(() => _showBrandOnInvoice = val),
                 isDark: isDark,
               ),
               _buildCheckboxChip(
-                label: 'Show SKU / Product Code (پروڈکٹ کوڈ)',
+                label: 'Show SKU / Product Code',
                 value: _showSkuOnInvoice,
                 icon: Icons.barcode_reader,
                 onChanged: (val) => setState(() => _showSkuOnInvoice = val),
                 isDark: isDark,
               ),
               _buildCheckboxChip(
-                label: 'Show Customer Khata Balance (پچھلا بقایا اور نیٹ واجب الادا)',
+                label: 'Show Customer Khata Balance',
                 value: _showCustomerBalanceOnReceipt,
                 icon: Icons.account_balance_wallet_rounded,
                 onChanged: (val) => setState(() => _showCustomerBalanceOnReceipt = val),
                 isDark: isDark,
               ),
               _buildCheckboxChip(
-                label: 'Show Drug Act Form 2A Legal Warranty (وارنٹی فارم)',
+                label: 'Show Drug Act Legal Warranty',
                 value: _showWarrantyOnInvoice,
                 icon: Icons.verified_user_rounded,
                 onChanged: (val) => setState(() => _showWarrantyOnInvoice = val),
                 isDark: isDark,
               ),
               _buildCheckboxChip(
-                label: 'Show Amount in Words (رقم لفظوں میں)',
+                label: 'Show Amount in Words',
                 value: _showTotalInWords,
                 icon: Icons.spellcheck_rounded,
                 onChanged: (val) => setState(() => _showTotalInWords = val),
                 isDark: isDark,
               ),
               _buildCheckboxChip(
-                label: 'Show FBR / Digital QR Code (ای-انوائس کیو آر کوڈ)',
+                label: 'Show FBR / Digital QR Code',
                 value: _showQrOnReceipt,
                 icon: Icons.qr_code_2_rounded,
                 onChanged: (val) => setState(() => _showQrOnReceipt = val),
@@ -5441,7 +5440,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Amount in Words Language (الفاظ کی زبان)',
+                          'Amount in Words Language',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         Text(
@@ -6971,7 +6970,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
                                 setState(() {
                                   _isTestingAi = true;
-                                  _aiTestResponse = '';
                                 });
 
                                 final testSettings = _aiSettings.copyWith(apiKey: key);
@@ -6983,7 +6981,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                 if (mounted) {
                                   setState(() {
                                     _isTestingAi = false;
-                                    _aiTestResponse = response;
                                   });
 
                                   showDialog(

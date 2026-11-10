@@ -67,7 +67,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
   List<Product> _allProducts = [];
   List<Product> _products = [];
   bool _loadingCatalog = true;
-  bool _isGridView = true; // Switchable layout: Grid vs List view
+  bool _isGridView = false; // Switchable layout: Grid vs List view (Default List view)
 
   // Calculation parameters
   String _discountType = 'fixed'; // 'fixed' or 'percentage'
@@ -830,8 +830,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
             Expanded(
               child: Text(
                 _isWholesaleMode
-                    ? 'Wholesale Tier Mode: Activated (${_wholesaleDiscountPercent.toInt()}% Bulk Markdown / ہول سیل ریٹ فعال)'
-                    : 'Retail Mode: Activated (معمول کا ریٹیل ریٹ فعال)',
+                    ? 'Wholesale Tier Mode: Activated (${_wholesaleDiscountPercent.toInt()}% Bulk Markdown)'
+                    : 'Retail Mode: Activated',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ),
@@ -884,7 +884,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Add Open / Custom Item (اوپن آئٹم)',
+                        'Add Custom Item',
                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
                       ),
                       Text(
@@ -1936,7 +1936,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
             onPressed: () {
-              setState(() => _orderTax = double.tryParse(controller.text.trim()) ?? 0.0);
+              final parsed = double.tryParse(controller.text.trim()) ?? 0.0;
+              setState(() => _orderTax = parsed < 0.0 ? 0.0 : parsed);
               Navigator.pop(ctx);
             },
             child: const Text('Save'),
@@ -1994,7 +1995,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
             onPressed: () {
-              setState(() => _shippingCharge = double.tryParse(controller.text.trim()) ?? 0.0);
+              final parsed = double.tryParse(controller.text.trim()) ?? 0.0;
+              setState(() => _shippingCharge = parsed < 0.0 ? 0.0 : parsed);
               Navigator.pop(ctx);
             },
             child: const Text('Save'),
@@ -3709,7 +3711,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                           const Icon(Icons.add_circle_outline_rounded, size: 14, color: Color(0xFF4F46E5)),
                                           const SizedBox(width: 5),
                                           Text(
-                                            '+ Custom Item (اوپن آئٹم)',
+                                            '+ Custom Item',
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold,
@@ -4401,7 +4403,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
                                   // Blue [ + ] -> Add Open / Custom Item on the fly
                                   Tooltip(
-                                    message: 'Add Open / Custom Item (F11 / اوپن پراڈکٹ)',
+                                    message: 'Add Custom Item [F11]',
                                     child: InkWell(
                                       onTap: _openCustomProductDialog,
                                       borderRadius: BorderRadius.circular(6),
@@ -4642,7 +4644,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                   ),
                                                   icon: const Icon(Icons.add_rounded, size: 18),
                                                   label: const Text(
-                                                    '+ Add First Product (پروڈکٹ بنائیں)',
+                                                    '+ Add First Product',
                                                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                                   ),
                                                   onPressed: () {
@@ -4870,9 +4872,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                               },
                                             )
                                           : ListView.separated(
-                                              padding: const EdgeInsets.all(10),
+                                              padding: EdgeInsets.all(isSmallScreen ? 6 : 10),
                                               itemCount: _products.length,
-                                              separatorBuilder: (_, __) => const SizedBox(height: 6),
+                                              separatorBuilder: (_, __) => SizedBox(height: isSmallScreen ? 4 : 6),
                                               itemBuilder: (context, index) {
                                                 final p = _products[index];
                                                 final currency = widget.settings.currencySymbol;
@@ -4881,52 +4883,59 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
                                                 return Material(
                                                   color: cardBg,
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderRadius: BorderRadius.circular(isSmallScreen ? 6 : 8),
                                                   child: InkWell(
                                                     onTap: () => _addToCart(p),
-                                                    borderRadius: BorderRadius.circular(8),
+                                                    borderRadius: BorderRadius.circular(isSmallScreen ? 6 : 8),
                                                     child: Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                                      padding: EdgeInsets.symmetric(
+                                                        horizontal: isSmallScreen ? 10 : 14,
+                                                        vertical: isSmallScreen ? 6 : 10,
+                                                      ),
                                                       decoration: BoxDecoration(
-                                                        borderRadius: BorderRadius.circular(8),
+                                                        borderRadius: BorderRadius.circular(isSmallScreen ? 6 : 8),
                                                         border: Border.all(color: borderColor),
                                                       ),
                                                       child: Row(
                                                         children: [
                                                           Container(
-                                                            width: 36,
-                                                            height: 36,
+                                                            width: isSmallScreen ? 28 : 36,
+                                                            height: isSmallScreen ? 28 : 36,
                                                             decoration: BoxDecoration(
                                                               color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEEF2FF),
-                                                              borderRadius: BorderRadius.circular(8),
+                                                              borderRadius: BorderRadius.circular(isSmallScreen ? 6 : 8),
                                                             ),
-                                                            child: const Icon(
+                                                            child: Icon(
                                                               Icons.medication_outlined,
-                                                              color: Color(0xFF4F46E5),
-                                                              size: 20,
+                                                              color: const Color(0xFF4F46E5),
+                                                              size: isSmallScreen ? 16 : 20,
                                                             ),
                                                           ),
-                                                          const SizedBox(width: 12),
+                                                          SizedBox(width: isSmallScreen ? 8 : 12),
                                                           Expanded(
                                                             child: Column(
                                                               crossAxisAlignment: CrossAxisAlignment.start,
                                                               children: [
                                                                 Text(
                                                                   p.name,
-                                                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
+                                                                  style: TextStyle(
+                                                                    fontWeight: FontWeight.bold,
+                                                                    fontSize: isSmallScreen ? 12 : 13,
+                                                                    color: textPrimary,
+                                                                  ),
                                                                   maxLines: 1,
                                                                   overflow: TextOverflow.ellipsis,
                                                                 ),
                                                                 const SizedBox(height: 2),
                                                                 Wrap(
-                                                                  spacing: 8,
+                                                                  spacing: isSmallScreen ? 6 : 8,
                                                                   runSpacing: 2,
                                                                   children: [
-                                                                    Text('SKU: ${p.sku}', style: TextStyle(fontSize: 11, color: textSecondary)),
+                                                                    Text('SKU: ${p.sku}', style: TextStyle(fontSize: isSmallScreen ? 10 : 11, color: textSecondary)),
                                                                     if (p.unit.isNotEmpty)
-                                                                      Text('• Unit: ${p.unit}', style: TextStyle(fontSize: 11, color: textSecondary)),
+                                                                      Text('• Unit: ${p.unit}', style: TextStyle(fontSize: isSmallScreen ? 10 : 11, color: textSecondary)),
                                                                     if (p.batchNumber != null && p.batchNumber!.isNotEmpty)
-                                                                      Text('• Batch: ${p.batchNumber}', style: TextStyle(fontSize: 11, color: textSecondary)),
+                                                                      Text('• Batch: ${p.batchNumber}', style: TextStyle(fontSize: isSmallScreen ? 10 : 11, color: textSecondary)),
                                                                     if (p.expiryDate != null && p.expiryDate!.isNotEmpty)
                                                                       Builder(
                                                                         builder: (_) {
@@ -4936,7 +4945,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                           return Text(
                                                                             isExp ? '• EXPIRED (${p.expiryDate})' : '• Exp: ${pExp}d (${p.expiryDate})',
                                                                             style: TextStyle(
-                                                                              fontSize: 11,
+                                                                              fontSize: isSmallScreen ? 10 : 11,
                                                                               fontWeight: FontWeight.bold,
                                                                               color: isExp ? const Color(0xFFDC2626) : const Color(0xFFD97706),
                                                                             ),
@@ -4950,7 +4959,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                           ),
                                                           // Stock Status Pill
                                                           Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                            padding: EdgeInsets.symmetric(
+                                                              horizontal: isSmallScreen ? 6 : 8,
+                                                              vertical: isSmallScreen ? 2 : 3,
+                                                            ),
                                                             decoration: BoxDecoration(
                                                               color: isOutOfStock
                                                                   ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
@@ -4964,7 +4976,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                                   ? 'Out of stock'
                                                                   : '${p.stockQuantity.toInt()} in stock',
                                                               style: TextStyle(
-                                                                fontSize: 10,
+                                                                fontSize: isSmallScreen ? 9 : 10,
                                                                 fontWeight: FontWeight.bold,
                                                                 color: isOutOfStock
                                                                     ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
@@ -4974,22 +4986,26 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                               ),
                                                             ),
                                                           ),
-                                                          const SizedBox(width: 14),
+                                                          SizedBox(width: isSmallScreen ? 8 : 14),
                                                           // Price
                                                           Text(
                                                             '$currency ${p.sellingPrice.toStringAsFixed(2)}',
-                                                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: textPrimary),
+                                                            style: TextStyle(
+                                                              fontSize: isSmallScreen ? 12 : 13,
+                                                              fontWeight: FontWeight.w900,
+                                                              color: textPrimary,
+                                                            ),
                                                           ),
-                                                          const SizedBox(width: 12),
+                                                          SizedBox(width: isSmallScreen ? 8 : 12),
                                                           // Add Button
                                                           Container(
-                                                            width: 28,
-                                                            height: 28,
+                                                            width: isSmallScreen ? 24 : 28,
+                                                            height: isSmallScreen ? 24 : 28,
                                                             decoration: BoxDecoration(
                                                               color: const Color(0xFF4F46E5),
-                                                              borderRadius: BorderRadius.circular(6),
+                                                              borderRadius: BorderRadius.circular(isSmallScreen ? 4 : 6),
                                                             ),
-                                                            child: const Icon(Icons.add, color: Colors.white, size: 16),
+                                                            child: Icon(Icons.add, color: Colors.white, size: isSmallScreen ? 14 : 16),
                                                           ),
                                                         ],
                                                       ),

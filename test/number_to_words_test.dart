@@ -54,6 +54,15 @@ void main() {
       expect(f865.contains('هشتصد'), true);
       expect(f865.contains('تومان'), true);
 
+      // Selected currency: PKR / Rs (Matches user POS screen)
+      final fPkr = NumberToWordsService.convert(3650.0, language: 'fa', currencySymbol: 'Rs', currencyCode: 'PKR');
+      expect(fPkr.contains('سه هزار و ششصد و پنجاه'), true);
+      expect(fPkr.contains('روپیه'), true);
+
+      // Selected currency: USD
+      final fUsd = NumberToWordsService.convert(100.0, language: 'fa', currencySymbol: '\$', currencyCode: 'USD');
+      expect(fUsd.contains('دلار'), true);
+
       final f1255 = NumberToWordsService.convert(1255.0, language: 'fa');
       expect(f1255.contains('هزار'), true);
       expect(f1255.contains('دویست'), true);

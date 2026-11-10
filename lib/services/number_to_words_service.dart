@@ -89,18 +89,6 @@ class UrduNumberToWordsConverter implements NumberToWordsConverter {
     return parts.join(' ');
   }
 
-  String _getCurrencyWord(String? symbol, String? code) {
-    final s = (symbol ?? '').trim().toUpperCase();
-    final c = (code ?? '').trim().toUpperCase();
-    if (s.contains('\$') || c == 'USD') return 'ڈالر';
-    if (s.contains('€') || c == 'EUR') return 'یورو';
-    if (s.contains('£') || c == 'GBP') return 'پاؤنڈ';
-    if (s.contains('﷼') || c == 'SAR') return 'ریال';
-    if (c == 'AED') return 'درہم';
-    if (c == 'AFN') return 'افغانی';
-    return 'روپے';
-  }
-
   @override
   String convert(
     double amount, {
@@ -114,7 +102,7 @@ class UrduNumberToWordsConverter implements NumberToWordsConverter {
     final intPart = absAmount.floor();
     final decimalPart = ((absAmount - intPart) * 100).round();
 
-    final currency = _getCurrencyWord(currencySymbol, currencyCode);
+    final currency = NumberToWordsService.resolveCurrencyWord('ur', symbol: currencySymbol, code: currencyCode);
     final words = _convertInteger(intPart);
 
     final buffer = StringBuffer();
@@ -201,10 +189,7 @@ class PashtoNumberToWordsConverter implements NumberToWordsConverter {
     final absAmount = amount.abs();
     final intPart = absAmount.floor();
     final words = _convertInteger(intPart);
-
-    final c = (currencyCode ?? '').toUpperCase();
-    final currency = c == 'AFN' ? 'افغانۍ' : 'روپۍ';
-
+    final currency = NumberToWordsService.resolveCurrencyWord('ps', symbol: currencySymbol, code: currencyCode);
     return '$words $currency'.trim();
   }
 }
@@ -277,9 +262,7 @@ class FarsiNumberToWordsConverter implements NumberToWordsConverter {
     final absAmount = amount.abs();
     final intPart = absAmount.floor();
     final words = _convertInteger(intPart);
-
-    final c = (currencyCode ?? '').toUpperCase();
-    final currency = c == 'IRR' ? 'ریال' : (c == 'AFN' ? 'افغانی' : 'تومان');
+    final currency = NumberToWordsService.resolveCurrencyWord('fa', symbol: currencySymbol, code: currencyCode);
     return '$words $currency'.trim();
   }
 }
@@ -349,8 +332,7 @@ class SpanishNumberToWordsConverter implements NumberToWordsConverter {
     final absAmount = amount.abs();
     final intPart = absAmount.floor();
     final words = _convertInteger(intPart);
-    final c = (currencyCode ?? '').toUpperCase();
-    final currency = c == 'EUR' ? 'euros' : (c == 'USD' ? 'dólares' : 'pesos');
+    final currency = NumberToWordsService.resolveCurrencyWord('es', symbol: currencySymbol, code: currencyCode);
     return '$words $currency'.trim();
   }
 }
@@ -419,8 +401,7 @@ class DutchNumberToWordsConverter implements NumberToWordsConverter {
     final absAmount = amount.abs();
     final intPart = absAmount.floor();
     final words = _convertInteger(intPart);
-    final c = (currencyCode ?? '').toUpperCase();
-    final currency = c == 'EUR' ? 'euro' : (c == 'USD' ? 'dollar' : 'roepie');
+    final currency = NumberToWordsService.resolveCurrencyWord('nl', symbol: currencySymbol, code: currencyCode);
     return '$words $currency'.trim();
   }
 }
@@ -450,7 +431,8 @@ class EnglishNumberToWordsConverter implements NumberToWordsConverter {
     String? currencyCode,
     bool includeDecimals = true,
   }) {
-    if (amount.isNaN || amount.isInfinite || amount <= 0) return 'Zero Rupees Only';
+    final currency = NumberToWordsService.resolveCurrencyWord('en', symbol: currencySymbol, code: currencyCode);
+    if (amount.isNaN || amount.isInfinite || amount <= 0) return 'Zero $currency Only';
     int intPart = amount.floor();
 
     final parts = <String>[];
@@ -470,13 +452,112 @@ class EnglishNumberToWordsConverter implements NumberToWordsConverter {
       parts.add(_convertBelowThousand(intPart));
     }
 
-    final currency = (currencySymbol ?? '').trim().isNotEmpty ? (currencySymbol == 'Rs' ? 'Rupees' : currencySymbol!) : 'Rupees';
     return '${parts.join(' ')} $currency Only'.trim();
   }
 }
 
 /// Central facade service for multi-language number to words conversion
 class NumberToWordsService {
+  /// Resolves the localized currency word (e.g. روپیہ, روپۍ, روپیه, Rupees, Dollars)
+  /// matching the business currency code and symbol across all supported languages.
+  static String resolveCurrencyWord(
+    String lang, {
+    String? symbol,
+    String? code,
+  }) {
+    final sym = (symbol ?? '').trim();
+    final c = (code ?? '').trim().toUpperCase();
+
+    // Identify standard currency family
+    final isPkr = c == 'PKR' || sym == 'Rs' || sym == '₨' || sym.toLowerCase() == 'rs';
+    final isUsd = c == 'USD' || sym == '\$' || sym.toLowerCase() == 'usd';
+    final isSar = c == 'SAR' || sym.toUpperCase() == 'SAR' || sym == '﷼';
+    final isAed = c == 'AED' || sym.toUpperCase() == 'AED' || sym == 'د.إ';
+    final isEur = c == 'EUR' || sym == '€' || sym.toLowerCase() == 'eur';
+    final isGbp = c == 'GBP' || sym == '£' || sym.toLowerCase() == 'gbp';
+    final isAfn = c == 'AFN' || sym == '؋' || sym.toLowerCase() == 'afn';
+    final isIrr = c == 'IRR' || c == 'TOMAN' || sym.toLowerCase() == 'toman' || sym == 'تومان';
+    final isCustom = sym.isNotEmpty && !isPkr && !isUsd && !isSar && !isAed && !isEur && !isGbp && !isAfn && !isIrr;
+
+    final langCode = lang.toLowerCase().trim();
+
+    if (langCode == 'ur') {
+      if (isUsd) return 'ڈالر';
+      if (isSar) return 'سعودی ریال';
+      if (isAed) return 'درہم';
+      if (isEur) return 'یورو';
+      if (isGbp) return 'پاؤنڈ';
+      if (isAfn) return 'افغانی';
+      if (isIrr) return 'تومان';
+      if (isCustom) return sym;
+      return 'روپے';
+    }
+
+    if (langCode == 'ps') {
+      if (isUsd) return 'ډالر';
+      if (isSar) return 'سعودي ریال';
+      if (isAed) return 'درهم';
+      if (isEur) return 'یورو';
+      if (isGbp) return 'پاونډ';
+      if (isAfn) return 'افغانۍ';
+      if (isIrr) return 'تومان';
+      if (isCustom) return sym;
+      return 'روپۍ';
+    }
+
+    if (langCode == 'fa') {
+      if (isPkr) return 'روپیه';
+      if (isUsd) return 'دلار';
+      if (isSar) return 'ریال';
+      if (isAed) return 'درهم';
+      if (isEur) return 'یورو';
+      if (isGbp) return 'پوند';
+      if (isAfn) return 'افغانی';
+      if (isIrr) return 'تومان';
+      if (isCustom) return sym;
+      // Fallback for tests or empty currency specification
+      if (sym.isEmpty && c.isEmpty) return 'تومان';
+      return 'روپیه';
+    }
+
+    if (langCode == 'es') {
+      if (isPkr) return 'rupias';
+      if (isUsd) return 'dólares';
+      if (isSar) return 'riales';
+      if (isAed) return 'dírjams';
+      if (isEur) return 'euros';
+      if (isGbp) return 'libras';
+      if (isAfn) return 'afganis';
+      if (isIrr) return 'tomans';
+      if (isCustom) return sym;
+      return 'pesos';
+    }
+
+    if (langCode == 'nl') {
+      if (isPkr) return 'roepie';
+      if (isUsd) return 'dollar';
+      if (isSar) return 'riyal';
+      if (isAed) return 'dirham';
+      if (isEur) return 'euro';
+      if (isGbp) return 'pond';
+      if (isAfn) return 'afghani';
+      if (isIrr) return 'toman';
+      if (isCustom) return sym;
+      return 'roepie';
+    }
+
+    // Default: English ('en')
+    if (isPkr) return 'Rupees';
+    if (isUsd) return 'Dollars';
+    if (isSar) return 'Saudi Riyals';
+    if (isAed) return 'Dirhams';
+    if (isEur) return 'Euros';
+    if (isGbp) return 'Pounds';
+    if (isAfn) return 'Afghanis';
+    if (isIrr) return 'Tomans';
+    if (isCustom) return sym;
+    return 'Rupees';
+  }
   /// Registered language converters
   static final Map<String, NumberToWordsConverter> _converters = {
     'ur': UrduNumberToWordsConverter(),
