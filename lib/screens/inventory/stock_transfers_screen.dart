@@ -846,7 +846,7 @@ class _StockTransfersScreenState extends State<StockTransfersScreen> with Single
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Stock Transfer?'),
-        content: Text('Are you sure you want to remove transfer ${transfer.refNo}?'),
+        content: Text('Are you sure you want to remove transfer ${transfer.refNo}?\n\nIf stock was deducted (In Transit or Completed), it will be automatically restored back to the source inventory.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -862,6 +862,182 @@ class _StockTransfersScreenState extends State<StockTransfersScreen> with Single
       final db = await DatabaseService.initialize();
       await db.deleteStockTransfer(transfer.id!);
       _loadData();
+    }
+  }
+
+  Future<void> _showUpdateTransferStatusDialog(StockTransfer transfer) async {
+    String selectedStatus = transfer.status.toLowerCase();
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF2FF),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.sync_alt_rounded, color: Color(0xFF4F46E5), size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Update Transfer Status', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('${transfer.refNo} (${transfer.fromLocationName} -> ${transfer.toLocationName})', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select New Status:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedStatus,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'completed',
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF10B981)),
+                            SizedBox(width: 8),
+                            Text('Completed (Delivered & Verified)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'in_transit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.local_shipping_rounded, size: 16, color: Color(0xFF3B82F6)),
+                            SizedBox(width: 8),
+                            Text('In Transit (Dispatched from Source)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'pending',
+                        child: Row(
+                          children: [
+                            Icon(Icons.hourglass_bottom_rounded, size: 16, color: Color(0xFFD97706)),
+                            SizedBox(width: 8),
+                            Text('Pending (Awaiting Dispatch)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setDlgState(() => selectedStatus = val);
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: selectedStatus == 'completed'
+                          ? const Color(0xFFECFDF5)
+                          : selectedStatus == 'in_transit'
+                              ? const Color(0xFFEFF6FF)
+                              : const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: selectedStatus == 'completed'
+                            ? const Color(0xFFA7F3D0)
+                            : selectedStatus == 'in_transit'
+                                ? const Color(0xFFBFDBFE)
+                                : const Color(0xFFFDE68A),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: selectedStatus == 'completed'
+                              ? const Color(0xFF047857)
+                              : selectedStatus == 'in_transit'
+                                  ? const Color(0xFF1D4ED8)
+                                  : const Color(0xFFB45309),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            selectedStatus == 'completed'
+                                ? 'Status "Completed" confirms delivery at the destination branch.'
+                                : selectedStatus == 'in_transit'
+                                    ? 'Status "In Transit" indicates stock has left the source warehouse and is on the road.'
+                                    : 'Status "Pending" holds the order without decrementing source stock.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: selectedStatus == 'completed'
+                                  ? const Color(0xFF065F46)
+                                  : selectedStatus == 'in_transit'
+                                      ? const Color(0xFF1E40AF)
+                                      : const Color(0xFF92400E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: const Icon(Icons.check_rounded, size: 16),
+                label: const Text('Update Status'),
+                onPressed: () => Navigator.pop(ctx, true),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (updated == true && selectedStatus != transfer.status.toLowerCase() && transfer.id != null) {
+      final db = await DatabaseService.initialize();
+      final success = await db.updateStockTransferStatus(transfer.id!, selectedStatus);
+      if (success) {
+        _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Transfer ${transfer.refNo} updated to ${selectedStatus.toUpperCase()}!'),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -995,18 +1171,48 @@ class _StockTransfersScreenState extends State<StockTransfersScreen> with Single
                                         DataCell(Text(t.fromLocationName)),
                                         DataCell(Text(t.toLocationName)),
                                         DataCell(
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: isCompleted ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              t.status.toUpperCase(),
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: isCompleted ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                                          InkWell(
+                                            borderRadius: BorderRadius.circular(4),
+                                            onTap: () => _showUpdateTransferStatusDialog(t),
+                                            child: Tooltip(
+                                              message: 'Click to change status (${t.status.toUpperCase()})',
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: isCompleted
+                                                      ? const Color(0xFFDCFCE7)
+                                                      : t.status == 'in_transit'
+                                                          ? const Color(0xFFDBEAFE)
+                                                          : const Color(0xFFFEF3C7),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      t.status.toUpperCase(),
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: isCompleted
+                                                            ? const Color(0xFF16A34A)
+                                                            : t.status == 'in_transit'
+                                                                ? const Color(0xFF2563EB)
+                                                                : const Color(0xFFD97706),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Icon(
+                                                      Icons.arrow_drop_down_rounded,
+                                                      size: 14,
+                                                      color: isCompleted
+                                                          ? const Color(0xFF16A34A)
+                                                          : t.status == 'in_transit'
+                                                              ? const Color(0xFF2563EB)
+                                                              : const Color(0xFFD97706),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -1014,10 +1220,20 @@ class _StockTransfersScreenState extends State<StockTransfersScreen> with Single
                                         DataCell(Text('$currency${t.shippingCharges.toStringAsFixed(2)}')),
                                         DataCell(Text('$currency${t.finalTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold))),
                                         DataCell(
-                                          IconButton(
-                                            icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                            onPressed: () => _deleteTransfer(t),
-                                            tooltip: 'Delete Transfer',
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(Icons.edit_note_rounded, size: 20, color: Color(0xFF4F46E5)),
+                                                onPressed: () => _showUpdateTransferStatusDialog(t),
+                                                tooltip: 'Update Status (Pending / In Transit / Completed)',
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                                onPressed: () => _deleteTransfer(t),
+                                                tooltip: 'Delete Transfer',
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ]);

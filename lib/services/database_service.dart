@@ -3798,6 +3798,8 @@ class DatabaseService {
       }
       final purchaseId = await txn.insert('purchases', purchaseMap);
 
+      final isReceived = purchase.status == 'received';
+
       for (var item in items) {
         final productId = item['product_id'] as int?;
         final qty = (item['quantity'] as num).toDouble();
@@ -3808,34 +3810,37 @@ class DatabaseService {
         final expDate = (item['expiry_date'] ?? item['exp_date'])?.toString().trim();
 
         if (productId != null) {
-          if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
-            await txn.rawUpdate(
-              'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ?, selling_price = ? WHERE id = ?',
-              [qty, unitCost, sellingPrice, productId],
-            );
-          } else if (unitCost != null) {
-            await txn.rawUpdate(
-              'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ? WHERE id = ?',
-              [qty, unitCost, productId],
-            );
-          } else {
-            await txn.rawUpdate(
-              'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
-              [qty, productId],
-            );
-          }
+          if (isReceived) {
+            // Increment physical stock quantity only if goods are received
+            if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+              await txn.rawUpdate(
+                'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ?, selling_price = ? WHERE id = ?',
+                [qty, unitCost, sellingPrice, productId],
+              );
+            } else if (unitCost != null) {
+              await txn.rawUpdate(
+                'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ? WHERE id = ?',
+                [qty, unitCost, productId],
+              );
+            } else {
+              await txn.rawUpdate(
+                'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+                [qty, productId],
+              );
+            }
 
-          // If expiry date or batch is provided, update product metadata
-          if (expDate != null && expDate.isNotEmpty) {
-            await txn.rawUpdate(
-              'UPDATE products SET expiry_date = ?, batch_number = COALESCE(NULLIF(batch_number, \'\'), ?) WHERE id = ?',
-              [expDate, batchNo ?? '', productId],
-            );
-          } else if (batchNo != null && batchNo.isNotEmpty) {
-            await txn.rawUpdate(
-              'UPDATE products SET batch_number = ? WHERE id = ?',
-              [batchNo, productId],
-            );
+            // If expiry date or batch is provided, update product metadata
+            if (expDate != null && expDate.isNotEmpty) {
+              await txn.rawUpdate(
+                'UPDATE products SET expiry_date = ?, batch_number = COALESCE(NULLIF(batch_number, \'\'), ?) WHERE id = ?',
+                [expDate, batchNo ?? '', productId],
+              );
+            } else if (batchNo != null && batchNo.isNotEmpty) {
+              await txn.rawUpdate(
+                'UPDATE products SET batch_number = ? WHERE id = ?',
+                [batchNo, productId],
+              );
+            }
           }
 
           // Automatically record into product_serials_batches table for stock tracking & expiry alerts
@@ -3852,7 +3857,7 @@ class DatabaseService {
               'manufacturing_date': mfgDate ?? '',
               'expiry_date': expDate ?? '',
               'warranty_months': 0,
-              'status': 'in_stock',
+              'status': isReceived ? 'in_stock' : purchase.status,
               'purchase_id': purchaseId,
               'location_id': purchase.locationId,
               'purchase_price': unitCost ?? 0.0,
@@ -3864,8 +3869,8 @@ class DatabaseService {
         }
       }
 
-      // Update supplier khata balance if due amount remains
-      if (purchase.supplierId != null && purchase.dueAmount > 0) {
+      // Update supplier khata balance if goods are received and due amount remains
+      if (isReceived && purchase.supplierId != null && purchase.dueAmount > 0) {
         await txn.rawUpdate(
           'UPDATE contacts SET balance = balance + ? WHERE id = ?',
           [purchase.dueAmount, purchase.supplierId],
@@ -3907,29 +3912,145 @@ class DatabaseService {
     return purchaseId;
   }
 
+  /// Update purchase status (e.g. 'ordered' -> 'received', 'pending' -> 'received', or revert)
+  Future<bool> updatePurchaseStatus(int purchaseId, String newStatus) async {
+    return await db.transaction((txn) async {
+      final rows = await txn.query('purchases', where: 'id = ?', whereArgs: [purchaseId], limit: 1);
+      if (rows.isEmpty) return false;
+      final purchase = Purchase.fromMap(rows.first);
+      final oldStatus = purchase.status;
+      if (oldStatus == newStatus) return true;
+
+      final items = purchase.getItems();
+
+      // 1. Transitioning TO received from non-received:
+      if (oldStatus != 'received' && newStatus == 'received') {
+        for (final item in items) {
+          final productId = item['product_id'] as int?;
+          final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
+          final unitCost = (item['purchase_price'] as num?)?.toDouble() ?? (item['unit_cost'] as num?)?.toDouble();
+          final sellingPrice = (item['selling_price'] as num?)?.toDouble();
+          final batchNo = (item['batch_number'] ?? item['lot_number'])?.toString().trim();
+          final expDate = (item['expiry_date'] ?? item['exp_date'])?.toString().trim();
+
+          if (productId != null) {
+            if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+              await txn.rawUpdate(
+                'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ?, selling_price = ? WHERE id = ?',
+                [qty, unitCost, sellingPrice, productId],
+              );
+            } else if (unitCost != null) {
+              await txn.rawUpdate(
+                'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ? WHERE id = ?',
+                [qty, unitCost, productId],
+              );
+            } else {
+              await txn.rawUpdate(
+                'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+                [qty, productId],
+              );
+            }
+
+            if (expDate != null && expDate.isNotEmpty) {
+              await txn.rawUpdate(
+                'UPDATE products SET expiry_date = ?, batch_number = COALESCE(NULLIF(batch_number, \'\'), ?) WHERE id = ?',
+                [expDate, batchNo ?? '', productId],
+              );
+            }
+          }
+        }
+
+        // Activate serial/batch entries
+        await txn.rawUpdate(
+          'UPDATE product_serials_batches SET status = \'in_stock\' WHERE purchase_id = ?',
+          [purchaseId],
+        );
+
+        // Add due amount to supplier balance
+        if (purchase.supplierId != null && purchase.dueAmount > 0) {
+          await txn.rawUpdate(
+            'UPDATE contacts SET balance = balance + ? WHERE id = ?',
+            [purchase.dueAmount, purchase.supplierId],
+          );
+        }
+      }
+      // 2. Transitioning FROM received to non-received:
+      else if (oldStatus == 'received' && newStatus != 'received') {
+        for (final item in items) {
+          final productId = item['product_id'] as int?;
+          final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
+          if (productId != null) {
+            await txn.rawUpdate(
+              'UPDATE products SET stock_quantity = MAX(0, stock_quantity - ?) WHERE id = ?',
+              [qty, productId],
+            );
+          }
+        }
+
+        // Deactivate serial/batch entries
+        await txn.rawUpdate(
+          'UPDATE product_serials_batches SET status = ? WHERE purchase_id = ?',
+          [newStatus, purchaseId],
+        );
+
+        // Revert supplier balance
+        if (purchase.supplierId != null && purchase.dueAmount > 0) {
+          await txn.rawUpdate(
+            'UPDATE contacts SET balance = MAX(0, balance - ?) WHERE id = ?',
+            [purchase.dueAmount, purchase.supplierId],
+          );
+        }
+      }
+
+      // Update purchases table
+      await txn.update(
+        'purchases',
+        {'status': newStatus},
+        where: 'id = ?',
+        whereArgs: [purchaseId],
+      );
+
+      // Queue for live MySQL sync
+      await txn.insert('sync_queue', {
+        'entity_type': 'purchase',
+        'entity_id': purchaseId.toString(),
+        'action': 'update_status',
+        'payload_json': jsonEncode({'id': purchaseId, 'status': newStatus}),
+        'status': 'pending',
+        'retry_count': 0,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      return true;
+    });
+  }
+
   Future<bool> deletePurchase(int purchaseId) async {
     return await db.transaction((txn) async {
       final rows = await txn.query('purchases', where: 'id = ?', whereArgs: [purchaseId], limit: 1);
       if (rows.isEmpty) return false;
       final purchase = Purchase.fromMap(rows.first);
+      final wasReceived = purchase.status == 'received';
 
-      // 1. Reverse stock
-      for (final item in purchase.getItems()) {
-        final productId = item['product_id'] as int?;
-        final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
-        if (productId != null) {
-          await txn.rawUpdate(
-            'UPDATE products SET stock_quantity = MAX(0, stock_quantity - ?) WHERE id = ?',
-            [qty, productId],
-          );
+      // 1. Reverse stock only if goods were actually received into inventory
+      if (wasReceived) {
+        for (final item in purchase.getItems()) {
+          final productId = item['product_id'] as int?;
+          final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
+          if (productId != null) {
+            await txn.rawUpdate(
+              'UPDATE products SET stock_quantity = MAX(0, stock_quantity - ?) WHERE id = ?',
+              [qty, productId],
+            );
+          }
         }
       }
 
       // 2. Reverse batch entries
       await txn.delete('product_serials_batches', where: 'purchase_id = ?', whereArgs: [purchaseId]);
 
-      // 3. Reverse supplier balance
-      if (purchase.supplierId != null && purchase.dueAmount > 0) {
+      // 3. Reverse supplier balance only if was received
+      if (wasReceived && purchase.supplierId != null && purchase.dueAmount > 0) {
         await txn.rawUpdate(
           'UPDATE contacts SET balance = MAX(0, balance - ?) WHERE id = ?',
           [purchase.dueAmount, purchase.supplierId],
@@ -3985,7 +4106,8 @@ class DatabaseService {
   Future<int> createStockTransfer(StockTransfer transfer) async {
     return await db.transaction((txn) async {
       final transferId = await txn.insert('stock_transfers', transfer.toMap());
-      if (transfer.status == 'completed') {
+      // In Ultimate POS, stock is deducted from source when dispatched ('in_transit' or 'completed')
+      if (transfer.status == 'completed' || transfer.status == 'in_transit') {
         for (final item in transfer.getItems()) {
           await txn.rawUpdate(
             'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
@@ -3997,8 +4119,65 @@ class DatabaseService {
     });
   }
 
+  /// Update stock transfer status (e.g. 'pending' -> 'in_transit', 'in_transit' -> 'completed', or revert)
+  Future<bool> updateStockTransferStatus(int transferId, String newStatus) async {
+    return await db.transaction((txn) async {
+      final rows = await txn.query('stock_transfers', where: 'id = ?', whereArgs: [transferId], limit: 1);
+      if (rows.isEmpty) return false;
+      final transfer = StockTransfer.fromMap(rows.first);
+      final oldStatus = transfer.status;
+      if (oldStatus == newStatus) return true;
+
+      final items = transfer.getItems();
+
+      // 1. Moving from pending to in_transit or completed -> Deduct stock from source
+      if (oldStatus == 'pending' && (newStatus == 'in_transit' || newStatus == 'completed')) {
+        for (final item in items) {
+          await txn.rawUpdate(
+            'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+            [item.quantity, item.productId],
+          );
+        }
+      }
+      // 2. Moving from in_transit or completed back to pending -> Restore stock to source
+      else if ((oldStatus == 'in_transit' || oldStatus == 'completed') && newStatus == 'pending') {
+        for (final item in items) {
+          await txn.rawUpdate(
+            'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+            [item.quantity, item.productId],
+          );
+        }
+      }
+
+      // Update transfer record status
+      await txn.update(
+        'stock_transfers',
+        {'status': newStatus},
+        where: 'id = ?',
+        whereArgs: [transferId],
+      );
+
+      return true;
+    });
+  }
+
   Future<int> deleteStockTransfer(int id) async {
-    return await db.delete('stock_transfers', where: 'id = ?', whereArgs: [id]);
+    return await db.transaction((txn) async {
+      final rows = await txn.query('stock_transfers', where: 'id = ?', whereArgs: [id], limit: 1);
+      if (rows.isNotEmpty) {
+        final transfer = StockTransfer.fromMap(rows.first);
+        // If transfer had deducted stock (in_transit or completed), restore back to source
+        if (transfer.status == 'completed' || transfer.status == 'in_transit') {
+          for (final item in transfer.getItems()) {
+            await txn.rawUpdate(
+              'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+              [item.quantity, item.productId],
+            );
+          }
+        }
+      }
+      return await txn.delete('stock_transfers', where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   // Stock Adjustments

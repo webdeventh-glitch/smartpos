@@ -108,6 +108,174 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     }
   }
 
+  Future<void> _openUpdateStatusDialog(Purchase p) async {
+    String selectedStatus = p.status.toLowerCase();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF2FF),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.edit_note_rounded, color: Color(0xFF4F46E5), size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Update Purchase Status', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('Invoice: ${p.refNo} • ${p.supplierName}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select New Status:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedStatus,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'received',
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF10B981)),
+                            SizedBox(width: 8),
+                            Text('Received (Goods In Store)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'pending',
+                        child: Row(
+                          children: [
+                            Icon(Icons.hourglass_bottom_rounded, size: 16, color: Color(0xFFD97706)),
+                            SizedBox(width: 8),
+                            Text('Pending (Awaiting Delivery)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'ordered',
+                        child: Row(
+                          children: [
+                            Icon(Icons.assignment_rounded, size: 16, color: Color(0xFF6366F1)),
+                            SizedBox(width: 8),
+                            Text('Ordered (Purchase Order)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setDlgState(() => selectedStatus = val);
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: selectedStatus == 'received'
+                          ? const Color(0xFFECFDF5)
+                          : const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: selectedStatus == 'received'
+                            ? const Color(0xFFA7F3D0)
+                            : const Color(0xFFFDE68A),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: selectedStatus == 'received'
+                              ? const Color(0xFF047857)
+                              : const Color(0xFFB45309),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            selectedStatus == 'received'
+                                ? 'Marking as "Received" automatically adds line item quantities to inventory stock and posts payable due to the supplier ledger.'
+                                : 'Status "${selectedStatus.toUpperCase()}" records the order without affecting physical inventory stock or supplier payable balance.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: selectedStatus == 'received'
+                                  ? const Color(0xFF065F46)
+                                  : const Color(0xFF92400E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: const Icon(Icons.check_rounded, size: 16),
+                label: const Text('Apply Status'),
+                onPressed: () => Navigator.pop(ctx, true),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (updated == true && selectedStatus != p.status.toLowerCase() && p.id != null) {
+      final db = await DatabaseService.initialize();
+      final success = await db.updatePurchaseStatus(p.id!, selectedStatus);
+      if (success) {
+        _load();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Purchase ${p.refNo} status updated to ${selectedStatus.toUpperCase()}!'),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -203,6 +371,53 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
               },
             ),
             const SizedBox(height: 18),
+
+            // Status Segmented Quick Filter Tabs
+            Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildSegmentTab(
+                      label: 'All Purchases',
+                      count: _purchases.length,
+                      isActive: _statusFilter == 'all',
+                      activeColor: const Color(0xFF4F46E5),
+                      isDark: isDark,
+                      onTap: () => setState(() => _statusFilter = 'all'),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildSegmentTab(
+                      label: 'Received (In Store)',
+                      count: _purchases.where((p) => p.status.toLowerCase() == 'received').length,
+                      isActive: _statusFilter == 'received',
+                      activeColor: const Color(0xFF10B981),
+                      isDark: isDark,
+                      onTap: () => setState(() => _statusFilter = 'received'),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildSegmentTab(
+                      label: 'Pending Delivery',
+                      count: _purchases.where((p) => p.status.toLowerCase() == 'pending').length,
+                      isActive: _statusFilter == 'pending',
+                      activeColor: const Color(0xFFD97706),
+                      isDark: isDark,
+                      onTap: () => setState(() => _statusFilter = 'pending'),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildSegmentTab(
+                      label: 'Purchase Orders (PO)',
+                      count: _purchases.where((p) => p.status.toLowerCase() == 'ordered').length,
+                      isActive: _statusFilter == 'ordered',
+                      activeColor: const Color(0xFF6366F1),
+                      isDark: isDark,
+                      onTap: () => setState(() => _statusFilter = 'ordered'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
             // Search & Filter Toolbar
             Container(
@@ -397,7 +612,27 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                     color: isDark ? Colors.white : const Color(0xFF0F172A),
                                                   ),
                                                 )),
-                                                _td(StatusPill(status: p.status)),
+                                                _td(
+                                                  InkWell(
+                                                    borderRadius: BorderRadius.circular(20),
+                                                    onTap: () => _openUpdateStatusDialog(p),
+                                                    child: Tooltip(
+                                                      message: 'Click to update status (${p.status.toUpperCase()})',
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          StatusPill(status: p.status),
+                                                          const SizedBox(width: 4),
+                                                          Icon(
+                                                            Icons.arrow_drop_down_rounded,
+                                                            size: 16,
+                                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
                                                 _td(StatusPill(status: p.paymentStatus)),
                                                 _td(Text(
                                                   '$currency${p.totalAmount.toStringAsFixed(2)}',
@@ -447,6 +682,15 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                             );
                                                           },
                                                         ),
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                          Icons.edit_note_rounded,
+                                                          size: 20,
+                                                          color: Color(0xFF4F46E5),
+                                                        ),
+                                                        tooltip: 'Update Status (Received / Pending / Ordered)',
+                                                        onPressed: () => _openUpdateStatusDialog(p),
+                                                      ),
                                                       IconButton(
                                                         icon: Icon(
                                                           Icons.print_outlined,
@@ -539,6 +783,70 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: child,
+    );
+  }
+
+  Widget _buildSegmentTab({
+    required String label,
+    required int count,
+    required bool isActive,
+    required Color activeColor,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive
+              ? (isDark ? activeColor.withValues(alpha: 0.25) : activeColor.withValues(alpha: 0.1))
+              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isActive
+                ? activeColor
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            width: isActive ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                color: isActive
+                    ? (isDark ? Colors.white : activeColor)
+                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? activeColor
+                    : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                count.toString(),
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                  color: isActive
+                      ? Colors.white
+                      : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
