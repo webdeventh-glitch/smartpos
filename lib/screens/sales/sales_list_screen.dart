@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/messaging_service.dart';
+import '../../services/pdf_export_service.dart';
 import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import '../pos/receipt_dialog.dart';
@@ -376,6 +377,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
     final db = await DatabaseService.initialize();
     final items = await db.getSaleItems(s.id!);
     final fullSale = Sale.fromMap(s.toMap(), items: items);
+    final layout = await db.getDefaultInvoiceLayout();
     final html = PrintService.generateQuotationHtml(
       settings: widget.settings,
       sale: fullSale,
@@ -389,6 +391,56 @@ class _SalesListScreenState extends State<SalesListScreen> {
           htmlContent: html,
           defaultPaperSize: 'a4',
           settings: widget.settings,
+          pdfGenerator: (paper) => PdfExportService.generateSalePdf(
+            sale: fullSale,
+            settings: widget.settings,
+            layout: layout,
+            paperSizeOverride: paper,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _exportSalePdf(Sale s, {bool email = false}) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final db = await DatabaseService.initialize();
+    final items = await db.getSaleItems(s.id!);
+    final fullSale = Sale.fromMap(s.toMap(), items: items);
+    final layout = await db.getDefaultInvoiceLayout();
+    final bytes = await PdfExportService.generateSalePdf(
+      sale: fullSale,
+      settings: widget.settings,
+      layout: layout,
+      paperSizeOverride: 'a4',
+    );
+    final prefix = s.isQuotation ? 'Quotation' : 'Invoice';
+    if (email) {
+      String recipientEmail = '';
+      if (s.customerId != null) {
+        final cust = await db.getContactById(s.customerId!);
+        recipientEmail = cust?.email ?? '';
+      }
+      final saved = await PdfExportService.emailPdfInvoice(
+        bytes: bytes,
+        baseName: '${prefix}_${s.invoiceNo}',
+        recipientEmail: recipientEmail,
+        subject: '${widget.settings.businessName} - $prefix #${s.invoiceNo}',
+        body: 'Dear ${s.customerName},\n\nPlease find attached your $prefix #${s.invoiceNo} for ${widget.settings.currencySymbol}${s.totalAmount.toStringAsFixed(2)}.\n\nRegards,\n${widget.settings.businessName}',
+      );
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Email draft launched! PDF saved: ${saved.path}'),
+          backgroundColor: const Color(0xFF0284C7),
+        ),
+      );
+    } else {
+      final saved = await PdfExportService.savePdfFile(bytes, '${prefix}_${s.invoiceNo}');
+      await PdfExportService.openPdfFile(saved);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('$prefix PDF saved & opened: ${saved.path}'),
+          backgroundColor: const Color(0xFF10B981),
         ),
       );
     }
@@ -844,6 +896,10 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                     _showConvertQuotationDialog(s);
                                                                   } else if (val == 'quotation') {
                                                                     _printQuotation(s);
+                                                                  } else if (val == 'pdf') {
+                                                                    _exportSalePdf(s);
+                                                                  } else if (val == 'email') {
+                                                                    _exportSalePdf(s, email: true);
                                                                   } else if (val == 'delete') {
                                                                     _deleteSaleRecord(s);
                                                                   }
@@ -855,6 +911,8 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                       if (canConvert && s.saleStatus == 'quotation' && !s.isConvertedQuotation)
                                                                         const PopupMenuItem(value: 'convert', child: Text('Convert to Invoice')),
                                                                     const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
+                                                                    const PopupMenuItem(value: 'pdf', child: Text('Export PDF')),
+                                                                    const PopupMenuItem(value: 'email', child: Text('Email PDF')),
                                                                     if (canDel)
                                                                       const PopupMenuItem(
                                                                         value: 'delete',
@@ -903,6 +961,10 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                 );
                                                               } else if (val == 'whatsapp') {
                                                                 _sendWhatsAppBill(s);
+                                                              } else if (val == 'pdf') {
+                                                                _exportSalePdf(s);
+                                                              } else if (val == 'email') {
+                                                                _exportSalePdf(s, email: true);
                                                               } else if (val == 'delete') {
                                                                 _deleteSaleRecord(s);
                                                               }
@@ -911,6 +973,8 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                               final canDel = AuthService.currentUser?.hasPermission('sale.delete') ?? true;
                                                               return [
                                                                 const PopupMenuItem(value: 'receipt', child: Text('Print Receipt')),
+                                                                const PopupMenuItem(value: 'pdf', child: Text('Export PDF Invoice')),
+                                                                const PopupMenuItem(value: 'email', child: Text('Email PDF Invoice')),
                                                                 const PopupMenuItem(
                                                                   value: 'whatsapp',
                                                                   child: Row(

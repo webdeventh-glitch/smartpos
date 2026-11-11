@@ -17,7 +17,7 @@ class DatabaseService {
   final String? dbFilePath;
   DatabaseService(this.db, {this.dbFilePath});
 
-  static const int currentSchemaVersion = 4;
+  static const int currentSchemaVersion = 5;
   static DatabaseService? _instance;
   static DatabaseService? get instanceOrNull => _instance;
   static DatabaseService get instance =>
@@ -160,6 +160,17 @@ class DatabaseService {
   Future<void> updateInvoiceScheme(InvoiceScheme scheme) => settingsRepo.updateInvoiceScheme(scheme);
   Future<void> deleteInvoiceScheme(int id) => settingsRepo.deleteInvoiceScheme(id);
   Future<String> generateNextInvoiceNumber({int? schemeId}) => settingsRepo.generateNextInvoiceNumber(schemeId: schemeId);
+  Future<List<ThermalPrinterConfig>> getPrinters() => settingsRepo.getPrinters();
+  Future<ThermalPrinterConfig?> getDefaultPrinter() => settingsRepo.getDefaultPrinter();
+  Future<ThermalPrinterConfig?> getKotPrinter() => settingsRepo.getKotPrinter();
+  Future<int> savePrinter(ThermalPrinterConfig printer) => settingsRepo.savePrinter(printer);
+  Future<void> setDefaultPrinter(int id) => settingsRepo.setDefaultPrinter(id);
+  Future<void> deletePrinter(int id) => settingsRepo.deletePrinter(id);
+  Future<List<InvoiceLayout>> getInvoiceLayouts() => settingsRepo.getInvoiceLayouts();
+  Future<InvoiceLayout?> getDefaultInvoiceLayout() => settingsRepo.getDefaultInvoiceLayout();
+  Future<int> saveInvoiceLayout(InvoiceLayout layout) => settingsRepo.saveInvoiceLayout(layout);
+  Future<void> setDefaultInvoiceLayout(int id) => settingsRepo.setDefaultInvoiceLayout(id);
+  Future<void> deleteInvoiceLayout(int id) => settingsRepo.deleteInvoiceLayout(id);
   Future<List<Unit>> getUnits() => productRepo.getUnits();
   Future<int> addUnit(Unit unit) => productRepo.addUnit(unit);
   Future<int> updateUnit(Unit unit) => productRepo.updateUnit(unit);

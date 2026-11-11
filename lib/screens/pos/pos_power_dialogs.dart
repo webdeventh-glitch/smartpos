@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
+import '../../services/thermal_printer_service.dart';
 
 // ==========================================
 // 1. KITCHEN ORDER TICKET (KOT) DIALOG
@@ -166,12 +168,29 @@ class KotTicketDialog extends StatelessWidget {
               ),
               icon: const Icon(Icons.print_rounded, size: 18),
               label: const Text('PRINT KOT TO KITCHEN', style: TextStyle(fontWeight: FontWeight.bold)),
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                bool printed = false;
+                try {
+                  printed = await ThermalPrinterService.printKotTicket(
+                    table: table,
+                    waiter: waiter,
+                    diningMode: diningMode,
+                    items: items,
+                    settings: settings,
+                  );
+                } catch (e, st) {
+                  AppLogger.warning('KotTicketDialog', 'Direct KOT ESC/POS print error', e, st);
+                }
+                if (context.mounted) Navigator.pop(context);
+                messenger.showSnackBar(
                   SnackBar(
                     backgroundColor: const Color(0xFFEA580C),
-                    content: Text('KOT sent to kitchen printer for $table ($diningMode)!'),
+                    content: Text(
+                      printed
+                          ? 'KOT printed to kitchen thermal printer for $table ($diningMode)!'
+                          : 'KOT queued for $table ($diningMode)! (No ESC/POS kitchen printer configured)',
+                    ),
                   ),
                 );
               },

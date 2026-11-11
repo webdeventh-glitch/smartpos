@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/thermal_printer_service.dart';
 
 class RestaurantCafeScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -360,9 +362,38 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen> with Single
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                         visualDensity: VisualDensity.compact,
                                       ),
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('KOT Reprint sent for ${t['name']}')),
+                                      onPressed: () async {
+                                        final messenger = ScaffoldMessenger.of(context);
+                                        bool printed = false;
+                                        try {
+                                          final orderPrice = (t['order_total'] as num?)?.toDouble() ?? 0.0;
+                                          final dummyProd = Product(
+                                            name: 'Table Service / Kitchen Order',
+                                            sku: 'KOT',
+                                            barcode: 'KOT',
+                                            purchasePrice: 0,
+                                            sellingPrice: orderPrice,
+                                            stockQuantity: 1,
+                                          );
+                                          printed = await ThermalPrinterService.printKotTicket(
+                                            table: (t['name'] ?? 'Table').toString(),
+                                            waiter: (t['waiter_name'] ?? 'Waiter').toString(),
+                                            diningMode: 'dine_in',
+                                            items: [CartItem(product: dummyProd, quantity: 1, unitPrice: orderPrice)],
+                                            settings: widget.settings,
+                                            orderNote: 'Table Reprint (${t['guests'] ?? 0} guests)',
+                                          );
+                                        } catch (e, st) {
+                                          AppLogger.warning('RestaurantCafeScreen', 'KOT reprint error', e, st);
+                                        }
+                                        messenger.showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              printed
+                                                  ? 'KOT Reprint printed to kitchen printer for ${t['name']}'
+                                                  : 'KOT Reprint queued for ${t['name']}',
+                                            ),
+                                          ),
                                         );
                                       },
                                       child: const Text('Print KOT', style: TextStyle(fontSize: 11)),

@@ -105,6 +105,14 @@ class DatabaseSchema {
         'phase3_item_discounts_tax_groups_customer_groups_rbac_activity_log',
       );
     }
+    if (fromVersion < 5 && toVersion >= 5) {
+      await _applyV5Phase4Migrations(db);
+      await _recordMigration(
+        db,
+        5,
+        'phase4_printers_and_invoice_layouts',
+      );
+    }
   }
 
   static Future<void> _applyV4Phase3Migrations(Database db) async {
@@ -255,6 +263,157 @@ class DatabaseSchema {
       }
     } catch (e, st) {
       AppLogger.warning('DatabaseSchema', 'Skipped default RBAC roles seed', e, st);
+    }
+  }
+
+  static Future<void> _applyV5Phase4Migrations(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS receipt_printers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        connection_type TEXT DEFAULT 'network',
+        capability_profile TEXT DEFAULT 'default',
+        paper_width TEXT DEFAULT '80mm',
+        char_per_line INTEGER DEFAULT 48,
+        ip_address TEXT DEFAULT '192.168.1.100',
+        port INTEGER DEFAULT 9100,
+        windows_printer_path TEXT DEFAULT '',
+        is_default INTEGER DEFAULT 0,
+        is_kot_printer INTEGER DEFAULT 0,
+        auto_cut INTEGER DEFAULT 1,
+        open_cash_drawer INTEGER DEFAULT 0,
+        created_at TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS invoice_layouts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        design TEXT DEFAULT 'detailed',
+        paper_size TEXT DEFAULT 'a4',
+        paper_orientation TEXT DEFAULT 'portrait',
+        font_size REAL DEFAULT 10.0,
+        highlight_color TEXT DEFAULT '#0F172A',
+        invoice_heading TEXT DEFAULT 'TAX INVOICE',
+        header_text TEXT DEFAULT '',
+        sub_total_label TEXT DEFAULT 'Subtotal',
+        discount_label TEXT DEFAULT 'Discount',
+        tax_label TEXT DEFAULT 'Tax',
+        total_label TEXT DEFAULT 'Grand Total',
+        footer_text TEXT DEFAULT 'Thank you for shopping with us!',
+        terms_text TEXT DEFAULT 'Goods once sold can only be exchanged within 7 days with original receipt.',
+        signature_label TEXT DEFAULT 'Authorized Signature',
+        show_logo INTEGER DEFAULT 1,
+        show_business_name INTEGER DEFAULT 1,
+        show_address INTEGER DEFAULT 1,
+        show_phone INTEGER DEFAULT 1,
+        show_email INTEGER DEFAULT 1,
+        show_tax_number INTEGER DEFAULT 1,
+        show_sku INTEGER DEFAULT 1,
+        show_brand INTEGER DEFAULT 1,
+        show_image INTEGER DEFAULT 0,
+        show_expiry INTEGER DEFAULT 1,
+        show_batch INTEGER DEFAULT 1,
+        show_warranty INTEGER DEFAULT 1,
+        show_barcode INTEGER DEFAULT 1,
+        show_qr_code INTEGER DEFAULT 1,
+        show_customer_balance INTEGER DEFAULT 1,
+        show_signature INTEGER DEFAULT 1,
+        show_total_in_words INTEGER DEFAULT 1,
+        is_default INTEGER DEFAULT 0,
+        created_at TEXT
+      )
+    ''');
+
+    await _addColumnIfMissing(db, 'invoice_layouts', 'design', "TEXT DEFAULT 'detailed'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'paper_size', "TEXT DEFAULT 'a4'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'paper_orientation', "TEXT DEFAULT 'portrait'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'font_size', 'REAL DEFAULT 10.0');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'highlight_color', "TEXT DEFAULT '#0F172A'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'invoice_heading', "TEXT DEFAULT 'TAX INVOICE'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'header_text', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'sub_total_label', "TEXT DEFAULT 'Subtotal'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'discount_label', "TEXT DEFAULT 'Discount'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'tax_label', "TEXT DEFAULT 'Tax'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'total_label', "TEXT DEFAULT 'Grand Total'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'footer_text', "TEXT DEFAULT 'Thank you for shopping with us!'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'terms_text', "TEXT DEFAULT 'Goods once sold can only be exchanged within 7 days with original receipt.'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'signature_label', "TEXT DEFAULT 'Authorized Signature'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_logo', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_business_name', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_address', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_phone', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_email', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_tax_number', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_sku', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_brand', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_image', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_expiry', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_batch', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_warranty', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_barcode', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_qr_code', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_customer_balance', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_signature', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'show_total_in_words', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'is_default', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(db, 'invoice_layouts', 'created_at', 'TEXT');
+
+    await _addColumnIfMissing(db, 'business_settings', 'auto_print_receipt', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(db, 'business_settings', 'auto_print_kot', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(db, 'business_settings', 'default_printer_id', 'INTEGER');
+    await _addColumnIfMissing(db, 'business_settings', 'default_invoice_layout_id', 'INTEGER');
+
+    try {
+      final nowIso = DateTime.now().toIso8601String();
+      final hasDefaultRows = await db.query('invoice_layouts', where: 'is_default = 1', limit: 1);
+      final starterTemplates = [
+        InvoiceLayout(
+          name: 'Detailed A4 Agency',
+          design: 'detailed',
+          paperSize: 'a4',
+          showBatch: true,
+          showExpiry: true,
+          showWarranty: true,
+          isDefault: hasDefaultRows.isEmpty,
+          createdAt: nowIso,
+        ),
+        InvoiceLayout(
+          name: 'Classic A4 Retail',
+          design: 'classic',
+          paperSize: 'a4',
+          highlightColor: '#1E40AF',
+          showBatch: false,
+          showExpiry: false,
+          showWarranty: false,
+          isDefault: false,
+          createdAt: nowIso,
+        ),
+        InvoiceLayout(
+          name: '80mm Counter Thermal',
+          design: 'slim',
+          paperSize: '80mm',
+          fontSize: 9.0,
+          showImage: false,
+          showSignature: false,
+          isDefault: false,
+          createdAt: nowIso,
+        ),
+      ];
+      for (final tpl in starterTemplates) {
+        final exists = await db.query(
+          'invoice_layouts',
+          where: 'name = ?',
+          whereArgs: [tpl.name],
+          limit: 1,
+        );
+        if (exists.isEmpty) {
+          await db.insert('invoice_layouts', tpl.toMap());
+        }
+      }
+    } catch (e, st) {
+      AppLogger.warning('DatabaseSchema', 'Skipped default invoice_layouts seed', e, st);
     }
   }
 
@@ -1549,25 +1708,7 @@ class DatabaseSchema {
       AppLogger.warning('DatabaseMigration', 'Failed seeding types_of_services', e, st);
     }
 
-    // Seed default invoice layout if empty
-    try {
-      final layoutCount = await db.rawQuery('SELECT COUNT(*) as c FROM invoice_layouts');
-      if (((layoutCount.first['c'] as int?) ?? 0) == 0) {
-        await db.insert('invoice_layouts', {
-          'name': 'Standard Thermal 80mm Layout',
-          'header_text': 'Welcome to our store!',
-          'footer_text': 'Thank you for your business! Goods once sold cannot be returned without receipt.',
-          'show_logo': 1,
-          'show_tax': 1,
-          'show_customer': 1,
-          'show_barcode': 1,
-          'paper_width': '80mm',
-          'is_default': 1,
-        });
-      }
-    } catch (e, st) {
-      AppLogger.warning('DatabaseMigration', 'Failed seeding invoice_layouts', e, st);
-    }
+    // Canonical starter invoice layouts are seeded in _applyV5Phase4Migrations.
   }
 
   static Future<void> createTables(Database db) async {
@@ -1651,7 +1792,11 @@ class DatabaseSchema {
         enable_secondary_language INTEGER DEFAULT 0,
         secondary_language TEXT DEFAULT 'ur',
         invoice_heading TEXT DEFAULT 'TAX INVOICE',
-        session_timeout_minutes INTEGER DEFAULT 480
+        session_timeout_minutes INTEGER DEFAULT 480,
+        auto_print_receipt INTEGER DEFAULT 0,
+        auto_print_kot INTEGER DEFAULT 0,
+        default_printer_id INTEGER,
+        default_invoice_layout_id INTEGER
       )
     ''');
 

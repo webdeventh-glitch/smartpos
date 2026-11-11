@@ -1,5 +1,7 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../services/pdf_export_service.dart';
 import '../services/print_service.dart';
 
 class UniversalPrintPreviewDialog extends StatefulWidget {
@@ -9,6 +11,7 @@ class UniversalPrintPreviewDialog extends StatefulWidget {
   final String plainTextContent;
   final BusinessSettings settings;
   final String defaultPaperSize;
+  final Future<Uint8List> Function(String paperSize)? pdfGenerator;
 
   const UniversalPrintPreviewDialog({
     super.key,
@@ -18,6 +21,7 @@ class UniversalPrintPreviewDialog extends StatefulWidget {
     this.plainTextContent = '',
     required this.settings,
     this.defaultPaperSize = '80mm',
+    this.pdfGenerator,
   });
 
   @override
@@ -209,6 +213,31 @@ class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialo
                             PrintService.saveHtmlToFile(html, 'smartpos_doc', context);
                           },
                         ),
+                        if (widget.pdfGenerator != null) ...[
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFDC2626),
+                              side: const BorderSide(color: Color(0xFFDC2626)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                            label: const Text('Export PDF'),
+                            onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              final bytes = await widget.pdfGenerator!(_selectedPaperSize);
+                              final file = await PdfExportService.savePdfFile(bytes, widget.title);
+                              await PdfExportService.openPdfFile(file);
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('PDF saved & opened: ${file.path}'),
+                                  backgroundColor: const Color(0xFF10B981),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ],
                     ),
                     ElevatedButton.icon(

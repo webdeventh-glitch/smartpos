@@ -18,6 +18,8 @@ import '../../services/print_service.dart';
 import '../../services/ai_assistant_service.dart';
 import '../../services/number_to_words_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
+import 'invoice_layouts_manager.dart';
+import 'printer_management_section.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -3925,7 +3927,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 ),
                 const SizedBox(height: 24),
 
-                // 2. Invoice Layouts & Design Customization (Ultimate POS Style)
+                // 2. Saved Multi-Template Invoice Layouts Manager (Phase 4.3)
+                InvoiceLayoutsManager(
+                  settings: widget.settings,
+                  onSettingsUpdated: widget.onSettingsUpdated,
+                ),
+                const SizedBox(height: 24),
+
+                // 3. Quick Layout Toggles & Design Presets (Ultimate POS Style)
                 _buildInvoiceLayoutsSection(isDark, primaryColor),
               ],
             ),
@@ -6432,6 +6441,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ESC/POS Thermal Printer & Auto-Print Setup (Phase 4.1)
+          PrinterManagementSection(
+            settings: widget.settings,
+            onSettingsUpdated: widget.onSettingsUpdated,
+          ),
+          const SizedBox(height: 24),
+
           // Header Card
           Container(
             padding: const EdgeInsets.all(20),

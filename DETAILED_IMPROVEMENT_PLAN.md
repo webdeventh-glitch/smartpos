@@ -507,30 +507,30 @@ Multiple places use `.withOpacity()` instead of `.withValues(alpha: ...)` — so
 
 ---
 
-### 🟡 PHASE 4: Printing & Document System (Week 9-10)
+### ✅ PHASE 4: Printing & Document System (Week 9-10) — COMPLETED
 
 #### Step 4.1: Implement ESC/POS Thermal Printing
-- [ ] Add `esc_pos_utils` and `esc_pos_printer` packages
-- [ ] Create printer configuration screen (IP, port, paper width)
-- [ ] Generate ESC/POS receipt binary from sale data
-- [ ] Support 58mm and 80mm paper widths
-- [ ] Auto-print receipt on sale completion (configurable)
-- [ ] Print KOT for restaurant mode
+- [x] Add `esc_pos_utils_plus` package *(with `ThermalPrinterService` pure-Dart TCP/IP port 9100 socket + Win32 `winspool.drv` FFI RAW spooler for Windows USB/shared printers without legacy `esc_pos_printer` SDK conflict)*
+- [x] Create printer configuration screen (`PrinterManagementSection` in Settings: Network IP, port, Windows printer path, capability profile, 58mm/80mm width, test print)
+- [x] Generate ESC/POS receipt binary from sale data (`ThermalPrinterService.buildSaleReceiptBytes`)
+- [x] Support 58mm and 80mm paper widths
+- [x] Auto-print receipt on sale completion (`BusinessSettings.autoPrintReceipt` wired in `PosTerminalScreen`)
+- [x] Print KOT for restaurant mode (`ThermalPrinterService.buildKotTicketBytes` wired in `KotTicketDialog` & `RestaurantCafeScreen`)
 
 #### Step 4.2: Implement PDF Export
-- [ ] Add `pdf` and `printing` packages
-- [ ] Generate professional A4 invoices with business logo
-- [ ] Generate PDF for: Sales, Purchases, Quotations, Reports
-- [ ] Implement "Email Invoice" functionality
+- [x] Add `pdf` package *(system Windows PDF print/view + Downloads export handled via `PdfExportService` without requiring Windows Developer Mode plugin symlinks)*
+- [x] Generate professional A4 invoices with business logo (`PdfExportService.generateSalePdf`)
+- [x] Generate PDF for: Sales, Purchases, Quotations, Reports (`ReceiptDialog`, `PurchaseReceiptDialog`, `SalesListScreen`, `UniversalPrintPreviewDialog`, `ReportsScreen`)
+- [x] Implement "Email Invoice" functionality (`PdfExportService.emailPdfInvoice` with prefilled `mailto:` + saved PDF path)
 
 #### Step 4.3: Implement Invoice Layout Customizer
-- [ ] Create template system with configurable fields:
-  - Header (logo, business name, address)
-  - Show/hide columns (SKU, brand, image, expiry)
-  - Footer (terms, signatures, notes)
-  - Font sizes and paper orientation
-- [ ] Save multiple layout templates
-- [ ] Match UltimatePOS's `InvoiceLayout` model
+- [x] Create template system with configurable fields (`InvoiceLayoutsManager` + `InvoiceLayout`):
+  - Header (logo, business name, address, phone, email, tax/NTN, custom heading)
+  - Show/hide columns (SKU, brand, image, batch, expiry, warranty)
+  - Footer (terms, signatures, notes, customer balance, amount in words, QR/barcode)
+  - Font sizes and paper orientation (portrait / landscape, A4 / 80mm / 58mm)
+- [x] Save multiple layout templates (`invoice_layouts` SQLite table v5 with multi-template CRUD & default switcher)
+- [x] Match UltimatePOS's `InvoiceLayout` model (`lib/models/invoice_layout.dart`)
 
 ---
 

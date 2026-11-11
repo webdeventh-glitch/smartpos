@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -5,6 +6,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/print_service.dart';
+import '../../services/pdf_export_service.dart';
 import '../../services/ai_assistant_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../pos/pos_power_dialogs.dart';
@@ -260,6 +262,58 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         htmlContent: html,
         defaultPaperSize: 'a4',
         settings: widget.settings,
+        pdfGenerator: (_) => _buildExecutiveReportPdfBytes(),
+      ),
+    );
+  }
+
+  Future<Uint8List> _buildExecutiveReportPdfBytes() {
+    final cur = widget.settings.currencySymbol;
+    final periodStr = _startDate != null && _endDate != null
+        ? '${DateFormat('dd/MM/yyyy').format(_startDate!)} to ${DateFormat('dd/MM/yyyy').format(_endDate!)}'
+        : 'All-Time Financial Statement';
+    final totalSales = (_report['totalSales'] as double?) ?? 0.0;
+    final cogs = (_report['cogs'] as double?) ?? 0.0;
+    final gross = (_report['grossProfit'] as double?) ?? 0.0;
+    final expenses = (_report['totalExpenses'] as double?) ?? 0.0;
+    final net = (_report['netProfit'] as double?) ?? 0.0;
+    final purchases = (_report['totalPurchases'] as double?) ?? 0.0;
+    final canProfit = AuthService.currentUser?.hasPermission('report.view_profit') ?? true;
+    final canCost = AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true;
+
+    return PdfExportService.generateReportPdf(
+      title: 'Executive Financial & Business Report',
+      subtitle: 'Period: $periodStr',
+      settings: widget.settings,
+      summaryMetrics: {
+        'Total Sales': '$cur${totalSales.toStringAsFixed(2)}',
+        'Total Purchases': '$cur${purchases.toStringAsFixed(2)}',
+        'Expenses': '$cur${expenses.toStringAsFixed(2)}',
+        'Net Profit': canProfit ? '$cur${net.toStringAsFixed(2)}' : 'Restricted',
+      },
+      headers: const ['Metric / Ledger Account', 'Amount'],
+      rows: [
+        ['Total Final Sales Revenue', '$cur${totalSales.toStringAsFixed(2)}'],
+        ['Cost of Goods Sold (COGS)', canCost ? '$cur${cogs.toStringAsFixed(2)}' : 'Restricted'],
+        ['Gross Profit', canProfit ? '$cur${gross.toStringAsFixed(2)}' : 'Restricted'],
+        ['Total Operating Expenses', '$cur${expenses.toStringAsFixed(2)}'],
+        ['Net Business Profit', canProfit ? '$cur${net.toStringAsFixed(2)}' : 'Restricted'],
+        ['Total Purchases', '$cur${purchases.toStringAsFixed(2)}'],
+        ['Customer Receivables (Due)', '$cur${((_report['totalCustomerDue'] as double?) ?? 0.0).toStringAsFixed(2)}'],
+        ['Supplier Payables (Due)', '$cur${((_report['totalSupplierPayable'] as double?) ?? 0.0).toStringAsFixed(2)}'],
+      ],
+    );
+  }
+
+  Future<void> _exportExecutiveReportPdf() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final bytes = await _buildExecutiveReportPdfBytes();
+    final file = await PdfExportService.savePdfFile(bytes, 'Executive_Business_Report');
+    await PdfExportService.openPdfFile(file);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Report PDF exported & opened: ${file.path}'),
+        backgroundColor: const Color(0xFF10B981),
       ),
     );
   }
@@ -564,6 +618,17 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       icon: const Icon(Icons.print_rounded, size: 18),
                       label: const Text('Print Executive Report', style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _printExecutiveReport,
+                    ),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                      label: const Text('Export PDF Report', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: _exportExecutiveReportPdf,
                     ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(

@@ -5,6 +5,8 @@ library;
 export 'model_helpers.dart';
 export 'business_settings.dart';
 export 'business_location.dart';
+export 'printer_config.dart';
+export 'invoice_layout.dart';
 export 'tax_rate.dart';
 export 'tax_group.dart';
 export 'invoice_scheme.dart';

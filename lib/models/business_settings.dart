@@ -83,6 +83,10 @@ class BusinessSettings {
   final String secondaryLanguage;
   final String invoiceHeading;
   final int sessionTimeoutMinutes;
+  final bool autoPrintReceipt;
+  final bool autoPrintKot;
+  final int? defaultPrinterId;
+  final int? defaultInvoiceLayoutId;
 
   BusinessSettings({
     this.id = 1,
@@ -164,6 +168,10 @@ class BusinessSettings {
     this.secondaryLanguage = 'ur',
     this.invoiceHeading = 'TAX INVOICE',
     this.sessionTimeoutMinutes = 480,
+    this.autoPrintReceipt = false,
+    this.autoPrintKot = false,
+    this.defaultPrinterId,
+    this.defaultInvoiceLayoutId,
   });
 
   String get effectiveLoginBanner {
@@ -597,6 +605,10 @@ class BusinessSettings {
     String? secondaryLanguage,
     String? invoiceHeading,
     int? sessionTimeoutMinutes,
+    bool? autoPrintReceipt,
+    bool? autoPrintKot,
+    int? defaultPrinterId,
+    int? defaultInvoiceLayoutId,
   }) {
     return BusinessSettings(
       id: id ?? this.id,
@@ -686,6 +698,11 @@ class BusinessSettings {
       invoiceHeading: invoiceHeading ?? this.invoiceHeading,
       sessionTimeoutMinutes:
           sessionTimeoutMinutes ?? this.sessionTimeoutMinutes,
+      autoPrintReceipt: autoPrintReceipt ?? this.autoPrintReceipt,
+      autoPrintKot: autoPrintKot ?? this.autoPrintKot,
+      defaultPrinterId: defaultPrinterId ?? this.defaultPrinterId,
+      defaultInvoiceLayoutId:
+          defaultInvoiceLayoutId ?? this.defaultInvoiceLayoutId,
     );
   }
 
@@ -769,6 +786,10 @@ class BusinessSettings {
         'secondary_language': secondaryLanguage,
         'invoice_heading': invoiceHeading,
         'session_timeout_minutes': sessionTimeoutMinutes,
+        'auto_print_receipt': autoPrintReceipt ? 1 : 0,
+        'auto_print_kot': autoPrintKot ? 1 : 0,
+        'default_printer_id': defaultPrinterId,
+        'default_invoice_layout_id': defaultInvoiceLayoutId,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
@@ -862,5 +883,9 @@ class BusinessSettings {
         invoiceHeading: modelAsString(map['invoice_heading'], 'TAX INVOICE'),
         sessionTimeoutMinutes:
             modelAsInt(map['session_timeout_minutes'], 480),
+        autoPrintReceipt: modelAsBool(map['auto_print_receipt'], false),
+        autoPrintKot: modelAsBool(map['auto_print_kot'], false),
+        defaultPrinterId: map['default_printer_id'] as int?,
+        defaultInvoiceLayoutId: map['default_invoice_layout_id'] as int?,
       );
 }

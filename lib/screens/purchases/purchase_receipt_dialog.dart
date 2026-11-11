@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/models.dart';
+import '../../services/pdf_export_service.dart';
 
 class PurchaseReceiptDialog extends StatefulWidget {
   final Purchase purchase;
@@ -411,20 +412,57 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                       label: const Text('Copy Voucher Text'),
                     ),
                     const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: const BorderSide(color: Color(0xFFDC2626)),
+                      ),
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final bytes = await PdfExportService.generatePurchasePdf(
+                          purchase: p,
+                          settings: widget.settings,
+                        );
+                        final file = await PdfExportService.savePdfFile(
+                          bytes,
+                          'Purchase_${p.refNo}',
+                        );
+                        await PdfExportService.openPdfFile(file);
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('Purchase PDF saved: ${file.path}'),
+                            backgroundColor: const Color(0xFF10B981),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                      label: const Text('Export PDF'),
+                    ),
+                    const SizedBox(width: 10),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0038B8),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       ),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final bytes = await PdfExportService.generatePurchasePdf(
+                          purchase: p,
+                          settings: widget.settings,
+                        );
+                        final file = await PdfExportService.savePdfFile(
+                          bytes,
+                          'Purchase_${p.refNo}',
+                        );
+                        await PdfExportService.openPdfFile(file);
+                        messenger.showSnackBar(
                           SnackBar(
-                            content: Text('Sent ${p.refNo} to thermal/A4 printer successfully!'),
+                            content: Text('Purchase voucher ${p.refNo} PDF opened for printing!'),
                             backgroundColor: const Color(0xFF10B981),
                           ),
                         );
-                        Navigator.pop(context);
+                        if (context.mounted) Navigator.pop(context);
                       },
                       icon: const Icon(Icons.print_rounded, size: 16),
                       label: const Text('Print Purchase Voucher'),

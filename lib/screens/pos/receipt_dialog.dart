@@ -5,7 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
+import '../../services/database_service.dart';
+import '../../services/pdf_export_service.dart';
 import '../../services/print_service.dart';
+import '../../services/thermal_printer_service.dart';
 import '../../services/number_to_words_service.dart';
 
 class ReceiptDialog extends StatefulWidget {
@@ -601,10 +604,113 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                       },
                     );
 
+                    final thermalBtn = IconButton(
+                      icon: const Icon(Icons.receipt_long_rounded, size: 18, color: Color(0xFF7C3AED)),
+                      tooltip: 'Direct ESC/POS Thermal Print',
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        try {
+                          final printed = await ThermalPrinterService.printSaleReceipt(
+                            sale: widget.sale,
+                            settings: widget.settings,
+                            tenderedAmount: widget.tenderedAmount,
+                            changeReturn: widget.changeReturn,
+                            customerPreviousBalance: widget.customerPreviousBalance,
+                          );
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                printed
+                                    ? 'Receipt #${widget.sale.invoiceNo} sent to ESC/POS thermal printer!'
+                                    : 'No ESC/POS thermal printer configured. Configure one in Settings -> Printing.',
+                              ),
+                              backgroundColor: printed ? const Color(0xFF10B981) : Colors.orange,
+                            ),
+                          );
+                        } catch (e) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text('Thermal print failed: $e'),
+                              backgroundColor: const Color(0xFFEF4444),
+                            ),
+                          );
+                        }
+                      },
+                    );
+
+                    final pdfBtn = IconButton(
+                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 18, color: Color(0xFFDC2626)),
+                      tooltip: 'Export PDF Invoice',
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final db = await DatabaseService.initialize();
+                        final layout = await db.getDefaultInvoiceLayout();
+                        final paperOverride = _paperSize.contains('58')
+                            ? '58mm'
+                            : (_paperSize.contains('80') ? '80mm' : 'a4');
+                        final bytes = await PdfExportService.generateSalePdf(
+                          sale: widget.sale,
+                          settings: widget.settings,
+                          layout: layout,
+                          paperSizeOverride: paperOverride,
+                          customerPreviousBalance: widget.customerPreviousBalance,
+                        );
+                        final file = await PdfExportService.savePdfFile(
+                          bytes,
+                          'Invoice_${widget.sale.invoiceNo}',
+                        );
+                        await PdfExportService.openPdfFile(file);
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('PDF saved & opened: ${file.path}'),
+                            backgroundColor: const Color(0xFF10B981),
+                          ),
+                        );
+                      },
+                    );
+
+                    final emailBtn = IconButton(
+                      icon: const Icon(Icons.email_outlined, size: 18, color: Color(0xFF0284C7)),
+                      tooltip: 'Email PDF Invoice',
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final db = await DatabaseService.initialize();
+                        final layout = await db.getDefaultInvoiceLayout();
+                        String recipientEmail = '';
+                        if (widget.sale.customerId != null) {
+                          final cust = await db.getContactById(widget.sale.customerId!);
+                          recipientEmail = cust?.email ?? '';
+                        }
+                        final bytes = await PdfExportService.generateSalePdf(
+                          sale: widget.sale,
+                          settings: widget.settings,
+                          layout: layout,
+                          paperSizeOverride: 'a4',
+                          customerPreviousBalance: widget.customerPreviousBalance,
+                        );
+                        final savedFile = await PdfExportService.emailPdfInvoice(
+                          bytes: bytes,
+                          baseName: 'Invoice_${widget.sale.invoiceNo}',
+                          recipientEmail: recipientEmail,
+                          subject: '${widget.settings.businessName} - Invoice #${widget.sale.invoiceNo}',
+                          body: 'Dear ${widget.sale.customerName},\n\nPlease find attached your invoice #${widget.sale.invoiceNo} for ${widget.settings.currencySymbol}${widget.sale.totalAmount.toStringAsFixed(2)}.\n\nThank you for your business!\n${widget.settings.businessName}',
+                        );
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('Email draft opened! PDF saved at: ${savedFile.path}'),
+                            backgroundColor: const Color(0xFF0284C7),
+                          ),
+                        );
+                      },
+                    );
+
                     return Row(
                       children: [
                         copyBtn,
-                        const SizedBox(width: 6),
+                        thermalBtn,
+                        pdfBtn,
+                        emailBtn,
+                        const SizedBox(width: 4),
                         whatsappBtn,
                         const SizedBox(width: 8),
                         Expanded(child: printBtn),

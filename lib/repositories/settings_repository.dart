@@ -330,4 +330,167 @@ class SettingsRepository extends BaseRepository {
     return 'INV-${DateTime.now().millisecondsSinceEpoch % 100000}';
   }
 
+  // ===================== THERMAL PRINTERS (ESC/POS) =====================
+
+  Future<List<ThermalPrinterConfig>> getPrinters() async {
+    final rows = await db.query('receipt_printers', orderBy: 'is_default DESC, id ASC');
+    return rows.map((r) => ThermalPrinterConfig.fromMap(r)).toList();
+  }
+
+  Future<ThermalPrinterConfig?> getDefaultPrinter() async {
+    final defRows = await db.query(
+      'receipt_printers',
+      where: 'is_default = 1',
+      orderBy: 'id ASC',
+      limit: 1,
+    );
+    if (defRows.isNotEmpty) return ThermalPrinterConfig.fromMap(defRows.first);
+    final anyRows = await db.query('receipt_printers', orderBy: 'id ASC', limit: 1);
+    return anyRows.isNotEmpty ? ThermalPrinterConfig.fromMap(anyRows.first) : null;
+  }
+
+  Future<ThermalPrinterConfig?> getKotPrinter() async {
+    final kotRows = await db.query(
+      'receipt_printers',
+      where: 'is_kot_printer = 1',
+      orderBy: 'is_default DESC, id ASC',
+      limit: 1,
+    );
+    if (kotRows.isNotEmpty) return ThermalPrinterConfig.fromMap(kotRows.first);
+    return await getDefaultPrinter();
+  }
+
+  Future<int> savePrinter(ThermalPrinterConfig printer) async {
+    final int savedId = await db.transaction((txn) async {
+      if (printer.isDefault) {
+        await txn.update('receipt_printers', {'is_default': 0});
+      }
+      final map = printer.toMap();
+      if (printer.id != null) {
+        await txn.update(
+          'receipt_printers',
+          map,
+          where: 'id = ?',
+          whereArgs: [printer.id],
+        );
+        return printer.id!;
+      }
+      return await txn.insert('receipt_printers', map);
+    });
+    await recordActivity(
+      action: printer.id == null ? 'created' : 'updated',
+      entityType: 'receipt_printer',
+      entityId: savedId,
+      newValues: {
+        'name': printer.name,
+        'connection_type': printer.connectionType,
+        'paper_width': printer.paperWidth,
+      },
+    );
+    return savedId;
+  }
+
+  Future<void> setDefaultPrinter(int id) async {
+    await db.transaction((txn) async {
+      await txn.update('receipt_printers', {'is_default': 0});
+      await txn.update(
+        'receipt_printers',
+        {'is_default': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
+    await recordActivity(
+      action: 'updated',
+      entityType: 'receipt_printer',
+      entityId: id,
+      newValues: {'is_default': true},
+    );
+  }
+
+  Future<void> deletePrinter(int id) async {
+    await db.delete('receipt_printers', where: 'id = ?', whereArgs: [id]);
+    await recordActivity(
+      action: 'deleted',
+      entityType: 'receipt_printer',
+      entityId: id,
+    );
+  }
+
+  // ===================== INVOICE LAYOUTS (TEMPLATES) =====================
+
+  Future<List<InvoiceLayout>> getInvoiceLayouts() async {
+    final rows = await db.query('invoice_layouts', orderBy: 'is_default DESC, id ASC');
+    return rows.map((r) => InvoiceLayout.fromMap(r)).toList();
+  }
+
+  Future<InvoiceLayout?> getDefaultInvoiceLayout() async {
+    final defRows = await db.query(
+      'invoice_layouts',
+      where: 'is_default = 1',
+      orderBy: 'id ASC',
+      limit: 1,
+    );
+    if (defRows.isNotEmpty) return InvoiceLayout.fromMap(defRows.first);
+    final anyRows = await db.query('invoice_layouts', orderBy: 'id ASC', limit: 1);
+    return anyRows.isNotEmpty ? InvoiceLayout.fromMap(anyRows.first) : null;
+  }
+
+  Future<int> saveInvoiceLayout(InvoiceLayout layout) async {
+    final int savedId = await db.transaction((txn) async {
+      if (layout.isDefault) {
+        await txn.update('invoice_layouts', {'is_default': 0});
+      }
+      final map = layout.toMap();
+      if (layout.id != null) {
+        await txn.update(
+          'invoice_layouts',
+          map,
+          where: 'id = ?',
+          whereArgs: [layout.id],
+        );
+        return layout.id!;
+      }
+      return await txn.insert('invoice_layouts', map);
+    });
+    await recordActivity(
+      action: layout.id == null ? 'created' : 'updated',
+      entityType: 'invoice_layout',
+      entityId: savedId,
+      newValues: {
+        'name': layout.name,
+        'design': layout.design,
+        'paper_size': layout.paperSize,
+      },
+    );
+    return savedId;
+  }
+
+  Future<void> setDefaultInvoiceLayout(int id) async {
+    await db.transaction((txn) async {
+      await txn.update('invoice_layouts', {'is_default': 0});
+      await txn.update(
+        'invoice_layouts',
+        {'is_default': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
+    await recordActivity(
+      action: 'updated',
+      entityType: 'invoice_layout',
+      entityId: id,
+      newValues: {'is_default': true},
+    );
+  }
+
+  Future<void> deleteInvoiceLayout(int id) async {
+    await db.delete('invoice_layouts', where: 'id = ?', whereArgs: [id]);
+    await recordActivity(
+      action: 'deleted',
+      entityType: 'invoice_layout',
+      entityId: id,
+    );
+  }
+
 }

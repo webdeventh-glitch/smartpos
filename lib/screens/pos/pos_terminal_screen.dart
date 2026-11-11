@@ -24,6 +24,7 @@ import '../../widgets/calculator_dialog.dart';
 import '../products/add_product_dialog.dart';
 import '../../services/currency_rate_service.dart';
 import '../../services/number_to_words_service.dart';
+import '../../services/thermal_printer_service.dart';
 
 class PosTerminalScreen extends ConsumerStatefulWidget {
   final BusinessSettings settings;
@@ -2551,6 +2552,25 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           ),
         );
       } else {
+        final prevBalance = _selectedCustomer?.balance ?? 0.0;
+        if (saleStatus == 'final' && widget.settings.autoPrintReceipt) {
+          // Dispatch background ESC/POS receipt print when configured.
+          ThermalPrinterService.printSaleReceipt(
+            sale: completedSale,
+            settings: widget.settings,
+            tenderedAmount: tendered,
+            changeReturn: changeReturn,
+            customerPreviousBalance: prevBalance,
+          ).catchError((Object err, StackTrace st) {
+            AppLogger.warning(
+              'PosTerminalScreen',
+              'Auto-print ESC/POS failed for ${completedSale.invoiceNo}',
+              err,
+              st,
+            );
+            return false;
+          });
+        }
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -2559,7 +2579,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             settings: widget.settings,
             tenderedAmount: (saleStatus == 'quotation') ? 0.0 : tendered,
             changeReturn: (saleStatus == 'quotation') ? 0.0 : changeReturn,
-            customerPreviousBalance: _selectedCustomer?.balance ?? 0.0,
+            customerPreviousBalance: prevBalance,
           ),
         );
       }
