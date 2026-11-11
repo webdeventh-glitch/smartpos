@@ -134,15 +134,16 @@ class MySqlService {
 
       // Auto-fallback: If user is root, try empty password, common local passwords, and smartpos credentials
       if (user.toLowerCase() == 'root') {
-        if (password.isNotEmpty) {
-          candidateCredentials.add({'user': 'root', 'password': ''});
-          candidateCredentials.add({'user': 'root', 'password': 'root'});
-        } else {
-          candidateCredentials.add({'user': 'root', 'password': 'root'});
+        const commonPasswords = ['', 'root', 'admin', '123456', 'password', 'toor', '1234', 'smartpos123'];
+        for (final p in commonPasswords) {
+          if (!candidateCredentials.any((c) => c['user'] == 'root' && c['password'] == p)) {
+            candidateCredentials.add({'user': 'root', 'password': p});
+          }
         }
         candidateCredentials.add({'user': 'smartpos', 'password': 'smartpos123'});
       }
 
+      dynamic firstAuthError;
       dynamic lastAuthError;
       for (int i = 0; i < candidateCredentials.length; i++) {
         final cred = candidateCredentials[i];
@@ -175,6 +176,7 @@ class MySqlService {
             'message': 'Connected to MySQL server successfully (${sw.elapsedMilliseconds}ms)!$extraNote',
           };
         } catch (e) {
+          if (i == 0) firstAuthError = e;
           lastAuthError = e;
           try {
             await conn?.close();
@@ -186,7 +188,7 @@ class MySqlService {
         }
       }
 
-      throw lastAuthError ?? Exception('Connection failed');
+      throw firstAuthError ?? lastAuthError ?? Exception('Connection failed');
     } catch (e) {
       isMySqlOnline.value = false;
       connectionStatus.value = 'Offline ($e)';
@@ -234,11 +236,11 @@ class MySqlService {
       ];
       // Auto-fallback: If user is root, try empty password, common local passwords, and smartpos credentials
       if (user.toLowerCase() == 'root') {
-        if (password.isNotEmpty) {
-          candidateCredentials.add({'user': 'root', 'password': ''});
-          candidateCredentials.add({'user': 'root', 'password': 'root'});
-        } else {
-          candidateCredentials.add({'user': 'root', 'password': 'root'});
+        const commonPasswords = ['', 'root', 'admin', '123456', 'password', 'toor', '1234', 'smartpos123'];
+        for (final p in commonPasswords) {
+          if (!candidateCredentials.any((c) => c['user'] == 'root' && c['password'] == p)) {
+            candidateCredentials.add({'user': 'root', 'password': p});
+          }
         }
         candidateCredentials.add({'user': 'smartpos', 'password': 'smartpos123'});
       }
@@ -246,10 +248,12 @@ class MySqlService {
       String activeUser = user;
       String activePassword = password;
       bool connected = false;
+      dynamic firstAuthError;
       dynamic lastAuthError;
 
       // Step 1: Connect to server without database to create target DB if missing
-      for (final cred in candidateCredentials) {
+      for (int i = 0; i < candidateCredentials.length; i++) {
+        final cred = candidateCredentials[i];
         try {
           conn = await MySQLConnection.createConnection(
             host: targetHost,
@@ -264,6 +268,7 @@ class MySqlService {
           connected = true;
           break;
         } catch (e) {
+          if (i == 0) firstAuthError = e;
           lastAuthError = e;
           try {
             await conn?.close();
@@ -275,7 +280,7 @@ class MySqlService {
       }
 
       if (!connected) {
-        throw lastAuthError ?? Exception('Could not connect to MySQL server');
+        throw firstAuthError ?? lastAuthError ?? Exception('Could not connect to MySQL server');
       }
 
       await conn!.execute(
@@ -1970,6 +1975,10 @@ class MySqlService {
     ''');
     // Safe migrations for newly added columns
     try { await conn.execute("ALTER TABLE `contacts` ADD COLUMN `loyalty_points` DECIMAL(12,2) DEFAULT 0.00"); } catch (_) {}
+    try { await conn.execute("ALTER TABLE `business_settings` ADD COLUMN `enable_secondary_language` TINYINT(1) DEFAULT 0"); } catch (_) {}
+    try { await conn.execute("ALTER TABLE `business_settings` ADD COLUMN `secondary_language` VARCHAR(20) DEFAULT 'ur'"); } catch (_) {}
+    try { await conn.execute("ALTER TABLE `business_settings` ADD COLUMN `total_in_words_language` VARCHAR(20) DEFAULT 'en'"); } catch (_) {}
+    try { await conn.execute("ALTER TABLE `business_settings` ADD COLUMN `show_total_in_words` TINYINT(1) DEFAULT 1"); } catch (_) {}
   }
 
   static Future<void> _seedSettings(MySQLConnection conn, BusinessSettings s) async {

@@ -722,27 +722,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 _actionPill(
                   icon: Icons.point_of_sale_rounded,
-                  label: 'Point of Sale (F1) / نئی سیل',
+                  label: widget.settings.enableSecondaryLanguage
+                      ? 'Point of Sale (F1) / نئی سیل'
+                      : 'Point of Sale (F1)',
                   onTap: widget.onNavigateToPos,
                 ),
                 _actionPill(
                   icon: Icons.add_box_outlined,
-                  label: '+ Add Product / نیا پروڈکٹ',
+                  label: widget.settings.enableSecondaryLanguage
+                      ? '+ Add Product / نیا پروڈکٹ'
+                      : '+ Add Product',
                   onTap: () => widget.onNavigateToTab(11),
                 ),
                 _actionPill(
                   icon: Icons.add_shopping_cart_rounded,
-                  label: '+ Stock In / Purchase (خریداری)',
+                  label: widget.settings.enableSecondaryLanguage
+                      ? '+ Stock In / Purchase (خریداری)'
+                      : '+ Stock In / Purchase',
                   onTap: () => widget.onNavigateToTab(5),
                 ),
                 _actionPill(
                   icon: Icons.people_outline,
-                  label: 'Customers / گاہکوں کا کھاتہ',
+                  label: widget.settings.enableSecondaryLanguage
+                      ? 'Customers / گاہکوں کا کھاتہ'
+                      : 'Customers Khata',
                   onTap: () => widget.onNavigateToTab(6),
                 ),
                 _actionPill(
                   icon: Icons.local_shipping_outlined,
-                  label: 'Suppliers / سپلائرز کھاتہ',
+                  label: widget.settings.enableSecondaryLanguage
+                      ? 'Suppliers / سپلائرز کھاتہ'
+                      : 'Suppliers Khata',
                   onTap: () => widget.onNavigateToTab(7),
                 ),
                 _actionPill(

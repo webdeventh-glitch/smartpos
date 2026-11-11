@@ -1059,12 +1059,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildFieldLabel('Product Name / پروڈکٹ کا نام', isRequired: true),
+                                  _buildFieldLabel(widget.settings.enableSecondaryLanguage ? 'Product Name / پروڈکٹ کا نام' : 'Product Name', isRequired: true),
                                   TextFormField(
                                     controller: _nameCtrl,
                                     focusNode: _nameFocusNode,
                                     decoration: _inputDecor('e.g. Pepsi 500ml, Panadol 500mg, Cotton T-Shirt'),
-                                    validator: (val) => val == null || val.trim().isEmpty ? 'Product Name is required / پروڈکٹ کا نام درج کریں' : null,
+                                    validator: (val) => val == null || val.trim().isEmpty ? (widget.settings.enableSecondaryLanguage ? 'Product Name is required / پروڈکٹ کا نام درج کریں' : 'Product Name is required') : null,
                                   ),
                                 ],
                               ),
@@ -1122,12 +1122,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildFieldLabel('Product Name / پروڈکٹ کا نام', isRequired: true),
+                                _buildFieldLabel(widget.settings.enableSecondaryLanguage ? 'Product Name / پروڈکٹ کا نام' : 'Product Name', isRequired: true),
                                 TextFormField(
                                   controller: _nameCtrl,
                                   focusNode: _nameFocusNode,
                                   decoration: _inputDecor('e.g. Pepsi 500ml, Panadol 500mg'),
-                                  validator: (val) => val == null || val.trim().isEmpty ? 'Product Name is required / پروڈکٹ کا نام درج کریں' : null,
+                                  validator: (val) => val == null || val.trim().isEmpty ? (widget.settings.enableSecondaryLanguage ? 'Product Name is required / پروڈکٹ کا نام درج کریں' : 'Product Name is required') : null,
                                 ),
                               ],
                             ),
@@ -1809,7 +1809,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildFieldLabel('Purchase Price ($currency) / لاگت'),
+                                _buildFieldLabel(widget.settings.enableSecondaryLanguage ? 'Purchase Price ($currency) / لاگت' : 'Purchase Price ($currency)'),
                                 TextFormField(
                                   controller: _purchasePriceCtrl,
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1849,7 +1849,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildFieldLabel('Selling Price ($currency)* / فروخت قیمت', isRequired: true),
+                                _buildFieldLabel(widget.settings.enableSecondaryLanguage ? 'Selling Price ($currency)* / فروخت قیمت' : 'Selling Price ($currency)*', isRequired: true),
                                 TextFormField(
                                   controller: _sellingPriceCtrl,
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1873,7 +1873,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildFieldLabel('Opening Stock (Units) / ابتدائی سٹاک'),
+                                  _buildFieldLabel(widget.settings.enableSecondaryLanguage ? 'Opening Stock (Units) / ابتدائی سٹاک' : 'Opening Stock (Units)'),
                                   TextFormField(
                                     controller: _openingStockCtrl,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),

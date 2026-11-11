@@ -765,10 +765,10 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
               padding: const EdgeInsets.symmetric(horizontal: 10),
               icon: const Icon(Icons.arrow_drop_down, size: 20),
               items: [
-                _buildMethodItem('cash', Icons.money_rounded, 'Cash', 'نقد / کیش'),
-                _buildMethodItem('bank_transfer', Icons.account_balance_rounded, 'Bank', 'بینک'),
-                _buildMethodItem('card', Icons.credit_card_rounded, 'Card', 'کارڈ'),
-                _buildMethodItem('cheque', Icons.receipt_long_rounded, 'Cheque', 'چیک'),
+                _buildMethodItem('cash', Icons.money_rounded, 'Cash', _getSecondaryText(ur: 'نقد / کیش', ps: 'نغدې', fa: 'نقدی', es: 'Efectivo', nl: 'Contant', en: 'Cash')),
+                _buildMethodItem('bank_transfer', Icons.account_balance_rounded, 'Bank', _getSecondaryText(ur: 'بینک', ps: 'بانک', fa: 'حساب بانکی', es: 'Banco', nl: 'Bank', en: 'Bank')),
+                _buildMethodItem('card', Icons.credit_card_rounded, 'Card', _getSecondaryText(ur: 'کارڈ', ps: 'کارت', fa: 'کارت‌خوان', es: 'Tarjeta', nl: 'Kaart', en: 'Card')),
+                _buildMethodItem('cheque', Icons.receipt_long_rounded, 'Cheque', _getSecondaryText(ur: 'چیک', ps: 'چک', fa: 'چک', es: 'Cheque', nl: 'Cheque', en: 'Cheque')),
               ],
               onChanged: (val) {
                 if (val != null) setState(() => _paymentMethod = val);

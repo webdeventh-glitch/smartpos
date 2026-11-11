@@ -142,7 +142,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Quick Stock In / سٹاک شامل کریں',
+                      widget.settings.enableSecondaryLanguage ? 'Quick Stock In / سٹاک شامل کریں' : 'Quick Stock In',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -172,21 +172,23 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFFA7F3D0)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Color(0xFF059669), size: 18),
-                      SizedBox(width: 8),
+                      const Icon(Icons.info_outline, color: Color(0xFF059669), size: 18),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'اضافی سٹاک درج کریں۔ یہ خود بخود انوینٹری اور خریداری کے کھاتے میں اپ ڈیٹ ہو جائے گا۔',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF065F46), fontWeight: FontWeight.w600),
+                          widget.settings.enableSecondaryLanguage
+                              ? 'اضافی سٹاک درج کریں۔ یہ خود بخود انوینٹری اور خریداری کے کھاتے میں اپ ڈیٹ ہو جائے گا۔'
+                              : 'Enter incoming stock quantity. This will update inventory and purchase accounts automatically.',
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF065F46), fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text('Quantity to Add / شامل کرنے والی تعداد (${product.unit})*',
+                Text(widget.settings.enableSecondaryLanguage ? 'Quantity to Add / شامل کرنے والی تعداد (${product.unit})*' : 'Quantity to Add (${product.unit})*',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 const SizedBox(height: 6),
                 TextField(
@@ -202,7 +204,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                Text('Purchase Cost per Unit / فی یونٹ خریداری قیمت ($currency)',
+                Text(widget.settings.enableSecondaryLanguage ? 'Purchase Cost per Unit / فی یونٹ خریداری قیمت ($currency)' : 'Purchase Cost per Unit ($currency)',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 const SizedBox(height: 6),
                 TextField(
@@ -219,7 +221,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 ),
                 const SizedBox(height: 14),
                 if (suppliers.isNotEmpty) ...[
-                  const Text('Supplier / سپلائر (اختیاری)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  Text(widget.settings.enableSecondaryLanguage ? 'Supplier / سپلائر (اختیاری)' : 'Supplier (Optional)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<Contact?>(
                     initialValue: selectedSup,
@@ -252,7 +254,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               icon: const Icon(Icons.check, size: 16),
-              label: const Text('Add Stock / سٹاک شامل کریں', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(widget.settings.enableSecondaryLanguage ? 'Add Stock / سٹاک شامل کریں' : 'Add Stock', style: const TextStyle(fontWeight: FontWeight.bold)),
               onPressed: () async {
                 final qty = double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
                 final cost = double.tryParse(costCtrl.text.trim()) ?? product.purchasePrice;
@@ -301,7 +303,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'کامیابی: ${product.name} میں $qty ${product.unit} نیا سٹاک شامل کر دیا گیا! (نیا ٹوٹل: ${(product.stockQuantity + qty).toStringAsFixed(1)})',
+                                widget.settings.enableSecondaryLanguage
+                                    ? 'کامیابی: ${product.name} میں $qty ${product.unit} نیا سٹاک شامل کر دیا گیا! (نیا ٹوٹل: ${(product.stockQuantity + qty).toStringAsFixed(1)})'
+                                    : 'Success: Added $qty ${product.unit} to ${product.name}! (New total: ${(product.stockQuantity + qty).toStringAsFixed(1)})',
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -489,7 +493,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
-                      label: const Text('Stock In / Purchase (خریداری)', style: TextStyle(fontWeight: FontWeight.w700)),
+                      label: Text(widget.settings.enableSecondaryLanguage ? 'Stock In / Purchase (خریداری)' : 'Stock In / Purchase', style: const TextStyle(fontWeight: FontWeight.w700)),
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -945,7 +949,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    tooltip: 'Quick Stock In / سٹاک شامل کریں',
+                                    tooltip: widget.settings.enableSecondaryLanguage ? 'Quick Stock In / سٹاک شامل کریں' : 'Quick Stock In',
                                     icon: const Icon(Icons.add_business_rounded, size: 18, color: Color(0xFF059669)),
                                     onPressed: () => _openQuickStockIn(p),
                                   ),

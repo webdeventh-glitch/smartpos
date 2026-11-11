@@ -5458,9 +5458,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Primary Language (بنیادی زبان)',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            Text(
+                              _enableSecondaryLanguage ? 'Primary Language (بنیادی زبان)' : 'Primary Language',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                             Text(
                               'Choose primary language for invoice totals in words (English, Urdu, Pashto, Farsi, Spanish, Dutch)',
@@ -5481,7 +5481,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           );
                         }).toList(),
                         onChanged: (val) {
-                          if (val != null) setState(() => _totalInWordsLanguage = val);
+                          if (val != null) {
+                            setState(() => _totalInWordsLanguage = val);
+                            _saveReceiptSettings(showSnackbar: true);
+                          }
                         },
                       ),
                     ],
@@ -5499,21 +5502,23 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         onChanged: (val) {
                           setState(() => _enableSecondaryLanguage = val ?? false);
+                          _saveReceiptSettings(showSnackbar: true);
                         },
                       ),
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
                             setState(() => _enableSecondaryLanguage = !_enableSecondaryLanguage);
+                            _saveReceiptSettings(showSnackbar: true);
                           },
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  const Text(
-                                    'Enable Secondary Language (ثانوی زبان - اختیاری)',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  Text(
+                                    _enableSecondaryLanguage ? 'Enable Secondary Language (ثانوی زبان - اختیاری)' : 'Enable Secondary Language (Optional)',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
@@ -5558,7 +5563,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             );
                           }).toList(),
                           onChanged: (val) {
-                            if (val != null) setState(() => _secondaryLanguage = val);
+                            if (val != null) {
+                              setState(() => _secondaryLanguage = val);
+                              _saveReceiptSettings(showSnackbar: true);
+                            }
                           },
                         ),
                       ],
@@ -5602,6 +5610,27 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         ],
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          elevation: 0,
+                        ),
+                        icon: const Icon(Icons.check_circle_rounded, size: 16),
+                        label: Text(
+                          _isSavingReceiptSettings ? 'Saving...' : 'Save Language & Invoice Settings',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        onPressed: _isSavingReceiptSettings ? null : () => _saveReceiptSettings(showSnackbar: true),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -5737,7 +5766,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   // BILL CUSTOMIZATION & UNIVERSAL PRINT ENGINE
   // ==========================================
 
-  Future<void> _saveReceiptSettings() async {
+  Future<void> _saveReceiptSettings({bool showSnackbar = true}) async {
     setState(() => _isSavingReceiptSettings = true);
     try {
       final updated = widget.settings.copyWith(
@@ -5769,10 +5798,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       await db.updateBusinessSettings(updated);
       widget.onSettingsUpdated(updated);
 
-      if (mounted) {
+      if (mounted && showSnackbar) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Bill Customization & Printing settings saved successfully!'),
+            content: Text('Settings saved successfully!'),
             backgroundColor: Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
           ),

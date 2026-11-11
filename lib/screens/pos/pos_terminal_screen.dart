@@ -93,6 +93,18 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     _loadInitialData();
   }
 
+  @override
+  void didUpdateWidget(covariant PosTerminalScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.settings.totalInWordsLanguage != widget.settings.totalInWordsLanguage) {
+      if (widget.settings.totalInWordsLanguage.isNotEmpty) {
+        setState(() {
+          _wordsLanguage = widget.settings.totalInWordsLanguage;
+        });
+      }
+    }
+  }
+
   void _showWordsLanguageDialog() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(

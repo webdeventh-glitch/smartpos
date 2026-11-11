@@ -150,6 +150,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
         'Purchases': 'خرید و ورود کالا',
         'Expenses': 'هزینه‌ها و تنخواه',
         'Contacts': 'مشتریان و تامین‌کنندگان',
+        'Contacts & Khata': 'مشتریان، تامین‌کنندگان و حساب‌ها',
         'User Management': 'کاربران و اختیارات',
         'Reports': 'گزارش‌ها و تحلیل مالی',
         'SMS & WhatsApp Alerts': 'اعلان‌ها و پیامک',
@@ -160,8 +161,42 @@ class _SmartSidebarState extends State<SmartSidebar> {
         'Cloud & MySQL Sync': 'همگام‌سازی ابری',
         'Modular Features': 'ماژول‌های انتخابی',
         'Specialized Industry Modules': 'ماژول‌های تخصصی',
+        'List Products': 'فهرست محصولات',
+        'Add Product': 'افزودن محصول جدید',
+        'Print Labels': 'چاپ بارکد',
+        'Variations': 'تنوع کالا',
+        'Import Products': 'ورود محصولات',
+        'Price Groups': 'گروه‌های قیمت',
+        'Units': 'واحدهای سنجش',
+        'Categories': 'دسته‌بندی‌ها',
+        'Brands': 'برندها',
+        'Warranties': 'گارانتی‌ها',
+        'List Transfers': 'فهرست انتقالات',
+        'Add Transfer': 'ثبت انتقال جدید',
+        'Stock Adjustment': 'تعدیل موجودی',
+        'Adjustments List': 'فهرست تعدیلات',
+        'Add Adjustment': 'ثبت تعدیل جدید',
+        'All Sales': 'همه فروش‌ها',
+        'List POS': 'فاکتورهای صندوق',
+        'Sales Return': 'مرجوعی فروش',
+        'Purchases List': 'فهرست خریدها',
+        'Add Purchase': 'ثبت خرید جدید',
+        'Purchase Return': 'مرجوعی خرید',
+        'List Expenses': 'فهرست هزینه‌ها',
+        'Add Expense': 'ثبت هزینه جدید',
+        'Customers': 'مشتریان',
+        'Suppliers': 'تامین‌کنندگان',
+        'Customer Groups': 'گروه‌های مشتری',
+        'Users': 'کاربران',
+        'Roles & Permissions': 'نقش‌ها و دسترسی‌ها',
+        'Profit / Loss Report': 'گزارش سود و زیان',
+        'Purchase & Sale': 'خرید و فروش',
+        'Tax Report': 'گزارش مالیات',
+        'Contact Dues': 'بدهی اشخاص',
+        'Stock & Expiry Audit': 'حسابرسی انبار و انقضا',
+        'Trending Products': 'کالاهای پرفروش',
       };
-      return farsiSubtitles[title] ?? defaultUrduSubtitle;
+      return farsiSubtitles[title];
     }
 
     if (sec == 'ps') {
@@ -175,6 +210,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
         'Purchases': 'پېرل او توکي ترلاسه کول',
         'Expenses': 'لګښتونه او پیټي کیش',
         'Contacts': 'پېرودونکي او درمل پلورونکي',
+        'Contacts & Khata': 'پېرودونکي، عرضه کوونکي او حسابونه',
         'User Management': 'کاروونکي او واکونه',
         'Reports': 'راپورونه او مالي تحلیل',
         'SMS & WhatsApp Alerts': 'خبرتیاوې او پیغامونه',
@@ -185,8 +221,42 @@ class _SmartSidebarState extends State<SmartSidebar> {
         'Cloud & MySQL Sync': 'کلاوډ همغږي',
         'Modular Features': 'فعالې برخې',
         'Specialized Industry Modules': 'ځانګړې برخې',
+        'List Products': 'د توکو لست',
+        'Add Product': 'نوی توکی اضافه کول',
+        'Print Labels': 'د بارکوډ چاپ',
+        'Variations': 'ویرینټونه',
+        'Import Products': 'د توکو واردول',
+        'Price Groups': 'د بیو ګروپونه',
+        'Units': 'د اندازه کولو واحدونه',
+        'Categories': 'ډلبندۍ',
+        'Brands': 'برانډونه',
+        'Warranties': 'وارنټۍ',
+        'List Transfers': 'د لېږد لست',
+        'Add Transfer': 'نوی لېږد',
+        'Stock Adjustment': 'د زېرمې برابرول',
+        'Adjustments List': 'د برابرولو لست',
+        'Add Adjustment': 'نوی برابرول',
+        'All Sales': 'ټول پلورونه',
+        'List POS': 'د پی او ایس بلونه',
+        'Sales Return': 'د پلور بېرته ګرځول',
+        'Purchases List': 'د پېرلو لست',
+        'Add Purchase': 'نوی پېرل',
+        'Purchase Return': 'د پېر بېرته ګرځول',
+        'List Expenses': 'د لګښتونو لست',
+        'Add Expense': 'نوی لګښت',
+        'Customers': 'پېرودونکي',
+        'Suppliers': 'عرضه کوونکي',
+        'Customer Groups': 'د پېرودونکو ګروپونه',
+        'Users': 'کاروونکي',
+        'Roles & Permissions': 'واکونه او رولونه',
+        'Profit / Loss Report': 'د ګټې او تاوان راپور',
+        'Purchase & Sale': 'پېر او پلور',
+        'Tax Report': 'د مالیاتو راپور',
+        'Contact Dues': 'د پېرودونکو پاتې پیسې',
+        'Stock & Expiry Audit': 'د زېرمې او نېټې څارنه',
+        'Trending Products': 'ډېر پلورل شوي توکي',
       };
-      return pashtoSubtitles[title] ?? defaultUrduSubtitle;
+      return pashtoSubtitles[title];
     }
 
     if (sec == 'ur') {
@@ -204,6 +274,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
         'Purchases': 'Compras y Pedidos',
         'Expenses': 'Gastos y Caja Chica',
         'Contacts': 'Clientes y Proveedores',
+        'Contacts & Khata': 'Clientes y Proveedores',
         'User Management': 'Usuarios y Permisos',
         'Reports': 'Informes y Finanzas',
         'SMS & WhatsApp Alerts': 'Alertas y Mensajes',
@@ -214,8 +285,42 @@ class _SmartSidebarState extends State<SmartSidebar> {
         'Cloud & MySQL Sync': 'Sincronización Cloud',
         'Modular Features': 'Módulos',
         'Specialized Industry Modules': 'Módulos Especiales',
+        'List Products': 'Lista de Productos',
+        'Add Product': 'Nuevo Producto',
+        'Print Labels': 'Imprimir Códigos',
+        'Variations': 'Variaciones',
+        'Import Products': 'Importar Productos',
+        'Price Groups': 'Grupos de Precios',
+        'Units': 'Unidades',
+        'Categories': 'Categorías',
+        'Brands': 'Marcas',
+        'Warranties': 'Garantías',
+        'List Transfers': 'Lista de Transferencias',
+        'Add Transfer': 'Nueva Transferencia',
+        'Stock Adjustment': 'Ajuste de Stock',
+        'Adjustments List': 'Lista de Ajustes',
+        'Add Adjustment': 'Nuevo Ajuste',
+        'All Sales': 'Todas las Ventas',
+        'List POS': 'Ventas POS',
+        'Sales Return': 'Devolución de Venta',
+        'Purchases List': 'Lista de Compras',
+        'Add Purchase': 'Nueva Compra',
+        'Purchase Return': 'Devolución de Compra',
+        'List Expenses': 'Lista de Gastos',
+        'Add Expense': 'Nuevo Gasto',
+        'Customers': 'Clientes',
+        'Suppliers': 'Proveedores',
+        'Customer Groups': 'Grupos de Clientes',
+        'Users': 'Usuarios',
+        'Roles & Permissions': 'Permisos',
+        'Profit / Loss Report': 'Ganancias y Pérdidas',
+        'Purchase & Sale': 'Compras y Ventas',
+        'Tax Report': 'Reporte de Impuestos',
+        'Contact Dues': 'Saldos Pendientes',
+        'Stock & Expiry Audit': 'Auditoría de Stock',
+        'Trending Products': 'Productos Populares',
       };
-      return spanishSubtitles[title] ?? defaultUrduSubtitle;
+      return spanishSubtitles[title];
     }
 
     if (sec == 'nl') {
@@ -229,6 +334,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
         'Purchases': 'Inkopen en Bestellingen',
         'Expenses': 'Uitgaven en Kasboek',
         'Contacts': 'Klanten en Leveranciers',
+        'Contacts & Khata': 'Klanten en Leveranciers',
         'User Management': 'Gebruikersbeheer',
         'Reports': 'Rapporten en Financiën',
         'SMS & WhatsApp Alerts': 'Notificaties',
@@ -239,12 +345,46 @@ class _SmartSidebarState extends State<SmartSidebar> {
         'Cloud & MySQL Sync': 'Cloud & MySQL Sync',
         'Modular Features': 'Modules',
         'Specialized Industry Modules': 'Branchemodules',
+        'List Products': 'Productenlijst',
+        'Add Product': 'Nieuw Product',
+        'Print Labels': 'Labels Afdrukken',
+        'Variations': 'Variaties',
+        'Import Products': 'Producten Importeren',
+        'Price Groups': 'Prijsgroepen',
+        'Units': 'Eenheden',
+        'Categories': 'Categorieën',
+        'Brands': 'Merken',
+        'Warranties': 'Garanties',
+        'List Transfers': 'Overdrachten',
+        'Add Transfer': 'Nieuwe Overdracht',
+        'Stock Adjustment': 'Voorraadcorrectie',
+        'Adjustments List': 'Correctielijst',
+        'Add Adjustment': 'Nieuwe Correctie',
+        'All Sales': 'Alle Verkopen',
+        'List POS': 'Kassaoverzicht',
+        'Sales Return': 'Verkoopretouren',
+        'Purchases List': 'Inkooplijst',
+        'Add Purchase': 'Nieuwe Inkoop',
+        'Purchase Return': 'Inkoopretouren',
+        'List Expenses': 'Uitgavenlijst',
+        'Add Expense': 'Nieuwe Uitgave',
+        'Customers': 'Klanten',
+        'Suppliers': 'Leveranciers',
+        'Customer Groups': 'Klantgroepen',
+        'Users': 'Gebruikers',
+        'Roles & Permissions': 'Rollen & Rechten',
+        'Profit / Loss Report': 'Winst- en Verliesrekening',
+        'Purchase & Sale': 'Inkoop & Verkoop',
+        'Tax Report': 'Belastingrapport',
+        'Contact Dues': 'Openstaande Saldi',
+        'Stock & Expiry Audit': 'Voorraadaudit',
+        'Trending Products': 'Populaire Producten',
       };
-      return dutchSubtitles[title] ?? defaultUrduSubtitle;
+      return dutchSubtitles[title];
     }
 
     if (sec == 'en') {
-      return title;
+      return null;
     }
 
     return null;
@@ -595,17 +735,17 @@ class _SmartSidebarState extends State<SmartSidebar> {
         onTapDirect: () => widget.onSelect(2),
       ),
       if (!widget.isCollapsed && _productsExpanded) ...[
-        _subItem(title: 'List Products (پروڈکٹس لسٹ)', index: 2),
-        if (canInventory) _subItem(title: 'Add Product (نیا پروڈکٹ)', index: 11),
-        _subItem(title: 'Print Labels (بارکوڈ لیبلز)', index: 17),
+        _subItem(title: 'List Products', urduSubtitle: 'پروڈکٹس لسٹ', index: 2),
+        if (canInventory) _subItem(title: 'Add Product', urduSubtitle: 'نیا پروڈکٹ', index: 11),
+        _subItem(title: 'Print Labels', urduSubtitle: 'بارکوڈ لیبلز', index: 17),
         if (_isModEnabled(BusinessSettings.moduleVariations))
-          _subItem(title: 'Variations (ویرینٹس)', index: 18),
-        if (canInventory) _subItem(title: 'Import Products (امپورٹ)', index: 23),
-        if (canSettings) _subItem(title: 'Price Groups (قیمت گروپس)', index: 22),
-        _subItem(title: 'Units (پیمائش کے یونٹس)', index: 19),
-        _subItem(title: 'Categories (کیٹیگریز)', index: 3),
-        _subItem(title: 'Brands (برانڈز)', index: 20),
-        _subItem(title: 'Warranties (وارنٹیز)', index: 21),
+          _subItem(title: 'Variations', urduSubtitle: 'ویرینٹس', index: 18),
+        if (canInventory) _subItem(title: 'Import Products', urduSubtitle: 'امپورٹ', index: 23),
+        if (canSettings) _subItem(title: 'Price Groups', urduSubtitle: 'قیمت گروپس', index: 22),
+        _subItem(title: 'Units', urduSubtitle: 'پیمائش کے یونٹس', index: 19),
+        _subItem(title: 'Categories', urduSubtitle: 'کیٹیگریز', index: 3),
+        _subItem(title: 'Brands', urduSubtitle: 'برانڈز', index: 20),
+        _subItem(title: 'Warranties', urduSubtitle: 'وارنٹیز', index: 21),
       ],
 
       // Stock Transfers
@@ -622,8 +762,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(13),
         ),
         if (!widget.isCollapsed && _transfersExpanded) ...[
-          _subItem(title: 'List Transfers (تمام ٹرانسفرز)', index: 13),
-          _subItem(title: 'Add Transfer (نیا ٹرانسفر بھیجیں)', index: 13),
+          _subItem(title: 'List Transfers', urduSubtitle: 'تمام ٹرانسفرز', index: 13),
+          _subItem(title: 'Add Transfer', urduSubtitle: 'نیا ٹرانسفر بھیجیں', index: 13),
         ],
       ],
 
@@ -641,8 +781,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(14),
         ),
         if (!widget.isCollapsed && _adjustmentsExpanded) ...[
-          _subItem(title: 'Adjustments List (لسٹ)', index: 14),
-          _subItem(title: 'Add Adjustment (نیا اندراج)', index: 14),
+          _subItem(title: 'Adjustments List', urduSubtitle: 'لسٹ', index: 14),
+          _subItem(title: 'Add Adjustment', urduSubtitle: 'نیا اندراج', index: 14),
         ],
       ],
 
@@ -664,11 +804,11 @@ class _SmartSidebarState extends State<SmartSidebar> {
         onTapDirect: () => widget.onSelect(4),
       ),
       if (!widget.isCollapsed && _sellExpanded) ...[
-        _subItem(title: 'All Sales (تمام بلز)', index: 4),
-        _subItem(title: 'POS Terminal (کاؤنٹر سیل)', index: 1),
-        _subItem(title: 'List POS (پی او ایس انوائسز)', index: 4),
+        _subItem(title: 'All Sales', urduSubtitle: 'تمام بلز', index: 4),
+        _subItem(title: 'POS Terminal', urduSubtitle: 'کاؤنٹر سیل', index: 1),
+        _subItem(title: 'List POS', urduSubtitle: 'پی او ایس انوائسز', index: 4),
         if (_isModEnabled(BusinessSettings.moduleReturns))
-          _subItem(title: 'Sales Return (سیلز واپسی)', index: 25),
+          _subItem(title: 'Sales Return', urduSubtitle: 'سیلز واپسی', index: 25),
       ],
 
       // Purchases
@@ -684,10 +824,10 @@ class _SmartSidebarState extends State<SmartSidebar> {
         onTapDirect: () => widget.onSelect(5),
       ),
       if (!widget.isCollapsed && _purchasesExpanded) ...[
-        _subItem(title: 'Purchases List (خریداری لسٹ)', index: 5),
-        _subItem(title: 'Add Purchase (نئی خریداری درج کریں)', index: 41),
+        _subItem(title: 'Purchases List', urduSubtitle: 'خریداری لسٹ', index: 5),
+        _subItem(title: 'Add Purchase', urduSubtitle: 'نئی خریداری درج کریں', index: 41),
         if (_isModEnabled(BusinessSettings.moduleReturns))
-          _subItem(title: 'Purchase Return (خریداری واپسی)', index: 26),
+          _subItem(title: 'Purchase Return', urduSubtitle: 'خریداری واپسی', index: 26),
       ],
 
       // Expenses
@@ -704,8 +844,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(8),
         ),
         if (!widget.isCollapsed && _expensesExpanded) ...[
-          _subItem(title: 'List Expenses (تمام اخراجات)', index: 8),
-          _subItem(title: 'Add Expense (نیا خرچہ شامل کریں)', index: 8),
+          _subItem(title: 'List Expenses', urduSubtitle: 'تمام اخراجات', index: 8),
+          _subItem(title: 'Add Expense', urduSubtitle: 'نیا خرچہ شامل کریں', index: 8),
         ],
       ],
 
@@ -728,9 +868,9 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(6),
         ),
       if (!widget.isCollapsed && _contactsExpanded && canKhata) ...[
-        _subItem(title: 'Customers (گاہک / کسٹمرز)', index: 6),
-        _subItem(title: 'Suppliers (سپلائرز / وینڈرز)', index: 7),
-        _subItem(title: 'Customer Groups (کسٹمر گروپس)', index: 6),
+        _subItem(title: 'Customers', urduSubtitle: 'گاہک / کسٹمرز', index: 6),
+        _subItem(title: 'Suppliers', urduSubtitle: 'سپلائرز / وینڈرز', index: 7),
+        _subItem(title: 'Customer Groups', urduSubtitle: 'کسٹمر گروپس', index: 6),
       ],
 
       // User Management
@@ -747,8 +887,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(12),
         ),
       if (!widget.isCollapsed && _userMgmtExpanded && canManageUsers) ...[
-        _subItem(title: 'Users (صارفین کی فہرست)', index: 12),
-        _subItem(title: 'Roles & Permissions (اختیارات)', index: 12),
+        _subItem(title: 'Users', urduSubtitle: 'صارفین کی فہرست', index: 12),
+        _subItem(title: 'Roles & Permissions', urduSubtitle: 'اختیارات', index: 12),
       ],
 
       // ==========================================
@@ -770,13 +910,13 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(9),
         ),
         if (!widget.isCollapsed && _reportsExpanded) ...[
-          _subItem(title: 'Profit / Loss Report (نفع نقصان)', index: 9),
-          _subItem(title: 'Purchase & Sale (خرید و فروخت)', index: 9),
-          _subItem(title: 'Tax Report (ٹیکس رپورٹ)', index: 9),
-          _subItem(title: 'Contact Dues (کھاتہ بقایا جات)', index: 9),
+          _subItem(title: 'Profit / Loss Report', urduSubtitle: 'نفع نقصان', index: 9),
+          _subItem(title: 'Purchase & Sale', urduSubtitle: 'خرید و فروخت', index: 9),
+          _subItem(title: 'Tax Report', urduSubtitle: 'ٹیکس رپورٹ', index: 9),
+          _subItem(title: 'Contact Dues', urduSubtitle: 'کھاتہ بقایا جات', index: 9),
           if (_isModEnabled(BusinessSettings.moduleStockAudit))
-            _subItem(title: 'Stock & Expiry Audit (سٹاک و ایکسپائری)', index: 24),
-          _subItem(title: 'Trending Products (زیادہ بکنے والا مال)', index: 9),
+            _subItem(title: 'Stock & Expiry Audit', urduSubtitle: 'سٹاک و ایکسپائری', index: 24),
+          _subItem(title: 'Trending Products', urduSubtitle: 'زیادہ بکنے والا مال', index: 9),
         ],
       ],
 
