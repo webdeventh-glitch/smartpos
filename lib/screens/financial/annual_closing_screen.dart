@@ -157,7 +157,7 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
     if (confirm != true) return;
 
     final db = await DatabaseService.initialize();
-    final currentUser = AuthService.currentUser?.name ?? 'Irfan Khan (SuperAdmin)';
+    final currentUser = AuthService.currentUser?.name ?? 'System Administrator';
 
     final fy = FinancialYear(
       yearTitle: yearTitle,

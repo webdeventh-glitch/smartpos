@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/print_service.dart';
 import '../../services/number_to_words_service.dart';
 
@@ -69,6 +70,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         final unitStr = (item.unitName != null && item.unitName!.isNotEmpty) ? ' ${item.unitName}' : '';
         buffer.writeln('${i + 1}. *${item.productName}*');
         buffer.writeln('    $qtyStr$unitStr x $currency${item.unitPrice.toStringAsFixed(2)} = *$currency${item.subtotal.toStringAsFixed(2)}*');
+        if (item.resolvedDiscountAmount > 0) {
+          buffer.writeln('    Disc: ${item.formatDiscountTag(currency)}');
+        }
       }
     }
     buffer.writeln('----------------------------------------');
@@ -78,6 +82,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
     }
     if (widget.sale.taxAmount > 0) {
       buffer.writeln('Tax: +$currency${widget.sale.taxAmount.toStringAsFixed(2)}');
+      for (final entry in widget.sale.taxBreakdownMap.entries) {
+        buffer.writeln('  • ${entry.key}: +$currency${entry.value.toStringAsFixed(2)}');
+      }
     }
     buffer.writeln('*TOTAL PAYABLE: $currency${widget.sale.totalAmount.toStringAsFixed(2)}*');
     buffer.writeln('Amount Paid: $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
@@ -272,7 +279,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                             if (Platform.isWindows) {
                               Process.run('cmd', ['/c', 'start', '', url]);
                             }
-                          } catch (_) {}
+                          } catch (e, st) {
+                            AppLogger.warning('ReceiptDialog', 'Failed launching WhatsApp link', e, st);
+                          }
                           Clipboard.setData(ClipboardData(text: message));
                           Navigator.pop(ctx);
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -327,7 +336,15 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
           final qty = item.quantity.toStringAsFixed(0).padLeft(3);
           final bonus = item.bonusQuantity.toStringAsFixed(0).padLeft(5);
           final rate = item.unitPrice.toStringAsFixed(2).padLeft(8);
-          final disc = (item.packDiscount > 0 ? '${item.packDiscount}%' : '0.00').padLeft(7);
+          final pctDisc = item.discountType == 'percentage'
+              ? (item.discountValue > 0 ? item.discountValue : item.packDiscount)
+              : item.packDiscount;
+          final disc = (pctDisc > 0
+                  ? '${pctDisc.toStringAsFixed(pctDisc == pctDisc.roundToDouble() ? 0 : 1)}%'
+                  : (item.resolvedDiscountAmount > 0
+                      ? item.resolvedDiscountAmount.toStringAsFixed(2)
+                      : '0.00'))
+              .padLeft(7);
           final total = item.subtotal.toStringAsFixed(2).padLeft(10);
           buffer.writeln('$name $batch $exp $qty $bonus $rate $disc $total');
         }
@@ -340,7 +357,10 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
           final name = item.productName.length > 35 ? item.productName.substring(0, 35) : item.productName.padRight(35);
           final qty = item.quantity.toStringAsFixed(0).padLeft(5);
           final rate = item.unitPrice.toStringAsFixed(2).padLeft(13);
-          final disc = (item.discount > 0 ? item.discount.toStringAsFixed(2) : '-').padLeft(9);
+          final disc = (item.resolvedDiscountAmount > 0
+                  ? item.resolvedDiscountAmount.toStringAsFixed(2)
+                  : '-')
+              .padLeft(9);
           final total = item.subtotal.toStringAsFixed(2).padLeft(11);
           buffer.writeln('$name $qty $rate $disc $total');
         }
@@ -354,6 +374,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
     }
     if (widget.sale.taxAmount > 0) {
       buffer.writeln('${isPharma ? "ADVANCE TAX (SEC 236H):" : "TAX:                   "}  +$currency${widget.sale.taxAmount.toStringAsFixed(2)}');
+      for (final entry in widget.sale.taxBreakdownMap.entries) {
+        buffer.writeln('  ${entry.key.padRight(24)} +$currency${entry.value.toStringAsFixed(2)}');
+      }
     }
     buffer.writeln('TOTAL AMOUNT:             $currency${widget.sale.totalAmount.toStringAsFixed(2)}');
     buffer.writeln('PAID AMOUNT:              $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
@@ -629,7 +652,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
 
     for (var it in items) {
       totalPackValue += (it.unitPrice * it.quantity);
-      totalPackDisc += it.discount;
+      totalPackDisc += it.resolvedDiscountAmount;
     }
 
     return Column(
@@ -745,7 +768,13 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                   _td(it.bonusQuantity > 0 ? '${it.bonusQuantity.toInt()}' : '0', color: const Color(0xFF059669)),
                   _td(it.unitPrice.toStringAsFixed(2)),
                   _td(packVal.toStringAsFixed(2)),
-                  _td(it.discount > 0 ? it.discount.toStringAsFixed(2) : '0.00'),
+                  _td(
+                    it.resolvedDiscountAmount > 0
+                        ? (it.discountType == 'percentage' && it.discountValue > 0
+                            ? '${it.resolvedDiscountAmount.toStringAsFixed(2)} (${it.discountValue.toStringAsFixed(it.discountValue == it.discountValue.roundToDouble() ? 0 : 1)}%)'
+                            : it.resolvedDiscountAmount.toStringAsFixed(2))
+                        : '0.00',
+                  ),
                   _td(it.subtotal.toStringAsFixed(2), isBold: true),
                 ],
               );
@@ -766,14 +795,19 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                widget.sale.taxAmount > 0
-                    ? (widget.settings.isPharmacy
-                        ? 'Advance Tax Under Section(236H)= 0.50%    $currency${widget.sale.taxAmount.toStringAsFixed(2)}'
-                        : 'Tax Amount: $currency${widget.sale.taxAmount.toStringAsFixed(2)}')
-                    : 'Tax: Exempt (0.00%)',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+              Expanded(
+                child: Text(
+                  widget.sale.taxAmount > 0
+                      ? (widget.sale.taxBreakdownMap.isNotEmpty
+                          ? 'Taxes (${widget.sale.taxBreakdownMap.entries.map((e) => '${e.key}: $currency${e.value.toStringAsFixed(2)}').join(' + ')}) = $currency${widget.sale.taxAmount.toStringAsFixed(2)}'
+                          : (widget.settings.isPharmacy
+                              ? 'Advance Tax Under Section(236H)= 0.50%    $currency${widget.sale.taxAmount.toStringAsFixed(2)}'
+                              : 'Tax Amount: $currency${widget.sale.taxAmount.toStringAsFixed(2)}'))
+                      : 'Tax: Exempt (0.00%)',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                ),
               ),
+              const SizedBox(width: 12),
               Row(
                 children: [
                   const Text('TOTAL : ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
@@ -1077,6 +1111,14 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         ),
                     ],
                   ),
+                  if (item.resolvedDiscountAmount > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Text(
+                        'Item Disc: ${item.formatDiscountTag(currency)}',
+                        style: const TextStyle(fontSize: 9.5, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -1089,8 +1131,13 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         _calcRow('Subtotal', '$currency${widget.sale.subtotal.toStringAsFixed(2)}'),
         if (widget.sale.discount > 0)
           _calcRow(widget.settings.isPharmacy ? 'Pack Discount' : 'Discount', '-$currency${widget.sale.discount.toStringAsFixed(2)}'),
-        if (widget.sale.taxAmount > 0)
-          _calcRow(widget.settings.isPharmacy ? 'Advance Tax (236H)' : 'Tax', '+$currency${widget.sale.taxAmount.toStringAsFixed(2)}'),
+        if (widget.sale.taxAmount > 0) ...[
+          if (widget.sale.taxBreakdownMap.isNotEmpty) ...[
+            for (final entry in widget.sale.taxBreakdownMap.entries)
+              _calcRow(entry.key, '+$currency${entry.value.toStringAsFixed(2)}'),
+          ],
+          _calcRow(widget.settings.isPharmacy ? 'Advance Tax (236H)' : 'Total Tax', '+$currency${widget.sale.taxAmount.toStringAsFixed(2)}'),
+        ],
 
         const SizedBox(height: 6),
         _dottedDivider(),

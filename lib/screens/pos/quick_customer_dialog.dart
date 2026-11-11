@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 
 class QuickCustomerDialog extends StatefulWidget {
   final Function(Contact) onCustomerAdded;
+  final Contact? customerToEdit;
 
-  const QuickCustomerDialog({super.key, required this.onCustomerAdded});
+  const QuickCustomerDialog({
+    super.key,
+    required this.onCustomerAdded,
+    this.customerToEdit,
+  });
 
   @override
   State<QuickCustomerDialog> createState() => _QuickCustomerDialogState();
@@ -18,7 +24,37 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
   final _creditLimitController = TextEditingController(text: '1000.00');
+  List<CustomerGroup> _groups = [];
+  int? _selectedGroupId;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final edit = widget.customerToEdit;
+    if (edit != null) {
+      _nameController.text = edit.name;
+      _phoneController.text = edit.phone;
+      _emailController.text = edit.email;
+      _addressController.text = edit.address;
+      _creditLimitController.text = edit.creditLimit.toStringAsFixed(2);
+      _selectedGroupId = edit.customerGroupId;
+    }
+    _loadGroups();
+  }
+
+  Future<void> _loadGroups() async {
+    try {
+      final db = await DatabaseService.initialize();
+      final list = await db.getCustomerGroups();
+      if (mounted) {
+        setState(() => _groups = list);
+      }
+    } catch (e, st) {
+      // Keep base retail option selectable if groups fail to load.
+      AppLogger.warning('QuickCustomerDialog', 'Failed to load customer groups', e, st);
+    }
+  }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -26,34 +62,57 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
 
     try {
       final db = await DatabaseService.initialize();
+      final selectedGroup = _groups
+          .where((g) => g.id == _selectedGroupId)
+          .cast<CustomerGroup?>()
+          .firstOrNull;
+      final existing = widget.customerToEdit;
+
       final contact = Contact(
-        type: 'customer',
+        id: existing?.id,
+        type: existing?.type ?? 'customer',
         name: _nameController.text.trim(),
+        businessName: existing?.businessName,
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
         address: _addressController.text.trim(),
+        balance: existing?.balance ?? 0.0,
         creditLimit: double.tryParse(_creditLimitController.text.trim()) ?? 1000.0,
+        loyaltyPoints: existing?.loyaltyPoints ?? 0.0,
+        customerGroupId: _selectedGroupId,
+        customerGroupName: selectedGroup?.name,
       );
 
-      final id = await db.addContact(contact);
-      final createdContact = Contact(
+      final int id;
+      if (existing?.id != null) {
+        await db.updateContact(contact);
+        id = existing!.id!;
+      } else {
+        id = await db.addContact(contact);
+      }
+      final savedContact = Contact(
         id: id,
         type: contact.type,
         name: contact.name,
+        businessName: contact.businessName,
         phone: contact.phone,
         email: contact.email,
         address: contact.address,
+        balance: contact.balance,
         creditLimit: contact.creditLimit,
+        loyaltyPoints: contact.loyaltyPoints,
+        customerGroupId: contact.customerGroupId,
+        customerGroupName: selectedGroup?.name ?? existing?.customerGroupName,
       );
 
       if (mounted) {
-        widget.onCustomerAdded(createdContact);
+        widget.onCustomerAdded(savedContact);
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error adding customer: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error saving customer: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -255,6 +314,40 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                   prefixIcon: Icons.location_on_outlined,
                   isDark: isDark,
                 ),
+              ),
+              const SizedBox(height: 14),
+
+              // Customer Group / Tiered Pricing
+              _fieldLabel('Customer Group / Pricing Tier', isDark),
+              DropdownButtonFormField<int?>(
+                initialValue: _selectedGroupId != null && _groups.any((g) => g.id == _selectedGroupId)
+                    ? _selectedGroupId
+                    : null,
+                decoration: _inputDecoration(
+                  hintText: 'Retail Base Price',
+                  prefixIcon: Icons.groups_outlined,
+                  isDark: isDark,
+                ),
+                dropdownColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                items: [
+                  DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text(
+                      'Retail (Standard Base Price)',
+                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    ),
+                  ),
+                  ..._groups.map(
+                    (g) => DropdownMenuItem<int?>(
+                      value: g.id,
+                      child: Text(
+                        '${g.name} (${g.amount >= 0 ? "+${g.amount.toStringAsFixed(1)}%" : "${g.amount.toStringAsFixed(1)}%"})',
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                      ),
+                    ),
+                  ),
+                ],
+                onChanged: (val) => setState(() => _selectedGroupId = val),
               ),
               const SizedBox(height: 24),
 

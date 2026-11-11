@@ -3,8 +3,11 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
+import '../../providers/providers.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import 'quick_customer_dialog.dart';
@@ -22,7 +25,7 @@ import '../products/add_product_dialog.dart';
 import '../../services/currency_rate_service.dart';
 import '../../services/number_to_words_service.dart';
 
-class PosTerminalScreen extends StatefulWidget {
+class PosTerminalScreen extends ConsumerStatefulWidget {
   final BusinessSettings settings;
   final VoidCallback? onBackToDashboard;
   final Sale? initialSaleToResume;
@@ -35,20 +38,30 @@ class PosTerminalScreen extends StatefulWidget {
   });
 
   @override
-  State<PosTerminalScreen> createState() => _PosTerminalScreenState();
+  ConsumerState<PosTerminalScreen> createState() => _PosTerminalScreenState();
 }
 
-class _PosTerminalScreenState extends State<PosTerminalScreen> {
+class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   late Future<DatabaseService> _dbFuture;
 
   // Resumed Draft / Quotation Tracking
   int? _resumedSaleId;
   String? _resumedInvoiceNo;
 
-  // Cart State
-  final List<CartItem> _cart = [];
+  // Reactive Cart State via Riverpod [cartProvider]
+  List<CartItem> get _cart => ref.read(cartProvider).items;
+  String get _discountType => ref.read(cartProvider).discountType;
+  double get _discountValue => ref.read(cartProvider).discountValue;
+  double get _orderTax => ref.read(cartProvider).orderTax;
+  double get _shippingCharge => ref.read(cartProvider).shippingCharge;
+  bool get _isWholesaleMode => ref.read(cartProvider).isWholesaleMode;
+  double get _wholesaleDiscountPercent => ref.read(cartProvider).wholesaleDiscountPercent;
+
   Contact? _selectedCustomer;
   List<Contact> _customers = [];
+  List<CustomerGroup> _customerGroups = [];
+  List<TaxRate> _taxRates = [];
+  List<TaxGroup> _taxGroups = [];
 
   // Industry Mode Extensions
   String _diningMode = 'Dine-In'; // 'Dine-In', 'Takeaway', 'Delivery'
@@ -69,18 +82,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
   bool _loadingCatalog = true;
   bool _isGridView = false; // Switchable layout: Grid vs List view (Default List view)
 
-  // Calculation parameters
-  String _discountType = 'fixed'; // 'fixed' or 'percentage'
-  double _discountValue = 0.0;
-  double _orderTax = 0.0;
-  double _shippingCharge = 0.0;
-
   // Parked bills count
   int _parkedCount = 0;
 
-  // Wholesale vs Retail Counter Pricing Tier
-  bool _isWholesaleMode = false;
-  final double _wholesaleDiscountPercent = 10.0;
   late String _wordsLanguage;
 
   @override
@@ -90,6 +94,11 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         ? widget.settings.totalInWordsLanguage
         : 'ur';
     _dbFuture = DatabaseService.initialize();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(settingsProvider.notifier).setSettings(widget.settings);
+      }
+    });
     _loadInitialData();
   }
 
@@ -172,7 +181,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                     final db = await _dbFuture;
                     final updated = widget.settings.copyWith(totalInWordsLanguage: lang.code);
                     await db.updateBusinessSettings(updated);
-                  } catch (_) {}
+                  } catch (e, st) {
+                    AppLogger.warning('PosTerminal', 'Failed saving words language setting', e, st);
+                  }
                 },
               );
             }).toList(),
@@ -184,62 +195,74 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
   Future<void> _loadInitialData() async {
     final db = await _dbFuture;
+    if (!mounted) return;
+    // Await sequentially so sqflite never hits lock-contention watchdog timers in tests.
+    final catalog = await ref.read(productListProvider.future);
+    if (!mounted) return;
     final customers = await db.getContacts(type: 'customer');
-    final categories = await db.getCategories();
-    final brands = await db.getBrands();
-    final products = await db.getProducts();
+    if (!mounted) return;
+    final customerGroups = await db.getCustomerGroups();
+    if (!mounted) return;
+    final taxRates = await db.getTaxRates();
+    if (!mounted) return;
+    final taxGroups = await db.getTaxGroups();
+    if (!mounted) return;
     final parked = await db.getParkedSales();
+    if (!mounted) return;
+    final activeReg = await ref.read(activeRegisterProvider.future);
+    if (!mounted) return;
 
-    Contact? defaultCust;
-    try {
-      defaultCust = customers.firstWhere((c) => c.name.toLowerCase().contains('walk-in') || c.name.toLowerCase().contains('walk in'));
-    } catch (_) {
-      defaultCust = customers.isNotEmpty ? customers.first : null;
+    final Contact? defaultCust = customers.cast<Contact?>().firstWhere(
+          (c) => c!.name.toLowerCase().contains('walk-in') || c.name.toLowerCase().contains('walk in'),
+          orElse: () => customers.isNotEmpty ? customers.first : null,
+        );
+
+    setState(() {
+      _customers = customers;
+      _customerGroups = customerGroups;
+      _taxRates = taxRates;
+      _taxGroups = taxGroups;
+      _selectedCustomer = defaultCust;
+      _categories = catalog.categories;
+      _brands = catalog.brands;
+      _allProducts = catalog.products;
+      _products = catalog.products;
+      _parkedCount = parked.length;
+      _loadingCatalog = false;
+    });
+    _applyProductFilter();
+
+    if (widget.initialSaleToResume != null && _resumedSaleId == null) {
+      _loadResumedSale(widget.initialSaleToResume!);
     }
 
-    if (mounted) {
-      setState(() {
-        _customers = customers;
-        _selectedCustomer = defaultCust;
-        _categories = categories;
-        _brands = brands;
-        _allProducts = products;
-        _products = products;
-        _parkedCount = parked.length;
-        _loadingCatalog = false;
-      });
-
-      if (widget.initialSaleToResume != null && _resumedSaleId == null) {
-        _loadResumedSale(widget.initialSaleToResume!);
-      }
-
-      // Prompt register shift opening if no active session is open
-      final activeReg = await db.getActiveRegister();
-      if (activeReg == null && mounted) {
-        if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _promptOpenRegister();
-            }
-          });
-        }
+    if (activeReg == null) {
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _promptOpenRegister();
+          }
+        });
       }
     }
   }
 
   Future<void> _promptOpenRegister({bool isDismissible = true}) async {
-    final db = await _dbFuture;
-    final active = await db.getActiveRegister();
+    if (!mounted) return;
+    await ref.read(activeRegisterProvider.notifier).refresh();
+    if (!mounted) return;
+    final active = ref.read(activeRegisterProvider).value;
     if (active != null) return;
 
-    if (!mounted) return;
     await showDialog(
       context: context,
       barrierDismissible: isDismissible,
       builder: (ctx) => OpenRegisterDialog(
         settings: widget.settings,
         isDismissible: isDismissible,
-        onOpened: () {
+        onOpened: () async {
+          if (!mounted) return;
+          await ref.read(activeRegisterProvider.notifier).refresh();
           if (mounted) setState(() {});
         },
       ),
@@ -457,7 +480,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     }
 
     final currentUser = AuthService.currentUser;
-    final canGiveDiscount = currentUser?.canGiveDiscount ?? (currentUser?.isAdmin ?? true);
+    final canGiveDiscount = currentUser == null
+        ? true
+        : currentUser.hasPermission('pos.give_discount');
     final maxDiscPercent = currentUser?.maxDiscountPercent ?? ((currentUser?.isAdmin == true) ? 100.0 : 5.0);
 
     if (!canGiveDiscount) {
@@ -717,10 +742,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
             actions: [
               TextButton(
                 onPressed: () {
-                  setState(() {
-                    _discountValue = 0.0;
-                    _discountType = 'fixed';
-                  });
+                  ref.read(cartProvider.notifier).setOrderDiscount('fixed', 0.0);
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -765,10 +787,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                     }
                   }
 
-                  setState(() {
-                    _discountType = tempType;
-                    _discountValue = parsed;
-                  });
+                  ref.read(cartProvider.notifier).setOrderDiscount(tempType, parsed);
                   Navigator.pop(ctx);
 
                   final saved = _calculatedDiscount;
@@ -814,20 +833,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
   }
 
   void _toggleWholesaleMode() {
-    setState(() {
-      _isWholesaleMode = !_isWholesaleMode;
-      for (final item in _cart) {
-        if (_isWholesaleMode) {
-          if (item.packDiscount == 0.0) {
-            item.packDiscount = _wholesaleDiscountPercent;
-          }
-        } else {
-          if (item.packDiscount == _wholesaleDiscountPercent) {
-            item.packDiscount = 0.0;
-          }
-        }
-      }
-    });
+    ref.read(cartProvider.notifier).toggleWholesaleMode();
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1087,14 +1093,14 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                     sellingPrice: price,
                     stockQuantity: 9999.0,
                   );
-                  setState(() {
-                    _cart.add(CartItem(
+                  ref.read(cartProvider.notifier).addCustomItem(
+                    CartItem(
                       product: customProduct,
                       quantity: qty,
                       unitPrice: price,
                       packDiscount: _isWholesaleMode ? _wholesaleDiscountPercent : 0.0,
-                    ));
-                  });
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.add_shopping_cart, size: 18),
                 label: const Text('Add to Cart'),
@@ -1403,6 +1409,11 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                     labelStyle: TextStyle(color: isCur ? Colors.white : textPrimary),
                                     onSelected: (selected) {
                                       if (selected) {
+                                        ref.read(cartProvider.notifier).changeItemUnit(
+                                              index,
+                                              u.actualName,
+                                              u.baseUnitMultiplier,
+                                            );
                                         setDlgState(() {
                                           item.changeUnit(u.actualName, u.baseUnitMultiplier);
                                         });
@@ -1529,11 +1540,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                         ElevatedButton.icon(
                           onPressed: () {
                             final newQty = double.tryParse(qtyCtrl.text.trim()) ?? item.quantity;
-                            if (newQty <= 0) {
-                              setState(() => _cart.removeAt(index));
-                            } else {
-                              setState(() => item.quantity = newQty);
-                            }
+                            ref.read(cartProvider.notifier).setQuantity(index, newQty);
                             Navigator.pop(ctx);
                           },
                           icon: const Icon(Icons.check, size: 16),
@@ -1601,9 +1608,11 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                   style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF059669), fontSize: 13),
                 ),
                 onTap: () {
-                  setState(() {
-                    item.changeUnit(u.actualName, u.baseUnitMultiplier);
-                  });
+                  ref.read(cartProvider.notifier).changeItemUnit(
+                        index,
+                        u.actualName,
+                        u.baseUnitMultiplier,
+                      );
                   Navigator.pop(ctx);
                 },
               );
@@ -1626,16 +1635,26 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     final subtleBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
 
     final currentUser = AuthService.currentUser;
-    final canEditPrice = currentUser?.canEditPrice ?? (currentUser?.isAdmin ?? false);
-    final canGiveDiscount = currentUser?.canGiveDiscount ?? (currentUser?.isAdmin ?? true);
+    final canEditPrice = currentUser == null
+        ? false
+        : currentUser.hasPermission('pos.edit_price');
+    final canGiveDiscount = currentUser == null
+        ? true
+        : currentUser.hasPermission('pos.give_discount');
     final maxDiscPercent = currentUser?.maxDiscountPercent ?? ((currentUser?.isAdmin == true) ? 100.0 : 5.0);
 
-    String lineDiscType = item.packDiscount > 0 ? 'percentage' : 'fixed';
+    String lineDiscType =
+        (item.discountType == 'percentage' || item.packDiscount > 0) ? 'percentage' : 'fixed';
+    final initialDisc = lineDiscType == 'percentage'
+        ? (item.discountValue > 0 ? item.discountValue : item.packDiscount)
+        : (item.discount > 0 ? item.discount : item.discountValue);
     final priceCtrl = TextEditingController(text: item.unitPrice.toStringAsFixed(2));
     final discCtrl = TextEditingController(
-      text: item.packDiscount > 0
-          ? (item.packDiscount.truncateToDouble() == item.packDiscount ? item.packDiscount.toInt().toString() : item.packDiscount.toString())
-          : (item.discount > 0 ? (item.discount.truncateToDouble() == item.discount ? item.discount.toInt().toString() : item.discount.toString()) : ''),
+      text: initialDisc > 0
+          ? (initialDisc.truncateToDouble() == initialDisc
+              ? initialDisc.toInt().toString()
+              : initialDisc.toString())
+          : '',
     );
     final currency = widget.settings.currencySymbol;
 
@@ -1851,10 +1870,14 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
             actions: [
               TextButton(
                 onPressed: () {
-                  setState(() {
-                    item.discount = 0.0;
-                    item.packDiscount = 0.0;
-                  });
+                  ref.read(cartProvider.notifier).updateLineItem(
+                        index,
+                        unitPrice: item.unitPrice,
+                        discount: 0.0,
+                        packDiscount: 0.0,
+                        discountType: 'fixed',
+                        discountValue: 0.0,
+                      );
                   Navigator.pop(ctx);
                 },
                 child: const Text('Clear Discount', style: TextStyle(color: Color(0xFFEF4444))),
@@ -1896,16 +1919,14 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                     }
                   }
 
-                  setState(() {
-                    item.unitPrice = newPrice;
-                    if (lineDiscType == 'percentage') {
-                      item.packDiscount = newDisc;
-                      item.discount = 0.0;
-                    } else {
-                      item.discount = newDisc;
-                      item.packDiscount = 0.0;
-                    }
-                  });
+                  ref.read(cartProvider.notifier).updateLineItem(
+                        index,
+                        unitPrice: newPrice,
+                        discount: lineDiscType == 'percentage' ? 0.0 : newDisc,
+                        packDiscount: lineDiscType == 'percentage' ? newDisc : 0.0,
+                        discountType: lineDiscType,
+                        discountValue: newDisc,
+                      );
                   Navigator.pop(ctx);
                 },
                 child: const Text('Update Item'),
@@ -1917,7 +1938,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
-  void _showOrderTaxDialog() {
+  Future<void> _showOrderTaxDialog() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -1925,53 +1946,179 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
     final inputBorder = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
 
-    final controller = TextEditingController(text: _orderTax > 0 ? _orderTax.toString() : '');
+    if (_taxRates.isEmpty || _taxGroups.isEmpty) {
+      final db = await _dbFuture;
+      final rates = await db.getTaxRates();
+      final groups = await db.getTaxGroups();
+      if (mounted) {
+        setState(() {
+          _taxRates = rates;
+          _taxGroups = groups;
+        });
+      }
+    }
+    if (!mounted) return;
+
+    final cartSnap = ref.read(cartProvider);
+    final taxableBase = cartSnap.taxableSubtotal;
+    final controller = TextEditingController(text: _orderTax > 0 ? _orderTax.toStringAsFixed(2) : '');
     final currency = widget.settings.currencySymbol;
+    TaxGroup? chosenGroup = cartSnap.selectedTaxGroup;
+    TaxRate? chosenRate = cartSnap.selectedTaxRate;
+    Map<String, double> previewBreakdown = Map<String, double>.from(cartSnap.taxBreakdown);
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: cardBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Edit Order Tax', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Enter Tax Amount:', style: TextStyle(fontSize: 12, color: textSecondary)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: TextStyle(fontSize: 14, color: textPrimary),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: inputBg,
-                prefixText: '$currency ',
-                prefixStyle: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          backgroundColor: cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('Order Tax & Compound Tax Groups', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary)),
+          content: SizedBox(
+            width: 440,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_taxGroups.isNotEmpty) ...[
+                    Text('Compound / Group Taxes (Taxable: $currency${taxableBase.toStringAsFixed(2)}):',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: _taxGroups.map((g) {
+                        final selected = chosenGroup?.id == g.id;
+                        final eff = g.computeEffectiveRate(_taxRates);
+                        return ChoiceChip(
+                          label: Text(
+                            '${g.name} (${g.isCompound ? "Compound" : "Additive"} ${eff.toStringAsFixed(2)}%)',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          selected: selected,
+                          onSelected: (_) {
+                            final bd = g.calculateBreakdown(taxableBase, _taxRates);
+                            final tot = g.calculateTotalTax(taxableBase, _taxRates);
+                            setDlgState(() {
+                              chosenGroup = g;
+                              chosenRate = null;
+                              previewBreakdown = bd;
+                              controller.text = tot.toStringAsFixed(2);
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (_taxRates.isNotEmpty) ...[
+                    Text('Single Tax Rates:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: _taxRates.map((r) {
+                        final selected = chosenRate?.id == r.id && chosenGroup == null;
+                        return ChoiceChip(
+                          label: Text('${r.name} (${r.amount.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 11)),
+                          selected: selected,
+                          onSelected: (_) {
+                            final amt = double.parse((taxableBase * (r.amount / 100.0)).toStringAsFixed(2));
+                            setDlgState(() {
+                              chosenGroup = null;
+                              chosenRate = r;
+                              previewBreakdown = {'${r.name} (${r.amount}%)': amt};
+                              controller.text = amt.toStringAsFixed(2);
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (previewBreakdown.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEEF2FF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: isDark ? const Color(0xFF312E81) : const Color(0xFFC7D2FE)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Tax Breakdown:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary)),
+                          const SizedBox(height: 4),
+                          ...previewBreakdown.entries.map(
+                            (e) => Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(e.key, style: TextStyle(fontSize: 11.5, color: textSecondary)),
+                                Text('$currency${e.value.toStringAsFixed(2)}', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: textPrimary)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  Text('Custom / Manual Tax Override ($currency):', style: TextStyle(fontSize: 12, color: textSecondary)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: controller,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(fontSize: 14, color: textPrimary),
+                    onChanged: (_) {
+                      if (chosenGroup != null || chosenRate != null) {
+                        setDlgState(() {
+                          chosenGroup = null;
+                          chosenRate = null;
+                          previewBreakdown = {};
+                        });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: inputBg,
+                      prefixText: '$currency ',
+                      prefixStyle: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                    ),
+                  ),
+                ],
               ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                ref.read(cartProvider.notifier).setOrderTax(0.0);
+                Navigator.pop(ctx);
+              },
+              child: const Text('Clear'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
+              onPressed: () {
+                final notifier = ref.read(cartProvider.notifier);
+                if (chosenGroup != null) {
+                  notifier.applyTaxGroup(chosenGroup, _taxRates);
+                } else if (chosenRate != null) {
+                  notifier.applyTaxRate(chosenRate);
+                } else {
+                  final parsed = double.tryParse(controller.text.trim()) ?? 0.0;
+                  notifier.setOrderTax(parsed < 0.0 ? 0.0 : parsed);
+                }
+                Navigator.pop(ctx);
+              },
+              child: const Text('Apply Tax'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() => _orderTax = 0.0);
-              Navigator.pop(ctx);
-            },
-            child: const Text('Clear'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
-            onPressed: () {
-              final parsed = double.tryParse(controller.text.trim()) ?? 0.0;
-              setState(() => _orderTax = parsed < 0.0 ? 0.0 : parsed);
-              Navigator.pop(ctx);
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
@@ -2016,7 +2163,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              setState(() => _shippingCharge = 0.0);
+              ref.read(cartProvider.notifier).setShippingCharge(0.0);
               Navigator.pop(ctx);
             },
             child: const Text('Clear'),
@@ -2025,7 +2172,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
             onPressed: () {
               final parsed = double.tryParse(controller.text.trim()) ?? 0.0;
-              setState(() => _shippingCharge = parsed < 0.0 ? 0.0 : parsed);
+              ref.read(cartProvider.notifier).setShippingCharge(parsed < 0.0 ? 0.0 : parsed);
               Navigator.pop(ctx);
             },
             child: const Text('Save'),
@@ -2065,21 +2212,36 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       );
     }
 
-    setState(() {
-      final index = _cart.indexWhere((item) => item.product.id == product.id);
-      if (index >= 0) {
-        _cart[index].quantity += 1.0;
-      } else {
-        _cart.add(CartItem(
-          product: product,
-          quantity: 1.0,
-          unitPrice: product.sellingPrice,
-          batchNumber: product.batchNumber,
-          expiryDate: product.expiryDate,
-          packDiscount: _isWholesaleMode ? _wholesaleDiscountPercent : 0.0,
-        ));
+    ref.read(cartProvider.notifier).addProduct(product);
+    _applyProductTaxIfConfigured(product);
+  }
+
+  void _applyProductTaxIfConfigured(Product product) {
+    final snap = ref.read(cartProvider);
+    if (snap.selectedTaxGroup != null ||
+        snap.selectedTaxRate != null ||
+        snap.orderTax > 0) {
+      return;
+    }
+    if (product.taxGroupId != null) {
+      final grp = _taxGroups
+          .where((g) => g.id == product.taxGroupId)
+          .cast<TaxGroup?>()
+          .firstOrNull;
+      if (grp != null) {
+        ref.read(cartProvider.notifier).applyTaxGroup(grp, _taxRates);
+        return;
       }
-    });
+    }
+    if (product.taxRateId != null) {
+      final rate = _taxRates
+          .where((r) => r.id == product.taxRateId)
+          .cast<TaxRate?>()
+          .firstOrNull;
+      if (rate != null) {
+        ref.read(cartProvider.notifier).applyTaxRate(rate);
+      }
+    }
   }
 
   void _addToCartWithQuantity(Product product, double qty) {
@@ -2110,21 +2272,12 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       );
     }
 
-    setState(() {
-      final index = _cart.indexWhere((item) => item.product.id == product.id && item.unitPrice == product.sellingPrice);
-      if (index >= 0) {
-        _cart[index].quantity += qty;
-      } else {
-        _cart.add(CartItem(
-          product: product,
+    ref.read(cartProvider.notifier).addProduct(
+          product,
           quantity: qty,
-          unitPrice: product.sellingPrice,
-          batchNumber: product.batchNumber,
-          expiryDate: product.expiryDate,
-          packDiscount: _isWholesaleMode ? _wholesaleDiscountPercent : 0.0,
-        ));
-      }
-    });
+          mergeByUnitPrice: true,
+        );
+    _applyProductTaxIfConfigured(product);
   }
 
   void _onBarcodeSubmitted(String code) async {
@@ -2137,12 +2290,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       final weightGrams = int.tryParse(trimmed.substring(7, 12)) ?? 0;
       final weightKg = weightGrams > 0 ? (weightGrams / 1000.0) : 1.0;
 
-      Product? scaleItem;
-      try {
-        scaleItem = _allProducts.firstWhere(
-          (p) => p.sku.toLowerCase().contains(itemCode) || p.barcode.toLowerCase().contains(itemCode),
-        );
-      } catch (_) {}
+      final Product? scaleItem = _allProducts.cast<Product?>().firstWhere(
+            (p) => p!.sku.toLowerCase().contains(itemCode) || p.barcode.toLowerCase().contains(itemCode),
+            orElse: () => null,
+          );
 
       if (scaleItem != null) {
         _addToCartWithQuantity(scaleItem, weightKg);
@@ -2161,12 +2312,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     }
 
     // 1. In-memory exact lookup
-    Product? matched;
-    try {
-      matched = _allProducts.firstWhere(
-        (p) => (p.barcode.toLowerCase() == trimmed) || (p.sku.toLowerCase() == trimmed),
-      );
-    } catch (_) {}
+    final Product? matched = _allProducts.cast<Product?>().firstWhere(
+          (p) => (p!.barcode.toLowerCase() == trimmed) || (p.sku.toLowerCase() == trimmed),
+          orElse: () => null,
+        );
 
     if (matched != null) {
       _addToCart(matched);
@@ -2216,9 +2365,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         settings: widget.settings,
         products: _allProducts,
         onBundleSelected: (bundleItems) {
-          setState(() {
-            _cart.addAll(bundleItems);
-          });
+          ref.read(cartProvider.notifier).addBundleItems(bundleItems);
         },
       ),
     );
@@ -2246,20 +2393,11 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
-  // Calculations
-  double get _calculatedDiscount {
-    double d = 0.0;
-    if (_discountType == 'percentage') {
-      d = (_subtotal * (_discountValue / 100.0));
-    } else {
-      d = _discountValue;
-    }
-    return d.clamp(0.0, _subtotal);
-  }
-
-  double get _subtotal => _cart.fold(0.0, (sum, item) => sum + item.subtotal);
-  double get _grandTotal => (_subtotal - _calculatedDiscount + _orderTax + _shippingCharge).clamp(0.0, double.infinity);
-  double get _totalQuantity => _cart.fold(0.0, (sum, item) => sum + item.quantity);
+  // Calculations delegated cleanly to immutable CartState
+  double get _calculatedDiscount => ref.read(cartProvider).calculatedDiscount;
+  double get _subtotal => ref.read(cartProvider).subtotal;
+  double get _grandTotal => ref.read(cartProvider).grandTotal;
+  double get _totalQuantity => ref.read(cartProvider).totalQuantity;
 
   // Checkout Actions
   Future<void> _processCheckout({
@@ -2274,6 +2412,23 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     double loyaltyDiscount = 0.0,
     double redeemedPoints = 0.0,
   }) async {
+    final requiredPerm =
+        saleStatus == 'quotation' ? 'quotation.manage' : 'sale.create';
+    final currentUser = AuthService.currentUser;
+    if (currentUser != null && !currentUser.hasPermission(requiredPerm)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            saleStatus == 'quotation'
+                ? 'Permission Denied: Missing quotation.manage authorization.'
+                : 'Permission Denied: Missing sale.create authorization.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please add items to cart before checkout!'), backgroundColor: Colors.orange),
@@ -2332,6 +2487,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
     final totalDiscount = _calculatedDiscount + loyaltyDiscount;
     final finalBillTotal = (_grandTotal - loyaltyDiscount).clamp(0.0, double.infinity);
+    final cartSnapshot = ref.read(cartProvider);
 
     final sale = Sale(
       invoiceNo: invoiceNo,
@@ -2340,7 +2496,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       subtotal: _subtotal,
       discount: totalDiscount,
       taxAmount: _orderTax,
-      taxRate: widget.settings.defaultTaxRate,
+      taxRate: cartSnapshot.selectedTaxGroup != null
+          ? cartSnapshot.selectedTaxGroup!.computeEffectiveRate(_taxRates)
+          : (cartSnapshot.selectedTaxRate?.amount ?? widget.settings.defaultTaxRate),
       shipping: _shippingCharge,
       totalAmount: finalBillTotal,
       paidAmount: paidAmount,
@@ -2349,6 +2507,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       saleStatus: saleStatus,
       note: note,
       createdAt: now,
+      taxGroupId: cartSnapshot.selectedTaxGroup?.id,
+      taxBreakdownJson: cartSnapshot.taxBreakdown.isNotEmpty
+          ? jsonEncode(cartSnapshot.taxBreakdown)
+          : '',
     );
 
     final Sale completedSale;
@@ -2368,12 +2530,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     }
 
     if (mounted) {
+      ref.read(cartProvider.notifier).clear(resetHistory: true);
       setState(() {
-        _cart.clear();
-        _discountValue = 0.0;
-        _discountType = 'fixed';
-        _orderTax = 0.0;
-        _shippingCharge = 0.0;
         _resumedSaleId = null;
         _resumedInvoiceNo = null;
       });
@@ -2781,8 +2939,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     await db.parkSale(parked);
     final allParked = await db.getParkedSales();
 
+    ref.read(cartProvider.notifier).clear();
     setState(() {
-      _cart.clear();
       _parkedCount = allParked.length;
     });
 
@@ -2802,9 +2960,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
       builder: (_) => ParkedSalesDialog(
         currencySymbol: widget.settings.currencySymbol,
         onResumeSale: (parked) {
+          ref.read(cartProvider.notifier).loadFromSaved(items: parked.getItems());
           setState(() {
-            _cart.clear();
-            _cart.addAll(parked.getItems());
             final foundCust = _customers.where((c) => c.name == parked.customerName);
             if (foundCust.isNotEmpty) _selectedCustomer = foundCust.first;
           });
@@ -2817,29 +2974,51 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
   }
 
   void _loadResumedSale(Sale sale) {
+    final loadedItems = <CartItem>[];
+    if (sale.items != null && sale.items!.isNotEmpty) {
+      for (final item in sale.items!) {
+        final prod = _allProducts.cast<Product?>().firstWhere(
+              (p) => p!.id == item.productId,
+              orElse: () => null,
+            );
+        loadedItems.add(CartItem.fromSaleItem(item, prod));
+      }
+    }
+
+    final loadedTaxGroup = sale.taxGroupId != null
+        ? _taxGroups.where((g) => g.id == sale.taxGroupId).cast<TaxGroup?>().firstOrNull
+        : null;
+    Contact? matchedCustomer;
+    if (_customers.isNotEmpty && sale.customerId != null) {
+      matchedCustomer = _customers.cast<Contact?>().firstWhere(
+            (c) => c!.id == sale.customerId,
+            orElse: () => null,
+          );
+    }
+    final matchedGroup = matchedCustomer?.customerGroupId != null
+        ? _customerGroups
+            .where((g) => g.id == matchedCustomer!.customerGroupId)
+            .cast<CustomerGroup?>()
+            .firstOrNull
+        : null;
+
+    ref.read(cartProvider.notifier).loadFromSaved(
+          items: loadedItems,
+          discountValue: sale.discount,
+          orderTax: sale.taxAmount,
+          shippingCharge: sale.shipping,
+          activeCustomerGroup: matchedGroup,
+          selectedTaxGroup: loadedTaxGroup,
+          taxBreakdown: sale.taxBreakdownMap,
+        );
+
     setState(() {
       _resumedSaleId = sale.id;
       _resumedInvoiceNo = sale.invoiceNo;
       _isQuotationMode = (sale.saleStatus == 'quotation');
-      _discountValue = sale.discount;
-      _orderTax = sale.taxAmount;
-      _shippingCharge = sale.shipping;
 
-      if (_customers.isNotEmpty && sale.customerId != null) {
-        try {
-          _selectedCustomer = _customers.firstWhere((c) => c.id == sale.customerId);
-        } catch (_) {}
-      }
-
-      if (sale.items != null && sale.items!.isNotEmpty) {
-        _cart.clear();
-        for (final item in sale.items!) {
-          Product? prod;
-          try {
-            prod = _allProducts.firstWhere((p) => p.id == item.productId);
-          } catch (_) {}
-          _cart.add(CartItem.fromSaleItem(item, prod));
-        }
+      if (matchedCustomer != null) {
+        _selectedCustomer = matchedCustomer;
       }
     });
 
@@ -2885,7 +3064,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     if (_cart.isEmpty) return;
 
     final currentUser = AuthService.currentUser;
-    final canDeleteSale = currentUser?.canDeleteSale ?? (currentUser?.isAdmin ?? true);
+    final canDeleteSale = currentUser?.hasPermission('sale.delete') ?? true;
 
     if (!canDeleteSale) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2914,14 +3093,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
             onPressed: () {
               Navigator.pop(ctx);
+              ref.read(cartProvider.notifier).clear();
               setState(() {
-                _cart.clear();
                 _resumedSaleId = null;
                 _resumedInvoiceNo = null;
-                _discountValue = 0.0;
-                _discountType = 'fixed';
-                _orderTax = 0.0;
-                _shippingCharge = 0.0;
               });
             },
             child: const Text('Yes, Clear Cart'),
@@ -2931,6 +3106,37 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
     );
   }
 
+  Future<void> _selectCustomer(Contact cust, {bool showBanner = false}) async {
+    if (_customerGroups.isEmpty && cust.customerGroupId != null) {
+      final db = await _dbFuture;
+      final groups = await db.getCustomerGroups();
+      if (mounted) {
+        setState(() => _customerGroups = groups);
+      }
+    }
+    if (!mounted) return;
+    final CustomerGroup? group = cust.customerGroupId != null
+        ? _customerGroups
+            .where((g) => g.id == cust.customerGroupId)
+            .cast<CustomerGroup?>()
+            .firstOrNull
+        : null;
+    setState(() => _selectedCustomer = cust);
+    ref.read(cartProvider.notifier).applyCustomerGroup(group);
+    if (showBanner && group != null && mounted) {
+      final signLabel = group.amount >= 0
+          ? '+${group.amount.toStringAsFixed(1)}%'
+          : '${group.amount.toStringAsFixed(1)}%';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Applied ${group.name} ($signLabel) tiered pricing to cart'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: const Color(0xFF4F46E5),
+        ),
+      );
+    }
+  }
+
   void _openQuickCustomerModal() {
     showDialog(
       context: context,
@@ -2938,8 +3144,8 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         onCustomerAdded: (newCustomer) {
           setState(() {
             _customers.add(newCustomer);
-            _selectedCustomer = newCustomer;
           });
+          _selectCustomer(newCustomer, showBanner: true);
         },
       ),
     );
@@ -2962,22 +3168,18 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         customers: _customers,
         selectedCustomer: _selectedCustomer,
         currencySymbol: widget.settings.currencySymbol,
-        onCustomerSelected: (c) {
-          setState(() => _selectedCustomer = c);
-        },
+        onCustomerSelected: (c) => _selectCustomer(c, showBanner: true),
       ),
     );
   }
 
   void _resetToWalkInCustomer() {
-    Contact? walkIn;
-    try {
-      walkIn = _customers.firstWhere((c) => c.name.toLowerCase().contains('walk-in') || c.name.toLowerCase().contains('walk in'));
-    } catch (_) {
-      walkIn = _customers.isNotEmpty ? _customers.first : null;
-    }
+    final Contact? walkIn = _customers.cast<Contact?>().firstWhere(
+          (c) => c!.name.toLowerCase().contains('walk-in') || c.name.toLowerCase().contains('walk in'),
+          orElse: () => _customers.isNotEmpty ? _customers.first : null,
+        );
     if (walkIn != null) {
-      setState(() => _selectedCustomer = walkIn);
+      _selectCustomer(walkIn);
     }
   }
 
@@ -3121,6 +3323,20 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cartState = ref.watch(cartProvider);
+    ref.listen<AsyncValue<CatalogState>>(productListProvider, (_, next) {
+      next.whenData((catalog) {
+        if (!mounted) return;
+        setState(() {
+          _categories = catalog.categories;
+          _brands = catalog.brands;
+          _allProducts = catalog.products;
+          _loadingCatalog = false;
+        });
+        _applyProductFilter();
+      });
+    });
+
     final currency = widget.settings.currencySymbol;
     final nowTime = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -3152,6 +3368,10 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
         },
         const SingleActivator(LogicalKeyboardKey.f11): _openCustomProductDialog,
         const SingleActivator(LogicalKeyboardKey.f12): _toggleWholesaleMode,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () =>
+            ref.read(cartProvider.notifier).undo(),
+        const SingleActivator(LogicalKeyboardKey.keyY, control: true): () =>
+            ref.read(cartProvider.notifier).redo(),
         const SingleActivator(LogicalKeyboardKey.escape): () {
           _searchFocusNode.requestFocus();
         },
@@ -3541,6 +3761,30 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                         overflow: TextOverflow.ellipsis,
                                                       ),
                                                     ),
+                                                    if (ref.watch(cartProvider).activeCustomerGroup != null) ...[
+                                                      const SizedBox(width: 6),
+                                                      Builder(
+                                                        builder: (_) {
+                                                          final grp = ref.watch(cartProvider).activeCustomerGroup!;
+                                                          final pctTag = grp.amount == 0
+                                                              ? ''
+                                                              : (grp.amount < 0
+                                                                  ? ' ${grp.amount.toStringAsFixed(0)}%'
+                                                                  : ' +${grp.amount.toStringAsFixed(0)}%');
+                                                          return Container(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                            decoration: BoxDecoration(
+                                                              color: const Color(0xFF4F46E5),
+                                                              borderRadius: BorderRadius.circular(4),
+                                                            ),
+                                                            child: Text(
+                                                              '${grp.name}$pctTag',
+                                                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
+                                                    ],
                                                     const SizedBox(width: 6),
                                                     // Dedicated "Search (F3)" badge button
                                                     Container(
@@ -3787,7 +4031,100 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                     ),
                                   ),
 
-                                   const SizedBox(width: 16),
+                                   const SizedBox(width: 10),
+
+                                  // Undo / Redo Cart History Buttons
+                                  Tooltip(
+                                    message: 'Undo Cart Change (Ctrl+Z)',
+                                    child: InkWell(
+                                      onTap: cartState.canUndo
+                                          ? () => ref.read(cartProvider.notifier).undo()
+                                          : null,
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                          borderRadius: BorderRadius.circular(18),
+                                          border: Border.all(
+                                            color: cartState.canUndo
+                                                ? const Color(0xFF6366F1)
+                                                : borderColor,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.undo_rounded,
+                                              size: 14,
+                                              color: cartState.canUndo
+                                                  ? const Color(0xFF4F46E5)
+                                                  : textSecondary.withValues(alpha: 0.45),
+                                            ),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              'Undo',
+                                              style: TextStyle(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: cartState.canUndo
+                                                    ? textPrimary
+                                                    : textSecondary.withValues(alpha: 0.45),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Tooltip(
+                                    message: 'Redo Cart Change (Ctrl+Y)',
+                                    child: InkWell(
+                                      onTap: cartState.canRedo
+                                          ? () => ref.read(cartProvider.notifier).redo()
+                                          : null,
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                          borderRadius: BorderRadius.circular(18),
+                                          border: Border.all(
+                                            color: cartState.canRedo
+                                                ? const Color(0xFF6366F1)
+                                                : borderColor,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.redo_rounded,
+                                              size: 14,
+                                              color: cartState.canRedo
+                                                  ? const Color(0xFF4F46E5)
+                                                  : textSecondary.withValues(alpha: 0.45),
+                                            ),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              'Redo',
+                                              style: TextStyle(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: cartState.canRedo
+                                                    ? textPrimary
+                                                    : textSecondary.withValues(alpha: 0.45),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 14),
 
                                   // Universal Tag / Flexible Units Hint
                                   Text(
@@ -3981,22 +4318,16 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                 flex: 3,
                                                 child: Column(
                                                   children: [
-                                                    Row(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                    FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      child: Row(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
                                                       children: [
                                                         // [-] Red button
                                                         InkWell(
-                                                          onTap: () {
-                                                            setState(() {
-                                                              if (item.quantity > 1) {
-                                                                item.quantity -= 1;
-                                                              } else if (item.quantity > 0.25) {
-                                                                item.quantity -= 0.25;
-                                                              } else {
-                                                                _cart.removeAt(index);
-                                                              }
-                                                            });
-                                                          },
+                                                          onTap: () => ref
+                                                              .read(cartProvider.notifier)
+                                                              .decrementQuantity(index),
                                                           borderRadius: BorderRadius.circular(4),
                                                           child: Container(
                                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -4037,15 +4368,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                         ),
                                                         // [+] Green button
                                                         InkWell(
-                                                          onTap: () {
-                                                            setState(() {
-                                                              if (item.quantity < 1 && item.quantity >= 0.25) {
-                                                                item.quantity += 0.25;
-                                                              } else {
-                                                                item.quantity += 1;
-                                                              }
-                                                            });
-                                                          },
+                                                          onTap: () => ref
+                                                              .read(cartProvider.notifier)
+                                                              .incrementQuantity(index),
                                                           borderRadius: BorderRadius.circular(4),
                                                           child: Container(
                                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -4057,6 +4382,7 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                           ),
                                                         ),
                                                       ],
+                                                    ),
                                                     ),
                                                     const SizedBox(height: 3),
                                                     InkWell(
@@ -4105,20 +4431,35 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                                           border: Border.all(color: item.calculatedDiscount > 0 ? const Color(0xFFEF4444) : inputBorder),
                                                         ),
                                                         alignment: Alignment.center,
-                                                        child: Row(
-                                                          mainAxisAlignment: MainAxisAlignment.center,
-                                                          children: [
-                                                            Text(
-                                                              item.unitPrice.toStringAsFixed(2),
-                                                              style: TextStyle(
-                                                                fontWeight: FontWeight.bold,
-                                                                fontSize: 12,
-                                                                color: item.calculatedDiscount > 0 ? const Color(0xFFEF4444) : textPrimary,
+                                                        child: FittedBox(
+                                                          fit: BoxFit.scaleDown,
+                                                          child: Column(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Row(
+                                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                                children: [
+                                                                  Text(
+                                                                    item.unitPrice.toStringAsFixed(2),
+                                                                    style: TextStyle(
+                                                                      fontWeight: FontWeight.bold,
+                                                                      fontSize: 12,
+                                                                      color: item.calculatedDiscount > 0 ? const Color(0xFFEF4444) : textPrimary,
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(width: 3),
+                                                                  Icon(Icons.edit, size: 10, color: textSecondary),
+                                                                ],
                                                               ),
-                                                            ),
-                                                            const SizedBox(width: 3),
-                                                            Icon(Icons.edit, size: 10, color: textSecondary),
-                                                          ],
+                                                              if (item.calculatedDiscount > 0)
+                                                                Text(
+                                                                  item.discountType == 'percentage' && item.discountValue > 0
+                                                                      ? '-${item.discountValue.toStringAsFixed(item.discountValue == item.discountValue.roundToDouble() ? 0 : 1)}%'
+                                                                      : '-$currency${item.calculatedDiscount.toStringAsFixed(0)}',
+                                                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFEF4444)),
+                                                                ),
+                                                            ],
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
@@ -4139,7 +4480,9 @@ class _PosTerminalScreenState extends State<PosTerminalScreen> {
                                               // Trash Red button
                                               IconButton(
                                                 icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF4444)),
-                                                onPressed: () => setState(() => _cart.removeAt(index)),
+                                                onPressed: () => ref
+                                                    .read(cartProvider.notifier)
+                                                    .removeAt(index),
                                               ),
                                             ],
                                           ),

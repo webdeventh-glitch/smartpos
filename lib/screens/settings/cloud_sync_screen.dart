@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/cloud_sync_service.dart';
 
@@ -65,7 +66,9 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
           _logs = recentLogs;
         });
       }
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.warning('CloudSyncScreen', 'Failed loading cloud sync queue', e, st);
+    }
   }
 
   Future<void> _testConnection() async {

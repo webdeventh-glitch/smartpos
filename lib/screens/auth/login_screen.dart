@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 
@@ -25,7 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscurePassword = true;
-  bool _rememberMe = true;
   bool _isLoading = false;
   bool _isAuthenticating = false;
   String _loginStatusMessage = '';
@@ -48,8 +48,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final success = await AuthService.login(_userCtrl.text.trim(), _passCtrl.text.trim());
-      if (success) {
+      final result = await AuthService.loginDetailed(
+        _userCtrl.text.trim(),
+        _passCtrl.text.trim(),
+      );
+      if (result.success) {
         if (!mounted) return;
         setState(() {
           _isAuthenticating = true;
@@ -78,13 +81,15 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         if (mounted) {
           setState(() {
-            _errorMessage = 'Invalid username or password. Please verify credentials.';
+            _errorMessage = result.errorMessage ??
+                'Invalid username or password. Please verify credentials.';
             _isLoading = false;
             _isAuthenticating = false;
           });
         }
       }
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.error('LoginScreen', 'Login error', e, st);
       if (mounted) {
         setState(() {
           _errorMessage = 'System authentication error: $e';
@@ -484,6 +489,43 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 24),
 
+            // Session Expired Notice Banner
+            ValueListenableBuilder<String?>(
+              valueListenable: AuthService.sessionMessageNotifier,
+              builder: (context, sessionMsg, _) {
+                if (sessionMsg == null || sessionMsg.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.timer_off_outlined, color: Color(0xFFD97706), size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            sessionMsg,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF92400E),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
             // Error Message Banner
             if (_errorMessage != null) ...[
               Container(
@@ -624,29 +666,26 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Remember Station Checkbox
-            Row(
-              children: [
-                SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: Checkbox(
-                    value: _rememberMe,
-                    activeColor: const Color(0xFF4F46E5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                    onChanged: (v) => setState(() => _rememberMe = v ?? true),
+            // Workstation Session Timeout Policy Notice
+            if (widget.settings.sessionTimeoutMinutes > 0)
+              Row(
+                children: [
+                  const Icon(Icons.shield_outlined, size: 15, color: Color(0xFF4F46E5)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      widget.settings.sessionTimeoutMinutes >= 60 &&
+                              widget.settings.sessionTimeoutMinutes % 60 == 0
+                          ? 'Workstation auto-locks after ${widget.settings.sessionTimeoutMinutes ~/ 60} hour(s) of inactivity'
+                          : 'Workstation auto-locks after ${widget.settings.sessionTimeoutMinutes} minute(s) of inactivity',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Keep session active on this workstation',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
+                ],
+              ),
             const SizedBox(height: 20),
 
             // Submit Button or Authentication Progress Sequence
@@ -778,38 +817,156 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleReconfigureDatabase(BuildContext context) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.tune_rounded, color: Color(0xFF4F46E5), size: 24),
-            SizedBox(width: 8),
-            Text('Database & Setup Wizard'),
+    final db = DatabaseService.instance;
+    final existingUsers = await db.getUsers();
+    if (!context.mounted) return;
+
+    // Security check: once at least one user exists, require Super Admin authentication
+    // before launching the setup wizard to prevent unauthenticated account takeover.
+    if (existingUsers.isNotEmpty) {
+      final adminUserCtrl = TextEditingController();
+      final adminPassCtrl = TextEditingController();
+      String? dialogError;
+      bool verifying = false;
+
+      final authorized = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setDlgState) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF4F46E5), size: 24),
+                SizedBox(width: 8),
+                Expanded(child: Text('Super Admin Verification Required')),
+              ],
+            ),
+            content: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Enter an existing Owner / Super Admin account password to re-launch the Setup Wizard.',
+                    style: TextStyle(fontSize: 12, height: 1.4),
+                  ),
+                  if (dialogError != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      dialogError!,
+                      style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: adminUserCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Super Admin Username',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: adminPassCtrl,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Super Admin Password',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: verifying ? null : () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: verifying
+                    ? null
+                    : () async {
+                        final u = adminUserCtrl.text.trim();
+                        final p = adminPassCtrl.text.trim();
+                        if (u.isEmpty || p.isEmpty) {
+                          setDlgState(() => dialogError = 'Username and password are required.');
+                          return;
+                        }
+                        setDlgState(() {
+                          verifying = true;
+                          dialogError = null;
+                        });
+                        final res = await AuthService.loginDetailed(u, p);
+                        if (!res.success || res.user == null) {
+                          setDlgState(() {
+                            verifying = false;
+                            dialogError = res.errorMessage ?? 'Invalid credentials.';
+                          });
+                          return;
+                        }
+                        final isSuper = res.user!.isSuperAdmin;
+                        await AuthService.logout();
+                        if (!isSuper) {
+                          setDlgState(() {
+                            verifying = false;
+                            dialogError = 'Only an Owner / Super Admin can reconfigure the database.';
+                          });
+                          return;
+                        }
+                        if (ctx.mounted) Navigator.pop(ctx, true);
+                      },
+                icon: const Icon(Icons.verified_user_rounded, size: 16),
+                label: Text(verifying ? 'Verifying...' : 'Authorize & Launch'),
+              ),
+            ],
+          ),
+        ),
+      );
+      adminUserCtrl.dispose();
+      adminPassCtrl.dispose();
+      if (authorized != true) return;
+    } else {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.tune_rounded, color: Color(0xFF4F46E5), size: 24),
+              SizedBox(width: 8),
+              Text('Database & Setup Wizard'),
+            ],
+          ),
+          content: const Text(
+            'Do you want to re-launch the Guided Setup Wizard to configure your database (MySQL / SQLite), business presets, and admin account?',
+            style: TextStyle(fontSize: 13, height: 1.4),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4F46E5),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              icon: const Icon(Icons.rocket_launch_rounded, size: 16),
+              label: const Text('Launch Setup Wizard'),
+            ),
           ],
         ),
-        content: const Text(
-          'Do you want to re-launch the Guided Setup Wizard to reconfigure your database (MySQL / SQLite), business presets, or admin account?\n\nکیا آپ ڈیٹا بیس اور سسٹم کی تنصیب دوبارہ شروع کرنا چاہتے ہیں؟',
-          style: TextStyle(fontSize: 13, height: 1.4),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4F46E5),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            icon: const Icon(Icons.rocket_launch_rounded, size: 16),
-            label: const Text('Launch Setup Wizard'),
-          ),
-        ],
-      ),
-    );
+      );
+      if (confirm != true) return;
+    }
 
-    if (confirm == true && context.mounted) {
-      final db = DatabaseService.instance;
+    if (context.mounted) {
       final current = await db.getBusinessSettings();
       await db.updateBusinessSettings(current.copyWith(isConfigured: false));
       if (widget.onReconfigureDatabase != null) {

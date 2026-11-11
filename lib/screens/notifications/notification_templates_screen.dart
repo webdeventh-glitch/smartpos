@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/messaging_service.dart';
 
@@ -68,8 +69,19 @@ class _NotificationTemplatesScreenState extends State<NotificationTemplatesScree
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e, st) {
+      AppLogger.error('NotificationTemplates', 'Failed loading notification templates data', e, st);
+      if (mounted) {
+        setState(() => _loading = false);
+        await AppErrorHandler.showErrorDialog(
+          context,
+          title: 'Load Failed',
+          message: 'Could not load SMS gateways and notification logs.',
+          error: e,
+          stackTrace: st,
+          tag: 'NotificationTemplates',
+        );
+      }
     }
   }
 

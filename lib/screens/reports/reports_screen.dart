@@ -28,7 +28,12 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   DateTime? _endDate;
 
   Map<String, dynamic> _report = {};
+  Map<String, dynamic> _quotationStats = {};
   List<Product> _lowStock = [];
+  List<ActivityLogEntry> _activityLogs = [];
+  String _activityEntityFilter = 'All';
+  String _activityActionFilter = 'All';
+  final TextEditingController _activitySearchCtrl = TextEditingController();
 
   // Register Shifts State
   List<Map<String, dynamic>> _registerReports = [];
@@ -46,13 +51,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 9, vsync: this);
+    _tabController = TabController(length: 10, vsync: this);
     _applyFilter('month');
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _activitySearchCtrl.dispose();
     _registerSearchCtrl.dispose();
     _stockExpirySearchCtrl.dispose();
     super.dispose();
@@ -125,15 +131,37 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       filter: _stockExpiryFilter,
       searchQuery: _stockExpirySearchCtrl.text.trim(),
     );
+    final qStats = await db.getQuotationConversionStats();
+    final actLogs = await db.getActivityLogs(
+      limit: 200,
+      entityType: _activityEntityFilter,
+      action: _activityActionFilter,
+      search: _activitySearchCtrl.text.trim(),
+    );
 
     if (mounted) {
       setState(() {
         _report = rep;
+        _quotationStats = qStats;
         _lowStock = ls;
         _registerReports = regRep;
         _stockExpiryReports = expRep;
+        _activityLogs = actLogs;
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _reloadActivityLogs() async {
+    final db = await DatabaseService.initialize();
+    final actLogs = await db.getActivityLogs(
+      limit: 200,
+      entityType: _activityEntityFilter,
+      action: _activityActionFilter,
+      search: _activitySearchCtrl.text.trim(),
+    );
+    if (mounted) {
+      setState(() => _activityLogs = actLogs);
     }
   }
 
@@ -418,7 +446,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     final stockCost = (stockVal['stockValueCost'] as double?) ?? 0.0;
 
     final user = AuthService.currentUser;
-    if (user != null && !user.canAccessReports && !user.isAdmin) {
+    if (user != null && !user.hasPermission('report.view')) {
       return Scaffold(
         backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         body: Center(
@@ -471,22 +499,28 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Header & Actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 16,
+              runSpacing: 12,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.analytics_rounded, color: Color(0xFF4F46E5), size: 28),
                         const SizedBox(width: 10),
-                        Text(
-                          'Business Intelligence & Advanced ERP Reports',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        Flexible(
+                          child: Text(
+                            'Business Intelligence & Advanced ERP Reports',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
                           ),
                         ),
                       ],
@@ -498,7 +532,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     ),
                   ],
                 ),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     IconButton(
                       tooltip: 'Refresh',
@@ -506,7 +543,6 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       color: const Color(0xFF4F46E5),
                       onPressed: _load,
                     ),
-                    const SizedBox(width: 6),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF7C3AED),
@@ -518,7 +554,6 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       label: const Text('Ask AI Business Advisor', style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _showAiReportAnalysisModal,
                     ),
-                    const SizedBox(width: 8),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4F46E5),
@@ -530,7 +565,6 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       label: const Text('Print Executive Report', style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _printExecutiveReport,
                     ),
-                    const SizedBox(width: 8),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF059669),
@@ -598,11 +632,31 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               children: [
                 _topKpi('TOTAL SALES REVENUE', '$cur${totalSales.toStringAsFixed(2)}', '${_report['invoiceCount'] ?? 0} Invoices', const Color(0xFF4F46E5), Icons.point_of_sale_rounded, isDark),
                 const SizedBox(width: 14),
-                _topKpi('NET PROFIT / LOSS', '$cur${netProfit.toStringAsFixed(2)}', 'Gross Margin: $cur${((_report['grossProfit'] as double?) ?? 0.0).toStringAsFixed(2)}', netProfit >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444), Icons.trending_up_rounded, isDark),
+                _topKpi(
+                  'NET PROFIT / LOSS',
+                  (user?.hasPermission('report.view_profit') ?? true)
+                      ? '$cur${netProfit.toStringAsFixed(2)}'
+                      : 'Restricted',
+                  (user?.hasPermission('report.view_profit') ?? true)
+                      ? 'Gross Margin: $cur${((_report['grossProfit'] as double?) ?? 0.0).toStringAsFixed(2)}'
+                      : 'Requires report.view_profit',
+                  netProfit >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  Icons.trending_up_rounded,
+                  isDark,
+                ),
                 const SizedBox(width: 14),
                 _topKpi('TOTAL PURCHASES', '$cur${totalPurchases.toStringAsFixed(2)}', '${_report['poCount'] ?? 0} Purchase Orders', const Color(0xFFF59E0B), Icons.shopping_cart_checkout_rounded, isDark),
                 const SizedBox(width: 14),
-                _topKpi('INVENTORY ASSET VALUE', '$cur${stockCost.toStringAsFixed(2)}', '${(stockVal['totalQuantity'] as num?)?.toInt() ?? 0} Total Units', const Color(0xFF0284C7), Icons.inventory_2_rounded, isDark),
+                _topKpi(
+                  'INVENTORY ASSET VALUE',
+                  (user?.hasPermission('report.view_cost_price') ?? true)
+                      ? '$cur${stockCost.toStringAsFixed(2)}'
+                      : 'Restricted',
+                  '${(stockVal['totalQuantity'] as num?)?.toInt() ?? 0} Total Units',
+                  const Color(0xFF0284C7),
+                  Icons.inventory_2_rounded,
+                  isDark,
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -625,6 +679,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 Tab(icon: Icon(Icons.pie_chart_outline_rounded), text: 'Expense Breakdown'),
                 Tab(icon: Icon(Icons.receipt_long_rounded), text: 'Tax / GST Report'),
                 Tab(icon: Icon(Icons.people_alt_outlined), text: 'Customer & Supplier Dues'),
+                Tab(icon: Icon(Icons.history_edu_rounded), text: 'Activity Log'),
               ],
             ),
             const SizedBox(height: 16),
@@ -663,6 +718,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
                         // Tab 9: Customer & Supplier Dues
                         _buildContactDuesTab(cur, isDark),
+
+                        // Tab 10: Activity Log / Audit Trail
+                        _buildActivityLogTab(isDark),
                       ],
                     ),
                   ),
@@ -742,6 +800,25 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   // ===================== TAB 1: PROFIT & LOSS =====================
   Widget _buildProfitAndLossTab(String cur, bool isDark) {
+    final canViewProfit = AuthService.currentUser?.hasPermission('report.view_profit') ?? true;
+    final canViewCost = AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true;
+    if (!canViewProfit) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        ),
+        child: const Center(
+          child: Text(
+            'Profit & Loss Statement is restricted. Requires "report.view_profit" permission.',
+            style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+          ),
+        ),
+      );
+    }
+
     final totalSales = (_report['totalSales'] as double?) ?? 0.0;
     final cogs = (_report['cogs'] as double?) ?? 0.0;
     final grossProfit = (_report['grossProfit'] as double?) ?? 0.0;
@@ -762,7 +839,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Comprehensive Profit & Loss Statement (${_formatPeriod()})', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              Expanded(
+                child: Text(
+                  'Comprehensive Profit & Loss Statement (${_formatPeriod()})',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: const Color(0xFF4F46E5).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
@@ -773,7 +857,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           const SizedBox(height: 16),
           _reportRow('Gross Sales Revenue (Final Invoices)', '$cur${totalSales.toStringAsFixed(2)}', isHeader: true),
           const Divider(),
-          _reportRow('Cost of Goods Sold (COGS based on purchase cost)', '($cur${cogs.toStringAsFixed(2)})', color: Colors.red),
+          _reportRow(
+            'Cost of Goods Sold (COGS based on purchase cost)',
+            canViewCost ? '($cur${cogs.toStringAsFixed(2)})' : 'Restricted',
+            color: Colors.red,
+          ),
           const Divider(),
           _reportRow('Gross Profit (Revenue - COGS)', '$cur${grossProfit.toStringAsFixed(2)}', isBold: true, color: const Color(0xFF10B981)),
           const Divider(),
@@ -895,6 +983,40 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           _reportRow('Outstanding Trade Receivables (Customer Dues)', '$cur${dueSales.toStringAsFixed(2)}', color: const Color(0xFFEF4444)),
           const Divider(),
           _reportRow('Outstanding Trade Payables (Supplier Dues)', '$cur${duePurchases.toStringAsFixed(2)}', color: const Color(0xFFEF4444)),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0EA5E9).withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFF0EA5E9).withValues(alpha: 0.25)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'QUOTATION -> INVOICE CONVERSION FUNNEL',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _kpiBox('Total Quotations', '${_quotationStats['totalQuotations'] ?? 0}', const Color(0xFF0F172A)),
+                    const SizedBox(width: 12),
+                    _kpiBox('Converted Invoices', '${_quotationStats['convertedQuotations'] ?? 0}', const Color(0xFF10B981)),
+                    const SizedBox(width: 12),
+                    _kpiBox('Pending Quotes', '${_quotationStats['pendingQuotations'] ?? 0}', const Color(0xFFF59E0B)),
+                    const SizedBox(width: 12),
+                    _kpiBox(
+                      'Conversion Rate',
+                      '${((_quotationStats['conversionRate'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}%',
+                      const Color(0xFF4F46E5),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1309,8 +1431,17 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                               DataCell(Text(exp, style: const TextStyle(fontWeight: FontWeight.bold))),
                               DataCell(badge),
                               DataCell(Text('${qty.toInt()}', style: const TextStyle(fontWeight: FontWeight.bold))),
-                              DataCell(Text('$cur${cost.toStringAsFixed(2)}')),
-                              DataCell(Text('$cur${costAtRisk.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.w900, color: (days != null && days <= 30) ? const Color(0xFFDC2626) : const Color(0xFF0F172A)))),
+                              DataCell(Text(
+                                (AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true)
+                                    ? '$cur${cost.toStringAsFixed(2)}'
+                                    : 'Restricted',
+                              )),
+                              DataCell(Text(
+                                (AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true)
+                                    ? '$cur${costAtRisk.toStringAsFixed(2)}'
+                                    : 'Restricted',
+                                style: TextStyle(fontWeight: FontWeight.w900, color: (days != null && days <= 30) ? const Color(0xFFDC2626) : const Color(0xFF0F172A)),
+                              )),
                               DataCell(
                                 IconButton(
                                   tooltip: 'View Product Details',
@@ -1552,11 +1683,15 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   // ===================== TAB 4: STOCK VALUATION & AUDIT =====================
   Widget _buildStockValuationTab(String cur, bool isDark) {
+    final canViewCost = AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true;
+    final canViewProfit = AuthService.currentUser?.hasPermission('report.view_profit') ?? true;
     final sv = _report['stockValuation'] as Map<String, dynamic>? ?? {};
     final totalUnits = (sv['totalQuantity'] as num?)?.toDouble() ?? 0.0;
     final stockCost = (sv['stockValueCost'] as double?) ?? 0.0;
     final stockRetail = (sv['stockValueRetail'] as double?) ?? 0.0;
     final potentialProfit = (sv['potentialProfit'] as double?) ?? 0.0;
+    final costLabel = canViewCost ? '$cur${stockCost.toStringAsFixed(2)}' : 'Restricted';
+    final profitLabel = canViewProfit ? '$cur${potentialProfit.toStringAsFixed(2)}' : 'Restricted';
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1574,21 +1709,26 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             children: [
               _kpiBox('Total Stock Units', '${totalUnits.toInt()} units', const Color(0xFF004EEB)),
               const SizedBox(width: 12),
-              _kpiBox('Stock Value by Cost', '$cur${stockCost.toStringAsFixed(2)}', const Color(0xFF64748B)),
+              _kpiBox('Stock Value by Cost', costLabel, const Color(0xFF64748B)),
               const SizedBox(width: 12),
               _kpiBox('Stock Value by Retail', '$cur${stockRetail.toStringAsFixed(2)}', const Color(0xFF10B981)),
               const SizedBox(width: 12),
-              _kpiBox('Potential Retail Margin', '$cur${potentialProfit.toStringAsFixed(2)}', const Color(0xFF8B5CF6)),
+              _kpiBox('Potential Retail Margin', profitLabel, const Color(0xFF8B5CF6)),
             ],
           ),
           const SizedBox(height: 24),
-          _reportRow('Inventory Valuation at Purchase Price (Asset)', '$cur${stockCost.toStringAsFixed(2)}', isHeader: true),
+          _reportRow('Inventory Valuation at Purchase Price (Asset)', costLabel, isHeader: true),
           const Divider(),
           _reportRow('Projected Realizable Value at Selling Price', '$cur${stockRetail.toStringAsFixed(2)}', isHeader: true),
           const Divider(),
-          _reportRow('Estimated Unrealized Gross Margin', '$cur${potentialProfit.toStringAsFixed(2)}', isBold: true, color: const Color(0xFF10B981)),
+          _reportRow('Estimated Unrealized Gross Margin', profitLabel, isBold: true, color: const Color(0xFF10B981)),
           const Divider(),
-          _reportRow('Margin Return on Inventory Investment', '${stockCost > 0 ? ((potentialProfit / stockCost) * 100).toStringAsFixed(1) : "0.0"}%'),
+          _reportRow(
+            'Margin Return on Inventory Investment',
+            (canViewCost && canViewProfit)
+                ? '${stockCost > 0 ? ((potentialProfit / stockCost) * 100).toStringAsFixed(1) : "0.0"}%'
+                : 'Restricted',
+          ),
           const Divider(),
           _reportRow('Products with Low Stock Alerts', '${_lowStock.length} items', color: _lowStock.isNotEmpty ? Colors.red : Colors.green),
         ],
@@ -1857,6 +1997,247 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             Text(val, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildActivityLogTab(bool isDark) {
+    final canViewAudit = AuthService.currentUser?.hasPermission('report.view_audit_log') ?? true;
+    if (!canViewAudit) {
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          ),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_outline_rounded, size: 42, color: Color(0xFFDC2626)),
+              SizedBox(height: 10),
+              Text('Access Restricted', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              SizedBox(height: 4),
+              Text('Permission "report.view_audit_log" is required to inspect system audit trails.'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Color actionColor(String action) {
+      switch (action.toLowerCase()) {
+        case 'created':
+          return const Color(0xFF10B981);
+        case 'deleted':
+          return const Color(0xFFEF4444);
+        default:
+          return const Color(0xFF3B82F6);
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('System Activity & Audit Trail', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                  Text(
+                    'Immutable CRUD history across sales, quotations, products, contacts, roles, and settings (${_activityLogs.length} records)',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Refresh'),
+                onPressed: _reloadActivityLogs,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              SizedBox(
+                width: 230,
+                child: DropdownButtonFormField<String>(
+                  initialValue: _activityEntityFilter,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Entity Filter', isDense: true),
+                  items: const [
+                    DropdownMenuItem(value: 'All', child: Text('All Entities', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'sale', child: Text('Sales', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'quotation', child: Text('Quotations', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'product', child: Text('Products', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'purchase', child: Text('Purchases', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'contact', child: Text('Contacts', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'customer_group', child: Text('Customer Groups', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'tax_group', child: Text('Tax Groups', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'user', child: Text('Users', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'role', child: Text('Roles & RBAC', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'business_settings', child: Text('Settings', overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (val) {
+                    if (val == null) return;
+                    setState(() => _activityEntityFilter = val);
+                    _reloadActivityLogs();
+                  },
+                ),
+              ),
+              SizedBox(
+                width: 185,
+                child: DropdownButtonFormField<String>(
+                  initialValue: _activityActionFilter,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Action Filter', isDense: true),
+                  items: const [
+                    DropdownMenuItem(value: 'All', child: Text('All Actions', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'created', child: Text('Created', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'updated', child: Text('Updated', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'deleted', child: Text('Deleted', overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (val) {
+                    if (val == null) return;
+                    setState(() => _activityActionFilter = val);
+                    _reloadActivityLogs();
+                  },
+                ),
+              ),
+              SizedBox(
+                width: 240,
+                child: TextField(
+                  controller: _activitySearchCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Search actor / values',
+                    prefixIcon: Icon(Icons.search, size: 18),
+                    isDense: true,
+                  ),
+                  onSubmitted: (_) => _reloadActivityLogs(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: _activityLogs.isEmpty
+                ? const Center(
+                    child: Text('No activity records matching filter.', style: TextStyle(color: Color(0xFF64748B))),
+                  )
+                : ListView.separated(
+                    itemCount: _activityLogs.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, idx) {
+                      final entry = _activityLogs[idx];
+                      final badgeCol = actionColor(entry.action);
+                      return ListTile(
+                        dense: true,
+                        leading: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: badgeCol.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            entry.action.toUpperCase(),
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: badgeCol),
+                          ),
+                        ),
+                        title: Wrap(
+                          spacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              '${entry.entityType}${entry.entityId != null ? " #${entry.entityId}" : ""}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Text(
+                              'by ${entry.userName}',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            ),
+                          ],
+                        ),
+                        subtitle: Text(
+                          entry.newValues ?? entry.oldValues ?? entry.createdAt,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        trailing: Wrap(
+                          spacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              entry.createdAt.length > 16 ? entry.createdAt.substring(0, 16) : entry.createdAt,
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            ),
+                            if ((entry.oldValues != null && entry.oldValues!.isNotEmpty) ||
+                                (entry.newValues != null && entry.newValues!.isNotEmpty))
+                              TextButton(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (dCtx) => AlertDialog(
+                                      title: Text(
+                                        '${entry.action.toUpperCase()} ${entry.entityType} #${entry.entityId ?? ""}',
+                                      ),
+                                      content: SizedBox(
+                                        width: 460,
+                                        child: SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text('Actor: ${entry.userName} (${entry.createdAt})'),
+                                              const SizedBox(height: 10),
+                                              if (entry.oldValues != null && entry.oldValues!.isNotEmpty) ...[
+                                                const Text('Old Values:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                SelectableText(entry.oldValues!),
+                                                const SizedBox(height: 8),
+                                              ],
+                                              if (entry.newValues != null && entry.newValues!.isNotEmpty) ...[
+                                                const Text('New Values:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                SelectableText(entry.newValues!),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(dCtx),
+                                          child: const Text('Close'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                child: const Text('Inspect Diff', style: TextStyle(fontSize: 11.5)),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }

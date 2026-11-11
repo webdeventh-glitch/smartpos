@@ -33,6 +33,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
   bool _loading = true;
   int _entriesPerPage = 25;
   String _activeTab = 'final'; // 'final', 'draft', 'quotation'
+  String _quotationFilter = 'all'; // 'all', 'pending', 'converted'
   int _finalCount = 0;
   int _draftCount = 0;
   int _quotationCount = 0;
@@ -61,7 +62,13 @@ class _SalesListScreenState extends State<SalesListScreen> {
     if (_activeTab == 'draft') {
       target = drafts;
     } else if (_activeTab == 'quotation') {
-      target = quotes;
+      if (_quotationFilter == 'pending') {
+        target = quotes.where((s) => !s.isConvertedQuotation).toList();
+      } else if (_quotationFilter == 'converted') {
+        target = quotes.where((s) => s.isConvertedQuotation).toList();
+      } else {
+        target = quotes;
+      }
     } else {
       target = finals;
     }
@@ -92,9 +99,148 @@ class _SalesListScreenState extends State<SalesListScreen> {
     }
   }
 
+  Future<void> _showConvertQuotationDialog(Sale quotation) async {
+    final currentUser = AuthService.currentUser;
+    if (currentUser != null && !currentUser.hasPermission('quotation.convert')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Permission denied: Your role cannot convert quotations to invoices.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (quotation.id == null || quotation.isConvertedQuotation) return;
+
+    String paymentMethod = 'cash';
+    final paidCtrl = TextEditingController(text: quotation.totalAmount.toStringAsFixed(2));
+    final noteCtrl = TextEditingController(text: 'Converted from Quotation #${quotation.invoiceNo}');
+    final cur = widget.settings.currencySymbol;
+    bool isConverting = false;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Row(
+            children: [
+              const Icon(Icons.receipt_long_rounded, color: Color(0xFF4F46E5)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Convert Quotation #${quotation.invoiceNo} to Invoice',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Customer: ${quotation.customerName}  •  Total: $cur${quotation.totalAmount.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: paymentMethod,
+                  decoration: const InputDecoration(labelText: 'Payment Method', isDense: true),
+                  items: const [
+                    DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                    DropdownMenuItem(value: 'card', child: Text('Card / POS Machine')),
+                    DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer')),
+                    DropdownMenuItem(value: 'credit', child: Text('Credit / Customer Khata (Due)')),
+                  ],
+                  onChanged: (val) {
+                    if (val == null) return;
+                    setDlgState(() {
+                      paymentMethod = val;
+                      if (val == 'credit') {
+                        paidCtrl.text = '0.00';
+                      } else if ((double.tryParse(paidCtrl.text.trim()) ?? 0.0) == 0.0) {
+                        paidCtrl.text = quotation.totalAmount.toStringAsFixed(2);
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: paidCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Amount Paid Now ($cur)',
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteCtrl,
+                  decoration: const InputDecoration(labelText: 'Invoice Note', isDense: true),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isConverting ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.check_circle_outline, size: 18),
+              label: Text(isConverting ? 'Converting...' : 'Confirm & Finalize Invoice'),
+              onPressed: isConverting
+                  ? null
+                  : () async {
+                      setDlgState(() => isConverting = true);
+                      final messenger = ScaffoldMessenger.of(context);
+                      try {
+                        final db = await DatabaseService.initialize();
+                        final paidAmt = double.tryParse(paidCtrl.text.trim()) ?? 0.0;
+                        final invoice = await db.convertQuotationToInvoice(
+                          quotationId: quotation.id!,
+                          paymentMethod: paymentMethod,
+                          paidAmount: paidAmt,
+                          note: noteCtrl.text.trim(),
+                        );
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _load();
+                        if (mounted) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Quotation #${quotation.invoiceNo} converted to Invoice #${invoice.invoiceNo}!',
+                              ),
+                              backgroundColor: const Color(0xFF10B981),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setDlgState(() => isConverting = false);
+                        if (mounted) {
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Conversion failed: $e'), backgroundColor: Colors.red),
+                          );
+                        }
+                      }
+                    },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _deleteSaleRecord(Sale s) async {
     final currentUser = AuthService.currentUser;
-    if (currentUser != null && !currentUser.canDeleteSale && !currentUser.isAdmin) {
+    if (currentUser != null && !currentUser.hasPermission('sale.delete')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Access Denied: You do not have permission to delete sales invoices. Contact Super Admin.'),
@@ -429,6 +575,49 @@ class _SalesListScreenState extends State<SalesListScreen> {
                       ],
                     ),
                   ),
+                  if (_activeTab == 'quotation')
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Conversion Status:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            ),
+                          ),
+                          ChoiceChip(
+                            label: const Text('All Quotations', style: TextStyle(fontSize: 11.5)),
+                            selected: _quotationFilter == 'all',
+                            onSelected: (_) {
+                              setState(() => _quotationFilter = 'all');
+                              _load();
+                            },
+                          ),
+                          ChoiceChip(
+                            label: const Text('Pending Conversion', style: TextStyle(fontSize: 11.5)),
+                            selected: _quotationFilter == 'pending',
+                            onSelected: (_) {
+                              setState(() => _quotationFilter = 'pending');
+                              _load();
+                            },
+                          ),
+                          ChoiceChip(
+                            label: const Text('Converted to Invoice', style: TextStyle(fontSize: 11.5)),
+                            selected: _quotationFilter == 'converted',
+                            onSelected: (_) {
+                              setState(() => _quotationFilter = 'converted');
+                              _load();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
 
                   // Actions and Export Buttons Toolbar (Adaptive)
                   LayoutBuilder(
@@ -554,7 +743,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                         padding: const EdgeInsets.only(bottom: 12),
                                         child: Table(
                                           columnWidths: const {
-                                            0: FlexColumnWidth(1.0), // Action
+                                            0: FlexColumnWidth(1.7), // Action
                                             1: FlexColumnWidth(1.5), // Date
                                             2: FlexColumnWidth(1.2), // Invoice No.
                                             3: FlexColumnWidth(1.8), // Customer name
@@ -603,33 +792,68 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                   // Action Button
                                                   _td(
                                                     s.saleStatus != 'final'
-                                                        ? Row(
-                                                            mainAxisSize: MainAxisSize.min,
+                                                        ? Wrap(
+                                                            spacing: 4,
+                                                            runSpacing: 4,
+                                                            crossAxisAlignment: WrapCrossAlignment.center,
                                                             children: [
-                                                              ElevatedButton.icon(
-                                                                style: ElevatedButton.styleFrom(
-                                                                  backgroundColor: const Color(0xFF10B981),
-                                                                  foregroundColor: Colors.white,
-                                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                                                  elevation: 0,
-                                                                ),
-                                                                icon: const Icon(Icons.play_arrow_rounded, size: 14),
-                                                                label: const Text('Resume in POS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                                                onPressed: () => _resumeInPos(s),
-                                                              ),
-                                                              const SizedBox(width: 4),
+                                                              if (s.saleStatus == 'quotation' && s.isConvertedQuotation)
+                                                                Container(
+                                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                                  decoration: BoxDecoration(
+                                                                    color: const Color(0xFFDCFCE7),
+                                                                    borderRadius: BorderRadius.circular(5),
+                                                                    border: Border.all(color: const Color(0xFF86EFAC)),
+                                                                  ),
+                                                                  child: const Text(
+                                                                    'Converted',
+                                                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                                                                  ),
+                                                                )
+                                                              else ...[
+                                                                if (s.saleStatus == 'quotation')
+                                                                  ElevatedButton.icon(
+                                                                    style: ElevatedButton.styleFrom(
+                                                                      backgroundColor: const Color(0xFF4F46E5),
+                                                                      foregroundColor: Colors.white,
+                                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                                      elevation: 0,
+                                                                    ),
+                                                                    icon: const Icon(Icons.receipt_long_rounded, size: 13),
+                                                                    label: const Text('Convert to Invoice', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                                                                    onPressed: () => _showConvertQuotationDialog(s),
+                                                                  ),
+                                                                  if (AuthService.currentUser?.hasPermission('sale.edit') ?? true)
+                                                                    ElevatedButton.icon(
+                                                                      style: ElevatedButton.styleFrom(
+                                                                        backgroundColor: const Color(0xFF10B981),
+                                                                        foregroundColor: Colors.white,
+                                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                                        elevation: 0,
+                                                                      ),
+                                                                      icon: const Icon(Icons.play_arrow_rounded, size: 14),
+                                                                      label: const Text('Resume in POS', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                                                                      onPressed: () => _resumeInPos(s),
+                                                                    ),
+                                                              ],
                                                               PopupMenuButton<String>(
                                                                 onSelected: (val) {
-                                                                  if (val == 'quotation') {
+                                                                  if (val == 'convert') {
+                                                                    _showConvertQuotationDialog(s);
+                                                                  } else if (val == 'quotation') {
                                                                     _printQuotation(s);
                                                                   } else if (val == 'delete') {
                                                                     _deleteSaleRecord(s);
                                                                   }
                                                                 },
-                                                                itemBuilder: (ctx) {
-                                                                  final canDel = AuthService.currentUser?.hasPermission('sales.delete') ?? true;
-                                                                  return [
+                                                                  itemBuilder: (ctx) {
+                                                                    final canDel = AuthService.currentUser?.hasPermission('sale.delete') ?? true;
+                                                                    final canConvert = AuthService.currentUser?.hasPermission('quotation.convert') ?? true;
+                                                                    return [
+                                                                      if (canConvert && s.saleStatus == 'quotation' && !s.isConvertedQuotation)
+                                                                        const PopupMenuItem(value: 'convert', child: Text('Convert to Invoice')),
                                                                     const PopupMenuItem(value: 'quotation', child: Text('Print Quotation / Estimate')),
                                                                     if (canDel)
                                                                       const PopupMenuItem(
@@ -684,7 +908,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                               }
                                                             },
                                                             itemBuilder: (ctx) {
-                                                              final canDel = AuthService.currentUser?.hasPermission('sales.delete') ?? true;
+                                                              final canDel = AuthService.currentUser?.hasPermission('sale.delete') ?? true;
                                                               return [
                                                                 const PopupMenuItem(value: 'receipt', child: Text('Print Receipt')),
                                                                 const PopupMenuItem(

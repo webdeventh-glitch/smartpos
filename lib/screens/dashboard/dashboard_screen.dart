@@ -2,6 +2,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
+import '../../navigation/app_routes.dart';
+import '../../services/app_logger.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../widgets/status_pill.dart';
@@ -11,13 +13,13 @@ import '../pos/register_details_dialog.dart';
 class DashboardScreen extends StatefulWidget {
   final BusinessSettings settings;
   final VoidCallback onNavigateToPos;
-  final Function(int) onNavigateToTab;
+  final ValueChanged<AppRoute> onNavigateToRoute;
 
   const DashboardScreen({
     super.key,
     required this.settings,
     required this.onNavigateToPos,
-    required this.onNavigateToTab,
+    required this.onNavigateToRoute,
   });
 
   @override
@@ -74,12 +76,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _refreshing = false;
         });
       }
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.error('Dashboard', 'Failed loading dashboard data', e, st);
       if (mounted) {
         setState(() {
           _loading = false;
           _refreshing = false;
         });
+        await AppErrorHandler.showErrorDialog(
+          context,
+          title: 'Dashboard Load Failed',
+          message: 'Unable to load dashboard metrics from the database.',
+          error: e,
+          stackTrace: st,
+          tag: 'Dashboard',
+        );
       }
     }
   }
@@ -499,7 +510,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final currentUser = AuthService.currentUser;
     final userName = (currentUser != null && currentUser.name.isNotEmpty)
         ? currentUser.name.split(' ').first
-        : (widget.settings.businessName.isNotEmpty ? widget.settings.businessName.split(' ').first : 'Waseem');
+        : (widget.settings.businessName.isNotEmpty ? widget.settings.businessName.split(' ').first : 'User');
+    final roleTitle = (currentUser == null || currentUser.isAdmin)
+        ? 'Admin'
+        : currentUser.role.toUpperCase();
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
@@ -533,7 +547,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Row(
                     children: [
                       Text(
-                        'Welcome $userName, Admin',
+                        'Welcome $userName, $roleTitle',
                         style: const TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
@@ -630,7 +644,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       title: 'Total Sales',
                       subtitle: 'Total Sales Revenue',
                       value: '$currency ${totalSales.toStringAsFixed(2)}',
-                      onTap: () => widget.onNavigateToTab(4),
+                      onTap: () => widget.onNavigateToRoute(AppRoute.salesList),
                     ),
 
                     // 2. Net
@@ -642,7 +656,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       value: '$currency ${netProfit.toStringAsFixed(2)}',
                       showInfo: true,
                       tooltip: 'Net Profit = Total Sales - Cost of Goods - Expenses',
-                      onTap: () => widget.onNavigateToTab(9),
+                      onTap: () => widget.onNavigateToRoute(AppRoute.reports),
                     ),
 
                     // 3. Invoice due
@@ -652,7 +666,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEF3C7),
                       title: 'Invoice due',
                       value: '$currency ${invoiceDue.toStringAsFixed(2)}',
-                      onTap: () => widget.onNavigateToTab(6),
+                      onTap: () => widget.onNavigateToRoute(AppRoute.customers),
                     ),
 
                     // 4. Total Sell Return
@@ -664,7 +678,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       value: '$currency ${totalSellReturn.toStringAsFixed(2)}',
                       showInfo: true,
                       tooltip: 'Total customer product sales returns',
-                      onTap: () => widget.onNavigateToTab(25),
+                      onTap: () => widget.onNavigateToRoute(AppRoute.salesReturn),
                     ),
 
                     // 5. Total purchase
@@ -675,7 +689,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       title: 'Total purchase',
                       subtitle: 'Total Purchases',
                       value: '$currency ${totalPurchases.toStringAsFixed(2)}',
-                      onTap: () => widget.onNavigateToTab(5),
+                      onTap: () => widget.onNavigateToRoute(AppRoute.purchasesList),
                     ),
 
                     // 6. Purchase due
@@ -685,7 +699,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEF3C7),
                       title: 'Purchase due',
                       value: '$currency ${purchaseDue.toStringAsFixed(2)}',
-                      onTap: () => widget.onNavigateToTab(7),
+                      onTap: () => widget.onNavigateToRoute(AppRoute.suppliers),
                     ),
 
                     // 7. Total Purchase Return
@@ -697,7 +711,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       value: '$currency ${totalPurchaseReturn.toStringAsFixed(2)}',
                       showInfo: true,
                       tooltip: 'Total supplier purchase returns',
-                      onTap: () => widget.onNavigateToTab(26),
+                      onTap: () => widget.onNavigateToRoute(AppRoute.purchaseReturn),
                     ),
 
                     // 8. Expense
@@ -707,7 +721,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       iconBg: const Color(0xFFFEE2E2),
                       title: 'Expense',
                       value: '$currency ${totalExpenses.toStringAsFixed(2)}',
-                      onTap: () => widget.onNavigateToTab(8),
+                      onTap: () => widget.onNavigateToRoute(AppRoute.expenses),
                     ),
                   ],
                 );
@@ -732,28 +746,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   label: widget.settings.enableSecondaryLanguage
                       ? '+ Add Product / نیا پروڈکٹ'
                       : '+ Add Product',
-                  onTap: () => widget.onNavigateToTab(11),
+                  onTap: () => widget.onNavigateToRoute(AppRoute.addProduct),
                 ),
                 _actionPill(
                   icon: Icons.add_shopping_cart_rounded,
                   label: widget.settings.enableSecondaryLanguage
                       ? '+ Stock In / Purchase (خریداری)'
                       : '+ Stock In / Purchase',
-                  onTap: () => widget.onNavigateToTab(5),
+                  onTap: () => widget.onNavigateToRoute(AppRoute.purchasesList),
                 ),
                 _actionPill(
                   icon: Icons.people_outline,
                   label: widget.settings.enableSecondaryLanguage
                       ? 'Customers / گاہکوں کا کھاتہ'
                       : 'Customers Khata',
-                  onTap: () => widget.onNavigateToTab(6),
+                  onTap: () => widget.onNavigateToRoute(AppRoute.customers),
                 ),
                 _actionPill(
                   icon: Icons.local_shipping_outlined,
                   label: widget.settings.enableSecondaryLanguage
                       ? 'Suppliers / سپلائرز کھاتہ'
                       : 'Suppliers Khata',
-                  onTap: () => widget.onNavigateToTab(7),
+                  onTap: () => widget.onNavigateToRoute(AppRoute.suppliers),
                 ),
                 _actionPill(
                   icon: Icons.point_of_sale_outlined,
@@ -763,12 +777,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _actionPill(
                   icon: Icons.fact_check_outlined,
                   label: 'Stock Audit',
-                  onTap: () => widget.onNavigateToTab(24),
+                  onTap: () => widget.onNavigateToRoute(AppRoute.inventoryAudit),
                 ),
                 _actionPill(
                   icon: Icons.analytics_outlined,
                   label: 'Reports',
-                  onTap: () => widget.onNavigateToTab(9),
+                  onTap: () => widget.onNavigateToRoute(AppRoute.reports),
                 ),
               ],
             ),
@@ -1427,7 +1441,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () => widget.onNavigateToTab(2),
+                onPressed: () => widget.onNavigateToRoute(AppRoute.productsList),
                 child: Text('View Catalog', style: TextStyle(color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 12)),
               ),
             ],
@@ -1571,7 +1585,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () => widget.onNavigateToTab(4),
+                onPressed: () => widget.onNavigateToRoute(AppRoute.salesList),
                 child: Text('View All Orders', style: TextStyle(color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 12)),
               ),
             ],
@@ -1754,7 +1768,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
               ElevatedButton.icon(
-                onPressed: () => widget.onNavigateToTab(5), // Navigate to Purchases
+                onPressed: () => widget.onNavigateToRoute(AppRoute.purchasesList),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isDark ? const Color(0xFF4F46E5) : const Color(0xFF0F172A),
                   foregroundColor: Colors.white,
@@ -1818,7 +1832,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                         ),
-                        onPressed: () => widget.onNavigateToTab(5),
+                        onPressed: () => widget.onNavigateToRoute(AppRoute.purchasesList),
                         child: Text(
                           'Restock',
                           style: TextStyle(

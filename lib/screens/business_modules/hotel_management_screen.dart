@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 
 class HotelManagementScreen extends StatefulWidget {
@@ -30,8 +31,19 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
         _rooms = rows.map((r) => Map<String, dynamic>.from(r)).toList();
         _isLoading = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e, st) {
+      AppLogger.error('HotelManagement', 'Failed loading hotel rooms', e, st);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        await AppErrorHandler.showErrorDialog(
+          context,
+          title: 'Load Failed',
+          message: 'Could not load hotel rooms from database.',
+          error: e,
+          stackTrace: st,
+          tag: 'HotelManagement',
+        );
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'app_logger.dart';
 
 /// Data model representing a foreign exchange rate for cash counter & POS dual tender.
 class CurrencyRate {
@@ -200,7 +201,8 @@ class CurrencyRateService {
         response = await httpClient
             .get(Uri.parse(openErApiUrl))
             .timeout(const Duration(seconds: 8));
-      } catch (_) {
+      } catch (e, st) {
+        AppLogger.warning('CurrencyRateService', 'Primary rate endpoint failed, using fallback mirror', e, st);
         // Fallback to secondary mirror
         response = await httpClient
             .get(Uri.parse(fallbackApiUrl))

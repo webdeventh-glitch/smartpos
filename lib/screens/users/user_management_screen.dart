@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 
@@ -16,6 +17,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<User> _users = [];
+  List<AppRole> _roles = [];
   List<BusinessLocation> _locations = [];
   bool _loading = true;
   String _searchQuery = '';
@@ -39,15 +41,18 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     try {
       final db = await DatabaseService.initialize();
       final list = await db.getUsers();
+      final roles = await db.getRoles();
       final locs = await db.getBusinessLocations();
       if (mounted) {
         setState(() {
           _users = list;
+          _roles = roles;
           _locations = locs;
           _loading = false;
         });
       }
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.error('UserManagementScreen', 'Failed to load users', e, st);
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -83,9 +88,10 @@ class _UserManagementScreenState extends State<UserManagementScreen>
   void _showAddUserDialog() {
     final nameCtrl = TextEditingController();
     final usernameCtrl = TextEditingController();
-    final passwordCtrl = TextEditingController(text: 'password');
+    final passwordCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
+    bool mustChangePassword = true;
     String role = 'salesman';
     String branch = widget.settings.branchName.isNotEmpty
         ? widget.settings.branchName
@@ -150,28 +156,37 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: role,
+                          value: (_roles.isNotEmpty && _roles.any((r) => r.name == role))
+                              ? role
+                              : (_roles.isNotEmpty ? _roles.first.name : role),
                           decoration: const InputDecoration(
                               labelText: 'Role / Designation',
                               isDense: true,
                               border: OutlineInputBorder()),
-                          items: const [
-                            DropdownMenuItem(
-                                value: 'salesman',
-                                child: Text('Salesman (Counter / Field)')),
-                            DropdownMenuItem(
-                                value: 'cashier',
-                                child: Text('Cashier (Front Desk)')),
-                            DropdownMenuItem(
-                                value: 'manager',
-                                child: Text('Store Manager / Supervisor')),
-                            DropdownMenuItem(
-                                value: 'admin',
-                                child: Text('Admin (Operations)')),
-                            DropdownMenuItem(
-                                value: 'superadmin',
-                                child: Text('Owner / Super Admin')),
-                          ],
+                          items: _roles.isNotEmpty
+                              ? _roles
+                                  .map((r) => DropdownMenuItem(
+                                        value: r.name,
+                                        child: Text(r.displayName),
+                                      ))
+                                  .toList()
+                              : const [
+                                  DropdownMenuItem(
+                                      value: 'salesman',
+                                      child: Text('Salesman (Counter / Field)')),
+                                  DropdownMenuItem(
+                                      value: 'cashier',
+                                      child: Text('Cashier (Front Desk)')),
+                                  DropdownMenuItem(
+                                      value: 'manager',
+                                      child: Text('Store Manager / Supervisor')),
+                                  DropdownMenuItem(
+                                      value: 'admin',
+                                      child: Text('Admin (Operations)')),
+                                  DropdownMenuItem(
+                                      value: 'superadmin',
+                                      child: Text('Owner / Super Admin')),
+                                ],
                           onChanged: (val) {
                             if (val != null) setDlgState(() => role = val);
                           },
@@ -229,7 +244,20 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: mustChangePassword,
+                    onChanged: (v) =>
+                        setDlgState(() => mustChangePassword = v ?? true),
+                    title: const Text(
+                      'Require password change on first login',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -286,6 +314,16 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   return;
                 }
 
+                final strengthErr = AuthService.validatePasswordStrength(pass);
+                if (strengthErr != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(strengthErr),
+                        backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+
                 // Check for duplicate username
                 if (_users.any((u) =>
                     u.username.toLowerCase() == username.toLowerCase())) {
@@ -302,6 +340,9 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                 final isMgr = role == 'manager';
                 final matchedLoc =
                     _locations.where((l) => l.name == branch).firstOrNull;
+                final matchedRole = _roles
+                    .where((r) => r.name.toLowerCase() == role.toLowerCase())
+                    .firstOrNull;
 
                 final newUser = User(
                   name: name,
@@ -310,6 +351,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   email: emailCtrl.text.trim(),
                   phone: phoneCtrl.text.trim(),
                   role: role,
+                  roleId: matchedRole?.id,
                   status: 'active',
                   branchId: matchedLoc?.id ?? 1,
                   branchName: branch,
@@ -324,21 +366,37 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   canAccessReports: isAdm || isMgr,
                   canAccessSettings: isAdm,
                   canManageUsers: isAdm,
+                  mustChangePassword: mustChangePassword,
+                  passwordChangedAt: DateTime.now().toIso8601String(),
                 );
 
-                final db = await DatabaseService.initialize();
-                await db.addUser(newUser);
-                Navigator.pop(ctx);
-                _loadUsers();
+                try {
+                  final db = await DatabaseService.initialize();
+                  await db.addUser(newUser);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  _loadUsers();
 
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content:
-                        Text('Staff account for "$name" created successfully!'),
-                    backgroundColor: const Color(0xFF10B981),
-                  ),
-                );
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text('Staff account for "$name" created successfully!'),
+                      backgroundColor: const Color(0xFF10B981),
+                    ),
+                  );
+                } catch (e, st) {
+                  AppLogger.error('UserManagement', 'Failed creating user "$username"', e, st);
+                  if (mounted) {
+                    await AppErrorHandler.showErrorDialog(
+                      context,
+                      title: 'Create User Failed',
+                      message: 'Could not create user "$username".',
+                      error: e,
+                      stackTrace: st,
+                      tag: 'UserManagement',
+                    );
+                  }
+                }
               },
               child: const Text('Save & Create Account',
                   style: TextStyle(fontWeight: FontWeight.bold)),
@@ -357,6 +415,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     final emailCtrl = TextEditingController(text: user.email);
     final phoneCtrl = TextEditingController(text: user.phone);
     final newPassCtrl = TextEditingController();
+    bool requireChangeOnReset = true;
+    bool clearLockout = false;
     String role = user.role;
     String status = user.status;
     String branch = user.branchName.isNotEmpty
@@ -399,24 +459,33 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: role,
+                          value: (_roles.isNotEmpty && _roles.any((r) => r.name == role))
+                              ? role
+                              : (_roles.isNotEmpty ? _roles.first.name : role),
                           decoration: const InputDecoration(
                               labelText: 'Role',
                               isDense: true,
                               border: OutlineInputBorder()),
-                          items: const [
-                            DropdownMenuItem(
-                                value: 'salesman', child: Text('Salesman')),
-                            DropdownMenuItem(
-                                value: 'cashier', child: Text('Cashier')),
-                            DropdownMenuItem(
-                                value: 'manager', child: Text('Store Manager')),
-                            DropdownMenuItem(
-                                value: 'admin', child: Text('Admin')),
-                            DropdownMenuItem(
-                                value: 'superadmin',
-                                child: Text('Owner / Superadmin')),
-                          ],
+                          items: _roles.isNotEmpty
+                              ? _roles
+                                  .map((r) => DropdownMenuItem(
+                                        value: r.name,
+                                        child: Text(r.displayName),
+                                      ))
+                                  .toList()
+                              : const [
+                                  DropdownMenuItem(
+                                      value: 'salesman', child: Text('Salesman')),
+                                  DropdownMenuItem(
+                                      value: 'cashier', child: Text('Cashier')),
+                                  DropdownMenuItem(
+                                      value: 'manager', child: Text('Store Manager')),
+                                  DropdownMenuItem(
+                                      value: 'admin', child: Text('Admin')),
+                                  DropdownMenuItem(
+                                      value: 'superadmin',
+                                      child: Text('Owner / Superadmin')),
+                                ],
                           onChanged: (val) {
                             if (val != null) setDlgState(() => role = val);
                           },
@@ -496,6 +565,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   TextField(
                     controller: newPassCtrl,
                     obscureText: true,
+                    onChanged: (_) => setDlgState(() {}),
                     decoration: const InputDecoration(
                       labelText: 'Reset Password (leave blank to keep current)',
                       isDense: true,
@@ -503,6 +573,34 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       prefixIcon: Icon(Icons.lock_reset_rounded, size: 20),
                     ),
                   ),
+                  if (newPassCtrl.text.trim().isNotEmpty)
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: requireChangeOnReset,
+                      onChanged: (v) =>
+                          setDlgState(() => requireChangeOnReset = v ?? true),
+                      title: const Text(
+                        'Require password change on next login',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  if (user.lockedUntil != null && user.lockedUntil!.isNotEmpty)
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: clearLockout,
+                      onChanged: (v) =>
+                          setDlgState(() => clearLockout = v ?? false),
+                      title: const Text(
+                        'Unlock account (clear brute-force lockout)',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFD97706)),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -519,22 +617,48 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () async {
-                final updatedPass = newPassCtrl.text.trim().isNotEmpty
-                    ? AuthService.hashPassword(newPassCtrl.text.trim())
+                final resetPassText = newPassCtrl.text.trim();
+                if (resetPassText.isNotEmpty) {
+                  final strengthErr =
+                      AuthService.validatePasswordStrength(resetPassText);
+                  if (strengthErr != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text(strengthErr),
+                          backgroundColor: Colors.red),
+                    );
+                    return;
+                  }
+                }
+                final updatedPass = resetPassText.isNotEmpty
+                    ? AuthService.hashPassword(resetPassText)
                     : user.password;
 
                 final matchedLoc =
                     _locations.where((l) => l.name == branch).firstOrNull;
+                final matchedRole = _roles
+                    .where((r) => r.name.toLowerCase() == role.toLowerCase())
+                    .firstOrNull;
 
                 final updated = user.copyWith(
                   name: nameCtrl.text.trim(),
                   role: role,
+                  roleId: matchedRole?.id ?? user.roleId,
                   status: status,
                   phone: phoneCtrl.text.trim(),
                   email: emailCtrl.text.trim(),
                   password: updatedPass,
                   branchName: branch,
                   branchId: matchedLoc?.id ?? user.branchId,
+                  mustChangePassword: resetPassText.isNotEmpty
+                      ? requireChangeOnReset
+                      : user.mustChangePassword,
+                  failedLoginAttempts:
+                      clearLockout ? 0 : user.failedLoginAttempts,
+                  clearLockedUntil: clearLockout,
+                  passwordChangedAt: resetPassText.isNotEmpty
+                      ? DateTime.now().toIso8601String()
+                      : user.passwordChangedAt,
                 );
 
                 final db = await DatabaseService.initialize();
@@ -561,7 +685,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
   // 3. DELETE USER
   // =========================================================================
   void _confirmDeleteUser(User user) {
-    if (user.username == 'webdeventh' || user.username == 'superadmin') {
+    if (user.isSuperAdmin) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text(
@@ -1002,6 +1126,55 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                 label: const Text('Apply & Save Authorization',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 onPressed: () async {
+                  // Record explicit per-user overrides for any toggled authorization switches
+                  // so DB RBAC resolution honors individual grants/revocations cleanly.
+                  final rawTokens = user.permissions
+                      .split(',')
+                      .map((e) => e.trim().toLowerCase())
+                      .where((e) => e.isNotEmpty)
+                      .toList();
+                  final hadCacheMarker = rawTokens.contains('__rbac__');
+                  final overrideTokens = <String>{
+                    ...rawTokens.where((e) =>
+                        e != '__rbac__' &&
+                        (!hadCacheMarker ||
+                            e.startsWith('+') ||
+                            e.startsWith('-'))),
+                  };
+
+                  void syncFlag(String key, bool before, bool after) {
+                    if (before == after) return;
+                    overrideTokens.remove('+$key');
+                    overrideTokens.remove('-$key');
+                    overrideTokens.remove(key);
+                    overrideTokens.add(after ? '+$key' : '-$key');
+                  }
+
+                  void syncGroup(List<String> keys, bool before, bool after) {
+                    for (final k in keys) {
+                      syncFlag(k, before, after);
+                    }
+                  }
+
+                  syncFlag('pos.edit_price', user.canEditPrice, canEditPrice);
+                  syncFlag('pos.give_discount', user.canGiveDiscount, canGiveDiscount);
+                  syncFlag('report.view_cost_price', user.canViewCostPrice, canViewCostPrice);
+                  syncFlag('sale.delete', user.canDeleteSale, canDeleteSale);
+                  syncFlag('sale.return', user.canProcessReturn, canProcessReturn);
+                  syncFlag('contact.khata_payment', user.canAccessKhata, canAccessKhata);
+                  syncGroup(
+                    const ['inventory.transfer', 'inventory.adjust', 'inventory.audit'],
+                    user.canAccessInventory,
+                    canAccessInventory,
+                  );
+                  syncGroup(
+                    const ['report.view', 'report.view_profit'],
+                    user.canAccessReports,
+                    canAccessReports,
+                  );
+                  syncFlag('settings.manage', user.canAccessSettings, canAccessSettings);
+                  syncFlag('user.manage', user.canManageUsers, canManageUsers);
+
                   final updated = user.copyWith(
                     canEditPrice: canEditPrice,
                     canGiveDiscount: canGiveDiscount,
@@ -1014,6 +1187,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     canAccessReports: canAccessReports,
                     canAccessSettings: canAccessSettings,
                     canManageUsers: canManageUsers,
+                    permissions: overrideTokens.join(','),
                   );
 
                   final db = await DatabaseService.initialize();
@@ -1022,10 +1196,13 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   // Update currently logged-in user session if self
                   if (AuthService.currentUser?.id == user.id ||
                       AuthService.currentUser?.username == user.username) {
-                    AuthService.currentUserNotifier.value = updated;
+                    final eff = await db.getEffectivePermissionsForUser(updated);
+                    AuthService.currentUserNotifier.value = updated.copyWith(
+                      permissions: {'__rbac__', ...eff}.join(','),
+                    );
                   }
 
-                  Navigator.pop(ctx);
+                  if (ctx.mounted) Navigator.pop(ctx);
                   _loadUsers();
 
                   if (!mounted) return;
@@ -1184,7 +1361,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       backgroundColor:
           isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(105),
+        preferredSize: const Size.fromHeight(144),
         child: Container(
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           child: SafeArea(
@@ -1197,29 +1374,36 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: const [
-                              Icon(Icons.manage_accounts_rounded,
-                                  color: Color(0xFF4F46E5), size: 22),
-                              SizedBox(width: 8),
-                              Text(
-                                'User Management & Authorization Control Center',
-                                style: TextStyle(
-                                    fontSize: 19, fontWeight: FontWeight.w900),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Owner Controls: Set fine-grained permissions for salesmen, cashiers, supervisors & managers.',
-                            style: TextStyle(
-                                fontSize: 12, color: Color(0xFF64748B)),
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: const [
+                                Icon(Icons.manage_accounts_rounded,
+                                    color: Color(0xFF4F46E5), size: 22),
+                                SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    'User Management & Authorization Control Center',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: 19, fontWeight: FontWeight.w900),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Owner Controls: Set fine-grained permissions for salesmen, cashiers, supervisors & managers.',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 12, color: Color(0xFF64748B)),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 12),
                       Row(
                         children: [
                           ElevatedButton.icon(
@@ -1595,8 +1779,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                                       tooltip: 'Edit Profile',
                                       onPressed: () => _showEditUserDialog(u),
                                     ),
-                                    if (u.username != 'webdeventh' &&
-                                        u.username != 'superadmin')
+                                    if (!u.isSuperAdmin)
                                       IconButton(
                                         icon: const Icon(Icons.delete_outline,
                                             size: 16, color: Colors.red),
@@ -1650,21 +1833,25 @@ class _UserManagementScreenState extends State<UserManagementScreen>
               child: Icon(icon, color: color, size: 22),
             ),
             const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value,
-                    style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color:
-                            isDark ? Colors.white : const Color(0xFF0F172A))),
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.bold)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(value,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A))),
+                  Text(label,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.bold)),
+                ],
+              ),
             ),
           ],
         ),
@@ -1675,174 +1862,440 @@ class _UserManagementScreenState extends State<UserManagementScreen>
   // =========================================================================
   // TAB 1 IMPLEMENTATION: ROLES & PERMISSIONS MATRIX
   // =========================================================================
+  Future<void> _showRoleEditorDialog([AppRole? existing]) async {
+    final canManageRoles =
+        AuthService.currentUser?.hasPermission('role.manage') ?? true;
+    if (!canManageRoles) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Permission denied: Only users with "role.manage" can modify roles.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final displayCtrl = TextEditingController(text: existing?.displayName ?? '');
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final descCtrl = TextEditingController(text: existing?.description ?? '');
+    final selectedKeys = Set<String>.from(existing?.permissions ?? <String>[]);
+
+    final Map<String, List<AppPermission>> grouped = {};
+    for (final perm in PermissionCatalog.all) {
+      grouped.putIfAbsent(perm.category, () => []).add(perm);
+    }
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Row(
+            children: [
+              const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF4F46E5)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  existing == null ? 'Create Custom Role' : 'Edit Role: ${existing.displayName}',
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Text(
+                '${selectedKeys.length} / ${PermissionCatalog.all.length}',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 580,
+            height: 470,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: displayCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Role Display Name * (e.g. Senior Cashier)',
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: nameCtrl,
+                        enabled: existing?.isSystem != true,
+                        decoration: const InputDecoration(
+                          labelText: 'Role Key (e.g. senior_cashier)',
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Role Description',
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView(
+                    children: grouped.entries.map((catEntry) {
+                      final catPerms = catEntry.value;
+                      final allCatChecked =
+                          catPerms.every((p) => selectedKeys.contains(p.key));
+                      return ExpansionTile(
+                        initiallyExpanded: true,
+                        tilePadding: EdgeInsets.zero,
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${catEntry.key} (${catPerms.where((p) => selectedKeys.contains(p.key)).length}/${catPerms.length})',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                setDlgState(() {
+                                  if (allCatChecked) {
+                                    for (final p in catPerms) {
+                                      selectedKeys.remove(p.key);
+                                    }
+                                  } else {
+                                    for (final p in catPerms) {
+                                      selectedKeys.add(p.key);
+                                    }
+                                  }
+                                });
+                              },
+                              child: Text(
+                                allCatChecked ? 'Clear Category' : 'Select All',
+                                style: const TextStyle(fontSize: 11.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                        children: catPerms.map((perm) {
+                          final checked = selectedKeys.contains(perm.key);
+                          return CheckboxListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.only(left: 8),
+                            value: checked,
+                            title: Text(perm.label, style: const TextStyle(fontSize: 12.5)),
+                            subtitle: Text(perm.key, style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
+                            onChanged: (v) {
+                              setDlgState(() {
+                                if (v == true) {
+                                  selectedKeys.add(perm.key);
+                                } else {
+                                  selectedKeys.remove(perm.key);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4F46E5),
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.save_rounded, size: 17),
+              label: const Text('Save Role Permissions'),
+              onPressed: () async {
+                final disp = displayCtrl.text.trim();
+                final rawName = nameCtrl.text.trim().isNotEmpty
+                    ? nameCtrl.text.trim()
+                    : disp.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+                if (disp.isEmpty || rawName.isEmpty) return;
+                final messenger = ScaffoldMessenger.of(context);
+                final roleObj = AppRole(
+                  id: existing?.id,
+                  name: rawName,
+                  displayName: disp,
+                  description: descCtrl.text.trim(),
+                  isSystem: existing?.isSystem ?? false,
+                  permissions: selectedKeys.toList(),
+                );
+                final db = await DatabaseService.initialize();
+                final savedId = await db.saveRole(roleObj);
+
+                // Refresh active user's effective RBAC permissions if they hold this role.
+                final cur = AuthService.currentUser;
+                if (cur != null &&
+                    (cur.roleId == savedId ||
+                        cur.role.toLowerCase() == roleObj.name.toLowerCase())) {
+                  final dbUsers = await db.getUsers();
+                  final freshCur = dbUsers.cast<User?>().firstWhere(
+                        (u) => u?.id == cur.id || u?.username == cur.username,
+                        orElse: () => cur,
+                      ) ??
+                      cur;
+                  final eff = await db.getEffectivePermissionsForUser(freshCur);
+                  AuthService.currentUserNotifier.value = freshCur.copyWith(
+                    permissions: {'__rbac__', ...eff}.join(','),
+                  );
+                }
+
+                if (ctx.mounted) Navigator.pop(ctx);
+                await _loadUsers();
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Saved role "$disp" with ${selectedKeys.length} permission(s).',
+                      ),
+                      backgroundColor: const Color(0xFF10B981),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildRolesMatrixTab(bool isDark) {
-    final roles = [
-      {
-        'role': 'Owner / Super Admin',
-        'desc':
-            'Complete, unrestricted ownership of business data, bank balances, owner passwords, and tax returns.',
-        'rights': [
-          'Full POS Sales',
-          'Edit Counter Prices',
-          'Unlimited Discounts (100%)',
-          'View Cost Prices & Profit Margins',
-          'Void / Delete Invoices',
-          'Process Returns & Refunds',
-          'Khata Ledgers',
-          'Manage Inventory & Audits',
-          'View All Reports',
-          'Change Settings',
-          'Manage Staff Authorizations'
-        ],
-        'color': const Color(0xFF4F46E5),
-      },
-      {
-        'role': 'Store Manager / Supervisor',
-        'desc':
-            'Oversees daily store operations, inventory transfers, shift audits, and handles customer disputes.',
-        'rights': [
-          'Full POS Sales',
-          'Edit Counter Prices',
-          'Discounts up to 20%',
-          'View Cost Prices & Margins',
-          'Void / Cancel Sales',
-          'Process Returns & Refunds',
-          'Khata Ledgers',
-          'Manage Inventory & Audits',
-          'Daily Sales Reports'
-        ],
-        'color': const Color(0xFF059669),
-      },
-      {
-        'role': 'Standard Salesman (Counter & Field)',
-        'desc':
-            'Frontline selling: creates orders and receives payments. Prices and costs are protected.',
-        'rights': [
-          'POS Sales Terminal',
-          'Hold / Resume Orders',
-          'Discounts up to 5%',
-          'View Customer Khata Ledgers',
-          'Cash Register Drawer'
-        ],
-        'color': const Color(0xFF0284C7),
-      },
-      {
-        'role': 'Restricted Cashier',
-        'desc':
-            'Fast-checkout clerk strictly scanning barcodes and collecting cash. No price editing or discounts.',
-        'rights': [
-          'POS Sales Terminal',
-          'Barcode Scanning',
-          'Cash Drawer Integration',
-          'Receipt Printing'
-        ],
-        'color': const Color(0xFFD97706),
-      },
+    final permLookup = {for (final p in PermissionCatalog.all) p.key: p.label};
+    final palette = [
+      const Color(0xFF4F46E5),
+      const Color(0xFF059669),
+      const Color(0xFF0284C7),
+      const Color(0xFFD97706),
+      const Color(0xFF7C3AED),
     ];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: roles.map((r) {
-          final rights = r['rights'] as List<String>;
-          final col = r['color'] as Color;
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Granular Role-Based Access Control (RBAC) Matrix',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${_roles.length} configured roles across ${PermissionCatalog.all.length} fine-grained permissions',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.add_moderator_rounded, size: 18),
+                label: const Text('Create Custom Role'),
+                onPressed: () => _showRoleEditorDialog(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_roles.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Text('No RBAC roles found.'),
+              ),
+            )
+          else
+            ..._roles.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final role = entry.value;
+              final col = palette[idx % palette.length];
+              final rights = role.permissions;
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: isDark
-                      ? const Color(0xFF334155)
-                      : const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: col.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: col.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(Icons.verified_user_rounded,
+                                    color: col, size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Wrap(
+                                      spacing: 8,
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      children: [
+                                        Text(
+                                          role.displayName,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold, fontSize: 16),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            role.name,
+                                            style: const TextStyle(fontSize: 10.5, fontFamily: 'monospace'),
+                                          ),
+                                        ),
+                                        if (role.isSystem)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFE0E7FF),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: const Text(
+                                              'SYSTEM',
+                                              style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF3730A3)),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    if (role.description.isNotEmpty)
+                                      Text(
+                                        role.description,
+                                        style: const TextStyle(
+                                            fontSize: 12, color: Color(0xFF64748B)),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          child: Icon(Icons.verified_user_rounded,
-                              color: col, size: 20),
                         ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Wrap(
+                          spacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Text(r['role'] as String,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16)),
-                            Text(r['desc'] as String,
-                                style: const TextStyle(
-                                    fontSize: 12, color: Color(0xFF64748B))),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: col.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text('${rights.length} Rights Authorized',
+                                  style: TextStyle(
+                                      color: col,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12)),
+                            ),
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.tune_rounded, size: 15),
+                              label: const Text('Edit Permissions', style: TextStyle(fontSize: 12)),
+                              onPressed: () => _showRoleEditorDialog(role),
+                            ),
+                            if (!role.isSystem)
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                tooltip: 'Delete Custom Role',
+                                onPressed: () async {
+                                  if (role.id == null) return;
+                                  final db = await DatabaseService.initialize();
+                                  await db.deleteRole(role.id!);
+                                  await _loadUsers();
+                                },
+                              ),
                           ],
                         ),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: col.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text('${rights.length} Rights Authorized',
-                          style: TextStyle(
-                              color: col,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12)),
+                    const SizedBox(height: 14),
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: rights.map((rt) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF8FAFC),
+                            border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0)),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle_rounded,
+                                  color: col, size: 14),
+                              const SizedBox(width: 5),
+                              Text(permLookup[rt] ?? rt,
+                                  style: const TextStyle(
+                                      fontSize: 11, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: rights.map((rt) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF0F172A)
-                            : const Color(0xFFF8FAFC),
-                        border: Border.all(
-                            color: isDark
-                                ? const Color(0xFF334155)
-                                : const Color(0xFFE2E8F0)),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.check_circle_rounded,
-                              color: col, size: 14),
-                          const SizedBox(width: 5),
-                          Text(rt,
-                              style: const TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
+              );
+            }),
+        ],
       ),
     );
   }

@@ -1,19 +1,38 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:desktop_starter/models/models.dart';
+import 'package:desktop_starter/services/auth_service.dart';
+import 'package:desktop_starter/services/database_encryption_service.dart';
 import 'package:desktop_starter/services/database_service.dart';
+import 'package:desktop_starter/services/windows_credential_store.dart';
 
 void main() {
   setUpAll(() {
     sqfliteFfiInit();
+    WindowsCredentialStore.useInMemoryForTest = true;
   });
 
   group('Manual Core Operations Verification: Add Product, Purchase, Sale, Return, Khata', () {
+    late Directory tempDir;
     late DatabaseService db;
 
     setUpAll(() async {
-      db = await DatabaseService.initialize(customPath: inMemoryDatabasePath);
+      WindowsCredentialStore.clearTestStore();
+      DatabaseEncryptionService.clearKeyCache();
+      tempDir = Directory.systemTemp.createTempSync('smartpos_manual_ops_');
+      db = await DatabaseService.initialize(
+        customPath: p.join(tempDir.path, 'manual_ops.db'),
+      );
       await db.seedInitialDataForBusinessType(businessType: 'general');
+    });
+
+    tearDownAll(() async {
+      await db.db.close();
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
     });
 
     test('STEP 1: Add New Product and Verify in Catalog', () async {
@@ -272,9 +291,34 @@ void main() {
     });
 
     test('STEP 6: Owner vs Salesman Operational Authorization Enforcement', () async {
+      await db.addUser(User(
+        name: 'Store Owner',
+        username: 'owner_test',
+        password: AuthService.hashPassword('Owner@Test2026!'),
+        role: 'superadmin',
+        canEditPrice: true,
+        canGiveDiscount: true,
+        maxDiscountPercent: 100.0,
+        canViewCostPrice: true,
+        canDeleteSale: true,
+        canProcessReturn: true,
+      ));
+      await db.addUser(User(
+        name: 'Salesman One',
+        username: 'salesman_test',
+        password: AuthService.hashPassword('Sales@Test2026!'),
+        role: 'salesman',
+        canEditPrice: false,
+        canGiveDiscount: true,
+        maxDiscountPercent: 5.0,
+        canViewCostPrice: false,
+        canDeleteSale: false,
+        canProcessReturn: false,
+      ));
+
       final users = await db.getUsers();
-      final owner = users.firstWhere((u) => u.username == 'webdeventh');
-      final salesman = users.firstWhere((u) => u.username == 'salesman1');
+      final owner = users.firstWhere((u) => u.username == 'owner_test');
+      final salesman = users.firstWhere((u) => u.username == 'salesman_test');
 
       // Rule 1: Selling Price alteration
       expect(owner.canEditPrice, isTrue, reason: 'Owner can change price');

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 
 class RepairServiceScreen extends StatefulWidget {
@@ -31,8 +32,19 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
         _jobSheets = rows.map((r) => Map<String, dynamic>.from(r)).toList();
         _isLoading = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e, st) {
+      AppLogger.error('RepairService', 'Failed loading repair jobs', e, st);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        await AppErrorHandler.showErrorDialog(
+          context,
+          title: 'Load Failed',
+          message: 'Could not load repair job sheets.',
+          error: e,
+          stackTrace: st,
+          tag: 'RepairService',
+        );
+      }
     }
   }
 

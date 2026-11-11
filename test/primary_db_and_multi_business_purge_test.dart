@@ -147,10 +147,9 @@ void main() {
       final bundles = await db.db.query('product_bundles');
       expect(bundles.isEmpty, isTrue);
 
-      // Super Administrator account must be created and ready for fresh setup
+      // All users must be cleared so Setup Wizard creates the sole Super Admin
       final users = await db.getUsers();
-      expect(users.isNotEmpty, isTrue);
-      expect(users.any((u) => u.username == 'superadmin'), isTrue);
+      expect(users.isEmpty, isTrue);
     });
   });
 }

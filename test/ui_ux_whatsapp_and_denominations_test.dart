@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:desktop_starter/models/models.dart';
+import 'package:desktop_starter/navigation/app_routes.dart';
 import 'package:desktop_starter/widgets/smart_sidebar.dart';
 import 'package:desktop_starter/screens/pos/receipt_dialog.dart';
 
@@ -10,14 +10,14 @@ void main() {
     testWidgets('1. SmartSidebar renders modernized sections and quick POS button', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1280, 800));
 
-      int selectedIdx = 0;
+      AppRoute selectedRoute = AppRoute.dashboard;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: SmartSidebar(
-              selectedIndex: selectedIdx,
+              selectedRoute: selectedRoute,
               isCollapsed: false,
-              onSelect: (idx) => selectedIdx = idx,
+              onSelect: (route) => selectedRoute = route,
               settings: BusinessSettings(
                 businessName: 'Aabshhar Distributions',
                 branchName: 'Main Branch HQ',

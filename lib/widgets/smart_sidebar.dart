@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../navigation/app_routes.dart';
 import '../services/auth_service.dart';
 
 class SmartSidebar extends StatefulWidget {
-  final int selectedIndex;
-  final Function(int) onSelect;
+  final AppRoute selectedRoute;
+  final ValueChanged<AppRoute> onSelect;
   final bool isCollapsed;
   final BusinessSettings? settings;
 
   const SmartSidebar({
     super.key,
-    required this.selectedIndex,
+    required this.selectedRoute,
     required this.onSelect,
     required this.isCollapsed,
     this.settings,
@@ -40,39 +41,39 @@ class _SmartSidebarState extends State<SmartSidebar> {
   @override
   void initState() {
     super.initState();
-    _syncActiveSection(widget.selectedIndex);
+    _syncActiveSection(widget.selectedRoute);
   }
 
   @override
   void didUpdateWidget(SmartSidebar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedIndex != widget.selectedIndex) {
-      _syncActiveSection(widget.selectedIndex);
+    if (oldWidget.selectedRoute != widget.selectedRoute) {
+      _syncActiveSection(widget.selectedRoute);
     }
   }
 
-  void _syncActiveSection(int index) {
-    if (index == 12) {
+  void _syncActiveSection(AppRoute route) {
+    if (route == AppRoute.userManagement) {
       _userMgmtExpanded = true;
-    } else if (index == 6 || index == 7) {
+    } else if (route == AppRoute.customers || route == AppRoute.suppliers) {
       _contactsExpanded = true;
-    } else if ([2, 3, 11, 17, 18, 19, 20, 21, 22, 23].contains(index)) {
+    } else if (const [AppRoute.productsList, AppRoute.categories, AppRoute.addProduct, AppRoute.printLabels, AppRoute.variationTemplates, AppRoute.units, AppRoute.brands, AppRoute.warranties, AppRoute.sellingPriceGroups, AppRoute.importProducts].contains(route)) {
       _productsExpanded = true;
-    } else if ([5, 26, 41].contains(index)) {
+    } else if (const [AppRoute.purchasesList, AppRoute.purchaseReturn, AppRoute.addPurchase].contains(route)) {
       _purchasesExpanded = true;
-    } else if ([1, 4, 25].contains(index)) {
+    } else if (const [AppRoute.posTerminal, AppRoute.salesList, AppRoute.salesReturn].contains(route)) {
       _sellExpanded = true;
-    } else if (index == 13) {
+    } else if (route == AppRoute.stockTransfers) {
       _transfersExpanded = true;
-    } else if (index == 14) {
+    } else if (route == AppRoute.stockAdjustments) {
       _adjustmentsExpanded = true;
-    } else if (index == 8) {
+    } else if (route == AppRoute.expenses) {
       _expensesExpanded = true;
-    } else if ([9, 24].contains(index)) {
+    } else if (const [AppRoute.reports, AppRoute.inventoryAudit].contains(route)) {
       _reportsExpanded = true;
-    } else if ([10, 15, 27, 39, 40].contains(index)) {
+    } else if (const [AppRoute.settings, AppRoute.paymentAccounts, AppRoute.annualClosing, AppRoute.moduleSettings, AppRoute.cloudSync].contains(route)) {
       _settingsExpanded = true;
-    } else if (index >= 28 && index <= 38) {
+    } else if (const [AppRoute.businessModulesHub, AppRoute.restaurantCafe, AppRoute.repairService, AppRoute.hotelManagement, AppRoute.gymFitness, AppRoute.manufacturing, AppRoute.wooCommerceSync, AppRoute.hrmEmployee, AppRoute.accountingCrm, AppRoute.fruitMandi, AppRoute.poultryBusiness].contains(route)) {
       _industryExpanded = true;
     }
   }
@@ -394,7 +395,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
     required IconData icon,
     required String title,
     String? urduSubtitle,
-    required int index,
+    required AppRoute route,
     bool hasSubmenu = false,
     bool isExpanded = false,
     bool isActiveParent = false,
@@ -412,7 +413,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
       return const SizedBox.shrink();
     }
 
-    final isSelected = widget.selectedIndex == index || isActiveParent;
+    final isSelected = widget.selectedRoute == route || isActiveParent;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final activeBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFEEF2FF);
@@ -442,7 +443,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
                 if (onTapDirect != null) {
                   onTapDirect();
                 } else {
-                  widget.onSelect(index);
+                  widget.onSelect(route);
                 }
               },
               borderRadius: BorderRadius.circular(10),
@@ -495,7 +496,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
                 onTapDirect();
               }
             } else {
-              widget.onSelect(index);
+              widget.onSelect(route);
             }
           },
           borderRadius: BorderRadius.circular(10),
@@ -603,7 +604,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
   Widget _subItem({
     required String title,
     String? urduSubtitle,
-    required int index,
+    required AppRoute route,
   }) {
     final activeSubtitle = _getLocalizedSubtitle(title, urduSubtitle);
     final matchesFilter = _filter.isEmpty ||
@@ -614,7 +615,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
       return const SizedBox.shrink();
     }
 
-    final isSelected = widget.selectedIndex == index;
+    final isSelected = widget.selectedRoute == route;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final activeBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFEEF2FF);
@@ -631,7 +632,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
           message: activeSubtitle != null && activeSubtitle.isNotEmpty ? '$title ($activeSubtitle)' : title,
           waitDuration: const Duration(milliseconds: 350),
           child: InkWell(
-            onTap: () => widget.onSelect(index),
+            onTap: () => widget.onSelect(route),
             borderRadius: BorderRadius.circular(8),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6.5),
@@ -674,24 +675,39 @@ class _SmartSidebarState extends State<SmartSidebar> {
 
   List<Widget> _buildMenuItems() {
     final user = AuthService.currentUser;
-    final isAdm = user == null || user.isAdmin;
-    final canInventory = isAdm || user.canAccessInventory;
-    final canReports = isAdm || user.canAccessReports;
-    final canKhata = isAdm || user.canAccessKhata;
-    final canManageUsers = isAdm || user.canManageUsers;
-    final canSettings = isAdm || user.canAccessSettings;
+    bool can(String perm) => user?.hasPermission(perm) ?? true;
+    final canPos = can('pos.access');
+    final canProducts = can('product.view');
+    final canAddProduct = can('product.create');
+    final canPrintLabels = can('product.print_labels');
+    final canSales = can('sale.view');
+    final canReturns = can('sale.return');
+    final canPurchases = can('purchase.view') || can('purchase.create');
+    final canAddPurchase = can('purchase.create');
+    final canExpenses = can('expense.view') || can('expense.add');
+    final canInventory = can('inventory.transfer') ||
+        can('inventory.adjust') ||
+        can('inventory.audit') ||
+        can('inventory.manage');
+    final canReports = can('report.view');
+    final canKhata = can('customer.view') ||
+        can('customer.manage') ||
+        can('supplier.manage') ||
+        can('contact.khata_payment');
+    final canManageUsers = can('user.manage') || can('role.manage');
+    final canSettings = can('settings.manage');
 
     // Check if parent sections are active
-    final isProductsActive = [2, 3, 11, 17, 18, 19, 20, 21, 22, 23].contains(widget.selectedIndex);
-    final isPurchasesActive = [5, 26, 41].contains(widget.selectedIndex);
-    final isSellActive = [1, 4, 25].contains(widget.selectedIndex);
-    final isContactsActive = [6, 7].contains(widget.selectedIndex);
-    final isTransfersActive = widget.selectedIndex == 13;
-    final isAdjustmentsActive = widget.selectedIndex == 14;
-    final isExpensesActive = widget.selectedIndex == 8;
-    final isReportsActive = [9, 24].contains(widget.selectedIndex);
-    final isSettingsActive = [10, 15, 27, 39, 40].contains(widget.selectedIndex);
-    final isIndustryActive = widget.selectedIndex >= 28 && widget.selectedIndex <= 38;
+    final isProductsActive = const [AppRoute.productsList, AppRoute.categories, AppRoute.addProduct, AppRoute.printLabels, AppRoute.variationTemplates, AppRoute.units, AppRoute.brands, AppRoute.warranties, AppRoute.sellingPriceGroups, AppRoute.importProducts].contains(widget.selectedRoute);
+    final isPurchasesActive = const [AppRoute.purchasesList, AppRoute.purchaseReturn, AppRoute.addPurchase].contains(widget.selectedRoute);
+    final isSellActive = const [AppRoute.posTerminal, AppRoute.salesList, AppRoute.salesReturn].contains(widget.selectedRoute);
+    final isContactsActive = const [AppRoute.customers, AppRoute.suppliers].contains(widget.selectedRoute);
+    final isTransfersActive = widget.selectedRoute == AppRoute.stockTransfers;
+    final isAdjustmentsActive = widget.selectedRoute == AppRoute.stockAdjustments;
+    final isExpensesActive = widget.selectedRoute == AppRoute.expenses;
+    final isReportsActive = const [AppRoute.reports, AppRoute.inventoryAudit].contains(widget.selectedRoute);
+    final isSettingsActive = const [AppRoute.settings, AppRoute.paymentAccounts, AppRoute.annualClosing, AppRoute.moduleSettings, AppRoute.cloudSync].contains(widget.selectedRoute);
+    final isIndustryActive = const [AppRoute.businessModulesHub, AppRoute.restaurantCafe, AppRoute.repairService, AppRoute.hotelManagement, AppRoute.gymFitness, AppRoute.manufacturing, AppRoute.wooCommerceSync, AppRoute.hrmEmployee, AppRoute.accountingCrm, AppRoute.fruitMandi, AppRoute.poultryBusiness].contains(widget.selectedRoute);
 
     return [
       // ==========================================
@@ -704,48 +720,53 @@ class _SmartSidebarState extends State<SmartSidebar> {
         icon: Icons.dashboard_outlined,
         title: 'Home',
         urduSubtitle: 'مرکزی ڈیش بورڈ',
-        index: 0,
+        route: AppRoute.dashboard,
       ),
 
       // POS Terminal Quick Link
-      _navItem(
-        icon: Icons.point_of_sale_rounded,
-        title: 'POS Terminal (F1)',
-        urduSubtitle: 'فوری کاؤنٹر سیل',
-        badgeText: 'F1',
-        badgeColor: const Color(0xFF10B981),
-        index: 1,
-      ),
+      if (canPos)
+        _navItem(
+          icon: Icons.point_of_sale_rounded,
+          title: 'POS Terminal (F1)',
+          urduSubtitle: 'فوری کاؤنٹر سیل',
+          badgeText: 'F1',
+          badgeColor: const Color(0xFF10B981),
+          route: AppRoute.posTerminal,
+        ),
 
       // ==========================================
       // SECTION 2: INVENTORY & CATALOG
       // ==========================================
-      _sectionHeader('Inventory & Products'),
+      if (canProducts || canInventory) ...[
+        _sectionHeader('Inventory & Products'),
 
-      // 4. Products
-      _navItem(
-        icon: Icons.inventory_2_outlined,
-        title: 'Products',
-        urduSubtitle: 'پروڈکٹس اور سٹاک',
-        index: 2,
-        hasSubmenu: true,
-        isExpanded: _productsExpanded,
-        isActiveParent: isProductsActive,
-        onToggleSubmenu: () => setState(() => _productsExpanded = !_productsExpanded),
-        onTapDirect: () => widget.onSelect(2),
-      ),
-      if (!widget.isCollapsed && _productsExpanded) ...[
-        _subItem(title: 'List Products', urduSubtitle: 'پروڈکٹس لسٹ', index: 2),
-        if (canInventory) _subItem(title: 'Add Product', urduSubtitle: 'نیا پروڈکٹ', index: 11),
-        _subItem(title: 'Print Labels', urduSubtitle: 'بارکوڈ لیبلز', index: 17),
-        if (_isModEnabled(BusinessSettings.moduleVariations))
-          _subItem(title: 'Variations', urduSubtitle: 'ویرینٹس', index: 18),
-        if (canInventory) _subItem(title: 'Import Products', urduSubtitle: 'امپورٹ', index: 23),
-        if (canSettings) _subItem(title: 'Price Groups', urduSubtitle: 'قیمت گروپس', index: 22),
-        _subItem(title: 'Units', urduSubtitle: 'پیمائش کے یونٹس', index: 19),
-        _subItem(title: 'Categories', urduSubtitle: 'کیٹیگریز', index: 3),
-        _subItem(title: 'Brands', urduSubtitle: 'برانڈز', index: 20),
-        _subItem(title: 'Warranties', urduSubtitle: 'وارنٹیز', index: 21),
+        // 4. Products
+        if (canProducts) ...[
+          _navItem(
+            icon: Icons.inventory_2_outlined,
+            title: 'Products',
+            urduSubtitle: 'پروڈکٹس اور سٹاک',
+            route: AppRoute.productsList,
+            hasSubmenu: true,
+            isExpanded: _productsExpanded,
+            isActiveParent: isProductsActive,
+            onToggleSubmenu: () => setState(() => _productsExpanded = !_productsExpanded),
+            onTapDirect: () => widget.onSelect(AppRoute.productsList),
+          ),
+          if (!widget.isCollapsed && _productsExpanded) ...[
+            _subItem(title: 'List Products', urduSubtitle: 'پروڈکٹس لسٹ', route: AppRoute.productsList),
+            if (canAddProduct) _subItem(title: 'Add Product', urduSubtitle: 'نیا پروڈکٹ', route: AppRoute.addProduct),
+            if (canPrintLabels) _subItem(title: 'Print Labels', urduSubtitle: 'بارکوڈ لیبلز', route: AppRoute.printLabels),
+            if (_isModEnabled(BusinessSettings.moduleVariations))
+              _subItem(title: 'Variations', urduSubtitle: 'ویرینٹس', route: AppRoute.variationTemplates),
+            if (canAddProduct) _subItem(title: 'Import Products', urduSubtitle: 'امپورٹ', route: AppRoute.importProducts),
+            if (canSettings) _subItem(title: 'Price Groups', urduSubtitle: 'قیمت گروپس', route: AppRoute.sellingPriceGroups),
+            _subItem(title: 'Units', urduSubtitle: 'پیمائش کے یونٹس', route: AppRoute.units),
+            _subItem(title: 'Categories', urduSubtitle: 'کیٹیگریز', route: AppRoute.categories),
+            _subItem(title: 'Brands', urduSubtitle: 'برانڈز', route: AppRoute.brands),
+            _subItem(title: 'Warranties', urduSubtitle: 'وارنٹیز', route: AppRoute.warranties),
+          ],
+        ],
       ],
 
       // Stock Transfers
@@ -754,16 +775,16 @@ class _SmartSidebarState extends State<SmartSidebar> {
           icon: Icons.local_shipping_outlined,
           title: 'Stock Transfers',
           urduSubtitle: 'برانچ ٹرانسفر',
-          index: 13,
+          route: AppRoute.stockTransfers,
           hasSubmenu: true,
           isExpanded: _transfersExpanded,
           isActiveParent: isTransfersActive,
           onToggleSubmenu: () => setState(() => _transfersExpanded = !_transfersExpanded),
-          onTapDirect: () => widget.onSelect(13),
+          onTapDirect: () => widget.onSelect(AppRoute.stockTransfers),
         ),
         if (!widget.isCollapsed && _transfersExpanded) ...[
-          _subItem(title: 'List Transfers', urduSubtitle: 'تمام ٹرانسفرز', index: 13),
-          _subItem(title: 'Add Transfer', urduSubtitle: 'نیا ٹرانسفر بھیجیں', index: 13),
+          _subItem(title: 'List Transfers', urduSubtitle: 'تمام ٹرانسفرز', route: AppRoute.stockTransfers),
+          _subItem(title: 'Add Transfer', urduSubtitle: 'نیا ٹرانسفر بھیجیں', route: AppRoute.stockTransfers),
         ],
       ],
 
@@ -773,79 +794,84 @@ class _SmartSidebarState extends State<SmartSidebar> {
           icon: Icons.tune_outlined,
           title: 'Stock Adjustment',
           urduSubtitle: 'سٹاک درستگی / ضیاع',
-          index: 14,
+          route: AppRoute.stockAdjustments,
           hasSubmenu: true,
           isExpanded: _adjustmentsExpanded,
           isActiveParent: isAdjustmentsActive,
           onToggleSubmenu: () => setState(() => _adjustmentsExpanded = !_adjustmentsExpanded),
-          onTapDirect: () => widget.onSelect(14),
+          onTapDirect: () => widget.onSelect(AppRoute.stockAdjustments),
         ),
         if (!widget.isCollapsed && _adjustmentsExpanded) ...[
-          _subItem(title: 'Adjustments List', urduSubtitle: 'لسٹ', index: 14),
-          _subItem(title: 'Add Adjustment', urduSubtitle: 'نیا اندراج', index: 14),
+          _subItem(title: 'Adjustments List', urduSubtitle: 'لسٹ', route: AppRoute.stockAdjustments),
+          _subItem(title: 'Add Adjustment', urduSubtitle: 'نیا اندراج', route: AppRoute.stockAdjustments),
         ],
       ],
 
       // ==========================================
       // SECTION 3: SALES & PURCHASES
       // ==========================================
-      _sectionHeader('Sales & Purchases'),
+      if (canSales || canPos || canPurchases || canExpenses)
+        _sectionHeader('Sales & Purchases'),
 
       // Sell
-      _navItem(
-        icon: Icons.receipt_long_outlined,
-        title: 'Sell',
-        urduSubtitle: 'فروخت اور بلنگ',
-        index: 4,
-        hasSubmenu: true,
-        isExpanded: _sellExpanded,
-        isActiveParent: isSellActive,
-        onToggleSubmenu: () => setState(() => _sellExpanded = !_sellExpanded),
-        onTapDirect: () => widget.onSelect(4),
-      ),
-      if (!widget.isCollapsed && _sellExpanded) ...[
-        _subItem(title: 'All Sales', urduSubtitle: 'تمام بلز', index: 4),
-        _subItem(title: 'POS Terminal', urduSubtitle: 'کاؤنٹر سیل', index: 1),
-        _subItem(title: 'List POS', urduSubtitle: 'پی او ایس انوائسز', index: 4),
-        if (_isModEnabled(BusinessSettings.moduleReturns))
-          _subItem(title: 'Sales Return', urduSubtitle: 'سیلز واپسی', index: 25),
+      if (canSales || canPos) ...[
+        _navItem(
+          icon: Icons.receipt_long_outlined,
+          title: 'Sell',
+          urduSubtitle: 'فروخت اور بلنگ',
+          route: AppRoute.salesList,
+          hasSubmenu: true,
+          isExpanded: _sellExpanded,
+          isActiveParent: isSellActive,
+          onToggleSubmenu: () => setState(() => _sellExpanded = !_sellExpanded),
+          onTapDirect: () => widget.onSelect(AppRoute.salesList),
+        ),
+        if (!widget.isCollapsed && _sellExpanded) ...[
+          if (canSales) _subItem(title: 'All Sales', urduSubtitle: 'تمام بلز', route: AppRoute.salesList),
+          if (canPos) _subItem(title: 'POS Terminal', urduSubtitle: 'کاؤنٹر سیل', route: AppRoute.posTerminal),
+          if (canSales) _subItem(title: 'List POS', urduSubtitle: 'پی او ایس انوائسز', route: AppRoute.salesList),
+          if (canReturns && _isModEnabled(BusinessSettings.moduleReturns))
+            _subItem(title: 'Sales Return', urduSubtitle: 'سیلز واپسی', route: AppRoute.salesReturn),
+        ],
       ],
 
       // Purchases
-      _navItem(
-        icon: Icons.shopping_cart_outlined,
-        title: 'Purchases',
-        urduSubtitle: 'خریداری / مال انورڈ',
-        index: 5,
-        hasSubmenu: true,
-        isExpanded: _purchasesExpanded,
-        isActiveParent: isPurchasesActive,
-        onToggleSubmenu: () => setState(() => _purchasesExpanded = !_purchasesExpanded),
-        onTapDirect: () => widget.onSelect(5),
-      ),
-      if (!widget.isCollapsed && _purchasesExpanded) ...[
-        _subItem(title: 'Purchases List', urduSubtitle: 'خریداری لسٹ', index: 5),
-        _subItem(title: 'Add Purchase', urduSubtitle: 'نئی خریداری درج کریں', index: 41),
-        if (_isModEnabled(BusinessSettings.moduleReturns))
-          _subItem(title: 'Purchase Return', urduSubtitle: 'خریداری واپسی', index: 26),
+      if (canPurchases) ...[
+        _navItem(
+          icon: Icons.shopping_cart_outlined,
+          title: 'Purchases',
+          urduSubtitle: 'خریداری / مال انورڈ',
+          route: AppRoute.purchasesList,
+          hasSubmenu: true,
+          isExpanded: _purchasesExpanded,
+          isActiveParent: isPurchasesActive,
+          onToggleSubmenu: () => setState(() => _purchasesExpanded = !_purchasesExpanded),
+          onTapDirect: () => widget.onSelect(AppRoute.purchasesList),
+        ),
+        if (!widget.isCollapsed && _purchasesExpanded) ...[
+          _subItem(title: 'Purchases List', urduSubtitle: 'خریداری لسٹ', route: AppRoute.purchasesList),
+          if (canAddPurchase) _subItem(title: 'Add Purchase', urduSubtitle: 'نئی خریداری درج کریں', route: AppRoute.addPurchase),
+          if (canAddPurchase && _isModEnabled(BusinessSettings.moduleReturns))
+            _subItem(title: 'Purchase Return', urduSubtitle: 'خریداری واپسی', route: AppRoute.purchaseReturn),
+        ],
       ],
 
       // Expenses
-      if (_isModEnabled(BusinessSettings.moduleExpenses)) ...[
+      if (canExpenses && _isModEnabled(BusinessSettings.moduleExpenses)) ...[
         _navItem(
           icon: Icons.account_balance_wallet_outlined,
           title: 'Expenses',
           urduSubtitle: 'دکان و پیٹی کیش اخراجات',
-          index: 8,
+          route: AppRoute.expenses,
           hasSubmenu: true,
           isExpanded: _expensesExpanded,
           isActiveParent: isExpensesActive,
           onToggleSubmenu: () => setState(() => _expensesExpanded = !_expensesExpanded),
-          onTapDirect: () => widget.onSelect(8),
+          onTapDirect: () => widget.onSelect(AppRoute.expenses),
         ),
         if (!widget.isCollapsed && _expensesExpanded) ...[
-          _subItem(title: 'List Expenses', urduSubtitle: 'تمام اخراجات', index: 8),
-          _subItem(title: 'Add Expense', urduSubtitle: 'نیا خرچہ شامل کریں', index: 8),
+          _subItem(title: 'List Expenses', urduSubtitle: 'تمام اخراجات', route: AppRoute.expenses),
+          _subItem(title: 'Add Expense', urduSubtitle: 'نیا خرچہ شامل کریں', route: AppRoute.expenses),
         ],
       ],
 
@@ -860,17 +886,17 @@ class _SmartSidebarState extends State<SmartSidebar> {
           icon: Icons.people_alt_outlined,
           title: 'Contacts & Khata',
           urduSubtitle: 'گاہک، سپلائر اور کھاتہ',
-          index: 6,
+          route: AppRoute.customers,
           hasSubmenu: true,
           isExpanded: _contactsExpanded,
           isActiveParent: isContactsActive,
           onToggleSubmenu: () => setState(() => _contactsExpanded = !_contactsExpanded),
-          onTapDirect: () => widget.onSelect(6),
+          onTapDirect: () => widget.onSelect(AppRoute.customers),
         ),
       if (!widget.isCollapsed && _contactsExpanded && canKhata) ...[
-        _subItem(title: 'Customers', urduSubtitle: 'گاہک / کسٹمرز', index: 6),
-        _subItem(title: 'Suppliers', urduSubtitle: 'سپلائرز / وینڈرز', index: 7),
-        _subItem(title: 'Customer Groups', urduSubtitle: 'کسٹمر گروپس', index: 6),
+        _subItem(title: 'Customers', urduSubtitle: 'گاہک / کسٹمرز', route: AppRoute.customers),
+        _subItem(title: 'Suppliers', urduSubtitle: 'سپلائرز / وینڈرز', route: AppRoute.suppliers),
+        _subItem(title: 'Customer Groups', urduSubtitle: 'کسٹمر گروپس', route: AppRoute.customers),
       ],
 
       // User Management
@@ -879,16 +905,16 @@ class _SmartSidebarState extends State<SmartSidebar> {
           icon: Icons.manage_accounts_outlined,
           title: 'User Management',
           urduSubtitle: 'صارفین اور اختیارات',
-          index: 12,
+          route: AppRoute.userManagement,
           hasSubmenu: true,
           isExpanded: _userMgmtExpanded,
-          isActiveParent: widget.selectedIndex == 12,
+          isActiveParent: widget.selectedRoute == AppRoute.userManagement,
           onToggleSubmenu: () => setState(() => _userMgmtExpanded = !_userMgmtExpanded),
-          onTapDirect: () => widget.onSelect(12),
+          onTapDirect: () => widget.onSelect(AppRoute.userManagement),
         ),
       if (!widget.isCollapsed && _userMgmtExpanded && canManageUsers) ...[
-        _subItem(title: 'Users', urduSubtitle: 'صارفین کی فہرست', index: 12),
-        _subItem(title: 'Roles & Permissions', urduSubtitle: 'اختیارات', index: 12),
+        _subItem(title: 'Users', urduSubtitle: 'صارفین کی فہرست', route: AppRoute.userManagement),
+        _subItem(title: 'Roles & Permissions', urduSubtitle: 'اختیارات', route: AppRoute.userManagement),
       ],
 
       // ==========================================
@@ -902,21 +928,21 @@ class _SmartSidebarState extends State<SmartSidebar> {
           icon: Icons.analytics_outlined,
           title: 'Reports',
           urduSubtitle: 'نفع نقصان اور مالیاتی رپورٹس',
-          index: 9,
+          route: AppRoute.reports,
           hasSubmenu: true,
           isExpanded: _reportsExpanded,
           isActiveParent: isReportsActive,
           onToggleSubmenu: () => setState(() => _reportsExpanded = !_reportsExpanded),
-          onTapDirect: () => widget.onSelect(9),
+          onTapDirect: () => widget.onSelect(AppRoute.reports),
         ),
         if (!widget.isCollapsed && _reportsExpanded) ...[
-          _subItem(title: 'Profit / Loss Report', urduSubtitle: 'نفع نقصان', index: 9),
-          _subItem(title: 'Purchase & Sale', urduSubtitle: 'خرید و فروخت', index: 9),
-          _subItem(title: 'Tax Report', urduSubtitle: 'ٹیکس رپورٹ', index: 9),
-          _subItem(title: 'Contact Dues', urduSubtitle: 'کھاتہ بقایا جات', index: 9),
+          _subItem(title: 'Profit / Loss Report', urduSubtitle: 'نفع نقصان', route: AppRoute.reports),
+          _subItem(title: 'Purchase & Sale', urduSubtitle: 'خرید و فروخت', route: AppRoute.reports),
+          _subItem(title: 'Tax Report', urduSubtitle: 'ٹیکس رپورٹ', route: AppRoute.reports),
+          _subItem(title: 'Contact Dues', urduSubtitle: 'کھاتہ بقایا جات', route: AppRoute.reports),
           if (_isModEnabled(BusinessSettings.moduleStockAudit))
-            _subItem(title: 'Stock & Expiry Audit', urduSubtitle: 'سٹاک و ایکسپائری', index: 24),
-          _subItem(title: 'Trending Products', urduSubtitle: 'زیادہ بکنے والا مال', index: 9),
+            _subItem(title: 'Stock & Expiry Audit', urduSubtitle: 'سٹاک و ایکسپائری', route: AppRoute.inventoryAudit),
+          _subItem(title: 'Trending Products', urduSubtitle: 'زیادہ بکنے والا مال', route: AppRoute.reports),
         ],
       ],
 
@@ -925,7 +951,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
         icon: Icons.mark_email_read_outlined,
         title: 'SMS & WhatsApp Alerts',
         urduSubtitle: 'اطلاعات کے ٹیمپلیٹس',
-        index: 16,
+        route: AppRoute.notificationTemplates,
       ),
 
       // ==========================================
@@ -938,20 +964,20 @@ class _SmartSidebarState extends State<SmartSidebar> {
           icon: Icons.settings_suggest_outlined,
           title: 'Settings',
           urduSubtitle: 'سسٹم، برانچ و کلاؤڈ کنفیگریشن',
-          index: 10,
+          route: AppRoute.settings,
           hasSubmenu: true,
           isExpanded: _settingsExpanded,
           isActiveParent: isSettingsActive,
           onToggleSubmenu: () => setState(() => _settingsExpanded = !_settingsExpanded),
-          onTapDirect: () => widget.onSelect(10),
+          onTapDirect: () => widget.onSelect(AppRoute.settings),
         ),
         if (!widget.isCollapsed && _settingsExpanded) ...[
-          _subItem(title: 'Business Settings', urduSubtitle: 'کاروباری معلومات', index: 10),
-          _subItem(title: 'Payment Accounts', urduSubtitle: 'بینک و کیش', index: 15),
+          _subItem(title: 'Business Settings', urduSubtitle: 'کاروباری معلومات', route: AppRoute.settings),
+          _subItem(title: 'Payment Accounts', urduSubtitle: 'بینک و کیش', route: AppRoute.paymentAccounts),
           if (_isModEnabled(BusinessSettings.moduleFiscalClosing))
-            _subItem(title: 'Annual Fiscal Closing', urduSubtitle: 'سالانہ کلوزنگ', index: 27),
-          _subItem(title: 'Cloud & MySQL Sync', urduSubtitle: 'کلاؤڈ سنک', index: 40),
-          _subItem(title: 'Modular Features', urduSubtitle: 'ماڈیولز آن/آف', index: 39),
+            _subItem(title: 'Annual Fiscal Closing', urduSubtitle: 'سالانہ کلوزنگ', route: AppRoute.annualClosing),
+          _subItem(title: 'Cloud & MySQL Sync', urduSubtitle: 'کلاؤڈ سنک', route: AppRoute.cloudSync),
+          _subItem(title: 'Modular Features', urduSubtitle: 'ماڈیولز آن/آف', route: AppRoute.moduleSettings),
         ],
       ],
 
@@ -964,35 +990,35 @@ class _SmartSidebarState extends State<SmartSidebar> {
           icon: Icons.widgets_outlined,
           title: 'Industry Modules',
           urduSubtitle: 'خصوصی ورٹیکل ماڈیولز',
-          index: 28,
+          route: AppRoute.businessModulesHub,
           hasSubmenu: true,
           isExpanded: _industryExpanded,
           isActiveParent: isIndustryActive,
           onToggleSubmenu: () => setState(() => _industryExpanded = !_industryExpanded),
-          onTapDirect: () => widget.onSelect(28),
+          onTapDirect: () => widget.onSelect(AppRoute.businessModulesHub),
         ),
         if (!widget.isCollapsed && _industryExpanded) ...[
-          _subItem(title: 'All Modules Hub', index: 28),
+          _subItem(title: 'All Modules Hub', route: AppRoute.businessModulesHub),
           if (_isModEnabled(BusinessSettings.moduleRestaurant))
-            _subItem(title: 'Restaurant / Cafe', index: 29),
+            _subItem(title: 'Restaurant / Cafe', route: AppRoute.restaurantCafe),
           if (_isModEnabled(BusinessSettings.moduleRepair))
-            _subItem(title: 'Repair Shop / Service', index: 30),
+            _subItem(title: 'Repair Shop / Service', route: AppRoute.repairService),
           if (_isModEnabled(BusinessSettings.moduleHotel))
-            _subItem(title: 'Hotel Management', index: 31),
+            _subItem(title: 'Hotel Management', route: AppRoute.hotelManagement),
           if (_isModEnabled(BusinessSettings.moduleGym))
-            _subItem(title: 'Gym & Fitness Center', index: 32),
+            _subItem(title: 'Gym & Fitness Center', route: AppRoute.gymFitness),
           if (_isModEnabled(BusinessSettings.moduleManufacturing))
-            _subItem(title: 'Manufacturing / BOM', index: 33),
+            _subItem(title: 'Manufacturing / BOM', route: AppRoute.manufacturing),
           if (_isModEnabled(BusinessSettings.moduleWooCommerce))
-            _subItem(title: 'Online Store (Woo)', index: 34),
+            _subItem(title: 'Online Store (Woo)', route: AppRoute.wooCommerceSync),
           if (_isModEnabled(BusinessSettings.moduleHrm))
-            _subItem(title: 'HR & Employee (Payroll)', index: 35),
+            _subItem(title: 'HR & Employee (Payroll)', route: AppRoute.hrmEmployee),
           if (_isModEnabled(BusinessSettings.moduleAccountingCrm))
-            _subItem(title: 'Accounting & Ledgers', index: 36),
+            _subItem(title: 'Accounting & Ledgers', route: AppRoute.accountingCrm),
           if (_isModEnabled(BusinessSettings.moduleFruitMandi))
-            _subItem(title: 'Fruit Mandi (Arhat)', index: 37),
+            _subItem(title: 'Fruit Mandi (Arhat)', route: AppRoute.fruitMandi),
           if (_isModEnabled(BusinessSettings.modulePoultry))
-            _subItem(title: 'Poultry Farm & Trading', index: 38),
+            _subItem(title: 'Poultry Farm & Trading', route: AppRoute.poultryBusiness),
         ],
       ],
 
@@ -1088,7 +1114,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => widget.onSelect(1), // POS Terminal (Index 1)
+                onTap: () => widget.onSelect(AppRoute.posTerminal),
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   height: 42,

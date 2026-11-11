@@ -1,21 +1,95 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:desktop_starter/models/models.dart';
+import 'package:desktop_starter/services/database_encryption_service.dart';
 import 'package:desktop_starter/services/database_service.dart';
 import 'package:desktop_starter/services/auth_service.dart';
+import 'package:desktop_starter/services/windows_credential_store.dart';
 
 void main() {
   setUpAll(() {
     sqfliteFfiInit();
+    WindowsCredentialStore.useInMemoryForTest = true;
   });
 
   group('Owner Authorization & Complete System Verification Tests', () {
+    late Directory tempDir;
     late DatabaseService dbService;
 
     setUpAll(() async {
-      // Use in-memory SQLite database for fast, isolated test execution
-      dbService = await DatabaseService.initialize(customPath: inMemoryDatabasePath);
+      AuthService.resetSecurityStateForTest();
+      WindowsCredentialStore.clearTestStore();
+      DatabaseEncryptionService.clearKeyCache();
+      tempDir = Directory.systemTemp.createTempSync('smartpos_owner_auth_');
+      dbService = await DatabaseService.initialize(
+        customPath: p.join(tempDir.path, 'owner_auth.db'),
+      );
       await dbService.seedInitialDataForBusinessType(businessType: 'general');
+
+      // Security audit: NO default accounts may exist automatically on seed
+      expect((await dbService.getUsers()).isEmpty, isTrue);
+
+      // Provision explicit owner, salesman, and manager accounts via Setup/Admin flow
+      await dbService.addUser(User(
+        name: 'Store Owner',
+        username: 'webdeventh',
+        password: AuthService.hashPassword('Owner@Pass2026!'),
+        role: 'superadmin',
+        status: 'active',
+        canEditPrice: true,
+        canGiveDiscount: true,
+        maxDiscountPercent: 100.0,
+        canViewCostPrice: true,
+        canDeleteSale: true,
+        canProcessReturn: true,
+        canAccessKhata: true,
+        canAccessReports: true,
+        canAccessSettings: true,
+        canManageUsers: true,
+      ));
+      await dbService.addUser(User(
+        name: 'Counter Salesman',
+        username: 'salesman1',
+        password: AuthService.hashPassword('Sales@Pass2026!'),
+        role: 'salesman',
+        status: 'active',
+        canEditPrice: false,
+        canGiveDiscount: true,
+        maxDiscountPercent: 5.0,
+        canViewCostPrice: false,
+        canDeleteSale: false,
+        canProcessReturn: false,
+        canAccessKhata: true,
+        canAccessReports: false,
+        canAccessSettings: false,
+        canManageUsers: false,
+      ));
+      await dbService.addUser(User(
+        name: 'Branch Manager',
+        username: 'manager1',
+        password: AuthService.hashPassword('Mgr@Pass2026!'),
+        role: 'manager',
+        status: 'active',
+        canEditPrice: true,
+        canGiveDiscount: true,
+        maxDiscountPercent: 20.0,
+        canViewCostPrice: true,
+        canDeleteSale: true,
+        canProcessReturn: true,
+        canAccessKhata: true,
+        canAccessReports: true,
+        canAccessSettings: false,
+        canManageUsers: false,
+      ));
+    });
+
+    tearDownAll(() async {
+      await dbService.db.close();
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
     });
 
     test('1. Verify All Parity Tables Exist in Database', () async {
@@ -116,20 +190,21 @@ void main() {
     });
 
     test('4. Test Authentication Service with Hashed / Salting Logic', () async {
-      // Correct password logins
-      final ownerSuccess = await AuthService.login('webdeventh', 'password');
+      // Correct strong password logins
+      final ownerSuccess = await AuthService.login('webdeventh', 'Owner@Pass2026!');
       expect(ownerSuccess, isTrue);
       expect(AuthService.currentUser?.username, equals('webdeventh'));
 
-      final salesmanSuccess = await AuthService.login('salesman1', 'password');
+      final salesmanSuccess = await AuthService.login('salesman1', 'Sales@Pass2026!');
       expect(salesmanSuccess, isTrue);
       expect(AuthService.currentUser?.username, equals('salesman1'));
 
-      final managerSuccess = await AuthService.login('manager1', 'password');
+      final managerSuccess = await AuthService.login('manager1', 'Mgr@Pass2026!');
       expect(managerSuccess, isTrue);
       expect(AuthService.currentUser?.username, equals('manager1'));
 
-      // Incorrect password fails
+      // Hardcoded legacy default password & incorrect passwords fail
+      expect(await AuthService.login('webdeventh', 'password'), isFalse);
       final badLogin = await AuthService.login('salesman1', 'wrong_pass_123');
       expect(badLogin, isFalse);
     });

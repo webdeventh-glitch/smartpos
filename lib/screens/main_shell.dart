@@ -1,5 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../navigation/app_routes.dart';
+import '../providers/providers.dart';
 import '../models/models.dart';
+import '../services/auth_service.dart';
 import '../services/database_service.dart';
 import '../services/qulop_service.dart';
 import '../widgets/smart_app_bar.dart';
@@ -47,27 +53,48 @@ import 'business_modules/poultry_business_screen.dart';
 import 'settings/module_settings_screen.dart';
 import 'settings/cloud_sync_screen.dart';
 
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   final BusinessSettings initialSettings;
 
   const MainShell({super.key, required this.initialSettings});
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
-  int _selectedIndex = 0;
+class _MainShellState extends ConsumerState<MainShell> {
   bool _sidebarCollapsed = false;
   bool _initializedLayout = false;
   late BusinessSettings _settings;
   String _activeLocationName = 'Main Branch HQ';
+  Timer? _sessionTimer;
 
   @override
   void initState() {
     super.initState();
     _settings = widget.initialSettings;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(settingsProvider.notifier).setSettings(_settings);
+    });
     _activeLocationName = _settings.branchName;
+    AuthService.configureSessionTimeout(_settings.sessionTimeoutMinutes);
+    HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
+    _sessionTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => AuthService.checkSessionValidity(),
+    );
+  }
+
+  bool _handleGlobalKeyEvent(KeyEvent event) {
+    AuthService.recordActivity();
+    return false;
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
+    _sessionTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -90,34 +117,34 @@ class _MainShellState extends State<MainShell> {
     _saleToResumeInPos = saleToResume;
     if (saleToResume != null) {
       setState(() {
-        _selectedIndex = 1;
+        ref.read(navigationProvider.notifier).goTo(AppRoute.posTerminal);
         if (isCompact) _sidebarCollapsed = true;
       });
       return;
     }
     if (_settings.isRestaurant) {
       setState(() {
-        _selectedIndex = 29; // Restaurant Tables & KOT
+        ref.read(navigationProvider.notifier).goTo(AppRoute.restaurantCafe);
         if (isCompact) _sidebarCollapsed = true;
       });
     } else if (_settings.isRepair) {
       setState(() {
-        _selectedIndex = 30; // Repair Job Sheets
+        ref.read(navigationProvider.notifier).goTo(AppRoute.repairService);
         if (isCompact) _sidebarCollapsed = true;
       });
     } else if (_settings.isHotel) {
       setState(() {
-        _selectedIndex = 31; // Hotel Room Grid
+        ref.read(navigationProvider.notifier).goTo(AppRoute.hotelManagement);
         if (isCompact) _sidebarCollapsed = true;
       });
     } else if (_settings.isGym) {
       setState(() {
-        _selectedIndex = 32; // Gym Subscriptions
+        ref.read(navigationProvider.notifier).goTo(AppRoute.gymFitness);
         if (isCompact) _sidebarCollapsed = true;
       });
     } else {
       setState(() {
-        _selectedIndex = 1; // Standard / Fast POS Terminal
+        ref.read(navigationProvider.notifier).goTo(AppRoute.posTerminal);
         if (isCompact) _sidebarCollapsed = true;
       });
     }
@@ -138,179 +165,304 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  Widget _buildBody() {
-    switch (_selectedIndex) {
-      case 0:
+  void _navigateTo(AppRoute route, {bool collapseOnCompact = false}) {
+    ref.read(navigationProvider.notifier).goTo(route);
+    if (collapseOnCompact && MediaQuery.of(context).size.width < 1400) {
+      setState(() => _sidebarCollapsed = true);
+    }
+  }
+
+  bool _canAccessRoute(AppRoute route) {
+    final user = ref.read(authProvider) ?? AuthService.currentUser;
+    if (user == null || user.isAdmin) return true;
+    switch (route) {
+      case AppRoute.dashboard:
+        return true;
+      case AppRoute.posTerminal:
+      case AppRoute.restaurantCafe:
+      case AppRoute.repairService:
+      case AppRoute.hotelManagement:
+      case AppRoute.gymFitness:
+      case AppRoute.fruitMandi:
+      case AppRoute.poultryBusiness:
+      case AppRoute.businessModulesHub:
+      case AppRoute.manufacturing:
+      case AppRoute.hrmEmployee:
+      case AppRoute.accountingCrm:
+      case AppRoute.wooCommerceSync:
+        return user.hasPermission('pos.access');
+      case AppRoute.productsList:
+      case AppRoute.categories:
+      case AppRoute.units:
+      case AppRoute.brands:
+      case AppRoute.warranties:
+        return user.hasPermission('product.view');
+      case AppRoute.addProduct:
+        return _productToEdit != null
+            ? user.hasPermission('product.edit')
+            : user.hasPermission('product.create');
+      case AppRoute.printLabels:
+        return user.hasPermission('product.print_labels');
+      case AppRoute.importProducts:
+        return user.hasPermission('product.import');
+      case AppRoute.salesList:
+        return user.hasPermission('sale.view');
+      case AppRoute.salesReturn:
+        return user.hasPermission('sale.return');
+      case AppRoute.purchasesList:
+        return user.hasPermission('purchase.view');
+      case AppRoute.addPurchase:
+        return user.hasPermission('purchase.create');
+      case AppRoute.purchaseReturn:
+        return user.hasPermission('purchase.return');
+      case AppRoute.customers:
+        return user.hasPermission('customer.view');
+      case AppRoute.suppliers:
+        return user.hasPermission('supplier.view');
+      case AppRoute.expenses:
+        return user.hasPermission('expense.view');
+      case AppRoute.paymentAccounts:
+        return user.hasPermission('account.manage');
+      case AppRoute.reports:
+        return user.hasPermission('report.view');
+      case AppRoute.stockTransfers:
+        return user.hasPermission('inventory.transfer');
+      case AppRoute.stockAdjustments:
+      case AppRoute.variationTemplates:
+      case AppRoute.sellingPriceGroups:
+        return user.hasPermission('inventory.adjust');
+      case AppRoute.inventoryAudit:
+        return user.hasPermission('inventory.audit');
+      case AppRoute.annualClosing:
+        return user.hasPermission('fiscal.close');
+      case AppRoute.userManagement:
+        return user.hasPermission('user.manage') || user.hasPermission('role.manage');
+      case AppRoute.settings:
+      case AppRoute.moduleSettings:
+      case AppRoute.cloudSync:
+      case AppRoute.notificationTemplates:
+        return user.hasPermission('settings.manage');
+    }
+  }
+
+  Widget _buildAccessDeniedView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lock_person_rounded, size: 56, color: Color(0xFFDC2626)),
+            const SizedBox(height: 14),
+            const Text(
+              'Access Restricted',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Your account role does not have permission to open this module.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton(
+              onPressed: () => _navigateTo(AppRoute.dashboard),
+              child: const Text('Return to Dashboard'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(AppRoute selectedRoute) {
+    if (!_canAccessRoute(selectedRoute)) {
+      return _buildAccessDeniedView();
+    }
+    switch (selectedRoute) {
+      case AppRoute.dashboard:
         return DashboardScreen(
           settings: _settings,
           onNavigateToPos: _onOpenPos,
-          onNavigateToTab: (index) => setState(() => _selectedIndex = index),
+          onNavigateToRoute: _navigateTo,
         );
-      case 1:
+      case AppRoute.posTerminal:
         return PosTerminalScreen(
           settings: _settings,
           initialSaleToResume: _saleToResumeInPos,
           onBackToDashboard: () => setState(() {
             _saleToResumeInPos = null;
-            _selectedIndex = 0;
+            ref.read(navigationProvider.notifier).goTo(AppRoute.dashboard);
           }),
         );
-      case 2:
+      case AppRoute.productsList:
         return ProductsListScreen(
           settings: _settings,
           onNavigateToAddProduct: () => setState(() {
             _productToEdit = null;
-            _selectedIndex = 11;
+            ref.read(navigationProvider.notifier).goTo(AppRoute.addProduct);
           }),
           onNavigateToEditProduct: (p) => setState(() {
             _productToEdit = p;
-            _selectedIndex = 11;
+            ref.read(navigationProvider.notifier).goTo(AppRoute.addProduct);
           }),
           onNavigateToPrintLabels: (p) => setState(() {
             _productToPrintLabel = p;
-            _selectedIndex = 17;
+            ref.read(navigationProvider.notifier).goTo(AppRoute.printLabels);
           }),
         );
-      case 3:
+      case AppRoute.categories:
         return CategoriesScreen(settings: _settings);
-      case 4:
+      case AppRoute.salesList:
         return SalesListScreen(
           settings: _settings,
           onOpenPos: _onOpenPos,
           onResumeInPos: (sale) => _onOpenPos(saleToResume: sale),
         );
-      case 5:
+      case AppRoute.purchasesList:
         return PurchasesListScreen(
           settings: _settings,
-          onNavigateToAddPurchase: () => setState(() => _selectedIndex = 41),
+          onNavigateToAddPurchase: () => _navigateTo(AppRoute.addPurchase),
         );
-      case 6:
+      case AppRoute.customers:
         return CustomersScreen(settings: _settings);
-      case 7:
+      case AppRoute.suppliers:
         return SuppliersScreen(settings: _settings);
-      case 8:
+      case AppRoute.expenses:
         return ExpensesScreen(settings: _settings);
-      case 9:
+      case AppRoute.reports:
         return ReportsScreen(settings: _settings);
-      case 10:
+      case AppRoute.settings:
         return SettingsScreen(
           settings: _settings,
           onSettingsUpdated: (updated) => setState(() {
             _settings = updated;
+              ref.read(settingsProvider.notifier).setSettings(updated);
             if (updated.branchName.isNotEmpty) {
               _activeLocationName = updated.branchName;
             }
           }),
         );
-      case 11:
+      case AppRoute.addProduct:
         return AddProductScreen(
           settings: _settings,
           productToEdit: _productToEdit,
           onProductCreated: () => setState(() {
             _productToEdit = null;
-            _selectedIndex = 2;
+            ref.read(navigationProvider.notifier).goTo(AppRoute.productsList);
           }),
           onCancel: () => setState(() {
             _productToEdit = null;
-            _selectedIndex = 2;
+            ref.read(navigationProvider.notifier).goTo(AppRoute.productsList);
           }),
         );
-      case 12:
+      case AppRoute.userManagement:
         return UserManagementScreen(settings: _settings);
-      case 13:
+      case AppRoute.stockTransfers:
         return StockTransfersScreen(settings: _settings, initialTab: 0);
-      case 14:
+      case AppRoute.stockAdjustments:
         return StockTransfersScreen(settings: _settings, initialTab: 1);
-      case 15:
+      case AppRoute.paymentAccounts:
         return PaymentAccountsScreen(settings: _settings);
-      case 16:
+      case AppRoute.notificationTemplates:
         return NotificationTemplatesScreen(settings: _settings);
-      case 17:
+      case AppRoute.printLabels:
         return PrintLabelsScreen(
           settings: _settings,
           initialProduct: _productToPrintLabel,
         );
-      case 18:
+      case AppRoute.variationTemplates:
         return VariationTemplatesScreen(settings: _settings);
-      case 19:
+      case AppRoute.units:
         return UnitsScreen(settings: _settings);
-      case 20:
+      case AppRoute.brands:
         return BrandsScreen(settings: _settings);
-      case 21:
+      case AppRoute.warranties:
         return WarrantiesScreen(settings: _settings);
-      case 22:
+      case AppRoute.sellingPriceGroups:
         return SellingPriceGroupsScreen(settings: _settings);
-      case 23:
+      case AppRoute.importProducts:
         return ImportProductsScreen(
           settings: _settings,
-          onImportSuccess: () => setState(() => _selectedIndex = 2),
+          onImportSuccess: () => _navigateTo(AppRoute.productsList),
         );
-      case 24:
+      case AppRoute.inventoryAudit:
         return InventoryAuditScreen(settings: _settings);
-      case 25:
+      case AppRoute.salesReturn:
         return SalesReturnScreen(settings: _settings);
-      case 26:
+      case AppRoute.purchaseReturn:
         return PurchaseReturnScreen(settings: _settings);
-      case 27:
+      case AppRoute.annualClosing:
         return AnnualClosingScreen(settings: _settings);
-      case 28:
+      case AppRoute.businessModulesHub:
         return BusinessModulesHubScreen(
           settings: _settings,
-          onNavigateToTab: (index) => setState(() => _selectedIndex = index),
+          onNavigateToRoute: _navigateTo,
         );
-      case 29:
+      case AppRoute.restaurantCafe:
         return RestaurantCafeScreen(settings: _settings);
-      case 30:
+      case AppRoute.repairService:
         return RepairServiceScreen(settings: _settings);
-      case 31:
+      case AppRoute.hotelManagement:
         return HotelManagementScreen(settings: _settings);
-      case 32:
+      case AppRoute.gymFitness:
         return GymFitnessScreen(settings: _settings);
-      case 33:
+      case AppRoute.manufacturing:
         return ManufacturingScreen(settings: _settings);
-      case 34:
+      case AppRoute.wooCommerceSync:
         return WooCommerceSyncScreen(settings: _settings);
-      case 35:
+      case AppRoute.hrmEmployee:
         return HrmEmployeeScreen(settings: _settings);
-      case 36:
+      case AppRoute.accountingCrm:
         return AccountingCrmScreen(settings: _settings);
-      case 37:
+      case AppRoute.fruitMandi:
         return FruitMandiScreen(settings: _settings);
-      case 38:
+      case AppRoute.poultryBusiness:
         return PoultryBusinessScreen(settings: _settings);
-      case 39:
+      case AppRoute.moduleSettings:
         return ModuleSettingsScreen(
           settings: _settings,
           onSettingsUpdated: _reloadSettings,
         );
-      case 40:
+      case AppRoute.cloudSync:
         return CloudSyncScreen(
           settings: _settings,
           onSettingsUpdated: (updated) => setState(() {
             _settings = updated;
+              ref.read(settingsProvider.notifier).setSettings(updated);
             if (updated.branchName.isNotEmpty) {
               _activeLocationName = updated.branchName;
             }
           }),
         );
-      case 41:
+      case AppRoute.addPurchase:
         return AddPurchaseScreen(
           settings: _settings,
-          onPurchaseSaved: () => setState(() => _selectedIndex = 5),
-          onBackToList: () => setState(() => _selectedIndex = 5),
+          onPurchaseSaved: () => _navigateTo(AppRoute.purchasesList),
+          onBackToList: () => _navigateTo(AppRoute.purchasesList),
         );
       default:
         return DashboardScreen(
           settings: _settings,
           onNavigateToPos: _onOpenPos,
-          onNavigateToTab: (index) => setState(() => _selectedIndex = index),
+          onNavigateToRoute: _navigateTo,
         );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final selectedRoute = ref.watch(navigationProvider);
+    ref.watch(authProvider);
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => AuthService.recordActivity(),
+      onPointerSignal: (_) => AuthService.recordActivity(),
+      child: Focus(
+        onKeyEvent: (_, __) {
+          AuthService.recordActivity();
+          return KeyEventResult.ignored;
+        },
+        child: Scaffold(
       body: Column(
         children: [
           // Top Smart POS Bar
@@ -327,7 +479,7 @@ class _MainShellState extends State<MainShell> {
                 _settings = _settings.copyWith(branchName: loc);
               });
             },
-            onOpenSettings: () => setState(() => _selectedIndex = 10),
+            onOpenSettings: () => _navigateTo(AppRoute.settings),
           ),
 
           // Impending Qulop License Expiry Warning Banner
@@ -364,7 +516,7 @@ class _MainShellState extends State<MainShell> {
                               horizontal: 12, vertical: 4),
                           visualDensity: VisualDensity.compact,
                         ),
-                        onPressed: () => setState(() => _selectedIndex = 23),
+                        onPressed: () => _navigateTo(AppRoute.importProducts),
                         child: const Text('Renew / Activate Key',
                             style: TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 11)),
@@ -382,26 +534,23 @@ class _MainShellState extends State<MainShell> {
             child: Row(
               children: [
                 SmartSidebar(
-                  selectedIndex: _selectedIndex,
-                  onSelect: (idx) {
-                    setState(() {
-                      _selectedIndex = idx;
-                      if (idx == 1 &&
-                          MediaQuery.of(context).size.width < 1400) {
-                        _sidebarCollapsed = true;
-                      }
-                    });
-                  },
+                  selectedRoute: selectedRoute,
+                  onSelect: (route) => _navigateTo(
+                    route,
+                    collapseOnCompact: route == AppRoute.posTerminal,
+                  ),
                   isCollapsed: _sidebarCollapsed,
                   settings: _settings,
                 ),
                 Expanded(
-                  child: _buildBody(),
+                  child: _buildBody(selectedRoute),
                 ),
               ],
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }

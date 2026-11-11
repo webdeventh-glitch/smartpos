@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import '../models/models.dart';
+import 'app_logger.dart';
 import 'database_service.dart';
 import 'qulop_service.dart';
 
@@ -37,7 +38,8 @@ class LocalApiService {
       });
 
       return true;
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.error('LocalApiService', 'Failed starting local API server on port $_port', e, st);
       _isRunning = false;
       return false;
     }
@@ -76,7 +78,7 @@ class LocalApiService {
       // Normalize path (strip /api/v1 or /api if present)
       final normalizedPath = path.replaceAll('/api/v1', '').replaceAll('/api', '');
 
-      // Route: GET /health
+      // Route: GET /health (intentionally unauthenticated health probe)
       if (method == 'GET' && normalizedPath == '/health') {
         final hwid = await QulopService.getHardwareId();
         final body = {
@@ -91,6 +93,24 @@ class LocalApiService {
         response.write(jsonEncode(body));
         await response.close();
         return;
+      }
+
+      // Enforce API key authentication on protected LAN endpoints when configured
+      final settings = await db.getBusinessSettings();
+      final configuredKey = settings.syncApiKey.trim();
+      if (configuredKey.isNotEmpty) {
+        final authHeader = request.headers.value(HttpHeaders.authorizationHeader) ?? '';
+        final xApiKey = request.headers.value('x-api-key') ?? '';
+        final provided = authHeader.toLowerCase().startsWith('bearer ')
+            ? authHeader.substring(7).trim()
+            : xApiKey.trim();
+        if (provided != configuredKey) {
+          AppLogger.warning('LocalApiService', 'Unauthorized API call to $normalizedPath');
+          response.statusCode = HttpStatus.unauthorized;
+          response.write(jsonEncode({'success': false, 'error': 'Unauthorized'}));
+          await response.close();
+          return;
+        }
       }
 
       // Route: GET /products
@@ -220,7 +240,8 @@ class LocalApiService {
       response.statusCode = HttpStatus.notFound;
       response.write(jsonEncode({'success': false, 'error': 'Endpoint not found'}));
       await response.close();
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.error('LocalApiService', 'API request error on $method $path', e, st);
       response.statusCode = HttpStatus.internalServerError;
       response.write(jsonEncode({'success': false, 'error': e.toString()}));
       await response.close();

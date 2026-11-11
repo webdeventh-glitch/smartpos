@@ -4,11 +4,38 @@ import 'package:flutter/foundation.dart' hide Category;
 import 'package:mysql_client_plus/mysql_client_plus.dart';
 import 'package:path/path.dart' as p;
 import '../models/models.dart';
+import 'app_logger.dart';
 import 'database_service.dart';
 
 class MySqlService {
   static final ValueNotifier<bool> isMySqlOnline = ValueNotifier<bool>(false);
   static final ValueNotifier<String> connectionStatus = ValueNotifier<String>('Disconnected');
+
+  static Future<void> _closeQuietly(MySQLConnection? conn, String context) async {
+    if (conn == null) return;
+    try {
+      await conn.close();
+    } catch (e, st) {
+      AppLogger.warning('MySqlService', 'Failed closing connection ($context)', e, st);
+    }
+  }
+
+  static Future<void> _addMySqlColumnIfMissing(
+    MySQLConnection conn,
+    String table,
+    String column,
+    String columnDef,
+  ) async {
+    try {
+      final cols = await conn.execute("SHOW COLUMNS FROM `$table` LIKE '$column'");
+      if (cols.rows.isEmpty) {
+        await conn.execute("ALTER TABLE `$table` ADD COLUMN `$column` $columnDef");
+        AppLogger.info('MySqlService', 'Added MySQL column $table.$column');
+      }
+    } catch (e, st) {
+      AppLogger.warning('MySqlService', 'Failed ensuring MySQL column $table.$column', e, st);
+    }
+  }
 
   /// Normalizes host address so that 'localhost' or empty strings resolve directly to '127.0.0.1' on Windows
   static String normalizeHost(String host) {
@@ -29,8 +56,9 @@ class MySqlService {
       final socket = await Socket.connect('127.0.0.1', 3306, timeout: const Duration(milliseconds: 350));
       await socket.close();
       return true; // MySQL is already online and responding!
-    } catch (_) {
+    } catch (e) {
       // 3306 is not listening, proceed to scan all drives
+      AppLogger.debug('MySqlService', 'Port 3306 not listening yet: $e');
     }
 
     const driveLetters = ['C', 'D', 'E', 'F', 'G'];
@@ -46,7 +74,9 @@ class MySqlService {
               candidateDirs.add(entity);
             }
           }
-        } catch (_) {}
+        } catch (e, st) {
+          AppLogger.warning('MySqlService', 'Error scanning ${laragonMysql.path}', e, st);
+        }
       }
 
       // 2. XAMPP MySQL bin folder
@@ -64,7 +94,9 @@ class MySqlService {
               candidateDirs.add(entity);
             }
           }
-        } catch (_) {}
+        } catch (e, st) {
+          AppLogger.warning('MySqlService', 'Error scanning ${progFiles.path}', e, st);
+        }
       }
 
       // 4. Standalone drive-root mysql (e.g. C:\mysql, D:\mysql)
@@ -101,7 +133,9 @@ class MySqlService {
               await testSocket.close();
               debugPrint('[SmartPOS] MySQL successfully started and responding on port 3306!');
               return true;
-            } catch (_) {}
+            } catch (e) {
+              AppLogger.debug('MySqlService', 'Waiting for mysqld on 3306 (attempt ${i + 1}): $e');
+            }
           }
         } catch (e) {
           debugPrint('[SmartPOS] Error launching mysqld: $e');
@@ -178,9 +212,7 @@ class MySqlService {
         } catch (e) {
           if (i == 0) firstAuthError = e;
           lastAuthError = e;
-          try {
-            await conn?.close();
-          } catch (_) {}
+          await _closeQuietly(conn, 'retry-cleanup');
           // If error is not auth access denied (1045), don't keep trying passwords
           if (!e.toString().contains('1045')) {
             break;
@@ -207,9 +239,7 @@ class MySqlService {
       };
     } finally {
       DatabaseService.suppressSync = false;
-      try {
-        await conn?.close();
-      } catch (_) {}
+      await _closeQuietly(conn, 'finally-cleanup');
     }
   }
 
@@ -270,9 +300,7 @@ class MySqlService {
         } catch (e) {
           if (i == 0) firstAuthError = e;
           lastAuthError = e;
-          try {
-            await conn?.close();
-          } catch (_) {}
+          await _closeQuietly(conn, 'retry-cleanup');
           if (!e.toString().contains('1045')) {
             break;
           }
@@ -341,9 +369,7 @@ class MySqlService {
       };
     } finally {
       DatabaseService.suppressSync = false;
-      try {
-        await conn?.close();
-      } catch (_) {}
+      await _closeQuietly(conn, 'finally-cleanup');
     }
   }
 
@@ -436,9 +462,7 @@ class MySqlService {
       debugPrint('MySqlService background connectAndSync notice: $e');
     } finally {
       DatabaseService.suppressSync = false;
-      try {
-        await conn?.close();
-      } catch (_) {}
+      await _closeQuietly(conn, 'finally-cleanup');
     }
   }
 
@@ -502,9 +526,7 @@ class MySqlService {
       return false;
     } finally {
       DatabaseService.suppressSync = false;
-      try {
-        await conn?.close();
-      } catch (_) {}
+      await _closeQuietly(conn, 'finally-cleanup');
     }
   }
 
@@ -574,7 +596,9 @@ class MySqlService {
             await localDb.updateProduct(p);
           }
         }
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('MySqlService', 'Failed pulling products from MySQL', e, st);
+      }
 
       // Pull contacts
       try {
@@ -596,7 +620,9 @@ class MySqlService {
             }
           }
         }
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('MySqlService', 'Failed pulling contacts from MySQL', e, st);
+      }
 
       // Pull categories
       try {
@@ -611,7 +637,9 @@ class MySqlService {
             }
           }
         }
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('MySqlService', 'Failed pulling categories from MySQL', e, st);
+      }
 
       // Pull users
       try {
@@ -636,14 +664,14 @@ class MySqlService {
             }
           }
         }
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('MySqlService', 'Failed pulling users from MySQL', e, st);
+      }
     } catch (e) {
       debugPrint('MySqlService pullDataFromMySql error: $e');
     } finally {
       DatabaseService.suppressSync = false;
-      try {
-        await conn?.close();
-      } catch (_) {}
+      await _closeQuietly(conn, 'finally-cleanup');
     }
   }
 
@@ -700,9 +728,7 @@ class MySqlService {
       isMySqlOnline.value = false;
     } finally {
       DatabaseService.suppressSync = false;
-      try {
-        await conn?.close();
-      } catch (_) {}
+      await _closeQuietly(conn, 'finally-cleanup');
     }
   }
 
@@ -1044,9 +1070,7 @@ class MySqlService {
       debugPrint('Failed to sync local catalog to MySQL: $e');
     } finally {
       DatabaseService.suppressSync = false;
-      try {
-        await conn?.close();
-      } catch (_) {}
+      await _closeQuietly(conn, 'finally-cleanup');
     }
   }
 
@@ -1079,7 +1103,9 @@ class MySqlService {
           ('General Merchandise', 'CAT-GEN', 'Everyday store goods')
           ON DUPLICATE KEY UPDATE `code` = VALUES(`code`)
         ''');
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('MySqlService', 'Starter categories seed notice', e, st);
+      }
 
       // Seed brands
       try {
@@ -1090,7 +1116,9 @@ class MySqlService {
           ('Getz Pharma', 'Getz Formulations')
           ON DUPLICATE KEY UPDATE `description` = VALUES(`description`)
         ''');
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('MySqlService', 'Starter brands seed notice', e, st);
+      }
 
       // Seed units
       try {
@@ -1100,7 +1128,9 @@ class MySqlService {
           ('Box', 'Box', 0, 10.00),
           ('Strip', 'Strip', 0, 1.00)
         ''');
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('MySqlService', 'Starter units seed notice', e, st);
+      }
 
       // Seed starter products
       try {
@@ -1116,7 +1146,9 @@ class MySqlService {
           ('MED-BRU-400', '896400010044', 'Brufen 400mg Tablets', 'Antibiotics & Medications', 'Abbott', 'Box', 180.00, 230.00, 65.00, 12.00, 'B-3321', '2027-11-30', 1.0)
           ON DUPLICATE KEY UPDATE `name` = VALUES(`name`)
         ''');
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('MySqlService', 'Starter products seed notice', e, st);
+      }
 
       // Seed starter walk-in customer
       try {
@@ -1124,16 +1156,16 @@ class MySqlService {
           INSERT INTO `contacts` (`type`, `name`, `business_name`, `phone`, `email`, `balance`)
           VALUES ('customer', 'Walk-in Customer', 'Cash Retail Customer', '+92 300 0000000', 'walkin@smartpos.com', 0.00)
         ''');
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('MySqlService', 'Starter walk-in customer seed notice', e, st);
+      }
 
       debugPrint('MySqlService starter catalog seeded successfully!');
     } catch (e) {
       debugPrint('Failed to seed starter data to MySQL: $e');
     } finally {
       DatabaseService.suppressSync = false;
-      try {
-        await conn?.close();
-      } catch (_) {}
+      await _closeQuietly(conn, 'finally-cleanup');
     }
   }
 
@@ -1585,9 +1617,7 @@ class MySqlService {
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB;
     ''');
-    try {
-      await conn.execute("ALTER TABLE `contact_payments` ADD COLUMN `document_path` VARCHAR(500) NULL");
-    } catch (_) {}
+    await _addMySqlColumnIfMissing(conn, 'contact_payments', 'document_path', 'VARCHAR(500) NULL');
 
     // 27. payment_accounts
     await conn.execute('''
@@ -1973,12 +2003,12 @@ class MySqlService {
         INDEX `idx_note_parent` (`notable_type`, `notable_id`)
       ) ENGINE=InnoDB;
     ''');
-    // Safe migrations for newly added columns
-    try { await conn.execute("ALTER TABLE `contacts` ADD COLUMN `loyalty_points` DECIMAL(12,2) DEFAULT 0.00"); } catch (_) {}
-    try { await conn.execute("ALTER TABLE `business_settings` ADD COLUMN `enable_secondary_language` TINYINT(1) DEFAULT 0"); } catch (_) {}
-    try { await conn.execute("ALTER TABLE `business_settings` ADD COLUMN `secondary_language` VARCHAR(20) DEFAULT 'ur'"); } catch (_) {}
-    try { await conn.execute("ALTER TABLE `business_settings` ADD COLUMN `total_in_words_language` VARCHAR(20) DEFAULT 'en'"); } catch (_) {}
-    try { await conn.execute("ALTER TABLE `business_settings` ADD COLUMN `show_total_in_words` TINYINT(1) DEFAULT 1"); } catch (_) {}
+    // Safe schema checks for newly added columns
+    await _addMySqlColumnIfMissing(conn, 'contacts', 'loyalty_points', 'DECIMAL(12,2) DEFAULT 0.00');
+    await _addMySqlColumnIfMissing(conn, 'business_settings', 'enable_secondary_language', 'TINYINT(1) DEFAULT 0');
+    await _addMySqlColumnIfMissing(conn, 'business_settings', 'secondary_language', "VARCHAR(20) DEFAULT 'ur'");
+    await _addMySqlColumnIfMissing(conn, 'business_settings', 'total_in_words_language', "VARCHAR(20) DEFAULT 'en'");
+    await _addMySqlColumnIfMissing(conn, 'business_settings', 'show_total_in_words', 'TINYINT(1) DEFAULT 1');
   }
 
   static Future<void> _seedSettings(MySQLConnection conn, BusinessSettings s) async {

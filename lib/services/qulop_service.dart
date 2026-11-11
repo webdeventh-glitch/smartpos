@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
+import 'app_logger.dart';
 
 enum QulopTier {
   trial,
@@ -48,16 +49,20 @@ class QulopStatus {
 class QulopService {
   // Master Secret Key for signing & verifying Qulop SaaS tokens
   static const String _qulopSecretKey = 'QULOP_SMART_POS_MASTER_SECRET_2026_PK';
-  static const String _sposSecretKey = 'SMART_POS_SYSTEM_SAAS_MASTER_SECRET_2026_PK';
-  static const String _legacySecretKey = 'NEXUS_ENTERPRISE_POS_2026_MASTER_SECRET_9981';
+  static const String _sposSecretKey =
+      'SMART_POS_SYSTEM_SAAS_MASTER_SECRET_2026_PK';
+  static const String _legacySecretKey =
+      'NEXUS_ENTERPRISE_POS_2026_MASTER_SECRET_9981';
 
   /// Reactive Qulop notifier for real-time app lockout & banners
-  static final ValueNotifier<QulopStatus?> qulopNotifier = ValueNotifier<QulopStatus?>(null);
+  static final ValueNotifier<QulopStatus?> qulopNotifier =
+      ValueNotifier<QulopStatus?>(null);
 
   /// Backward compatibility notifier
   static ValueNotifier<QulopStatus?> get licenseNotifier => qulopNotifier;
 
   static String? _cachedHardwareId;
+  static String? _cachedMacAddress;
 
   /// Detects the physical Hardware ID (Motherboard UUID / Disk Serial / MAC Address)
   static Future<String> getHardwareId() async {
@@ -74,14 +79,19 @@ class QulopService {
           if (res.exitCode == 0 && res.stdout != null) {
             final uuid = res.stdout.toString().trim();
             if (uuid.length >= 10 && !uuid.toLowerCase().contains('error')) {
-              final clean = uuid.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '').toUpperCase();
+              final clean =
+                  uuid.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '').toUpperCase();
               if (clean.length >= 12) {
-                _cachedHardwareId = 'HWID-${clean.substring(0, clean.length >= 16 ? 16 : clean.length)}';
+                _cachedHardwareId =
+                    'HWID-${clean.substring(0, clean.length >= 16 ? 16 : clean.length)}';
                 return _cachedHardwareId!;
               }
             }
           }
-        } catch (_) {}
+        } catch (e, st) {
+          AppLogger.warning(
+              'QulopService', 'WMI motherboard UUID lookup failed', e, st);
+        }
 
         // 2. Fallback to Disk Drive Serial
         try {
@@ -92,15 +102,25 @@ class QulopService {
           ]).timeout(const Duration(seconds: 2));
           if (res.exitCode == 0 && res.stdout != null) {
             final diskSerial = res.stdout.toString().trim();
-            final clean = diskSerial.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '').toUpperCase();
-            if (clean.length >= 6 && !diskSerial.toLowerCase().contains('error')) {
-              _cachedHardwareId = 'HWID-${clean.substring(0, clean.length >= 16 ? 16 : clean.length)}';
+            final clean = diskSerial
+                .replaceAll(RegExp(r'[^A-Fa-f0-9]'), '')
+                .toUpperCase();
+            if (clean.length >= 6 &&
+                !diskSerial.toLowerCase().contains('error')) {
+              _cachedHardwareId =
+                  'HWID-${clean.substring(0, clean.length >= 16 ? 16 : clean.length)}';
               return _cachedHardwareId!;
             }
           }
-        } catch (_) {}
+        } catch (e, st) {
+          AppLogger.warning(
+              'QulopService', 'WMI disk serial lookup failed', e, st);
+        }
       }
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.warning('QulopService',
+          'Hardware ID detection failed, falling back to MAC', e, st);
+    }
 
     // 3. Fallback to physical MAC address
     final mac = await getDeviceMacAddress();
@@ -111,6 +131,7 @@ class QulopService {
 
   /// Detects the physical MAC address of the running host machine
   static Future<String> getDeviceMacAddress() async {
+    if (_cachedMacAddress != null) return _cachedMacAddress!;
     try {
       if (Platform.isWindows) {
         final result = await Process.run('getmac', ['/fo', 'csv', '/nh']);
@@ -122,9 +143,12 @@ class QulopService {
             final parts = line.split(',');
             if (parts.isNotEmpty) {
               final rawMac = parts[0].replaceAll('"', '').trim();
-              final macPattern = RegExp(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
-              if (macPattern.hasMatch(rawMac) && !line.toLowerCase().contains('disconnected')) {
-                return rawMac.toUpperCase();
+              final macPattern =
+                  RegExp(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
+              if (macPattern.hasMatch(rawMac) &&
+                  !line.toLowerCase().contains('disconnected')) {
+                _cachedMacAddress = rawMac.toUpperCase();
+                return _cachedMacAddress!;
               }
             }
           }
@@ -132,24 +156,29 @@ class QulopService {
             final parts = line.split(',');
             if (parts.isNotEmpty) {
               final rawMac = parts[0].replaceAll('"', '').trim();
-              final macPattern = RegExp(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
+              final macPattern =
+                  RegExp(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
               if (macPattern.hasMatch(rawMac)) {
-                return rawMac.toUpperCase();
+                _cachedMacAddress = rawMac.toUpperCase();
+                return _cachedMacAddress!;
               }
             }
           }
         }
       }
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.warning('QulopService',
+          'MAC address detection failed, using fallback identifier', e, st);
+    }
 
-    return 'C8-3A-35-1C-4B-40';
+    _cachedMacAddress = 'C8-3A-35-1C-4B-40';
+    return _cachedMacAddress!;
   }
 
   /// Normalizes MAC address or Hardware ID string (removes hyphens/colons, uppercase)
   static String normalizeMac(String mac) {
     return mac.replaceAll(RegExp(r'[^A-Fa-f0-9]'), '').toUpperCase();
   }
-
 
   /// Map 3-letter tier code to human-readable label
   static String getTierLabel(String code) {
@@ -217,7 +246,9 @@ class QulopService {
       'm': cleanMac,
       't': tierCode.toUpperCase(),
       'i': issueDate.toIso8601String().split('T').first,
-      'e': tierCode.toUpperCase() == 'LFT' ? '9999-12-31' : finalExpiry.toIso8601String().split('T').first,
+      'e': tierCode.toUpperCase() == 'LFT'
+          ? '9999-12-31'
+          : finalExpiry.toIso8601String().split('T').first,
     };
 
     final payloadJson = jsonEncode(payload);
@@ -252,9 +283,9 @@ class QulopService {
     );
   }
 
-
   /// Validates a Qulop key against the current host machine MAC address and expiration
-  static Future<QulopStatus> verifyQulopKey(String rawKey, {String? hostMacOverride}) async {
+  static Future<QulopStatus> verifyQulopKey(String rawKey,
+      {String? hostMacOverride}) async {
     final key = rawKey.trim();
     if (key.isEmpty) {
       return const QulopStatus(
@@ -295,15 +326,29 @@ class QulopService {
 
     // Verify cryptographic signature
     final primaryHmac = Hmac(sha256, utf8.encode(_qulopSecretKey));
-    final expectedPrimarySig = primaryHmac.convert(utf8.encode(payloadBase64)).toString().substring(0, 8).toUpperCase();
+    final expectedPrimarySig = primaryHmac
+        .convert(utf8.encode(payloadBase64))
+        .toString()
+        .substring(0, 8)
+        .toUpperCase();
 
     final sposHmac = Hmac(sha256, utf8.encode(_sposSecretKey));
-    final expectedSposSig = sposHmac.convert(utf8.encode(payloadBase64)).toString().substring(0, 8).toUpperCase();
+    final expectedSposSig = sposHmac
+        .convert(utf8.encode(payloadBase64))
+        .toString()
+        .substring(0, 8)
+        .toUpperCase();
 
     final legacyHmac = Hmac(sha256, utf8.encode(_legacySecretKey));
-    final expectedLegacySig = legacyHmac.convert(utf8.encode(payloadBase64)).toString().substring(0, 8).toUpperCase();
+    final expectedLegacySig = legacyHmac
+        .convert(utf8.encode(payloadBase64))
+        .toString()
+        .substring(0, 8)
+        .toUpperCase();
 
-    if (signature != expectedPrimarySig && signature != expectedSposSig && signature != expectedLegacySig) {
+    if (signature != expectedPrimarySig &&
+        signature != expectedSposSig &&
+        signature != expectedLegacySig) {
       return const QulopStatus(
         isValid: false,
         tier: QulopTier.invalid,
@@ -317,7 +362,9 @@ class QulopService {
     try {
       final jsonStr = utf8.decode(base64Url.decode(payloadBase64));
       data = jsonDecode(jsonStr) as Map<String, dynamic>;
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.warning(
+          'QulopService', 'Failed decoding license payload', e, st);
       return const QulopStatus(
         isValid: false,
         tier: QulopTier.invalid,
@@ -348,12 +395,12 @@ class QulopService {
         isValid: false,
         tier: QulopTier.invalid,
         tierLabel: 'Hardware Mismatch',
-        message: 'This key is locked to machine ($targetMac). Current machine is ($currentMac).',
+        message:
+            'This key is locked to machine ($targetMac). Current machine is ($currentMac).',
         clientName: clientName,
         targetMac: targetMac,
       );
     }
-
 
     DateTime? expiryDate;
     if (tierCode == 'LFT') {
@@ -361,7 +408,9 @@ class QulopService {
     } else {
       try {
         expiryDate = DateTime.parse(expiryStr);
-      } catch (_) {
+      } catch (e, st) {
+        AppLogger.warning(
+            'QulopService', 'Invalid license expiry date "$expiryStr"', e, st);
         expiryDate = null;
       }
     }
@@ -374,7 +423,8 @@ class QulopService {
         isValid: false,
         tier: QulopTier.expired,
         tierLabel: '${getTierLabel(tierCode)} (Expired)',
-        message: 'Your software subscription expired on ${expiryDate.toIso8601String().split('T').first}. Please renew.',
+        message:
+            'Your software subscription expired on ${expiryDate.toIso8601String().split('T').first}. Please renew.',
         clientName: clientName,
         targetMac: targetMac,
         expiryDate: expiryDate,
@@ -382,7 +432,8 @@ class QulopService {
       );
     }
 
-    final remaining = expiryDate != null ? expiryDate.difference(today).inDays : 9999;
+    final remaining =
+        expiryDate != null ? expiryDate.difference(today).inDays : 9999;
     final isNearExpiry = remaining <= 7 && tierCode != 'LFT';
 
     QulopTier qulopTier;
@@ -424,7 +475,8 @@ class QulopService {
   }
 
   /// Evaluates current business settings against Qulop rules
-  static Future<QulopStatus> checkCurrentQulop(BusinessSettings settings) async {
+  static Future<QulopStatus> checkCurrentQulop(
+      BusinessSettings settings) async {
     final currentMac = await getDeviceMacAddress();
 
     // 1. Check if user already installed a paid/custom Qulop key
@@ -439,7 +491,12 @@ class QulopService {
     if (settings.trialStartDate.trim().isNotEmpty) {
       try {
         trialStart = DateTime.parse(settings.trialStartDate);
-      } catch (_) {
+      } catch (e, st) {
+        AppLogger.warning(
+            'QulopService',
+            'Invalid trialStartDate "${settings.trialStartDate}", using now',
+            e,
+            st);
         trialStart = DateTime.now();
       }
     } else {
@@ -449,7 +506,8 @@ class QulopService {
     final trialExpiry = trialStart.add(const Duration(days: 30));
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final expiryDay = DateTime(trialExpiry.year, trialExpiry.month, trialExpiry.day);
+    final expiryDay =
+        DateTime(trialExpiry.year, trialExpiry.month, trialExpiry.day);
 
     final remaining = expiryDay.difference(today).inDays;
 
@@ -458,7 +516,8 @@ class QulopService {
         isValid: false,
         tier: QulopTier.expired,
         tierLabel: '30-Day Free Trial (Expired)',
-        message: 'Your 30-Day Free Trial expired on ${expiryDay.toIso8601String().split('T').first}. Please enter your Software License Key.',
+        message:
+            'Your 30-Day Free Trial expired on ${expiryDay.toIso8601String().split('T').first}. Please enter your Software License Key.',
         clientName: settings.businessName,
         targetMac: currentMac,
         issueDate: trialStart,
@@ -486,7 +545,8 @@ class QulopService {
   }
 
   /// Static aliases for backward compatibility
-  static Future<QulopStatus> verifyLicenseKey(String key, {String? hostMacOverride}) =>
+  static Future<QulopStatus> verifyLicenseKey(String key,
+          {String? hostMacOverride}) =>
       verifyQulopKey(key, hostMacOverride: hostMacOverride);
 
   static Future<QulopStatus> checkCurrentLicense(BusinessSettings settings) =>

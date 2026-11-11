@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import 'add_expense_dialog.dart';
 
@@ -35,6 +36,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   void _openAddExpense() {
+    if (!(AuthService.currentUser?.hasPermission('expense.add') ?? true)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Access Denied: You do not have permission to add expenses.'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => AddExpenseDialog(
@@ -95,18 +105,19 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F46E5),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                if (AuthService.currentUser?.hasPermission('expense.add') ?? true)
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4F46E5),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.add_rounded, size: 19),
+                    label: const Text('Add Expense', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    onPressed: _openAddExpense,
                   ),
-                  icon: const Icon(Icons.add_rounded, size: 19),
-                  label: const Text('Add Expense', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  onPressed: _openAddExpense,
-                ),
               ],
             ),
             const SizedBox(height: 20),

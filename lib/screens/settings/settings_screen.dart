@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
+import '../../services/auth_service.dart';
+import '../../services/database_encryption_service.dart';
 import '../../services/database_service.dart';
 import '../../services/qulop_service.dart';
 import '../../services/theme_service.dart';
@@ -57,6 +60,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   String _stockAccountingMethod = 'FIFO';
   String _dateFormat = 'dd/mm/yyyy';
   String _timeFormat = '12 Hour';
+  int _sessionTimeoutMinutes = 480;
+  final TextEditingController _encPassphraseCtrl = TextEditingController();
+  bool _isUpdatingEncryptionKey = false;
 
   // Primary Database Engine Configuration State
   String _primaryDbType = 'mysql';
@@ -89,6 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   List<BusinessLocation> _locations = [];
   List<TaxRate> _taxRates = [];
+  List<TaxGroup> _taxGroups = [];
   List<InvoiceScheme> _schemes = [];
   bool _isLoading = false;
   bool _isSaving = false;
@@ -176,6 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _stockAccountingMethod = s.stockAccountingMethod;
     _dateFormat = s.dateFormat;
     _timeFormat = s.timeFormat;
+    _sessionTimeoutMinutes = s.sessionTimeoutMinutes;
 
     _primaryDbType = s.primaryDbType.isNotEmpty ? s.primaryDbType : 'mysql';
     _dbHostCtrl = TextEditingController(text: s.dbHost.isNotEmpty ? s.dbHost : 'localhost');
@@ -317,7 +325,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           };
         });
       }
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.warning('SettingsScreen', 'Failed loading database statistics', e, st);
+    }
   }
 
   @override
@@ -351,6 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _receiptNoteCtrl.dispose();
     _receiptReturnPolicyCtrl.dispose();
     _invoiceHeadingCtrl.dispose();
+    _encPassphraseCtrl.dispose();
     super.dispose();
   }
 
@@ -364,7 +375,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           _isLoadingBackups = false;
         });
       }
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.error('SettingsScreen', 'Failed loading backup files', e, st);
       if (mounted) setState(() => _isLoadingBackups = false);
     }
   }
@@ -585,12 +597,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final db = await DatabaseService.initialize();
     final locs = await db.getBusinessLocations();
     final taxes = await db.getTaxRates();
+    final taxGroups = await db.getTaxGroups();
     final scs = await db.getInvoiceSchemes();
     final ai = await db.getAiSettings();
     if (mounted) {
       setState(() {
         _locations = locs;
         _taxRates = taxes;
+        _taxGroups = taxGroups;
         _schemes = scs;
         _aiSettings = ai;
         _aiApiKeyCtrl.text = ai.apiKey;
@@ -1063,8 +1077,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         enableSecondaryLanguage: _enableSecondaryLanguage,
         secondaryLanguage: _secondaryLanguage,
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
+        sessionTimeoutMinutes: _sessionTimeoutMinutes,
       );
 
+      AuthService.configureSessionTimeout(_sessionTimeoutMinutes);
       final db = await DatabaseService.initialize();
       await db.updateBusinessSettings(updated);
       widget.onSettingsUpdated(updated);
@@ -1259,8 +1275,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           _dbConnectionSuccess = true;
           _dbConnectionResult = 'Connected to PostgreSQL Server at $host:$port (${sw.elapsedMilliseconds}ms)! Local SQLite sync buffer linked.';
         });
-      } catch (_) {
+      } catch (e, st) {
         sw.stop();
+        AppLogger.warning('SettingsScreen', 'PostgreSQL TCP check offline for $host:$port', e, st);
         setState(() {
           _isTestingDbConnection = false;
           _dbConnectionSuccess = false;
@@ -1933,6 +1950,165 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             child: const Text('Save Tax Rate'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showTaxGroupDialog([TaxGroup? existing]) {
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final selectedIds = List<int>.from(existing?.subTaxIds ?? []);
+    bool isCompound = existing?.isCompound ?? false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          final preview = TaxGroup(
+            name: nameCtrl.text.trim(),
+            subTaxIds: selectedIds,
+            isCompound: isCompound,
+          );
+          final effective = preview.computeEffectiveRate(_taxRates);
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Row(
+              children: [
+                const Icon(Icons.layers_rounded, color: Color(0xFF4F46E5)),
+                const SizedBox(width: 8),
+                Text(
+                  existing == null ? 'Create Tax Group' : 'Edit Tax Group',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Tax Group Name (e.g. GST + PST Compound) *',
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Compound Calculation (Tax on Tax)',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        isCompound
+                            ? 'Sequential: each subsequent tax applies on (base + previous tax)'
+                            : 'Additive: sub-tax percentages sum independently on base',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      value: isCompound,
+                      onChanged: (v) => setDlgState(() => isCompound = v),
+                    ),
+                    const Divider(),
+                    const Text(
+                      'Select Component Sub-Taxes (in calculation order):',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    if (_taxRates.isEmpty)
+                      const Text(
+                        'No tax rates defined yet. Add individual tax rates first.',
+                        style: TextStyle(fontSize: 12, color: Colors.orange),
+                      )
+                    else
+                      ..._taxRates.where((r) => r.id != null).map((r) {
+                        final checked = selectedIds.contains(r.id);
+                        return CheckboxListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          value: checked,
+                          title: Text('${r.name} (${r.amount.toStringAsFixed(2)}%)',
+                              style: const TextStyle(fontSize: 13)),
+                          onChanged: (v) {
+                            setDlgState(() {
+                              if (v == true) {
+                                if (!selectedIds.contains(r.id!)) {
+                                  selectedIds.add(r.id!);
+                                }
+                              } else {
+                                selectedIds.remove(r.id!);
+                              }
+                            });
+                          },
+                        );
+                      }),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEF2FF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFC7D2FE)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Effective Combined Rate:',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF3730A3)),
+                          ),
+                          Text(
+                            '${effective.toStringAsFixed(3)}%',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF4F46E5)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () async {
+                  if (nameCtrl.text.trim().isEmpty || selectedIds.isEmpty) return;
+                  final messenger = ScaffoldMessenger.of(context);
+                  final group = TaxGroup(
+                    id: existing?.id,
+                    name: nameCtrl.text.trim(),
+                    subTaxIds: selectedIds,
+                    isCompound: isCompound,
+                    effectiveRate: effective,
+                  );
+                  final db = await DatabaseService.initialize();
+                  if (existing?.id != null) {
+                    await db.updateTaxGroup(group);
+                  } else {
+                    await db.addTaxGroup(group);
+                  }
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  await _loadSubData();
+                  if (mounted) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('Tax Group "${group.name}" saved (${effective.toStringAsFixed(2)}%).'),
+                        backgroundColor: const Color(0xFF10B981),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Save Group'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -3054,6 +3230,30 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ),
                     const SizedBox(height: 16),
 
+                    DropdownButtonFormField<int>(
+                      value: [0, 30, 60, 240, 480, 720, 1440].contains(_sessionTimeoutMinutes)
+                          ? _sessionTimeoutMinutes
+                          : 480,
+                      decoration: const InputDecoration(
+                        labelText: 'Session Inactivity Timeout (Security)',
+                        isDense: true,
+                        prefixIcon: Icon(Icons.timer_outlined, size: 18),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 30, child: Text('30 Minutes (High Security)')),
+                        DropdownMenuItem(value: 60, child: Text('1 Hour')),
+                        DropdownMenuItem(value: 240, child: Text('4 Hours')),
+                        DropdownMenuItem(value: 480, child: Text('8 Hours (Default)')),
+                        DropdownMenuItem(value: 720, child: Text('12 Hours')),
+                        DropdownMenuItem(value: 1440, child: Text('24 Hours')),
+                        DropdownMenuItem(value: 0, child: Text('Disabled (Never Timeout)')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _sessionTimeoutMinutes = val);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
                     const Text('Currency Placement & Numerical Precision', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 12),
                     Row(
@@ -3416,19 +3616,38 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
                     const Text('Tax Rates & Tax Groups', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0038B8),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Add Tax Rate'),
-                      onPressed: _showAddTaxDialog,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF4F46E5),
+                            side: const BorderSide(color: Color(0xFF4F46E5)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: const Icon(Icons.layers_rounded, size: 18),
+                          label: const Text('Add Tax Group (Compound)'),
+                          onPressed: () => _showTaxGroupDialog(),
+                        ),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0038B8),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Add Tax Rate'),
+                          onPressed: _showAddTaxDialog,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -3436,42 +3655,169 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : ListView.separated(
-                          itemCount: _taxRates.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (ctx, i) {
-                            final tax = _taxRates[i];
-                            return Card(
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: const BorderSide(color: Color(0xFFE2E8F0)),
-                              ),
-                              child: ListTile(
-                                leading: Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF3C7),
-                                    borderRadius: BorderRadius.circular(8),
+                      : ListView(
+                          children: [
+                            ..._taxRates.map(
+                              (tax) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Card(
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    side: const BorderSide(color: Color(0xFFE2E8F0)),
                                   ),
-                                  child: const Center(child: Text('%', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFD97706), fontSize: 18))),
-                                ),
-                                title: Text(tax.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                subtitle: Text('Percentage: ${tax.amount.toStringAsFixed(1)}%'),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                  onPressed: () async {
-                                    if (tax.id != null) {
-                                      final db = await DatabaseService.initialize();
-                                      await db.deleteTaxRate(tax.id!);
-                                      _loadSubData();
-                                    }
-                                  },
+                                  child: ListTile(
+                                    leading: Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFEF3C7),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Center(
+                                        child: Text(
+                                          '%',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            color: Color(0xFFD97706),
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    title: Text(tax.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                    subtitle: Text('Percentage: ${tax.amount.toStringAsFixed(1)}%'),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      onPressed: () async {
+                                        if (tax.id != null) {
+                                          try {
+                                            final db = await DatabaseService.initialize();
+                                            await db.deleteTaxRate(tax.id!);
+                                            _loadSubData();
+                                          } catch (e) {
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('$e'),
+                                                  backgroundColor: const Color(0xFFEF4444),
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  ),
                                 ),
                               ),
-                            );
-                          },
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Compound & Multi-Component Tax Groups',
+                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  '${_taxGroups.length} group(s)',
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            if (_taxGroups.isEmpty)
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: const Text(
+                                  'No Tax Groups configured. Click "Add Tax Group (Compound)" to combine rates like GST 5% + PST 3%.',
+                                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                ),
+                              )
+                            else
+                              ..._taxGroups.map((group) {
+                                final byId = {
+                                  for (final r in _taxRates)
+                                    if (r.id != null) r.id!: '${r.name} (${r.amount}%)'
+                                };
+                                final componentsLabel = group.subTaxIds
+                                    .map((id) => byId[id] ?? '#$id')
+                                    .join(' + ');
+                                final eff = group.computeEffectiveRate(_taxRates);
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Card(
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      side: const BorderSide(color: Color(0xFFC7D2FE)),
+                                    ),
+                                    child: ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                                        child: const Icon(Icons.layers_rounded, color: Color(0xFF4F46E5), size: 20),
+                                      ),
+                                      title: Wrap(
+                                        spacing: 8,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          Text(group.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: group.isCompound
+                                                  ? const Color(0xFFFEF3C7)
+                                                  : const Color(0xFFE0E7FF),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              group.isCompound ? 'COMPOUND' : 'ADDITIVE',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: group.isCompound
+                                                    ? const Color(0xFFB45309)
+                                                    : const Color(0xFF3730A3),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      subtitle: Text(
+                                        'Sub-taxes: ${componentsLabel.isEmpty ? "None" : componentsLabel} • Effective: ${eff.toStringAsFixed(2)}%',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit_outlined, color: Color(0xFF4F46E5)),
+                                            tooltip: 'Edit Tax Group',
+                                            onPressed: () => _showTaxGroupDialog(group),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                            tooltip: 'Delete Tax Group',
+                                            onPressed: () async {
+                                              if (group.id != null) {
+                                                final db = await DatabaseService.initialize();
+                                                await db.deleteTaxGroup(group.id!);
+                                                _loadSubData();
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                          ],
                         ),
                 ),
               ],
@@ -4617,6 +4963,129 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Section 0: Database Encryption & Windows Credential Store Security
+          Container(
+            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.enhanced_encryption_rounded,
+                        color: Color(0xFF10B981),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AES-256-GCM Encryption & Windows Credential Store',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Master key is stored inside Windows Credential Manager (never in plain text files). Backups and stored API/DB secrets are encrypted with AES-256-GCM.',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _encPassphraseCtrl,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Optional Custom Encryption Passphrase (min 8 chars)',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.key_rounded, size: 18),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: _isUpdatingEncryptionKey
+                          ? null
+                          : () async {
+                              final phrase = _encPassphraseCtrl.text.trim();
+                              if (phrase.length < 8) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Passphrase must be at least 8 characters.'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+                              setState(() => _isUpdatingEncryptionKey = true);
+                              try {
+                                final db = await DatabaseService.initialize();
+                                await DatabaseEncryptionService.rotateEncryptionPassphrase(
+                                  db,
+                                  phrase,
+                                );
+                                _encPassphraseCtrl.clear();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Encryption key rotated across all stored secrets and vault re-sealed in Windows Credential Store.'),
+                                      backgroundColor: Color(0xFF10B981),
+                                    ),
+                                  );
+                                }
+                              } catch (e, st) {
+                                if (mounted) {
+                                  await AppErrorHandler.showErrorDialog(
+                                    context,
+                                    title: 'Encryption Key Update Failed',
+                                    message: 'Could not update encryption key in Windows Credential Store.',
+                                    error: e,
+                                    stackTrace: st,
+                                    tag: 'SettingsScreen',
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _isUpdatingEncryptionKey = false);
+                                }
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                      ),
+                      icon: const Icon(Icons.vpn_lock_rounded, size: 16),
+                      label: Text(_isUpdatingEncryptionKey ? 'Updating...' : 'Set Encryption Key'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
           // Section 1: Embedded Local REST API Server Monitor
           Container(
             padding: const EdgeInsets.all(24),
@@ -5792,8 +6261,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         enableSecondaryLanguage: _enableSecondaryLanguage,
         secondaryLanguage: _secondaryLanguage,
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
+        sessionTimeoutMinutes: _sessionTimeoutMinutes,
       );
 
+      AuthService.configureSessionTimeout(_sessionTimeoutMinutes);
       final db = await DatabaseService.initialize();
       await db.updateBusinessSettings(updated);
       widget.onSettingsUpdated(updated);

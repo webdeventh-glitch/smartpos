@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/print_service.dart';
@@ -49,7 +50,10 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
           [widget.product.id],
         );
         sold = (soldRes.first['total_sold'] as num?)?.toDouble() ?? 0.0;
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning(
+            'ProductDetailDialog', 'Failed calculating sold units', e, st);
+      }
 
       // 2. Calculate total transferred
       double transferred = 0.0;
@@ -64,7 +68,10 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
             }
           }
         }
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('ProductDetailDialog',
+            'Failed calculating transferred units', e, st);
+      }
 
       // 3. Calculate total adjusted
       double adjusted = 0.0;
@@ -77,7 +84,10 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
             }
           }
         }
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning(
+            'ProductDetailDialog', 'Failed calculating adjusted units', e, st);
+      }
 
       if (mounted) {
         setState(() {
@@ -97,18 +107,22 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final p = widget.product;
-    final currency = widget.settings.currencySymbol.isNotEmpty ? widget.settings.currencySymbol : 'Rs';
+    final currency = widget.settings.currencySymbol.isNotEmpty
+        ? widget.settings.currencySymbol
+        : 'Rs';
     final margin = p.purchasePrice > 0
         ? (((p.sellingPrice - p.purchasePrice) / p.purchasePrice) * 100)
         : 0.0;
 
     final user = AuthService.currentUser;
-    final isSuperAdmin = user?.isSuperAdmin == true || (user?.role.toLowerCase() == 'superadmin');
-    final canViewCost = isSuperAdmin || (user?.canViewCostPrice == true);
-    final locationName = widget.settings.businessName.isNotEmpty ? widget.settings.businessName : 'Main Branch HQ';
+    final canViewCost = user?.hasPermission('report.view_cost_price') ?? true;
+    final locationName = widget.settings.businessName.isNotEmpty
+        ? widget.settings.businessName
+        : 'Main Branch HQ';
 
     const greenHeaderColor = Color(0xFF10B981);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final rowAltBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
 
     return Dialog(
@@ -148,7 +162,11 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                     borderRadius: BorderRadius.circular(4),
                     child: Padding(
                       padding: const EdgeInsets.all(4),
-                      child: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      child: Icon(Icons.close,
+                          size: 20,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                     ),
                   ),
                 ],
@@ -177,17 +195,25 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                   // Column 1
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         _specField('SKU', p.sku, isDark),
                                         const SizedBox(height: 8),
-                                        _specField('Brand', p.brandName.isNotEmpty ? p.brandName : 'Standard', isDark),
+                                        _specField(
+                                            'Brand',
+                                            p.brandName.isNotEmpty
+                                                ? p.brandName
+                                                : 'Standard',
+                                            isDark),
                                         const SizedBox(height: 8),
                                         _specField('Unit', p.unit, isDark),
                                         const SizedBox(height: 8),
-                                        _specField('Barcode Type', p.barcodeType, isDark),
+                                        _specField('Barcode Type',
+                                            p.barcodeType, isDark),
                                         const SizedBox(height: 8),
-                                        _specField('Available in locations', locationName, isDark),
+                                        _specField('Available in locations',
+                                            locationName, isDark),
                                       ],
                                     ),
                                   ),
@@ -195,15 +221,22 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                   // Column 2
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        _specField('Category', p.categoryName, isDark),
+                                        _specField(
+                                            'Category', p.categoryName, isDark),
                                         const SizedBox(height: 8),
-                                        _specField('Sub category', 'None', isDark),
+                                        _specField(
+                                            'Sub category', 'None', isDark),
                                         const SizedBox(height: 8),
-                                        _specField('Manage Stock?', 'Yes', isDark),
+                                        _specField(
+                                            'Manage Stock?', 'Yes', isDark),
                                         const SizedBox(height: 8),
-                                        _specField('Alert quantity', p.alertQuantity.toStringAsFixed(4), isDark),
+                                        _specField(
+                                            'Alert quantity',
+                                            p.alertQuantity.toStringAsFixed(4),
+                                            isDark),
                                       ],
                                     ),
                                   ),
@@ -211,15 +244,28 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                   // Column 3
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        _specField('Expires in', p.expiryDate?.isNotEmpty == true ? p.expiryDate! : 'Not Applicable', isDark),
+                                        _specField(
+                                            'Expires in',
+                                            p.expiryDate?.isNotEmpty == true
+                                                ? p.expiryDate!
+                                                : 'Not Applicable',
+                                            isDark),
                                         const SizedBox(height: 8),
-                                        _specField('Applicable Tax', 'None', isDark),
+                                        _specField(
+                                            'Applicable Tax', 'None', isDark),
                                         const SizedBox(height: 8),
-                                        _specField('Selling Price Tax Type', 'Exclusive', isDark),
+                                        _specField('Selling Price Tax Type',
+                                            'Exclusive', isDark),
                                         const SizedBox(height: 8),
-                                        _specField('Product Type', p.isVariable ? 'Variable' : 'Single', isDark),
+                                        _specField(
+                                            'Product Type',
+                                            p.isVariable
+                                                ? 'Variable'
+                                                : 'Single',
+                                            isDark),
                                       ],
                                     ),
                                   ),
@@ -230,10 +276,14 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                               Text(
                                 p.warranty?.isNotEmpty == true
                                     ? 'Warranty Policy: ${p.warranty!}'
-                                    : (p.batchNumber?.isNotEmpty == true ? 'Batch: ${p.batchNumber!}' : p.name),
+                                    : (p.batchNumber?.isNotEmpty == true
+                                        ? 'Batch: ${p.batchNumber!}'
+                                        : p.name),
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                                  color: isDark
+                                      ? const Color(0xFFCBD5E1)
+                                      : const Color(0xFF334155),
                                 ),
                               ),
                             ],
@@ -247,20 +297,26 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                           width: 175,
                           height: 175,
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            color: isDark
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: borderColor),
                           ),
-                          child: (p.imageColor != null && File(p.imageColor!).existsSync())
+                          child: (p.imageColor != null &&
+                                  File(p.imageColor!).existsSync())
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(7),
-                                  child: Image.file(File(p.imageColor!), fit: BoxFit.cover),
+                                  child: Image.file(File(p.imageColor!),
+                                      fit: BoxFit.cover),
                                 )
                               : Center(
                                   child: Icon(
                                     Icons.image_outlined,
                                     size: 68,
-                                    color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+                                    color: isDark
+                                        ? const Color(0xFF475569)
+                                        : const Color(0xFFCBD5E1),
                                   ),
                                 ),
                         ),
@@ -283,44 +339,63 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                             constraints: const BoxConstraints(minWidth: 880),
                             child: Table(
                               border: TableBorder(
-                                horizontalInside: BorderSide(color: borderColor),
+                                horizontalInside:
+                                    BorderSide(color: borderColor),
                                 verticalInside: BorderSide(color: borderColor),
                               ),
                               columnWidths: const {
-                                0: FlexColumnWidth(2.2), // Purchase Price (Exc. tax)
-                                1: FlexColumnWidth(2.2), // Purchase Price (Inc. tax)
+                                0: FlexColumnWidth(
+                                    2.2), // Purchase Price (Exc. tax)
+                                1: FlexColumnWidth(
+                                    2.2), // Purchase Price (Inc. tax)
                                 2: FlexColumnWidth(1.4), // Margin(%)
-                                3: FlexColumnWidth(2.2), // Selling Price (Exc. tax)
-                                4: FlexColumnWidth(2.2), // Selling Price (Inc. tax)
+                                3: FlexColumnWidth(
+                                    2.2), // Selling Price (Exc. tax)
+                                4: FlexColumnWidth(
+                                    2.2), // Selling Price (Inc. tax)
                                 5: FlexColumnWidth(1.6), // Variation Images
                               },
                               children: [
                                 // Green Table Header
                                 TableRow(
-                                  decoration: const BoxDecoration(color: greenHeaderColor),
+                                  decoration: const BoxDecoration(
+                                      color: greenHeaderColor),
                                   children: [
-                                    _tableHeaderCell('Default Purchase Price (Exc. tax)'),
-                                    _tableHeaderCell('Default Purchase Price (Inc. tax)'),
+                                    _tableHeaderCell(
+                                        'Default Purchase Price (Exc. tax)'),
+                                    _tableHeaderCell(
+                                        'Default Purchase Price (Inc. tax)'),
                                     _tableHeaderCell('x Margin(%)'),
-                                    _tableHeaderCell('Default Selling Price (Exc. tax)'),
-                                    _tableHeaderCell('Default Selling Price (Inc. tax)'),
+                                    _tableHeaderCell(
+                                        'Default Selling Price (Exc. tax)'),
+                                    _tableHeaderCell(
+                                        'Default Selling Price (Inc. tax)'),
                                     _tableHeaderCell('Variation Images'),
                                   ],
                                 ),
                                 // Main Product Row
                                 TableRow(
-                                  decoration: BoxDecoration(color: isDark ? const Color(0xFF1E293B) : Colors.white),
+                                  decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF1E293B)
+                                          : Colors.white),
                                   children: [
                                     _tableBodyCell(
-                                      canViewCost ? '$currency ${p.purchasePrice.toStringAsFixed(2)}' : '••••••',
+                                      canViewCost
+                                          ? '$currency ${p.purchasePrice.toStringAsFixed(2)}'
+                                          : '••••••',
                                       isDark: isDark,
                                     ),
                                     _tableBodyCell(
-                                      canViewCost ? '$currency ${p.purchasePrice.toStringAsFixed(2)}' : '••••••',
+                                      canViewCost
+                                          ? '$currency ${p.purchasePrice.toStringAsFixed(2)}'
+                                          : '••••••',
                                       isDark: isDark,
                                     ),
                                     _tableBodyCell(
-                                      canViewCost ? margin.toStringAsFixed(2) : '••••••',
+                                      canViewCost
+                                          ? margin.toStringAsFixed(2)
+                                          : '••••••',
                                       isDark: isDark,
                                     ),
                                     _tableBodyCell(
@@ -338,21 +413,30 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                 if (p.isVariable && _variations.isNotEmpty)
                                   ..._variations.map((v) {
                                     final vMargin = v.purchasePrice > 0
-                                        ? (((v.sellingPrice - v.purchasePrice) / v.purchasePrice) * 100)
+                                        ? (((v.sellingPrice - v.purchasePrice) /
+                                                v.purchasePrice) *
+                                            100)
                                         : 0.0;
                                     return TableRow(
-                                      decoration: BoxDecoration(color: rowAltBg),
+                                      decoration:
+                                          BoxDecoration(color: rowAltBg),
                                       children: [
                                         _tableBodyCell(
-                                          canViewCost ? '$currency ${v.purchasePrice.toStringAsFixed(2)}' : '••••••',
+                                          canViewCost
+                                              ? '$currency ${v.purchasePrice.toStringAsFixed(2)}'
+                                              : '••••••',
                                           isDark: isDark,
                                         ),
                                         _tableBodyCell(
-                                          canViewCost ? '$currency ${v.purchasePrice.toStringAsFixed(2)}' : '••••••',
+                                          canViewCost
+                                              ? '$currency ${v.purchasePrice.toStringAsFixed(2)}'
+                                              : '••••••',
                                           isDark: isDark,
                                         ),
                                         _tableBodyCell(
-                                          canViewCost ? vMargin.toStringAsFixed(2) : '••••••',
+                                          canViewCost
+                                              ? vMargin.toStringAsFixed(2)
+                                              : '••••••',
                                           isDark: isDark,
                                         ),
                                         _tableBodyCell(
@@ -363,7 +447,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                           '$currency ${v.sellingPrice.toStringAsFixed(2)}',
                                           isDark: isDark,
                                         ),
-                                        _tableBodyImageCell(p.imageColor, isDark),
+                                        _tableBodyImageCell(
+                                            p.imageColor, isDark),
                                       ],
                                     );
                                   }),
@@ -401,7 +486,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                             constraints: const BoxConstraints(minWidth: 880),
                             child: Table(
                               border: TableBorder(
-                                horizontalInside: BorderSide(color: borderColor),
+                                horizontalInside:
+                                    BorderSide(color: borderColor),
                                 verticalInside: BorderSide(color: borderColor),
                               ),
                               columnWidths: const {
@@ -412,13 +498,15 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                 4: FlexColumnWidth(1.3), // Current stock
                                 5: FlexColumnWidth(1.7), // Current Stock Value
                                 6: FlexColumnWidth(1.4), // Total unit sold
-                                7: FlexColumnWidth(1.5), // Total Unit Transfered
+                                7: FlexColumnWidth(
+                                    1.5), // Total Unit Transfered
                                 8: FlexColumnWidth(1.4), // Total Unit Adjusted
                               },
                               children: [
                                 // Green Table Header
                                 TableRow(
-                                  decoration: const BoxDecoration(color: greenHeaderColor),
+                                  decoration: const BoxDecoration(
+                                      color: greenHeaderColor),
                                   children: [
                                     _tableHeaderCell('SKU'),
                                     _tableHeaderCell('Product'),
@@ -433,34 +521,63 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                 ),
                                 // Main Stock Row
                                 TableRow(
-                                  decoration: BoxDecoration(color: isDark ? const Color(0xFF1E293B) : Colors.white),
+                                  decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF1E293B)
+                                          : Colors.white),
                                   children: [
                                     _tableBodyCell(p.sku, isDark: isDark),
                                     _tableBodyCell(p.name, isDark: isDark),
-                                    _tableBodyCell(locationName, isDark: isDark),
-                                    _tableBodyCell('$currency ${p.sellingPrice.toStringAsFixed(2)}', isDark: isDark),
-                                    _tableBodyCell('${p.stockQuantity.toStringAsFixed(2)}${p.unit}', isDark: isDark),
-                                    _tableBodyCell('$currency ${(p.stockQuantity * p.sellingPrice).toStringAsFixed(2)}', isDark: isDark),
-                                    _tableBodyCell('${_totalSold.toStringAsFixed(2)}${p.unit}', isDark: isDark),
-                                    _tableBodyCell('${_totalTransferred.toStringAsFixed(2)}${p.unit}', isDark: isDark),
-                                    _tableBodyCell('${_totalAdjusted.toStringAsFixed(2)}${p.unit}', isDark: isDark),
+                                    _tableBodyCell(locationName,
+                                        isDark: isDark),
+                                    _tableBodyCell(
+                                        '$currency ${p.sellingPrice.toStringAsFixed(2)}',
+                                        isDark: isDark),
+                                    _tableBodyCell(
+                                        '${p.stockQuantity.toStringAsFixed(2)}${p.unit}',
+                                        isDark: isDark),
+                                    _tableBodyCell(
+                                        '$currency ${(p.stockQuantity * p.sellingPrice).toStringAsFixed(2)}',
+                                        isDark: isDark),
+                                    _tableBodyCell(
+                                        '${_totalSold.toStringAsFixed(2)}${p.unit}',
+                                        isDark: isDark),
+                                    _tableBodyCell(
+                                        '${_totalTransferred.toStringAsFixed(2)}${p.unit}',
+                                        isDark: isDark),
+                                    _tableBodyCell(
+                                        '${_totalAdjusted.toStringAsFixed(2)}${p.unit}',
+                                        isDark: isDark),
                                   ],
                                 ),
                                 // Variation Stock Rows (if variable product)
                                 if (p.isVariable && _variations.isNotEmpty)
                                   ..._variations.map((v) {
                                     return TableRow(
-                                      decoration: BoxDecoration(color: rowAltBg),
+                                      decoration:
+                                          BoxDecoration(color: rowAltBg),
                                       children: [
-                                        _tableBodyCell(v.subSku, isDark: isDark),
-                                        _tableBodyCell('${p.name} - ${v.name}', isDark: isDark),
-                                        _tableBodyCell(locationName, isDark: isDark),
-                                        _tableBodyCell('$currency ${v.sellingPrice.toStringAsFixed(2)}', isDark: isDark),
-                                        _tableBodyCell('${v.stockQuantity.toStringAsFixed(2)}${p.unit}', isDark: isDark),
-                                        _tableBodyCell('$currency ${(v.stockQuantity * v.sellingPrice).toStringAsFixed(2)}', isDark: isDark),
-                                        _tableBodyCell('0.00${p.unit}', isDark: isDark),
-                                        _tableBodyCell('0.00${p.unit}', isDark: isDark),
-                                        _tableBodyCell('0.00${p.unit}', isDark: isDark),
+                                        _tableBodyCell(v.subSku,
+                                            isDark: isDark),
+                                        _tableBodyCell('${p.name} - ${v.name}',
+                                            isDark: isDark),
+                                        _tableBodyCell(locationName,
+                                            isDark: isDark),
+                                        _tableBodyCell(
+                                            '$currency ${v.sellingPrice.toStringAsFixed(2)}',
+                                            isDark: isDark),
+                                        _tableBodyCell(
+                                            '${v.stockQuantity.toStringAsFixed(2)}${p.unit}',
+                                            isDark: isDark),
+                                        _tableBodyCell(
+                                            '$currency ${(v.stockQuantity * v.sellingPrice).toStringAsFixed(2)}',
+                                            isDark: isDark),
+                                        _tableBodyCell('0.00${p.unit}',
+                                            isDark: isDark),
+                                        _tableBodyCell('0.00${p.unit}',
+                                            isDark: isDark),
+                                        _tableBodyCell('0.00${p.unit}',
+                                            isDark: isDark),
                                       ],
                                     );
                                   }),
@@ -480,7 +597,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: borderColor)),
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                color:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -490,11 +608,14 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                       backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
                     ),
                     icon: const Icon(Icons.print_rounded, size: 18),
-                    label: const Text('Print', style: TextStyle(fontWeight: FontWeight.w700)),
+                    label: const Text('Print',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
                     onPressed: () {
                       final html = PrintService.generateProductDetailHtml(
                         product: p,
@@ -515,13 +636,18 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                     const SizedBox(width: 10),
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                        foregroundColor: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF475569),
                         side: BorderSide(color: borderColor),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6)),
                       ),
                       icon: const Icon(Icons.qr_code_2_rounded, size: 17),
-                      label: const Text('Print Labels', style: TextStyle(fontWeight: FontWeight.w600)),
+                      label: const Text('Print Labels',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
                       onPressed: () {
                         Navigator.pop(context);
                         widget.onPrintLabels!();
@@ -535,11 +661,14 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                         backgroundColor: const Color(0xFF6366F1),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6)),
                       ),
                       icon: const Icon(Icons.edit_outlined, size: 17),
-                      label: const Text('Edit Product', style: TextStyle(fontWeight: FontWeight.w700)),
+                      label: const Text('Edit Product',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
                       onPressed: () {
                         Navigator.pop(context);
                         widget.onEdit!();
@@ -549,14 +678,19 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                   const SizedBox(width: 10),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1E293B),
+                      backgroundColor: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFF1E293B),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 22, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
                     ),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Close', style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: const Text('Close',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -630,7 +764,10 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                 height: 28,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(3),
@@ -640,7 +777,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
             : Icon(
                 Icons.image_outlined,
                 size: 20,
-                color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                color:
+                    isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
               ),
       ),
     );

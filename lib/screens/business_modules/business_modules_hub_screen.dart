@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../navigation/app_routes.dart';
 import 'restaurant_cafe_screen.dart';
 import 'repair_service_screen.dart';
 import 'hotel_management_screen.dart';
@@ -13,12 +14,12 @@ import 'poultry_business_screen.dart';
 
 class BusinessModulesHubScreen extends StatefulWidget {
   final BusinessSettings settings;
-  final Function(int) onNavigateToTab;
+  final ValueChanged<AppRoute> onNavigateToRoute;
 
   const BusinessModulesHubScreen({
     super.key,
     required this.settings,
-    required this.onNavigateToTab,
+    required this.onNavigateToRoute,
   });
 
   @override
@@ -37,7 +38,7 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
       'color': const Color(0xFF10B981),
       'badge': 'Core Retail',
       'actionType': 'nav_tab',
-      'tabIndex': 1, // POS Terminal
+      'route': AppRoute.posTerminal,
     },
     {
       'id': 'supermarket',
@@ -47,7 +48,7 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
       'color': const Color(0xFF0EA5E9),
       'badge': 'Superstore',
       'actionType': 'nav_tab',
-      'tabIndex': 1,
+      'route': AppRoute.posTerminal,
     },
     {
       'id': 'garments',
@@ -57,7 +58,7 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
       'color': const Color(0xFFEC4899),
       'badge': 'Fashion',
       'actionType': 'nav_tab',
-      'tabIndex': 18, // Variations
+      'route': AppRoute.variationTemplates,
     },
     {
       'id': 'electronics',
@@ -67,7 +68,7 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
       'color': const Color(0xFF6366F1),
       'badge': 'Tech / Serial',
       'actionType': 'nav_tab',
-      'tabIndex': 21, // Warranties
+      'route': AppRoute.warranties,
     },
     {
       'id': 'wholesale',
@@ -77,7 +78,7 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
       'color': const Color(0xFF8B5CF6),
       'badge': 'B2B Trade',
       'actionType': 'nav_tab',
-      'tabIndex': 22, // Selling Price Groups
+      'route': AppRoute.sellingPriceGroups,
     },
     {
       'id': 'pharmacy',
@@ -87,7 +88,7 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
       'color': const Color(0xFF059669),
       'badge': 'Medical',
       'actionType': 'nav_tab',
-      'tabIndex': 24, // Audit & Expiry
+      'route': AppRoute.inventoryAudit,
     },
     {
       'id': 'restaurant',
@@ -193,7 +194,7 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
 
   void _openModule(Map<String, dynamic> mod) {
     if (mod['actionType'] == 'nav_tab') {
-      widget.onNavigateToTab(mod['tabIndex'] as int);
+      widget.onNavigateToRoute(mod['route'] as AppRoute);
     } else if (mod['actionType'] == 'screen') {
       final builder = mod['screenBuilder'] as Widget Function(BusinessSettings);
       Navigator.push(
@@ -322,7 +323,7 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                             ),
-                            onPressed: () => widget.onNavigateToTab(39),
+                            onPressed: () => widget.onNavigateToRoute(AppRoute.moduleSettings),
                           ),
                         ],
                       ),

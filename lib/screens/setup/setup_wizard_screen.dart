@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/qulop_service.dart';
@@ -165,13 +166,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     _cloudApiKeyCtrl = TextEditingController(text: widget.settings.syncApiKey);
     _cloudBranchIdCtrl = TextEditingController(text: widget.settings.syncBranchId.toString());
 
-    // Step 4 controllers
-    _adminNameCtrl = TextEditingController(text: 'Irfan Khan');
-    _adminUserCtrl = TextEditingController(text: 'webdeventh');
-    _adminEmailCtrl = TextEditingController(text: 'admin@smartpos.com');
-    _adminPhoneCtrl = TextEditingController(text: '+92 300 1234567');
-    _adminPassCtrl = TextEditingController(text: 'password');
-    _adminConfirmPassCtrl = TextEditingController(text: 'password');
+    // Step 4 controllers (no hardcoded default password/backdoor username)
+    _adminNameCtrl = TextEditingController();
+    _adminUserCtrl = TextEditingController();
+    _adminEmailCtrl = TextEditingController();
+    _adminPhoneCtrl = TextEditingController();
+    _adminPassCtrl = TextEditingController();
+    _adminConfirmPassCtrl = TextEditingController();
 
     _loadHardwareInfo();
   }
@@ -377,8 +378,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           _connectionSuccess = true;
           _connectionTestResult = 'Connected to PostgreSQL Server at $host:$port (${sw.elapsedMilliseconds}ms)! Local SQLite offline sync buffer linked.';
         });
-      } catch (_) {
+      } catch (e, st) {
         sw.stop();
+        AppLogger.warning('SetupWizard', 'PostgreSQL TCP probe failed at $host:$port', e, st);
         setState(() {
           _isTestingConnection = false;
           _connectionSuccess = false;
@@ -484,12 +486,21 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   }
 
   Future<void> _completeInstallation() async {
-    // Validate Step 4 password
+    // Validate Step 4 admin username & password
+    final adminUsername = _adminUserCtrl.text.trim();
+    if (adminUsername.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Master Admin username cannot be empty.'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
     final pass = _adminPassCtrl.text.trim();
     final confirm = _adminConfirmPassCtrl.text.trim();
-    if (pass.isEmpty) {
+    final strengthErr = AuthService.validatePasswordStrength(pass);
+    if (strengthErr != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password cannot be empty.'), backgroundColor: Colors.redAccent),
+        SnackBar(content: Text(strengthErr), backgroundColor: Colors.redAccent),
       );
       return;
     }
@@ -559,11 +570,24 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       final db = await DatabaseService.initialize();
       await db.updateBusinessSettings(updated);
 
-      // Save superadmin user with salted SHA-256 password hashing
+      // Save superadmin user with Argon2id + unique random salt (sole initial superadmin).
+      // Only purge pre-existing non-superadmin residual records during fresh initial setup.
+      if (!widget.settings.isConfigured) {
+        final existingUsers = await db.getUsers();
+        final hadSuperAdmin = existingUsers.any((u) => u.isSuperAdmin);
+        if (!hadSuperAdmin) {
+          for (final existing in existingUsers) {
+            if (existing.id != null &&
+                existing.username.toLowerCase() != adminUsername.toLowerCase()) {
+              await db.deleteUser(existing.id!);
+            }
+          }
+        }
+      }
       final hashedPassword = AuthService.hashPassword(pass);
       final adminUser = User(
         name: _adminNameCtrl.text.trim().isNotEmpty ? _adminNameCtrl.text.trim() : 'Super Administrator',
-        username: _adminUserCtrl.text.trim().isNotEmpty ? _adminUserCtrl.text.trim() : 'superadmin',
+        username: adminUsername,
         password: hashedPassword,
         email: _adminEmailCtrl.text.trim(),
         phone: _adminPhoneCtrl.text.trim(),
@@ -571,8 +595,21 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         status: 'active',
         branchId: 1,
         branchName: updated.branchName,
+        canEditPrice: true,
+        canGiveDiscount: true,
+        maxDiscountPercent: 100.0,
+        canViewCostPrice: true,
+        canDeleteSale: true,
+        canProcessReturn: true,
+        canAccessKhata: true,
+        canAccessInventory: true,
+        canAccessReports: true,
+        canAccessSettings: true,
+        canManageUsers: true,
+        mustChangePassword: false,
+        passwordChangedAt: DateTime.now().toIso8601String(),
       );
-      final savedUserId = await db.addUser(adminUser);
+      final savedUserId = await db.addUser(adminUser, replaceExisting: true);
       final activeUser = adminUser.copyWith(id: savedUserId);
 
       // Audit initial setup event
@@ -1042,9 +1079,11 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           children: [
             const Icon(Icons.security_rounded, color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
-            Text(
-              'Step 1: Machine Hardware-Bound License Activation',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+            Expanded(
+              child: Text(
+                'Step 1: Machine Hardware-Bound License Activation',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+              ),
             ),
           ],
         ),
@@ -1144,20 +1183,26 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         const SizedBox(height: 12),
 
         // One-Click Free Trial Alternative Button
-        Row(
-          children: [
-            TextButton.icon(
-              onPressed: _isVerifyingLicense ? null : _activateTrialKey,
-              icon: const Icon(Icons.auto_awesome, color: Color(0xFF4F46E5), size: 18),
-              label: const Text('Activate Instant 30-Day Free Trial (Hardware Bound)'),
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF4F46E5),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              TextButton.icon(
+                onPressed: _isVerifyingLicense ? null : _activateTrialKey,
+                icon: const Icon(Icons.auto_awesome, color: Color(0xFF4F46E5), size: 18),
+                label: const Text('Activate Instant 30-Day Free Trial (Hardware Bound)'),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF4F46E5),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
               ),
-            ),
-            const Spacer(),
-            Text('No internet required for activation', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey : const Color(0xFF64748B))),
-          ],
+              Text('No internet required for activation', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey : const Color(0xFF64748B))),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -2962,7 +3007,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Create the master owner/superadmin account. Passwords are encrypted using strong salted SHA-256 before saving to database.',
+          'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.',
           style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
         ),
         const SizedBox(height: 20),
@@ -2989,7 +3034,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   _fieldLabel('Master Username *', isDark),
                   TextFormField(
                     controller: _adminUserCtrl,
-                    decoration: const InputDecoration(hintText: 'e.g. webdeventh / admin', prefixIcon: Icon(Icons.alternate_email, size: 18), isDense: true),
+                    decoration: const InputDecoration(hintText: 'e.g. admin / owner', prefixIcon: Icon(Icons.alternate_email, size: 18), isDense: true),
                   ),
                 ],
               ),
@@ -3091,7 +3136,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Security Shield Active: Passwords are encrypted using SHA-256 with cryptographic salt before being stored in local SQLite.',
+                  'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.',
                   style: TextStyle(fontSize: 12, color: Color(0xFF047857), fontWeight: FontWeight.w600),
                 ),
               ),
@@ -3260,7 +3305,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 _buildSummaryRow(
                   icon: Icons.admin_panel_settings_rounded,
                   label: 'Master Admin Username',
-                  value: _adminUserCtrl.text.trim().isNotEmpty ? _adminUserCtrl.text.trim() : 'superadmin',
+                  value: _adminUserCtrl.text.trim().isNotEmpty ? _adminUserCtrl.text.trim() : '(required)',
                   isDark: isDark,
                   isHighlight: true,
                 ),
@@ -3291,7 +3336,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials ("${_adminUserCtrl.text.trim().isNotEmpty ? _adminUserCtrl.text.trim() : "superadmin"}").',
+                        'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials ("${_adminUserCtrl.text.trim()}").',
                         style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
                       ),
                     ],

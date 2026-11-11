@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
+import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../pos/quick_customer_dialog.dart';
 import 'contact_ledger_screen.dart';
@@ -49,16 +50,255 @@ class _CustomersScreenState extends State<CustomersScreen> {
     }
   }
 
-  void _openAddCustomer() {
-    showDialog(
+  bool get _canManageCustomers =>
+      AuthService.currentUser?.hasPermission('customer.manage') ?? true;
+
+  bool get _canRecordKhataPayment =>
+      AuthService.currentUser?.hasPermission('contact.khata_payment') ?? true;
+
+  void _denyPermission(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    );
+  }
+
+  Future<void> _openAddCustomer([Contact? customerToEdit]) async {
+    if (!_canManageCustomers) {
+      _denyPermission('Access Denied: You do not have permission to manage customers.');
+      return;
+    }
+    await showDialog(
       context: context,
       builder: (_) => QuickCustomerDialog(
+        customerToEdit: customerToEdit,
         onCustomerAdded: (_) => _load(),
       ),
     );
   }
 
+  Future<void> _showCustomerGroupsManager() async {
+    if (!_canManageCustomers) {
+      _denyPermission('Access Denied: You do not have permission to manage customer groups.');
+      return;
+    }
+    final db = await DatabaseService.initialize();
+    List<CustomerGroup> groups = await db.getCustomerGroups();
+    final priceGroups = await db.getSellingPriceGroups();
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          Future<void> openGroupForm([CustomerGroup? existing]) async {
+            final nameCtrl = TextEditingController(text: existing?.name ?? '');
+            final amountCtrl = TextEditingController(
+              text: existing != null ? existing.amount.toString() : '-10.0',
+            );
+            String calcType =
+                existing?.priceCalculationType == 'selling_price_group' && priceGroups.isNotEmpty
+                    ? 'selling_price_group'
+                    : 'percentage';
+            int? selectedPriceGroupId = existing?.sellingPriceGroupId ??
+                (priceGroups.isNotEmpty ? priceGroups.first.id : null);
+
+            await showDialog(
+              context: ctx,
+              builder: (formCtx) => StatefulBuilder(
+                builder: (formCtx, setFormState) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  title: Text(existing == null ? 'New Customer Group' : 'Edit Customer Group'),
+                  content: SizedBox(
+                    width: 380,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: nameCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Group Name (e.g. Wholesale, VIP) *',
+                            isDense: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          initialValue: calcType,
+                          decoration: const InputDecoration(
+                            labelText: 'Price Calculation Type',
+                            isDense: true,
+                          ),
+                          items: [
+                            const DropdownMenuItem(
+                              value: 'percentage',
+                              child: Text('Percentage (% Discount / Markup)'),
+                            ),
+                            if (priceGroups.isNotEmpty)
+                              const DropdownMenuItem(
+                                value: 'selling_price_group',
+                                child: Text('Selling Price Group'),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            if (v == null) return;
+                            setFormState(() => calcType = v);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        if (calcType == 'percentage')
+                          TextField(
+                            controller: amountCtrl,
+                            keyboardType:
+                                const TextInputType.numberWithOptions(signed: true, decimal: true),
+                            decoration: const InputDecoration(
+                              labelText: 'Price Adjustment % (-10 = 10% off, +5 = 5% markup)',
+                              isDense: true,
+                            ),
+                          )
+                        else
+                          DropdownButtonFormField<int?>(
+                            initialValue: selectedPriceGroupId,
+                            decoration: const InputDecoration(
+                              labelText: 'Linked Selling Price Group',
+                              isDense: true,
+                            ),
+                            items: priceGroups
+                                .map((pg) => DropdownMenuItem<int?>(
+                                      value: pg.id,
+                                      child: Text(pg.name),
+                                    ))
+                                .toList(),
+                            onChanged: (v) => setFormState(() => selectedPriceGroupId = v),
+                          ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(formCtx),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        if (nameCtrl.text.trim().isEmpty) return;
+                        final pct = calcType == 'percentage'
+                            ? (double.tryParse(amountCtrl.text.trim()) ?? 0.0)
+                            : 0.0;
+                        final next = CustomerGroup(
+                          id: existing?.id,
+                          name: nameCtrl.text.trim(),
+                          amount: pct,
+                          priceCalculationType: calcType,
+                          sellingPriceGroupId:
+                              calcType == 'selling_price_group' ? selectedPriceGroupId : null,
+                        );
+                        if (existing?.id != null) {
+                          await db.updateCustomerGroup(next);
+                        } else {
+                          await db.addCustomerGroup(next);
+                        }
+                        final refreshed = await db.getCustomerGroups();
+                        if (ctx.mounted) setDlgState(() => groups = refreshed);
+                        if (formCtx.mounted) Navigator.pop(formCtx);
+                        _load();
+                      },
+                      child: const Text('Save Group'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Customer Groups & Tiered Pricing',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('New Group'),
+                  onPressed: () => openGroupForm(),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 480,
+              height: 300,
+              child: groups.isEmpty
+                  ? const Center(child: Text('No customer groups created yet.'))
+                  : ListView.separated(
+                      itemCount: groups.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (_, i) {
+                        final g = groups[i];
+                        final String tag;
+                        if (g.priceCalculationType == 'selling_price_group') {
+                          final spg = priceGroups.cast<SellingPriceGroup?>().firstWhere(
+                                (p) => p?.id == g.sellingPriceGroupId,
+                                orElse: () => null,
+                              );
+                          tag = spg != null
+                              ? 'Selling Price Group: ${spg.name}'
+                              : 'Selling Price Group';
+                        } else {
+                          tag = g.amount == 0
+                              ? 'Base Price (0%)'
+                              : g.amount < 0
+                                  ? '${g.amount.abs().toStringAsFixed(1)}% Discount'
+                                  : '+${g.amount.toStringAsFixed(1)}% Markup';
+                        }
+                        return ListTile(
+                          leading: const Icon(Icons.groups_rounded, color: Color(0xFF4F46E5)),
+                          title: Text(g.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('Tier Rule: $tag'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, color: Color(0xFF4F46E5), size: 19),
+                                onPressed: () => openGroupForm(g),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 19),
+                                onPressed: () async {
+                                  if (g.id == null) return;
+                                  await db.deleteCustomerGroup(g.id!);
+                                  final refreshed = await db.getCustomerGroups();
+                                  if (ctx.mounted) setDlgState(() => groups = refreshed);
+                                  _load();
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _openPayDueDialog(Contact customer) async {
+    if (!_canRecordKhataPayment) {
+      _denyPermission('Access Denied: You do not have permission to record khata payments.');
+      return;
+    }
     await RecordContactPaymentDialog.show(
       context,
       contact: customer,
@@ -153,6 +393,18 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   spacing: 10,
                   runSpacing: 8,
                   children: [
+                    if (_canManageCustomers)
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF4F46E5),
+                          side: const BorderSide(color: Color(0xFF4F46E5)),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.groups_rounded, size: 18),
+                        label: const Text('Customer Groups', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: _showCustomerGroupsManager,
+                      ),
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFDC2626),
@@ -164,18 +416,19 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       label: const Text('Print Defaulters Sheet', style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () => _printDefaultersSheet(defaulters),
                     ),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4F46E5),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    if (_canManageCustomers)
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4F46E5),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.person_add_rounded, size: 18),
+                        label: const Text('Add Customer', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () => _openAddCustomer(),
                       ),
-                      icon: const Icon(Icons.person_add_rounded, size: 18),
-                      label: const Text('Add Customer', style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: _openAddCustomer,
-                    ),
                   ],
                 );
 
@@ -453,6 +706,19 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                             ),
                                                             overflow: TextOverflow.ellipsis,
                                                           ),
+                                                          if (c.customerGroupName != null && c.customerGroupName!.isNotEmpty)
+                                                            Container(
+                                                              margin: const EdgeInsets.only(top: 2),
+                                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                                              decoration: BoxDecoration(
+                                                                color: const Color(0xFFEEF2FF),
+                                                                borderRadius: BorderRadius.circular(4),
+                                                              ),
+                                                              child: Text(
+                                                                c.customerGroupName!,
+                                                                style: const TextStyle(fontSize: 10, color: Color(0xFF4F46E5), fontWeight: FontWeight.w700),
+                                                              ),
+                                                            ),
                                                           if (isOverLimit)
                                                             const Text(
                                                               'Exceeded Limit!',
@@ -493,18 +759,19 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                   children: [
                                                     // Pay Due
                                                     if (c.balance > 0) ...[
-                                                      ElevatedButton.icon(
-                                                        style: ElevatedButton.styleFrom(
-                                                          backgroundColor: const Color(0xFF059669),
-                                                          foregroundColor: Colors.white,
-                                                          elevation: 0,
-                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                      if (_canRecordKhataPayment)
+                                                        ElevatedButton.icon(
+                                                          style: ElevatedButton.styleFrom(
+                                                            backgroundColor: const Color(0xFF059669),
+                                                            foregroundColor: Colors.white,
+                                                            elevation: 0,
+                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                          ),
+                                                          icon: const Icon(Icons.attach_money, size: 14),
+                                                          label: const Text('Pay Due', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                          onPressed: () => _openPayDueDialog(c),
                                                         ),
-                                                        icon: const Icon(Icons.attach_money, size: 14),
-                                                        label: const Text('Pay Due', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                                        onPressed: () => _openPayDueDialog(c),
-                                                      ),
 
                                                       // WhatsApp / SMS Reminder
                                                       ElevatedButton.icon(
@@ -533,6 +800,18 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                       label: const Text('Ledger', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                                       onPressed: () => _openLedgerDialog(c),
                                                     ),
+                                                    if (_canManageCustomers)
+                                                      OutlinedButton.icon(
+                                                        style: OutlinedButton.styleFrom(
+                                                          foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                                          side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                        ),
+                                                        icon: const Icon(Icons.edit_outlined, size: 14),
+                                                        label: const Text('Edit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                        onPressed: () => _openAddCustomer(c),
+                                                      ),
                                                   ],
                                                 ),
                                               ),

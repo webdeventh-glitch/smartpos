@@ -70,7 +70,40 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     }
   }
 
+  bool get _canCreateProduct =>
+      AuthService.currentUser?.hasPermission('product.create') ?? true;
+  bool get _canEditProduct =>
+      AuthService.currentUser?.hasPermission('product.edit') ?? true;
+  bool get _canDeleteProduct =>
+      AuthService.currentUser?.hasPermission('product.delete') ?? true;
+  bool get _canPrintLabels =>
+      AuthService.currentUser?.hasPermission('product.print_labels') ?? true;
+  bool get _canQuickStockIn {
+    final user = AuthService.currentUser;
+    if (user == null) return true;
+    return user.hasPermission('purchase.create') ||
+        user.hasPermission('inventory.adjust');
+  }
+
+  void _denyAction(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFFEF4444),
+      ),
+    );
+  }
+
   void _openAddProduct([Product? toEdit]) {
+    if (toEdit == null && !_canCreateProduct) {
+      _denyAction('Access Denied: Missing product.create permission.');
+      return;
+    }
+    if (toEdit != null && !_canEditProduct) {
+      _denyAction('Access Denied: Missing product.edit permission.');
+      return;
+    }
     if (widget.onNavigateToAddProduct != null && toEdit == null) {
       widget.onNavigateToAddProduct!();
     } else if (widget.onNavigateToEditProduct != null && toEdit != null) {
@@ -100,7 +133,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => PrintLabelsScreen(settings: widget.settings, initialProduct: product),
+                builder: (_) => PrintLabelsScreen(
+                    settings: widget.settings, initialProduct: product),
               ),
             );
           }
@@ -110,10 +144,15 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   }
 
   void _openQuickStockIn(Product product) async {
+    if (!_canQuickStockIn) {
+      _denyAction('Access Denied: Missing purchase/stock-in permission.');
+      return;
+    }
     final db = await DatabaseService.initialize();
     final suppliers = await db.getContacts(type: 'supplier');
     final qtyCtrl = TextEditingController(text: '10');
-    final costCtrl = TextEditingController(text: product.purchasePrice.toStringAsFixed(2));
+    final costCtrl =
+        TextEditingController(text: product.purchasePrice.toStringAsFixed(2));
     Contact? selectedSup = suppliers.isNotEmpty ? suppliers.first : null;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currency = widget.settings.currencySymbol;
@@ -124,7 +163,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           title: Row(
             children: [
@@ -134,7 +174,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   color: const Color(0xFF059669).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.add_business_rounded, color: Color(0xFF059669), size: 22),
+                child: const Icon(Icons.add_business_rounded,
+                    color: Color(0xFF059669), size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -142,7 +183,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.settings.enableSecondaryLanguage ? 'Quick Stock In / سٹاک شامل کریں' : 'Quick Stock In',
+                      widget.settings.enableSecondaryLanguage
+                          ? 'Quick Stock In / سٹاک شامل کریں'
+                          : 'Quick Stock In',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -151,7 +194,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     ),
                     Text(
                       '${product.name} (Current: ${product.stockQuantity.toStringAsFixed(1)} ${product.unit})',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -174,66 +218,104 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: Color(0xFF059669), size: 18),
+                      const Icon(Icons.info_outline,
+                          color: Color(0xFF059669), size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           widget.settings.enableSecondaryLanguage
                               ? 'اضافی سٹاک درج کریں۔ یہ خود بخود انوینٹری اور خریداری کے کھاتے میں اپ ڈیٹ ہو جائے گا۔'
                               : 'Enter incoming stock quantity. This will update inventory and purchase accounts automatically.',
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF065F46), fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF065F46),
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(widget.settings.enableSecondaryLanguage ? 'Quantity to Add / شامل کرنے والی تعداد (${product.unit})*' : 'Quantity to Add (${product.unit})*',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(
+                    widget.settings.enableSecondaryLanguage
+                        ? 'Quantity to Add / شامل کرنے والی تعداد (${product.unit})*'
+                        : 'Quantity to Add (${product.unit})*',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 12)),
                 const SizedBox(height: 6),
                 TextField(
                   controller: qtyCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     hintText: 'e.g. 20',
-                    prefixIcon: const Icon(Icons.exposure_plus_1_rounded, size: 18),
+                    prefixIcon:
+                        const Icon(Icons.exposure_plus_1_rounded, size: 18),
                     filled: true,
-                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    fillColor: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                   ),
                 ),
                 const SizedBox(height: 14),
-                Text(widget.settings.enableSecondaryLanguage ? 'Purchase Cost per Unit / فی یونٹ خریداری قیمت ($currency)' : 'Purchase Cost per Unit ($currency)',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(
+                    widget.settings.enableSecondaryLanguage
+                        ? 'Purchase Cost per Unit / فی یونٹ خریداری قیمت ($currency)'
+                        : 'Purchase Cost per Unit ($currency)',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 12)),
                 const SizedBox(height: 6),
                 TextField(
                   controller: costCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     hintText: '0.00',
-                    prefixIcon: const Icon(Icons.attach_money_rounded, size: 18),
+                    prefixIcon:
+                        const Icon(Icons.attach_money_rounded, size: 18),
                     filled: true,
-                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    fillColor: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                   ),
                 ),
                 const SizedBox(height: 14),
                 if (suppliers.isNotEmpty) ...[
-                  Text(widget.settings.enableSecondaryLanguage ? 'Supplier / سپلائر (اختیاری)' : 'Supplier (Optional)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  Text(
+                      widget.settings.enableSecondaryLanguage
+                          ? 'Supplier / سپلائر (اختیاری)'
+                          : 'Supplier (Optional)',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 12)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<Contact?>(
                     initialValue: selectedSup,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      fillColor: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Direct / Walk-in Stock In')),
-                      ...suppliers.map((s) => DropdownMenuItem(value: s, child: Text(s.name, overflow: TextOverflow.ellipsis))),
+                      const DropdownMenuItem(
+                          value: null,
+                          child: Text('Direct / Walk-in Stock In')),
+                      ...suppliers.map((s) => DropdownMenuItem(
+                          value: s,
+                          child:
+                              Text(s.name, overflow: TextOverflow.ellipsis))),
                     ],
                     onChanged: (val) => setDialogState(() => selectedSup = val),
                   ),
@@ -250,17 +332,27 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF059669),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
               icon: const Icon(Icons.check, size: 16),
-              label: Text(widget.settings.enableSecondaryLanguage ? 'Add Stock / سٹاک شامل کریں' : 'Add Stock', style: const TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(
+                  widget.settings.enableSecondaryLanguage
+                      ? 'Add Stock / سٹاک شامل کریں'
+                      : 'Add Stock',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
               onPressed: () async {
                 final qty = double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
-                final cost = double.tryParse(costCtrl.text.trim()) ?? product.purchasePrice;
+                final cost = double.tryParse(costCtrl.text.trim()) ??
+                    product.purchasePrice;
                 if (qty <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(backgroundColor: Colors.red, content: Text('Please enter a quantity greater than 0')),
+                    const SnackBar(
+                        backgroundColor: Colors.red,
+                        content:
+                            Text('Please enter a quantity greater than 0')),
                   );
                   return;
                 }
@@ -270,7 +362,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 try {
                   await db.createPurchase(
                     purchase: Purchase(
-                      refNo: 'STK-${DateTime.now().millisecondsSinceEpoch % 1000000}',
+                      refNo:
+                          'STK-${DateTime.now().millisecondsSinceEpoch % 1000000}',
                       supplierName: selectedSup?.name ?? 'Direct Stock In',
                       supplierId: selectedSup?.id,
                       createdAt: DateTime.now().toIso8601String(),
@@ -299,14 +392,16 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         behavior: SnackBarBehavior.floating,
                         content: Row(
                           children: [
-                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                            const Icon(Icons.check_circle_rounded,
+                                color: Colors.white, size: 20),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 widget.settings.enableSecondaryLanguage
                                     ? 'کامیابی: ${product.name} میں $qty ${product.unit} نیا سٹاک شامل کر دیا گیا! (نیا ٹوٹل: ${(product.stockQuantity + qty).toStringAsFixed(1)})'
                                     : 'Success: Added $qty ${product.unit} to ${product.name}! (New total: ${(product.stockQuantity + qty).toStringAsFixed(1)})',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
@@ -317,7 +412,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(backgroundColor: Colors.red, content: Text('Error adding stock: $e')),
+                      SnackBar(
+                          backgroundColor: Colors.red,
+                          content: Text('Error adding stock: $e')),
                     );
                   }
                 }
@@ -348,15 +445,24 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   }
 
   Future<void> _delete(Product product) async {
+    if (!_canDeleteProduct) {
+      _denyAction('Access Denied: Missing product.delete permission.');
+      return;
+    }
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Product?'),
-        content: Text('Are you sure you want to permanently delete "${product.name}"?'),
+        content: Text(
+            'Are you sure you want to permanently delete "${product.name}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -373,7 +479,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   List<Product> _getFilteredProducts() {
     return _allProducts.where((p) {
-      if (_selectedCategory != null && p.categoryId != _selectedCategory) return false;
+      if (_selectedCategory != null && p.categoryId != _selectedCategory)
+        return false;
       if (_selectedBrand != null && p.brandId != _selectedBrand) return false;
 
       if (_typeFilter != 'all' && p.type != _typeFilter) return false;
@@ -406,14 +513,20 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     final currentPage = _currentPage > totalPages ? totalPages : _currentPage;
     final startIndex = (currentPage - 1) * _pageSize;
     final endIndex = min(totalFiltered, startIndex + _pageSize);
-    final paginatedProducts = totalFiltered > 0 ? filtered.sublist(startIndex, endIndex) : <Product>[];
+    final paginatedProducts = totalFiltered > 0
+        ? filtered.sublist(startIndex, endIndex)
+        : <Product>[];
 
-    final totalInventoryValue = filtered.fold(0.0, (sum, p) => sum + (p.sellingPrice * p.stockQuantity));
-    final totalUnitsCount = filtered.fold(0.0, (sum, p) => sum + p.stockQuantity);
-    final lowStockCount = _allProducts.where((p) => p.isLowStock || p.isOutOfStock).length;
+    final totalInventoryValue = filtered.fold(
+        0.0, (sum, p) => sum + (p.sellingPrice * p.stockQuantity));
+    final totalUnitsCount =
+        filtered.fold(0.0, (sum, p) => sum + p.stockQuantity);
+    final lowStockCount =
+        _allProducts.where((p) => p.isLowStock || p.isOutOfStock).length;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
@@ -422,103 +535,142 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             // Page Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Products & Catalog',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        letterSpacing: -0.3,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Products & Catalog',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
+                          letterSpacing: -0.3,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Manage your inventory catalog, pricing margins, SKU barcodes, and stock levels.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(height: 4),
+                      Text(
+                        'Manage your inventory catalog, pricing margins, SKU barcodes, and stock levels.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                Row(
-                  children: [
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1E293B),
-                        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.qr_code_2_rounded, size: 18),
-                      label: const Text('Print Labels'),
-                      onPressed: () {
-                        final prod = filtered.isNotEmpty ? filtered.first : (_allProducts.isNotEmpty ? _allProducts.first : null);
-                        if (widget.onNavigateToPrintLabels != null) {
-                          widget.onNavigateToPrintLabels!(prod);
-                        } else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PrintLabelsScreen(settings: widget.settings, initialProduct: prod),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF0284C7),
-                        side: const BorderSide(color: Color(0xFF0284C7)),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.print_rounded, size: 18),
-                      label: const Text('Print Price List', style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: () => _printPriceList(filtered),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
-                      label: Text(widget.settings.enableSecondaryLanguage ? 'Stock In / Purchase (خریداری)' : 'Stock In / Purchase', style: const TextStyle(fontWeight: FontWeight.w700)),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => AddPurchaseScreen(
-                              settings: widget.settings,
-                              onPurchaseSaved: _load,
-                            ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      if (_canPrintLabels)
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: isDark
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF1E293B),
+                            side: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFCBD5E1)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4F46E5),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          icon: const Icon(Icons.qr_code_2_rounded, size: 18),
+                          label: const Text('Print Labels'),
+                          onPressed: () {
+                            final prod = filtered.isNotEmpty
+                                ? filtered.first
+                                : (_allProducts.isNotEmpty
+                                    ? _allProducts.first
+                                    : null);
+                            if (widget.onNavigateToPrintLabels != null) {
+                              widget.onNavigateToPrintLabels!(prod);
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PrintLabelsScreen(
+                                      settings: widget.settings,
+                                      initialProduct: prod),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF0284C7),
+                          side: const BorderSide(color: Color(0xFF0284C7)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.print_rounded, size: 18),
+                        label: const Text('Print Price List',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () => _printPriceList(filtered),
                       ),
-                      icon: const Icon(Icons.add_rounded, size: 19),
-                      label: const Text('Add Product', style: TextStyle(fontWeight: FontWeight.w700)),
-                      onPressed: () => _openAddProduct(),
-                    ),
-                  ],
+                      if (_canQuickStockIn)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF059669),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: const Icon(Icons.add_shopping_cart_rounded,
+                              size: 18),
+                          label: Text(
+                              widget.settings.enableSecondaryLanguage
+                                  ? 'Stock In / Purchase (خریداری)'
+                                  : 'Stock In / Purchase',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700)),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AddPurchaseScreen(
+                                  settings: widget.settings,
+                                  onPurchaseSaved: _load,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      if (_canCreateProduct)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F46E5),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: const Icon(Icons.add_rounded, size: 19),
+                          label: const Text('Add Product',
+                              style: TextStyle(fontWeight: FontWeight.w700)),
+                          onPressed: () => _openAddProduct(),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -528,7 +680,15 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _metricCard('Total Products', '${_allProducts.length} SKUs', Icons.inventory_2_outlined, const Color(0xFF4F46E5), isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF), isDark: isDark),
+                  child: _metricCard(
+                      'Total Products',
+                      '${_allProducts.length} SKUs',
+                      Icons.inventory_2_outlined,
+                      const Color(0xFF4F46E5),
+                      isDark
+                          ? const Color(0xFF312E81).withValues(alpha: 0.4)
+                          : const Color(0xFFEEF2FF),
+                      isDark: isDark),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -536,20 +696,42 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     'Low / Out of Stock',
                     '$lowStockCount items',
                     Icons.warning_amber_rounded,
-                    lowStockCount > 0 ? const Color(0xFFEA580C) : const Color(0xFF059669),
                     lowStockCount > 0
-                        ? (isDark ? const Color(0xFF451A03).withValues(alpha: 0.4) : const Color(0xFFFFEDD5))
-                        : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5)),
+                        ? const Color(0xFFEA580C)
+                        : const Color(0xFF059669),
+                    lowStockCount > 0
+                        ? (isDark
+                            ? const Color(0xFF451A03).withValues(alpha: 0.4)
+                            : const Color(0xFFFFEDD5))
+                        : (isDark
+                            ? const Color(0xFF064E3B).withValues(alpha: 0.4)
+                            : const Color(0xFFECFDF5)),
                     isDark: isDark,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _metricCard('Total Units in Stock', '${totalUnitsCount.toStringAsFixed(0)} Units', Icons.stacked_bar_chart_rounded, const Color(0xFF0284C7), isDark ? const Color(0xFF0C4A6E).withValues(alpha: 0.4) : const Color(0xFFE0F2FE), isDark: isDark),
+                  child: _metricCard(
+                      'Total Units in Stock',
+                      '${totalUnitsCount.toStringAsFixed(0)} Units',
+                      Icons.stacked_bar_chart_rounded,
+                      const Color(0xFF0284C7),
+                      isDark
+                          ? const Color(0xFF0C4A6E).withValues(alpha: 0.4)
+                          : const Color(0xFFE0F2FE),
+                      isDark: isDark),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _metricCard('Inventory Retail Value', '$currency${totalInventoryValue.toStringAsFixed(2)}', Icons.account_balance_wallet_outlined, const Color(0xFF059669), isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5), isDark: isDark),
+                  child: _metricCard(
+                      'Inventory Retail Value',
+                      '$currency${totalInventoryValue.toStringAsFixed(2)}',
+                      Icons.account_balance_wallet_outlined,
+                      const Color(0xFF059669),
+                      isDark
+                          ? const Color(0xFF064E3B).withValues(alpha: 0.4)
+                          : const Color(0xFFECFDF5),
+                      isDark: isDark),
                 ),
               ],
             ),
@@ -561,7 +743,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 children: [
@@ -571,21 +756,45 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       Expanded(
                         flex: 3,
                         child: TextField(
-                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
                           onChanged: (val) => setState(() {
                             _search = val.trim();
                             _currentPage = 1;
                           }),
                           decoration: InputDecoration(
                             hintText: 'Search product name, SKU, or barcode...',
-                            hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
-                            prefixIcon: Icon(Icons.search, size: 18, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                            hintStyle: TextStyle(
+                                fontSize: 13,
+                                color: isDark
+                                    ? const Color(0xFF64748B)
+                                    : const Color(0xFF94A3B8)),
+                            prefixIcon: Icon(Icons.search,
+                                size: 18,
+                                color: isDark
+                                    ? const Color(0xFF64748B)
+                                    : const Color(0xFF94A3B8)),
                             isDense: true,
                             filled: true,
-                            fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                            fillColor:
+                                isDark ? const Color(0xFF0F172A) : Colors.white,
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 10),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                    color: isDark
+                                        ? const Color(0xFF334155)
+                                        : const Color(0xFFE2E8F0))),
+                            enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                    color: isDark
+                                        ? const Color(0xFF334155)
+                                        : const Color(0xFFE2E8F0))),
                           ),
                         ),
                       ),
@@ -596,12 +805,30 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         flex: 2,
                         child: DropdownButtonFormField<int?>(
                           value: _selectedCategory,
-                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          dropdownColor:
+                              isDark ? const Color(0xFF1E293B) : Colors.white,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
                           decoration: _dropdownDeco('Category', isDark: isDark),
                           items: [
-                            DropdownMenuItem<int?>(value: null, child: Text('All Categories', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
-                            ..._categories.map((c) => DropdownMenuItem<int?>(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A))))),
+                            DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('All Categories',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A)))),
+                            ..._categories.map((c) => DropdownMenuItem<int?>(
+                                value: c.id,
+                                child: Text(c.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A))))),
                           ],
                           onChanged: (val) => setState(() {
                             _selectedCategory = val;
@@ -616,12 +843,30 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         flex: 2,
                         child: DropdownButtonFormField<int?>(
                           value: _selectedBrand,
-                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          dropdownColor:
+                              isDark ? const Color(0xFF1E293B) : Colors.white,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
                           decoration: _dropdownDeco('Brand', isDark: isDark),
                           items: [
-                            DropdownMenuItem<int?>(value: null, child: Text('All Brands', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
-                            ..._brands.map((b) => DropdownMenuItem<int?>(value: b.id, child: Text(b.name, overflow: TextOverflow.ellipsis, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A))))),
+                            DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('All Brands',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A)))),
+                            ..._brands.map((b) => DropdownMenuItem<int?>(
+                                value: b.id,
+                                child: Text(b.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A))))),
                           ],
                           onChanged: (val) => setState(() {
                             _selectedBrand = val;
@@ -636,14 +881,44 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         flex: 2,
                         child: DropdownButtonFormField<String>(
                           value: _stockFilter,
-                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                          decoration: _dropdownDeco('Stock Status', isDark: isDark),
+                          dropdownColor:
+                              isDark ? const Color(0xFF1E293B) : Colors.white,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
+                          decoration:
+                              _dropdownDeco('Stock Status', isDark: isDark),
                           items: [
-                            DropdownMenuItem(value: 'all', child: Text('All Stock Levels', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
-                            DropdownMenuItem(value: 'in_stock', child: Text('In Stock', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
-                            DropdownMenuItem(value: 'low_stock', child: Text('Low Stock Alert', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
-                            DropdownMenuItem(value: 'out_of_stock', child: Text('Out of Stock', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)))),
+                            DropdownMenuItem(
+                                value: 'all',
+                                child: Text('All Stock Levels',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A)))),
+                            DropdownMenuItem(
+                                value: 'in_stock',
+                                child: Text('In Stock',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A)))),
+                            DropdownMenuItem(
+                                value: 'low_stock',
+                                child: Text('Low Stock Alert',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A)))),
+                            DropdownMenuItem(
+                                value: 'out_of_stock',
+                                child: Text('Out of Stock',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A)))),
                           ],
                           onChanged: (val) {
                             if (val != null) {
@@ -658,10 +933,16 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       const SizedBox(width: 12),
 
                       // Reset Button
-                      if (_selectedCategory != null || _selectedBrand != null || _stockFilter != 'all' || _search.isNotEmpty)
+                      if (_selectedCategory != null ||
+                          _selectedBrand != null ||
+                          _stockFilter != 'all' ||
+                          _search.isNotEmpty)
                         IconButton(
                           tooltip: 'Clear Filters',
-                          icon: Icon(Icons.refresh_rounded, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                          icon: Icon(Icons.refresh_rounded,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
                           onPressed: () {
                             setState(() {
                               _selectedCategory = null;
@@ -681,7 +962,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
             // Products Data Table
             if (_loading)
-              const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+              const Center(
+                  child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: CircularProgressIndicator()))
             else if (filtered.isEmpty)
               Container(
                 padding: const EdgeInsets.all(40),
@@ -689,20 +973,35 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.inventory_2_outlined, size: 48, color: isDark ? const Color(0xFF64748B) : Colors.grey.shade400),
+                    Icon(Icons.inventory_2_outlined,
+                        size: 48,
+                        color: isDark
+                            ? const Color(0xFF64748B)
+                            : Colors.grey.shade400),
                     const SizedBox(height: 12),
                     Text(
                       'No Products Matching Criteria',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A)),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Try adjusting your search filters or click "Add Product" to add items.',
-                      style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600, fontSize: 13),
+                      style: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : Colors.grey.shade600,
+                          fontSize: 13),
                     ),
                   ],
                 ),
@@ -712,15 +1011,22 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
                   boxShadow: const [
-                    BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
+                    BoxShadow(
+                        color: Color(0x04000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2)),
                   ],
                 ),
                 child: Column(
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(12)),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final minWidth = max(constraints.maxWidth, 1180.0);
@@ -730,306 +1036,644 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               constraints: BoxConstraints(minWidth: minWidth),
                               child: Table(
                                 columnWidths: const {
-                                  0: FlexColumnWidth(3.6), // Product Item & Type
+                                  0: FlexColumnWidth(
+                                      3.6), // Product Item & Type
                                   1: FlexColumnWidth(1.8), // SKU & Barcode
                                   2: FlexColumnWidth(1.8), // Category / Brand
                                   3: FlexColumnWidth(1.6), // Selling Price
-                                  4: FlexColumnWidth(2.0), // Stock Quantity & Quick Stock In
+                                  4: FlexColumnWidth(
+                                      2.0), // Stock Quantity & Quick Stock In
                                   5: FlexColumnWidth(1.7), // Actions
                                 },
                                 children: [
                                   TableRow(
-                                    decoration: BoxDecoration(color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                                    decoration: BoxDecoration(
+                                        color: isDark
+                                            ? const Color(0xFF0F172A)
+                                            : const Color(0xFFF8FAFC)),
                                     children: [
                                       _th('Product Item', isDark: isDark),
                                       _th('SKU / Barcode', isDark: isDark),
                                       _th('Category / Brand', isDark: isDark),
                                       _th('Selling Price', isDark: isDark),
                                       _th('Current Stock', isDark: isDark),
-                                      _th('Actions', alignRight: true, isDark: isDark),
+                                      _th('Actions',
+                                          alignRight: true, isDark: isDark),
                                     ],
                                   ),
                                   ...paginatedProducts.map((p) {
-                        return TableRow(
-                          decoration: BoxDecoration(
-                            border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
-                          ),
-                          children: [
-                            // Product Item & Type
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: (p.imageColor != null && File(p.imageColor!).existsSync())
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(8),
-                                            child: Image.file(File(p.imageColor!), fit: BoxFit.cover),
-                                          )
-                                        : const Icon(Icons.shopping_bag_outlined, color: Color(0xFF818CF8), size: 18),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                    return TableRow(
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                            top: BorderSide(
+                                                color: isDark
+                                                    ? const Color(0xFF334155)
+                                                    : const Color(0xFFE2E8F0))),
+                                      ),
                                       children: [
-                                        InkWell(
-                                          onTap: () => _viewProductDetails(p),
-                                          child: Text(
-                                            p.name,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 13,
-                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
+                                        // Product Item & Type
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 36,
+                                                height: 36,
+                                                decoration: BoxDecoration(
+                                                  color: isDark
+                                                      ? const Color(0xFF312E81)
+                                                          .withValues(
+                                                              alpha: 0.4)
+                                                      : const Color(0xFFEEF2FF),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: (p.imageColor != null &&
+                                                        File(p.imageColor!)
+                                                            .existsSync())
+                                                    ? ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
+                                                        child: Image.file(
+                                                            File(p.imageColor!),
+                                                            fit: BoxFit.cover),
+                                                      )
+                                                    : const Icon(
+                                                        Icons
+                                                            .shopping_bag_outlined,
+                                                        color:
+                                                            Color(0xFF818CF8),
+                                                        size: 18),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    InkWell(
+                                                      onTap: () =>
+                                                          _viewProductDetails(
+                                                              p),
+                                                      child: Text(
+                                                        p.name,
+                                                        style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          fontSize: 13,
+                                                          color: isDark
+                                                              ? Colors.white
+                                                              : const Color(
+                                                                  0xFF0F172A),
+                                                        ),
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Wrap(
+                                                      spacing: 6,
+                                                      runSpacing: 4,
+                                                      crossAxisAlignment:
+                                                          WrapCrossAlignment
+                                                              .center,
+                                                      children: [
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal: 6,
+                                                                  vertical: 1),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: p.isVariable
+                                                                ? (isDark
+                                                                    ? const Color(
+                                                                            0xFF581C87)
+                                                                        .withValues(
+                                                                            alpha:
+                                                                                0.4)
+                                                                    : const Color(
+                                                                        0xFFF3E8FF))
+                                                                : (isDark
+                                                                    ? const Color(
+                                                                        0xFF334155)
+                                                                    : const Color(
+                                                                        0xFFF1F5F9)),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        4),
+                                                          ),
+                                                          child: Text(
+                                                            p.isVariable
+                                                                ? 'Variable'
+                                                                : 'Single',
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color: p.isVariable
+                                                                  ? (isDark
+                                                                      ? const Color(
+                                                                          0xFFC084FC)
+                                                                      : const Color(
+                                                                          0xFF7C3AED))
+                                                                  : (isDark
+                                                                      ? const Color(
+                                                                          0xFFCBD5E1)
+                                                                      : const Color(
+                                                                          0xFF475569)),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        Text(p.unit,
+                                                            style: TextStyle(
+                                                                fontSize: 11,
+                                                                color: isDark
+                                                                    ? const Color(
+                                                                        0xFF94A3B8)
+                                                                    : const Color(
+                                                                        0xFF64748B))),
+                                                        if (p.batchNumber !=
+                                                                null &&
+                                                            p.batchNumber!
+                                                                .isNotEmpty) ...[
+                                                          Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        5,
+                                                                    vertical:
+                                                                        1),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: isDark
+                                                                  ? const Color(
+                                                                          0xFF1E3A8A)
+                                                                      .withValues(
+                                                                          alpha:
+                                                                              0.4)
+                                                                  : const Color(
+                                                                      0xFFEFF6FF),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          4),
+                                                              border: Border.all(
+                                                                  color: isDark
+                                                                      ? const Color(
+                                                                          0xFF2563EB)
+                                                                      : const Color(
+                                                                          0xFFBFDBFE)),
+                                                            ),
+                                                            child: Text(
+                                                              'Batch: ${p.batchNumber}',
+                                                              style: TextStyle(
+                                                                  fontSize: 10,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: isDark
+                                                                      ? const Color(
+                                                                          0xFF93C5FD)
+                                                                      : const Color(
+                                                                          0xFF1D4ED8)),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                        if (p.expiryDate !=
+                                                                null &&
+                                                            p.expiryDate!
+                                                                .isNotEmpty) ...[
+                                                          Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        5,
+                                                                    vertical:
+                                                                        1),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: isDark
+                                                                  ? const Color(
+                                                                          0xFF450A0A)
+                                                                      .withValues(
+                                                                          alpha:
+                                                                              0.4)
+                                                                  : const Color(
+                                                                      0xFFFEF2F2),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          4),
+                                                              border: Border.all(
+                                                                  color: isDark
+                                                                      ? const Color(
+                                                                          0xFF7F1D1D)
+                                                                      : const Color(
+                                                                          0xFFFECACA)),
+                                                            ),
+                                                            child: Text(
+                                                              'Exp: ${p.expiryDate}',
+                                                              style: TextStyle(
+                                                                  fontSize: 10,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: isDark
+                                                                      ? const Color(
+                                                                          0xFFF87171)
+                                                                      : const Color(
+                                                                          0xFFDC2626)),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        const SizedBox(height: 2),
-                                        Wrap(
-                                          spacing: 6,
-                                          runSpacing: 4,
-                                          crossAxisAlignment: WrapCrossAlignment.center,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                              decoration: BoxDecoration(
-                                                color: p.isVariable
-                                                    ? (isDark ? const Color(0xFF581C87).withValues(alpha: 0.4) : const Color(0xFFF3E8FF))
-                                                    : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                p.isVariable ? 'Variable' : 'Single',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: p.isVariable
-                                                      ? (isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED))
-                                                      : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
-                                                ),
-                                              ),
-                                            ),
-                                            Text(p.unit, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
-                                            if (p.batchNumber != null && p.batchNumber!.isNotEmpty) ...[
+
+                                        // SKU & Barcode
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(p.sku,
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 12,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFFCBD5E1)
+                                                          : const Color(
+                                                              0xFF334155))),
+                                              Text(p.barcode,
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF64748B)
+                                                          : const Color(
+                                                              0xFF94A3B8))),
+                                            ],
+                                          ),
+                                        ),
+
+                                        // Category & Brand
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(p.categoryName,
+                                                  style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: isDark
+                                                          ? Colors.white
+                                                          : const Color(
+                                                              0xFF1E293B))),
+                                              Text(p.brandName,
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF94A3B8)
+                                                          : const Color(
+                                                              0xFF64748B))),
+                                            ],
+                                          ),
+                                        ),
+
+                                        // Selling Price
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                          child: Text(
+                                            '$currency${p.sellingPrice.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w800,
+                                                color: isDark
+                                                    ? const Color(0xFF818CF8)
+                                                    : const Color(0xFF4F46E5)),
+                                          ),
+                                        ),
+
+                                        // Stock Quantity & Alert Status
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                          child: Wrap(
+                                            spacing: 6,
+                                            runSpacing: 4,
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
+                                            children: [
                                               Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3),
                                                 decoration: BoxDecoration(
-                                                  color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFEFF6FF),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  border: Border.all(color: isDark ? const Color(0xFF2563EB) : const Color(0xFFBFDBFE)),
+                                                  color: p.isOutOfStock
+                                                      ? (isDark
+                                                          ? const Color(
+                                                                  0xFF450A0A)
+                                                              .withValues(
+                                                                  alpha: 0.4)
+                                                          : const Color(
+                                                              0xFFFEF2F2))
+                                                      : (p.isLowStock
+                                                          ? (isDark
+                                                              ? const Color(
+                                                                      0xFF451A03)
+                                                                  .withValues(
+                                                                      alpha:
+                                                                          0.4)
+                                                              : const Color(
+                                                                  0xFFFFFBEB))
+                                                          : (isDark
+                                                              ? const Color(
+                                                                      0xFF064E3B)
+                                                                  .withValues(
+                                                                      alpha:
+                                                                          0.4)
+                                                              : const Color(
+                                                                  0xFFECFDF5))),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
-                                                  'Batch: ${p.batchNumber}',
-                                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8)),
+                                                  '${p.stockQuantity.toStringAsFixed(1)} ${p.unit}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: p.isOutOfStock
+                                                        ? (isDark
+                                                            ? const Color(
+                                                                0xFFF87171)
+                                                            : const Color(
+                                                                0xFFDC2626))
+                                                        : (p.isLowStock
+                                                            ? (isDark
+                                                                ? const Color(
+                                                                    0xFFFBBF24)
+                                                                : const Color(
+                                                                    0xFFD97706))
+                                                            : (isDark
+                                                                ? const Color(
+                                                                    0xFF34D399)
+                                                                : const Color(
+                                                                    0xFF059669))),
+                                                  ),
                                                 ),
                                               ),
+                                              if (_canQuickStockIn)
+                                                InkWell(
+                                                  onTap: () =>
+                                                      _openQuickStockIn(p),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                  child: Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          const Color(0xFF059669)
+                                                              .withValues(
+                                                                  alpha: 0.12),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
+                                                      border: Border.all(
+                                                          color: const Color(
+                                                                  0xFF059669)
+                                                              .withValues(
+                                                                  alpha: 0.4)),
+                                                    ),
+                                                    child: const Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Icon(Icons.add_rounded,
+                                                            size: 12,
+                                                            color: Color(
+                                                                0xFF059669)),
+                                                        SizedBox(width: 2),
+                                                        Text('+ Stock',
+                                                            style: TextStyle(
+                                                                fontSize: 10,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color: Color(
+                                                                    0xFF059669))),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
                                             ],
-                                            if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                                decoration: BoxDecoration(
-                                                  color: isDark ? const Color(0xFF450A0A).withValues(alpha: 0.4) : const Color(0xFFFEF2F2),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  border: Border.all(color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA)),
+                                          ),
+                                        ),
+
+                                        // Action Buttons
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 8),
+                                          child: Wrap(
+                                            alignment: WrapAlignment.end,
+                                            spacing: 2,
+                                            runSpacing: 2,
+                                            children: [
+                                              if (_canQuickStockIn)
+                                                IconButton(
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                          minWidth: 28,
+                                                          minHeight: 28),
+                                                  tooltip: widget.settings
+                                                          .enableSecondaryLanguage
+                                                      ? 'Quick Stock In / سٹاک شامل کریں'
+                                                      : 'Quick Stock In',
+                                                  icon: const Icon(
+                                                      Icons.add_business_rounded,
+                                                      size: 17,
+                                                      color: Color(0xFF059669)),
+                                                  onPressed: () =>
+                                                      _openQuickStockIn(p),
                                                 ),
-                                                child: Text(
-                                                  'Exp: ${p.expiryDate}',
-                                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
-                                                ),
+                                              IconButton(
+                                                padding:
+                                                    const EdgeInsets.all(4),
+                                                constraints:
+                                                    const BoxConstraints(
+                                                        minWidth: 28,
+                                                        minHeight: 28),
+                                                tooltip: 'View Specs',
+                                                icon: Icon(
+                                                    Icons.visibility_outlined,
+                                                    size: 17,
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFF94A3B8)
+                                                        : const Color(
+                                                            0xFF475569)),
+                                                onPressed: () =>
+                                                    _viewProductDetails(p),
                                               ),
+                                              if (_canPrintLabels)
+                                                IconButton(
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                          minWidth: 28,
+                                                          minHeight: 28),
+                                                  tooltip: 'Print Barcode Label',
+                                                  icon: Icon(
+                                                      Icons.qr_code_2_rounded,
+                                                      size: 17,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF818CF8)
+                                                          : const Color(
+                                                              0xFF4F46E5)),
+                                                  onPressed: () {
+                                                    if (widget
+                                                            .onNavigateToPrintLabels !=
+                                                        null) {
+                                                      widget.onNavigateToPrintLabels!(
+                                                          p);
+                                                    } else {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (_) =>
+                                                              PrintLabelsScreen(
+                                                                  settings: widget
+                                                                      .settings,
+                                                                  initialProduct:
+                                                                      p),
+                                                        ),
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                              if (_canEditProduct)
+                                                IconButton(
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                          minWidth: 28,
+                                                          minHeight: 28),
+                                                  tooltip: 'Edit Product',
+                                                  icon: Icon(Icons.edit_outlined,
+                                                      size: 17,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF818CF8)
+                                                          : const Color(
+                                                              0xFF4F46E5)),
+                                                  onPressed: () =>
+                                                      _openAddProduct(p),
+                                                ),
+                                              if (_canDeleteProduct)
+                                                IconButton(
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                          minWidth: 28,
+                                                          minHeight: 28),
+                                                  tooltip: 'Delete Product',
+                                                  icon: Icon(
+                                                      Icons
+                                                          .delete_outline_rounded,
+                                                      size: 17,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFFF87171)
+                                                          : const Color(
+                                                              0xFFDC2626)),
+                                                  onPressed: () => _delete(p),
+                                                ),
                                             ],
-                                          ],
+                                          ),
                                         ),
                                       ],
-                                    ),
-                                  ),
+                                    );
+                                  }),
                                 ],
                               ),
                             ),
-
-                            // SKU & Barcode
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(p.sku, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155))),
-                                  Text(p.barcode, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8))),
-                                ],
-                              ),
-                            ),
-
-                            // Category & Brand
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(p.categoryName, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1E293B))),
-                                  Text(p.brandName, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
-                                ],
-                              ),
-                            ),
-
-                            // Selling Price
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Text(
-                                '$currency${p.sellingPrice.toStringAsFixed(2)}',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
-                              ),
-                            ),
-
-                            // Stock Quantity & Alert Status
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Wrap(
-                                spacing: 6,
-                                runSpacing: 4,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: p.isOutOfStock
-                                          ? (isDark ? const Color(0xFF450A0A).withValues(alpha: 0.4) : const Color(0xFFFEF2F2))
-                                          : (p.isLowStock
-                                              ? (isDark ? const Color(0xFF451A03).withValues(alpha: 0.4) : const Color(0xFFFFFBEB))
-                                              : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5))),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      '${p.stockQuantity.toStringAsFixed(1)} ${p.unit}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: p.isOutOfStock
-                                            ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                            : (p.isLowStock
-                                                ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
-                                                : (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))),
-                                      ),
-                                    ),
-                                  ),
-                                  InkWell(
-                                    onTap: () => _openQuickStockIn(p),
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF059669).withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.4)),
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.add_rounded, size: 12, color: Color(0xFF059669)),
-                                          SizedBox(width: 2),
-                                          Text('+ Stock', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Action Buttons
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    tooltip: widget.settings.enableSecondaryLanguage ? 'Quick Stock In / سٹاک شامل کریں' : 'Quick Stock In',
-                                    icon: const Icon(Icons.add_business_rounded, size: 18, color: Color(0xFF059669)),
-                                    onPressed: () => _openQuickStockIn(p),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'View Specs',
-                                    icon: Icon(Icons.visibility_outlined, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
-                                    onPressed: () => _viewProductDetails(p),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Print Barcode Label',
-                                    icon: Icon(Icons.qr_code_2_rounded, size: 18, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
-                                    onPressed: () {
-                                      if (widget.onNavigateToPrintLabels != null) {
-                                        widget.onNavigateToPrintLabels!(p);
-                                      } else {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => PrintLabelsScreen(settings: widget.settings, initialProduct: p),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Edit Product',
-                                    icon: Icon(Icons.edit_outlined, size: 18, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
-                                    onPressed: () => _openAddProduct(p),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Delete Product',
-                                    icon: Icon(Icons.delete_outline_rounded, size: 18, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
-                                    onPressed: () => _delete(p),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
+                          );
+                        },
+                      ),
+                    ),
+                    DataTablePaginationBar(
+                      currentPage: currentPage,
+                      pageSize: _pageSize,
+                      totalItems: totalFiltered,
+                      onPageChanged: (newPage) =>
+                          setState(() => _currentPage = newPage),
+                      onPageSizeChanged: (newSize) => setState(() {
+                        _pageSize = newSize;
+                        _currentPage = 1;
                       }),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
-        ),
-        DataTablePaginationBar(
-          currentPage: currentPage,
-          pageSize: _pageSize,
-          totalItems: totalFiltered,
-          onPageChanged: (newPage) => setState(() => _currentPage = newPage),
-          onPageSizeChanged: (newSize) => setState(() {
-            _pageSize = newSize;
-            _currentPage = 1;
-          }),
-        ),
-      ],
-    ),
-  ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _metricCard(String title, String value, IconData icon, Color color, Color bgColor, {required bool isDark}) {
+  Widget _metricCard(
+      String title, String value, IconData icon, Color color, Color bgColor,
+      {required bool isDark}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-        boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 4, offset: Offset(0, 1))],
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x04000000), blurRadius: 4, offset: Offset(0, 1))
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+                color: bgColor, borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 22),
           ),
           const SizedBox(width: 14),
@@ -1037,9 +1681,20 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                Text(title,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B))),
                 const SizedBox(height: 2),
-                Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                Text(value,
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color:
+                            isDark ? Colors.white : const Color(0xFF0F172A))),
               ],
             ),
           ),
@@ -1051,13 +1706,23 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   InputDecoration _dropdownDeco(String label, {required bool isDark}) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+      labelStyle: TextStyle(
+          fontSize: 12,
+          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
       isDense: true,
       filled: true,
       fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+              color:
+                  isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+              color:
+                  isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
     );
   }
 

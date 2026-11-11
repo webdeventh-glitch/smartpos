@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
+import 'app_logger.dart';
 import 'database_service.dart';
 
 enum SyncState { idle, checking, syncing, success, error, offline }
@@ -83,7 +84,9 @@ class CloudSyncService {
       if (settings.isHybridSync && settings.syncAutoIntervalMinutes > 0) {
         startPeriodicSync(settings);
       }
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.error('CloudSyncService', 'Failed initializing cloud sync state', e, st);
+    }
   }
 
   /// Refresh pending items counter for badge & UI displays
@@ -97,7 +100,9 @@ class CloudSyncService {
             ? 'Offline SQLite active (no sync)'
             : '$count changes queued for sync',
       );
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.warning('CloudSyncService', 'Failed refreshing pending sync count', e, st);
+    }
   }
 
   /// Test connectivity to the Laravel / MySQL REST API endpoint

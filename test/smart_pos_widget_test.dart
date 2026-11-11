@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:desktop_starter/models/models.dart';
@@ -27,10 +28,12 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(useMaterial3: true),
-        home: MainShell(initialSettings: settings),
+      ProviderScope(
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(useMaterial3: true),
+          home: MainShell(initialSettings: settings),
+        ),
       ),
     );
 

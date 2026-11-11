@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
+import 'app_logger.dart';
 import 'number_to_words_service.dart';
 
 class PrintService {
@@ -121,7 +122,7 @@ class PrintService {
           <tr style="border-bottom: 1px dotted #ddd;">
             <td style="padding-bottom: 4px;">$qStr$uLabel x $cur${item.unitPrice.toStringAsFixed(2)}</td>
             <td style="padding-bottom: 4px; text-align:center;">${item.batchNumber != null && item.batchNumber!.isNotEmpty ? 'B:${item.batchNumber}' : ''}</td>
-            <td style="padding-bottom: 4px; text-align:right;">${item.packDiscount > 0 ? '-${item.packDiscount}%' : ''}</td>
+            <td style="padding-bottom: 4px; text-align:right;">${item.resolvedDiscountAmount > 0 ? item.formatDiscountTag(cur) : ''}</td>
             <td style="padding-bottom: 4px; text-align:right; font-weight: bold;">$cur${item.subtotal.toStringAsFixed(2)}</td>
           </tr>
         ''');
@@ -252,8 +253,14 @@ class PrintService {
       </tr>
       ''' : ''}
       ${settings.showTaxBreakdownOnReceipt && sale.taxAmount > 0 ? '''
+      ${sale.taxBreakdownMap.entries.map((e) => '''
       <tr>
-        <td>Taxes / GST:</td>
+        <td style="color:#475569; padding-left:8px;">${_escape(e.key)}:</td>
+        <td class="text-right">+$cur${e.value.toStringAsFixed(2)}</td>
+      </tr>
+      ''').join()}
+      <tr>
+        <td>Taxes / GST Total:</td>
         <td class="text-right bold">+$cur${sale.taxAmount.toStringAsFixed(2)}</td>
       </tr>
       ''' : ''}
@@ -333,7 +340,7 @@ class PrintService {
             <td style="padding: 6px; font-weight:bold;">${_escape(item.productName)}</td>
             <td style="text-align:center; padding: 6px;">$qStr$uLabel</td>
             <td style="text-align:right; padding: 6px;">$cur${item.unitPrice.toStringAsFixed(2)}</td>
-            <td style="text-align:right; padding: 6px;">${item.packDiscount > 0 ? '${item.packDiscount}%' : '-'}</td>
+            <td style="text-align:right; padding: 6px;">${item.resolvedDiscountAmount > 0 ? item.formatDiscountTag(cur) : '-'}</td>
             <td style="text-align:right; padding: 6px; font-weight:bold;">$cur${item.subtotal.toStringAsFixed(2)}</td>
           </tr>
         ''');
@@ -788,7 +795,7 @@ class PrintService {
 
     for (var it in items) {
       final packVal = it.unitPrice * it.quantity;
-      final discVal = it.discount > 0 ? it.discount : (it.packDiscount > 0 ? (packVal * it.packDiscount / 100) : 0.0);
+      final discVal = it.resolvedDiscountAmount;
       final qStr = it.quantity == it.quantity.toInt()
           ? it.quantity.toInt().toString()
           : it.quantity.toStringAsFixed(2);
@@ -1048,7 +1055,7 @@ class PrintService {
     <!-- Subtotals Row -->
     <div class="subtotals-bar">
       <div>
-        ${sale.taxAmount > 0 ? (settings.isPharmacy ? 'Advance Tax Under Section(236H)= 0.50% &nbsp;&nbsp;&nbsp; $cur' + sale.taxAmount.toStringAsFixed(2) : 'Tax Amount: $cur' + sale.taxAmount.toStringAsFixed(2)) : 'Tax: Exempt (0.00%)'}
+        ${sale.taxAmount > 0 ? (sale.taxBreakdownMap.isNotEmpty ? 'Tax Breakdown: ${sale.taxBreakdownMap.entries.map((e) => '${_escape(e.key)} ($cur${e.value.toStringAsFixed(2)})').join(' + ')} = <b>$cur${sale.taxAmount.toStringAsFixed(2)}</b>' : (settings.isPharmacy ? 'Advance Tax Under Section(236H)= 0.50% &nbsp;&nbsp;&nbsp; $cur' + sale.taxAmount.toStringAsFixed(2) : 'Tax Amount: $cur' + sale.taxAmount.toStringAsFixed(2))) : 'Tax: Exempt (0.00%)'}
       </div>
       <div>
         TOTAL : <span style="font-size: 13px; font-weight: 900;">$cur${sale.totalAmount.toStringAsFixed(2)}</span>
@@ -1905,7 +1912,8 @@ class PrintService {
     try {
       final dt = DateTime.parse(raw);
       return DateFormat('dd/MM/yyyy, hh:mm a').format(dt);
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.warning('PrintService', 'Invalid date format "$raw", rendering raw string', e, st);
       return raw;
     }
   }

@@ -1,5 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'models/models.dart';
+import 'services/app_logger.dart';
 import 'services/database_service.dart';
 import 'services/theme_service.dart';
 import 'services/auth_service.dart';
@@ -7,34 +10,31 @@ import 'services/qulop_service.dart';
 import 'services/cloud_sync_service.dart';
 import 'services/local_api_service.dart';
 import 'services/mysql_service.dart';
+import 'screens/auth/force_password_change_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/qulop_lockout_screen.dart';
 import 'screens/setup/setup_wizard_screen.dart';
 import 'screens/main_shell.dart';
-import 'pos_workspace.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const SmartPosApp());
-}
 
-/// Backward compatibility wrapper for existing tests
-class DesktopStarterApp extends StatelessWidget {
-  final dynamic store;
-  const DesktopStarterApp({super.key, this.store});
+  FlutterError.onError = (FlutterErrorDetails details) {
+    AppLogger.critical(
+      'FlutterError',
+      details.exceptionAsString(),
+      details.exception,
+      details.stack,
+    );
+    FlutterError.presentError(details);
+  };
 
-  @override
-  Widget build(BuildContext context) {
-    if (store != null) {
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeService.lightTheme,
-        darkTheme: ThemeService.darkTheme,
-        home: PosWorkspace(store: store),
-      );
-    }
-    return const SmartPosApp();
-  }
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    AppLogger.critical('PlatformDispatcher', 'Uncaught async error', error, stack);
+    return true;
+  };
+
+  runApp(const ProviderScope(child: SmartPosApp()));
 }
 
 class SmartPosApp extends StatelessWidget {
@@ -78,17 +78,28 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
   Future<BusinessSettings> _bootstrap() async {
     final dbService = await DatabaseService.initialize();
     var settings = await dbService.getBusinessSettings();
+    AuthService.configureSessionTimeout(settings.sessionTimeoutMinutes);
 
     // Primary Database Sync:
     // If configured and MySQL is selected, connect and sync seamlessly without ever wiping local business data
     if (settings.isConfigured && settings.isMySql) {
       try {
-        final isConfiguredInMySql = await MySqlService.isMySqlDatabaseConfigured(settings);
+        final isConfiguredInMySql =
+            await MySqlService.isMySqlDatabaseConfigured(settings);
         if (isConfiguredInMySql) {
-          await MySqlService.pullDataFromMySql(settings: settings, localDb: dbService);
-          await MySqlService.connectAndSync(settings: settings, localDb: dbService);
+          await MySqlService.pullDataFromMySql(
+            settings: settings,
+            localDb: dbService,
+          );
+          await MySqlService.connectAndSync(
+            settings: settings,
+            localDb: dbService,
+          );
         } else if (MySqlService.isMySqlOnline.value) {
-          debugPrint('[SmartPOS] MySQL is online but uninitialized. Syncing local configuration to MySQL...');
+          AppLogger.info(
+            'Bootstrap',
+            'MySQL is online but uninitialized. Syncing local configuration to MySQL...',
+          );
           try {
             await MySqlService.initializeDatabaseAndTables(
               host: settings.dbHost,
@@ -98,16 +109,35 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
               databaseName: settings.dbName,
               initialSettings: settings,
             );
-            await MySqlService.syncAllLocalCatalogToMySql(settings: settings, localDb: dbService);
-            await MySqlService.connectAndSync(settings: settings, localDb: dbService);
-          } catch (e) {
-            debugPrint('[SmartPOS] Failed to auto-provision MySQL: $e. Operating in resilient local SQLite mode.');
+            await MySqlService.syncAllLocalCatalogToMySql(
+              settings: settings,
+              localDb: dbService,
+            );
+            await MySqlService.connectAndSync(
+              settings: settings,
+              localDb: dbService,
+            );
+          } catch (e, st) {
+            AppLogger.warning(
+              'Bootstrap',
+              'Failed to auto-provision MySQL; operating in resilient local SQLite mode.',
+              e,
+              st,
+            );
           }
         } else {
-          debugPrint('[SmartPOS] MySQL database not yet configured or offline. Operating in resilient local SQLite mode.');
+          AppLogger.info(
+            'Bootstrap',
+            'MySQL database not yet configured or offline. Operating in resilient local SQLite mode.',
+          );
         }
-      } catch (e) {
-        debugPrint('[SmartPOS] MySQL sync notice: $e. Operating in local SQLite mode.');
+      } catch (e, st) {
+        AppLogger.warning(
+          'Bootstrap',
+          'MySQL sync notice; operating in local SQLite mode.',
+          e,
+          st,
+        );
       }
     }
     await QulopService.checkCurrentQulop(settings);
@@ -116,7 +146,14 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
       if (settings.isPrimaryServer && !LocalApiService.instance.isRunning) {
         await LocalApiService.instance.startServer(port: settings.serverPort);
       }
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.warning(
+        'Bootstrap',
+        'Local API server could not start on port ${settings.serverPort}.',
+        e,
+        st,
+      );
+    }
     return settings;
   }
 
@@ -140,9 +177,15 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
                       color: const Color(0xFF1E293B),
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: const [
-                        BoxShadow(color: Color(0x660038B8), blurRadius: 20, offset: Offset(0, 8)),
+                        BoxShadow(
+                          color: Color(0x660038B8),
+                          blurRadius: 20,
+                          offset: Offset(0, 8),
+                        ),
                       ],
-                      border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                      ),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
@@ -153,7 +196,10 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const CircularProgressIndicator(color: Color(0xFF0038B8), strokeWidth: 3),
+                  const CircularProgressIndicator(
+                    color: Color(0xFF0038B8),
+                    strokeWidth: 3,
+                  ),
                   const SizedBox(height: 20),
                   const Text(
                     'SMART POS SYSTEM',
@@ -176,6 +222,12 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
         }
 
         if (snapshot.hasError) {
+          AppLogger.critical(
+            'Bootstrap',
+            'Database initialization failed',
+            snapshot.error,
+            snapshot.stackTrace,
+          );
           return Scaffold(
             body: Center(
               child: Container(
@@ -184,7 +236,9 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black12, blurRadius: 10),
+                  ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -203,7 +257,10 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0038B8), foregroundColor: Colors.white),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0038B8),
+                        foregroundColor: Colors.white,
+                      ),
                       onPressed: () => setState(() => _initFuture = _bootstrap()),
                       child: const Text('Retry Connection'),
                     ),
@@ -252,6 +309,12 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
                     onReconfigureDatabase: () {
                       setState(() => _initFuture = _bootstrap());
                     },
+                  );
+                }
+                if (currentUser.mustChangePassword) {
+                  return ForcePasswordChangeScreen(
+                    user: currentUser,
+                    settings: settings,
                   );
                 }
                 return MainShell(initialSettings: settings);

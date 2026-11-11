@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 
 class GymFitnessScreen extends StatefulWidget {
@@ -55,7 +56,19 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
         );
       }
       _loadMembers();
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.error('GymFitness', 'Failed renewing membership for ${m['name']}', e, st);
+      if (mounted) {
+        await AppErrorHandler.showErrorDialog(
+          context,
+          title: 'Renewal Failed',
+          message: 'Could not renew membership for ${m['name'] ?? 'member'}.',
+          error: e,
+          stackTrace: st,
+          tag: 'GymFitness',
+        );
+      }
+    }
   }
 
   Future<void> _deleteMember(int id, String name) async {

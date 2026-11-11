@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 
 class AddProductDialog extends StatefulWidget {
@@ -244,7 +245,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
             initial = DateTime(y, m, 1);
           }
         }
-      } catch (_) {}
+      } catch (e, st) {
+        AppLogger.warning('AddProductDialog', 'Failed parsing expiry date "$text"', e, st);
+      }
     }
 
     final picked = await showDatePicker(

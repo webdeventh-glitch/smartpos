@@ -815,8 +815,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
           ValueListenableBuilder<User?>(
             valueListenable: AuthService.currentUserNotifier,
             builder: (context, user, _) {
-              final displayName = user?.name ?? 'Irfan Khan';
-              final roleName = (user?.role ?? 'superadmin').toUpperCase();
+              final displayName = (user != null && user.name.isNotEmpty) ? user.name : 'System Operator';
+              final roleName = (user?.role ?? 'operator').toUpperCase();
               final initials = displayName.split(' ').map((w) => w.isNotEmpty ? w[0] : '').take(2).join();
 
               return PopupMenuButton<String>(
@@ -867,7 +867,7 @@ class _SmartAppBarState extends State<SmartAppBar> {
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                         ),
                         Text(
-                          '${user?.email ?? 'webdeventh@smartpos.local'} • $roleName',
+                          '${(user != null && user.email.isNotEmpty) ? user.email : '@${user?.username ?? 'operator'}'} • $roleName',
                           style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                         ),
                       ],

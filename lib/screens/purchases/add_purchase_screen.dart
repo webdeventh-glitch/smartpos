@@ -265,17 +265,18 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     final clean = query.trim().toLowerCase();
     if (clean.isEmpty) return;
 
-    try {
-      final match = _allProducts.firstWhere(
-        (p) =>
-            p.barcode.toLowerCase() == clean ||
-            p.sku.toLowerCase() == clean ||
-            p.name.toLowerCase() == clean ||
-            p.name.toLowerCase().contains(clean),
-      );
+    final match = _allProducts.cast<Product?>().firstWhere(
+      (p) =>
+          p!.barcode.toLowerCase() == clean ||
+          p.sku.toLowerCase() == clean ||
+          p.name.toLowerCase() == clean ||
+          p.name.toLowerCase().contains(clean),
+      orElse: () => null,
+    );
+    if (match != null) {
       _addProductToBill(match);
       _barcodeSearchCtrl.clear();
-    } catch (_) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('No product matched barcode/SKU: "$query"'),

@@ -19,36 +19,42 @@ void main() {
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('smartpos_test_');
-      dbPath = path.join(tempDir.path, 'test_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(
+          tempDir.path, 'test_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
     tearDown(() async {
       try {
+        await dbService.db.close();
         if (tempDir.existsSync()) {
           tempDir.deleteSync(recursive: true);
         }
       } catch (_) {}
     });
 
-    test('1. Salted SHA-256 password hashing & verification works with fallback', () async {
+    test(
+        '1. Salted Argon2id password hashing & verification rejects raw plaintext',
+        () async {
       const password = 'SecretPassword2026!';
       final hash = AuthService.hashPassword(password);
+      final hash2 = AuthService.hashPassword(password);
 
-      expect(hash, startsWith('sha256\$'));
+      expect(hash, startsWith('argon2id\$'));
       expect(hash, isNot(equals(password)));
+      expect(hash2, isNot(equals(hash)),
+          reason: 'Unique random salt required per hash');
 
       // Verifies correct password
       expect(AuthService.verifyPassword(password, hash), isTrue);
 
-      // Rejects incorrect password
+      // Rejects incorrect password and raw plaintext passwords
       expect(AuthService.verifyPassword('WrongPassword', hash), isFalse);
-
-      // Verifies legacy plain text password
-      expect(AuthService.verifyPassword('password', 'password'), isTrue);
+      expect(AuthService.verifyPassword('password', 'password'), isFalse);
     });
 
-    test('2. Hardware ID detection and hardware-bound license verification', () async {
+    test('2. Hardware ID detection and hardware-bound license verification',
+        () async {
       final hwid = await QulopService.getHardwareId();
       expect(hwid, isNotEmpty);
       expect(hwid, startsWith('HWID-'));
@@ -71,7 +77,8 @@ void main() {
       expect(status.clientName, 'Alpha Solar Agency');
     });
 
-    test('3. Payment Transactions (Split Tender & Ledger Recoveries) CRUD', () async {
+    test('3. Payment Transactions (Split Tender & Ledger Recoveries) CRUD',
+        () async {
       final now = DateTime.now().toIso8601String();
       final tx = PaymentTransaction(
         transactionType: 'sale',
@@ -122,7 +129,8 @@ void main() {
       final imeiId = await dbService.addProductSerialBatch(imeiItem);
       expect(imeiId, isPositive);
 
-      final fetchedByImei = await dbService.getProductSerialByImei('352984102938475');
+      final fetchedByImei =
+          await dbService.getProductSerialByImei('352984102938475');
       expect(fetchedByImei, isNotNull);
       expect(fetchedByImei!.productName, 'Samsung Galaxy A54 5G');
 
@@ -198,7 +206,8 @@ void main() {
       expect(fetchedBundle[0].subProductName, contains('Longi'));
       expect(fetchedBundle[1].subProductName, contains('Inverter'));
 
-      final totalEstimatedBOM = fetchedBundle.fold<double>(0.0, (acc, item) => acc + item.subtotal);
+      final totalEstimatedBOM =
+          fetchedBundle.fold<double>(0.0, (acc, item) => acc + item.subtotal);
       expect(totalEstimatedBOM, greaterThan(1000000.0));
     });
 
@@ -209,7 +218,8 @@ void main() {
         entityId: 'INV-2026-0099',
         userId: 1,
         userName: 'Irfan Khan',
-        details: 'Discount override from Rs 1,500 to Rs 1,200 approved for VIP customer',
+        details:
+            'Discount override from Rs 1,500 to Rs 1,200 approved for VIP customer',
         oldValues: '1500.0',
         newValues: '1200.0',
       );
@@ -221,7 +231,8 @@ void main() {
       expect(logs.first.userName, 'Irfan Khan');
     });
 
-    test('7. Super Admin user registration with salted SHA-256 encryption', () async {
+    test('7. Super Admin user registration with salted SHA-256 encryption',
+        () async {
       final user = await AuthService.registerSuperAdmin(
         name: 'Master Architect',
         username: 'masterpos',
@@ -231,15 +242,17 @@ void main() {
       );
 
       expect(user.role, 'superadmin');
-      expect(user.password, startsWith('sha256\$'));
+      expect(user.password, startsWith('argon2id\$'));
 
       // Test login with password
-      final loginSuccess = await AuthService.login('masterpos', 'SecureMaster2026!');
+      final loginSuccess =
+          await AuthService.login('masterpos', 'SecureMaster2026!');
       expect(loginSuccess, isTrue);
       expect(AuthService.currentUser?.username, 'masterpos');
 
       // Test login failure with wrong password
-      final wrongLogin = await AuthService.login('masterpos', 'WrongPassword123');
+      final wrongLogin =
+          await AuthService.login('masterpos', 'WrongPassword123');
       expect(wrongLogin, isFalse);
     });
 
@@ -265,10 +278,13 @@ void main() {
   });
 
   group('Smart POS Phase 2: Presets & Business Settings Integration', () {
-    test('BusinessSettings supports multi-industry presets and deployment modes', () {
+    test(
+        'BusinessSettings supports multi-industry presets and deployment modes',
+        () {
       final settings = BusinessSettings(
         businessName: 'Smart POS Mega Hub',
-        industryPresets: 'retail_supermarket,mobile_electronics,solar_hardware,restaurant_cafe',
+        industryPresets:
+            'retail_supermarket,mobile_electronics,solar_hardware,restaurant_cafe',
         deploymentMode: 'offline_server',
         serverHost: '127.0.0.1',
         serverPort: 8080,

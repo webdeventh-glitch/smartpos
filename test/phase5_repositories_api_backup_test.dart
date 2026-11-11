@@ -33,20 +33,21 @@ void main() {
         await LocalApiService.instance.stopServer();
       }
       try {
+        await dbService.db.close();
         if (tempDir.existsSync()) {
           tempDir.deleteSync(recursive: true);
         }
       } catch (_) {}
     });
 
-    test('1. BackupUpdateService creates instant snapshot and lists backups', () async {
+    test('1. BackupUpdateService creates instant encrypted snapshot and lists backups', () async {
       final backupService = BackupUpdateService.instance;
       final backupDir = await backupService.getBackupDirectory();
       expect(backupDir.existsSync(), isTrue);
 
       final backupFile = await backupService.createBackup(customNote: 'Automated test snapshot');
       expect(backupFile.existsSync(), isTrue);
-      expect(backupFile.path.endsWith('.db'), isTrue);
+      expect(backupFile.path.endsWith('.db.enc'), isTrue);
 
       final backups = await backupService.listBackups();
       expect(backups.any((f) => f.path == backupFile.path), isTrue);

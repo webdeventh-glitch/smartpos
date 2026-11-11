@@ -73,10 +73,10 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
 
   Future<void> _deletePurchase(Purchase p) async {
     final currentUser = AuthService.currentUser;
-    if (currentUser != null && !currentUser.isAdmin && !currentUser.canAccessInventory) {
+    if (currentUser != null && !currentUser.hasPermission('purchase.delete')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Access Denied: Only Administrators or Inventory Managers can delete purchase invoices.'),
+          content: Text('Access Denied: You do not have permission to delete purchase invoices.'),
           backgroundColor: Color(0xFFEF4444),
         ),
       );
@@ -121,6 +121,16 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
   }
 
   Future<void> _openUpdateStatusDialog(Purchase p) async {
+    final currentUser = AuthService.currentUser;
+    if (currentUser != null && !currentUser.hasPermission('purchase.edit')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Access Denied: You do not have permission to edit purchases.'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
     String selectedStatus = p.status.toLowerCase();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -694,15 +704,16 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                             );
                                                           },
                                                         ),
-                                                      IconButton(
-                                                        icon: const Icon(
-                                                          Icons.edit_note_rounded,
-                                                          size: 20,
-                                                          color: Color(0xFF4F46E5),
+                                                      if (AuthService.currentUser?.hasPermission('purchase.edit') ?? true)
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                            Icons.edit_note_rounded,
+                                                            size: 20,
+                                                            color: Color(0xFF4F46E5),
+                                                          ),
+                                                          tooltip: 'Update Status (Received / Pending / Ordered)',
+                                                          onPressed: () => _openUpdateStatusDialog(p),
                                                         ),
-                                                        tooltip: 'Update Status (Received / Pending / Ordered)',
-                                                        onPressed: () => _openUpdateStatusDialog(p),
-                                                      ),
                                                       IconButton(
                                                         icon: Icon(
                                                           Icons.print_outlined,
@@ -720,15 +731,16 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                           );
                                                         },
                                                       ),
-                                                      IconButton(
-                                                        icon: const Icon(
-                                                          Icons.delete_outline_rounded,
-                                                          size: 18,
-                                                          color: Color(0xFFEF4444),
+                                                      if (AuthService.currentUser?.hasPermission('purchase.delete') ?? true)
+                                                        IconButton(
+                                                          icon: const Icon(
+                                                            Icons.delete_outline_rounded,
+                                                            size: 18,
+                                                            color: Color(0xFFEF4444),
+                                                          ),
+                                                          tooltip: 'Delete & Reverse Stock',
+                                                          onPressed: () => _deletePurchase(p),
                                                         ),
-                                                        tooltip: 'Delete & Reverse Stock',
-                                                        onPressed: () => _deletePurchase(p),
-                                                      ),
                                                     ],
                                                   ),
                                                 ),
