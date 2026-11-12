@@ -46,7 +46,8 @@ void main() {
     }
   });
 
-  test('v7 to v8 schema migration adds Phase 7 columns and 5 performance indexes',
+  test(
+      'v7 to v8 schema migration adds Phase 7 columns and 5 performance indexes',
       () async {
     final dbPath = p.join(tempDir.path, 'upgrade_v7_v8.db');
     final raw = await databaseFactoryFfi.openDatabase(
@@ -65,16 +66,17 @@ void main() {
     final upgraded = await DatabaseService.initialize(customPath: dbPath);
     try {
       upgraded.invalidateReportCache();
-      expect(await upgraded.db.getVersion(),
-          DatabaseService.currentSchemaVersion);
+      expect(
+          await upgraded.db.getVersion(), DatabaseService.currentSchemaVersion);
       final migrations =
           await upgraded.db.query('schema_migrations', orderBy: 'version ASC');
       expect(
           migrations.map((m) => m['version']).toList(), [2, 3, 4, 5, 6, 7, 8]);
 
-      final prodCols = (await upgraded.db.rawQuery('PRAGMA table_info(products)'))
-          .map((r) => r['name'])
-          .toSet();
+      final prodCols =
+          (await upgraded.db.rawQuery('PRAGMA table_info(products)'))
+              .map((r) => r['name'])
+              .toSet();
       expect(prodCols.contains('is_featured'), isTrue);
 
       final bizCols =
@@ -187,7 +189,8 @@ void main() {
     }
   });
 
-  test('Step 7.2: Product.isFeatured persists and filters accurately in SQL & CatalogState',
+  test(
+      'Step 7.2: Product.isFeatured persists and filters accurately in SQL & CatalogState',
       () async {
     final dbPath = p.join(tempDir.path, 'featured_filter.db');
     final db = await DatabaseService.initialize(customPath: dbPath);
@@ -248,8 +251,8 @@ void main() {
 
       final reloaded = await db.getBusinessSettings();
       expect(reloaded.touchFriendlyMode, isTrue);
-      final decoded =
-          KeyboardShortcutsService.resolveBindings(reloaded.keyboardShortcutsJson);
+      final decoded = KeyboardShortcutsService.resolveBindings(
+          reloaded.keyboardShortcutsJson);
       expect(decoded['quickCash'], 'F11');
       expect(decoded['multiPay'], 'F12');
       expect(
@@ -399,4 +402,3 @@ void main() {
     });
   });
 }
-

@@ -22,24 +22,71 @@ class KeyboardShortcutsService {
   KeyboardShortcutsService._();
 
   static const List<ShortcutActionSpec> actions = [
-    ShortcutActionSpec(id: 'help', label: 'Keyboard Shortcuts Help', defaultKeyLabel: 'F1'),
-    ShortcutActionSpec(id: 'quickCash', label: 'Quick Cash Checkout', defaultKeyLabel: 'F2'),
-    ShortcutActionSpec(id: 'customerSearch', label: 'Live Customer Search', defaultKeyLabel: 'F3'),
-    ShortcutActionSpec(id: 'suspendSale', label: 'Suspend / Park Sale', defaultKeyLabel: 'F4'),
-    ShortcutActionSpec(id: 'toggleView', label: 'Toggle Grid / List View', defaultKeyLabel: 'F5'),
-    ShortcutActionSpec(id: 'quickCustomer', label: 'Quick Add Customer', defaultKeyLabel: 'F6'),
-    ShortcutActionSpec(id: 'multiPay', label: 'Multiple / Split Pay', defaultKeyLabel: 'F7'),
-    ShortcutActionSpec(id: 'clearCart', label: 'Clear / Cancel Sale', defaultKeyLabel: 'F8'),
-    ShortcutActionSpec(id: 'recentSales', label: 'Recent Sales & Reprints', defaultKeyLabel: 'F9'),
-    ShortcutActionSpec(id: 'registerDetails', label: 'Cash Register Details', defaultKeyLabel: 'F10'),
-    ShortcutActionSpec(id: 'undoCart', label: 'Undo Last Cart Edit', defaultKeyLabel: 'Ctrl+Z', isGlobalOrForm: true),
-    ShortcutActionSpec(id: 'redoCart', label: 'Redo Cart Edit', defaultKeyLabel: 'Ctrl+Y', isGlobalOrForm: true),
-    ShortcutActionSpec(id: 'saveForm', label: 'Quick Save Form (Add/Settings)', defaultKeyLabel: 'Ctrl+S', isGlobalOrForm: true),
-    ShortcutActionSpec(id: 'focusSearch', label: 'Focus Barcode / Search Box', defaultKeyLabel: 'Esc', isGlobalOrForm: true),
+    ShortcutActionSpec(
+        id: 'help', label: 'Keyboard Shortcuts Help', defaultKeyLabel: 'F1'),
+    ShortcutActionSpec(
+        id: 'quickCash', label: 'Quick Cash Checkout', defaultKeyLabel: 'F2'),
+    ShortcutActionSpec(
+        id: 'customerSearch',
+        label: 'Live Customer Search',
+        defaultKeyLabel: 'F3'),
+    ShortcutActionSpec(
+        id: 'suspendSale', label: 'Suspend / Park Sale', defaultKeyLabel: 'F4'),
+    ShortcutActionSpec(
+        id: 'toggleView',
+        label: 'Toggle Grid / List View',
+        defaultKeyLabel: 'F5'),
+    ShortcutActionSpec(
+        id: 'quickCustomer',
+        label: 'Quick Add Customer',
+        defaultKeyLabel: 'F6'),
+    ShortcutActionSpec(
+        id: 'multiPay', label: 'Multiple / Split Pay', defaultKeyLabel: 'F7'),
+    ShortcutActionSpec(
+        id: 'clearCart', label: 'Clear / Cancel Sale', defaultKeyLabel: 'F8'),
+    ShortcutActionSpec(
+        id: 'recentSales',
+        label: 'Recent Sales & Reprints',
+        defaultKeyLabel: 'F9'),
+    ShortcutActionSpec(
+        id: 'registerDetails',
+        label: 'Cash Register Details',
+        defaultKeyLabel: 'F10'),
+    ShortcutActionSpec(
+        id: 'undoCart',
+        label: 'Undo Last Cart Edit',
+        defaultKeyLabel: 'Ctrl+Z',
+        isGlobalOrForm: true),
+    ShortcutActionSpec(
+        id: 'redoCart',
+        label: 'Redo Cart Edit',
+        defaultKeyLabel: 'Ctrl+Y',
+        isGlobalOrForm: true),
+    ShortcutActionSpec(
+        id: 'saveForm',
+        label: 'Quick Save Form (Add/Settings)',
+        defaultKeyLabel: 'Ctrl+S',
+        isGlobalOrForm: true),
+    ShortcutActionSpec(
+        id: 'focusSearch',
+        label: 'Focus Barcode / Search Box',
+        defaultKeyLabel: 'Esc',
+        isGlobalOrForm: true),
   ];
 
   static const List<String> customizableFKeys = [
-    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+    'F1',
+    'F2',
+    'F3',
+    'F4',
+    'F5',
+    'F6',
+    'F7',
+    'F8',
+    'F9',
+    'F10',
+    'F11',
+    'F12',
   ];
 
   /// Decodes custom JSON map `{actionId: "F2", ...}` merged onto defaults.
@@ -61,7 +108,8 @@ class KeyboardShortcutsService {
         });
       }
     } catch (e, st) {
-      AppLogger.warning('KeyboardShortcuts', 'Failed decoding shortcuts JSON', e, st);
+      AppLogger.warning(
+          'KeyboardShortcuts', 'Failed decoding shortcuts JSON', e, st);
     }
     return map;
   }
@@ -107,4 +155,3 @@ class KeyboardShortcutsService {
     }
   }
 }
-

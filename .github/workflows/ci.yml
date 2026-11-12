@@ -1,0 +1,77 @@
+name: SmartPOS CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  analyze_and_test:
+    name: Analyze & Test (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Verify Formatting (New & Core Modules)
+        run: dart format --output=none --set-exit-if-changed lib/services/keyboard_shortcuts_service.dart lib/widgets/skeleton_loader.dart test/phase7_ux_polish_performance_test.dart test/phase8_repository_unit_coverage_test.dart test/phase8_integration_workflows_test.dart test/phase8_golden_ui_test.dart test/phase8_e2e_and_scale_test.dart
+
+      - name: Run Flutter Analyzer
+        run: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib test
+
+      - name: Run Test Suite with Coverage
+        run: flutter test --no-pub --timeout=60s --coverage
+
+      - name: Upload Coverage Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcov-coverage
+          path: coverage/lcov.info
+          if-no-files-found: ignore
+
+  build_windows_release:
+    name: Build Windows Release Executable
+    needs: analyze_and_test
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Prepare Release Package
+        shell: pwsh
+        run: |
+          $releaseDir = "build/windows/x64/runner/Release"
+          Copy-Item -Force "$releaseDir/desktop_starter.exe" "$releaseDir/SmartPOS.exe"
+          Compress-Archive -Path "$releaseDir/*" -DestinationPath "SmartPOS-Windows-${{ github.ref_name }}.zip" -Force
+
+      - name: Upload Windows Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartPOS-Windows-${{ github.ref_name }}
+          path: SmartPOS-Windows-*.zip
+

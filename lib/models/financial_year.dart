@@ -36,34 +36,39 @@ class FinancialYear {
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
-        'year_title': yearTitle,
+        'year_name': yearTitle,
         'start_date': startDate,
         'end_date': endDate,
-        'closing_date': closingDate,
+        'closed_at': closingDate,
+        'closed_by': closedBy,
         'total_sales': totalSales,
         'total_purchases': totalPurchases,
         'total_expenses': totalExpenses,
         'net_profit': netProfit,
-        'stock_valuation': stockValuation,
-        'receivables': receivables,
-        'payables': payables,
-        'closed_by': closedBy,
+        'closing_stock_value': stockValuation,
+        'carried_forward_balance': receivables - payables,
         'status': status,
         'notes': notes,
       };
 
   factory FinancialYear.fromMap(Map<String, dynamic> map) => FinancialYear(
         id: map['id'] as int?,
-        yearTitle: map['year_title'] as String? ?? '',
+        yearTitle: (map['year_name'] ?? map['year_title']) as String? ?? '',
         startDate: map['start_date'] as String? ?? '',
         endDate: map['end_date'] as String? ?? '',
-        closingDate: map['closing_date'] as String? ?? '',
+        closingDate: (map['closed_at'] ?? map['closing_date']) as String? ?? '',
         totalSales: (map['total_sales'] as num?)?.toDouble() ?? 0.0,
         totalPurchases: (map['total_purchases'] as num?)?.toDouble() ?? 0.0,
         totalExpenses: (map['total_expenses'] as num?)?.toDouble() ?? 0.0,
         netProfit: (map['net_profit'] as num?)?.toDouble() ?? 0.0,
-        stockValuation: (map['stock_valuation'] as num?)?.toDouble() ?? 0.0,
-        receivables: (map['receivables'] as num?)?.toDouble() ?? 0.0,
+        stockValuation:
+            ((map['closing_stock_value'] ?? map['stock_valuation']) as num?)
+                    ?.toDouble() ??
+                0.0,
+        receivables:
+            ((map['receivables'] ?? map['carried_forward_balance']) as num?)
+                    ?.toDouble() ??
+                0.0,
         payables: (map['payables'] as num?)?.toDouble() ?? 0.0,
         closedBy: map['closed_by'] as String? ?? 'SuperAdmin',
         status: map['status'] as String? ?? 'closed',

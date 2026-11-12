@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+# Phase 8.2 Pre-Commit Hook: Verify Dart formatting and static errors on staged Dart files.
+
+STAGED_DART=$(git diff --cached --name-only --diff-filter=ACM | grep '\.dart$' || true)
+if [ -z "$STAGED_DART" ]; then
+  exit 0
+fi
+
+echo "Running dart format check on staged Dart files..."
+dart format --output=none --set-exit-if-changed $STAGED_DART
+if [ $? -ne 0 ]; then
+  echo "ERROR: Some staged Dart files are not properly formatted. Run 'dart format .' and re-stage."
+  exit 1
+fi
+
+echo "Running flutter analyze check..."
+flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings $STAGED_DART
+if [ $? -ne 0 ]; then
+  echo "ERROR: Static analysis errors detected in staged files."
+  exit 1
+fi
+
+exit 0
+

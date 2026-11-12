@@ -18,6 +18,7 @@ Thumbs.db
 # Generated files
 *.hprof
 *.log
+coverage/
 
 # Binaries and Distribution
 *.exe
