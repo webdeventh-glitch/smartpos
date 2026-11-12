@@ -58,7 +58,8 @@ class ReportRepository extends BaseRepository {
       args.addAll([startStr, endStr]);
     }
 
-    final whereClause = conditions.isNotEmpty ? 'WHERE ${conditions.join(' AND ')}' : '';
+    final whereClause =
+        conditions.isNotEmpty ? 'WHERE ${conditions.join(' AND ')}' : '';
     final rows = await db.rawQuery(
       'SELECT * FROM cash_registers $whereClause ORDER BY id DESC',
       args,
@@ -153,9 +154,18 @@ class ReportRepository extends BaseRepository {
 
       if (filter != null && filter != 'all') {
         if (filter == 'expired' && statusCategory != 'expired') continue;
-        if (filter == '30_days' && statusCategory != '30_days' && statusCategory != 'expired') continue;
-        if (filter == '60_days' && statusCategory != '30_days' && statusCategory != '60_days' && statusCategory != 'expired') continue;
-        if (filter == '90_days' && statusCategory != '30_days' && statusCategory != '60_days' && statusCategory != '90_days' && statusCategory != 'expired') continue;
+        if (filter == '30_days' &&
+            statusCategory != '30_days' &&
+            statusCategory != 'expired') continue;
+        if (filter == '60_days' &&
+            statusCategory != '30_days' &&
+            statusCategory != '60_days' &&
+            statusCategory != 'expired') continue;
+        if (filter == '90_days' &&
+            statusCategory != '30_days' &&
+            statusCategory != '60_days' &&
+            statusCategory != '90_days' &&
+            statusCategory != 'expired') continue;
       }
 
       final costRisk = stockQty * cost;
@@ -203,7 +213,8 @@ class ReportRepository extends BaseRepository {
     final expStartStr = startStr;
     final expEndStr = endDate != null ? dfDay.format(endDate) : null;
 
-    final cacheKey = 'dash_${dbService.dbFilePath ?? "mem"}_${startStr ?? "all"}_${expEndStr ?? "all"}';
+    final cacheKey =
+        'dash_${dbService.dbFilePath ?? "mem"}_${startStr ?? "all"}_${expEndStr ?? "all"}';
     if (!forceRefresh) {
       final cached = _getCached<Map<String, dynamic>>(cacheKey);
       if (cached != null) return Map<String, dynamic>.from(cached);
@@ -269,11 +280,16 @@ class ReportRepository extends BaseRepository {
       FROM contacts
     ''');
 
-    final totalSales = (salesResult.first['total_sales'] as num?)?.toDouble() ?? 0.0;
-    final invoiceDue = (salesResult.first['total_invoice_due'] as num?)?.toDouble() ?? 0.0;
-    final totalPurchases = (purchaseResult.first['total_purchases'] as num?)?.toDouble() ?? 0.0;
-    final purchaseDue = (purchaseResult.first['total_purchase_due'] as num?)?.toDouble() ?? 0.0;
-    final totalExpenses = (expenseResult.first['total_expenses'] as num?)?.toDouble() ?? 0.0;
+    final totalSales =
+        (salesResult.first['total_sales'] as num?)?.toDouble() ?? 0.0;
+    final invoiceDue =
+        (salesResult.first['total_invoice_due'] as num?)?.toDouble() ?? 0.0;
+    final totalPurchases =
+        (purchaseResult.first['total_purchases'] as num?)?.toDouble() ?? 0.0;
+    final purchaseDue =
+        (purchaseResult.first['total_purchase_due'] as num?)?.toDouble() ?? 0.0;
+    final totalExpenses =
+        (expenseResult.first['total_expenses'] as num?)?.toDouble() ?? 0.0;
     final totalProducts = (productResult.first['total_products'] as int?) ?? 0;
     final lowStockCount = (productResult.first['low_stock_count'] as int?) ?? 0;
     final customerCount = (contactResult.first['customer_count'] as int?) ?? 0;
@@ -285,11 +301,14 @@ class ReportRepository extends BaseRepository {
         expStartStr != null && expEndStr != null
             ? 'SELECT SUM(total_amount) as total FROM sale_returns WHERE date >= ? AND date <= ?'
             : 'SELECT SUM(total_amount) as total FROM sale_returns',
-        expStartStr != null && expEndStr != null ? [expStartStr, expEndStr] : const [],
+        expStartStr != null && expEndStr != null
+            ? [expStartStr, expEndStr]
+            : const [],
       );
       totalSellReturn = (sRetRes.first['total'] as num?)?.toDouble() ?? 0.0;
     } catch (e, st) {
-      AppLogger.warning('DatabaseService', 'Failed loading sale_returns sum', e, st);
+      AppLogger.warning(
+          'DatabaseService', 'Failed loading sale_returns sum', e, st);
     }
 
     double totalPurchaseReturn = 0.0;
@@ -298,12 +317,24 @@ class ReportRepository extends BaseRepository {
         expStartStr != null && expEndStr != null
             ? 'SELECT SUM(total_amount) as total FROM purchase_returns WHERE date >= ? AND date <= ?'
             : 'SELECT SUM(total_amount) as total FROM purchase_returns',
-        expStartStr != null && expEndStr != null ? [expStartStr, expEndStr] : const [],
+        expStartStr != null && expEndStr != null
+            ? [expStartStr, expEndStr]
+            : const [],
       );
       totalPurchaseReturn = (pRetRes.first['total'] as num?)?.toDouble() ?? 0.0;
     } catch (e, st) {
-      AppLogger.warning('DatabaseService', 'Failed loading purchase_returns sum', e, st);
+      AppLogger.warning(
+          'DatabaseService', 'Failed loading purchase_returns sum', e, st);
     }
+
+    // True COGS for Dashboard period
+    final cogsResult = await db.rawQuery(
+      "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
+      "FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id "
+      "WHERE s.sale_status = 'final'${salesDateClause.replaceAll('created_at', 's.created_at')}",
+      salesArgs,
+    );
+    final periodCogs = (cogsResult.first['cogs'] as num?)?.toDouble() ?? 0.0;
 
     final result = {
       'totalSales': totalSales,
@@ -313,7 +344,8 @@ class ReportRepository extends BaseRepository {
       'totalExpenses': totalExpenses,
       'totalSellReturn': totalSellReturn,
       'totalPurchaseReturn': totalPurchaseReturn,
-      'netProfit': totalSales - (totalPurchases * 0.7) - totalExpenses,
+      'cogs': periodCogs,
+      'netProfit': (totalSales - totalSellReturn) - periodCogs - totalExpenses,
       'totalProducts': totalProducts,
       'lowStockCount': lowStockCount,
       'customerCount': customerCount,
@@ -325,27 +357,43 @@ class ReportRepository extends BaseRepository {
 
   // Phase 7: Profit & Loss and Stock Valuation Reports
   Future<Map<String, dynamic>> getProfitAndLossReport() async {
-    final salesRes = await db.rawQuery("SELECT SUM(total_amount) as total_sales FROM sales WHERE sale_status = 'final'");
+    final salesRes = await db.rawQuery(
+        "SELECT SUM(total_amount) as total_sales FROM sales WHERE sale_status = 'final'");
     final cogsRes = await db.rawQuery(
-      "SELECT SUM(si.quantity * p.purchase_price) as cogs "
+      "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
       "FROM sale_items si "
       "JOIN sales s ON si.sale_id = s.id "
-      "JOIN products p ON si.product_id = p.id "
+      "LEFT JOIN products p ON si.product_id = p.id "
       "WHERE s.sale_status = 'final'",
     );
-    final expRes = await db.rawQuery("SELECT SUM(amount) as total_expenses FROM expenses");
-    final adjRecoveryRes = await db.rawQuery("SELECT SUM(recovered_amount) as total_recovered FROM stock_adjustments");
+    final expRes =
+        await db.rawQuery("SELECT SUM(amount) as total_expenses FROM expenses");
+    final adjRecoveryRes = await db.rawQuery(
+        "SELECT SUM(recovered_amount) as total_recovered FROM stock_adjustments");
+    double saleReturnsTotal = 0.0;
+    try {
+      final retRes = await db
+          .rawQuery('SELECT SUM(total_amount) as total_ret FROM sale_returns');
+      saleReturnsTotal = (retRes.first['total_ret'] as num?)?.toDouble() ?? 0.0;
+    } catch (_) {}
 
-    final totalSales = (salesRes.first['total_sales'] as num?)?.toDouble() ?? 0.0;
-    final cogs = (cogsRes.first['cogs'] as num?)?.toDouble() ?? (totalSales * 0.6);
-    final totalExpenses = (expRes.first['total_expenses'] as num?)?.toDouble() ?? 0.0;
-    final recoveredAmount = (adjRecoveryRes.first['total_recovered'] as num?)?.toDouble() ?? 0.0;
+    final totalSales =
+        (salesRes.first['total_sales'] as num?)?.toDouble() ?? 0.0;
+    final netSales =
+        (totalSales - saleReturnsTotal).clamp(0.0, double.infinity);
+    final cogs = (cogsRes.first['cogs'] as num?)?.toDouble() ?? 0.0;
+    final totalExpenses =
+        (expRes.first['total_expenses'] as num?)?.toDouble() ?? 0.0;
+    final recoveredAmount =
+        (adjRecoveryRes.first['total_recovered'] as num?)?.toDouble() ?? 0.0;
 
-    final grossProfit = totalSales - cogs;
+    final grossProfit = netSales - cogs;
     final netProfit = grossProfit - totalExpenses + recoveredAmount;
 
     return {
-      'totalSales': totalSales,
+      'totalSales': netSales,
+      'grossSales': totalSales,
+      'totalSellReturn': saleReturnsTotal,
       'cogs': cogs,
       'grossProfit': grossProfit,
       'totalExpenses': totalExpenses,
@@ -365,9 +413,12 @@ class ReportRepository extends BaseRepository {
     ''');
 
     final totalItems = (res.first['total_items'] as int?) ?? 0;
-    final totalQuantity = (res.first['total_quantity'] as num?)?.toDouble() ?? 0.0;
-    final stockValueCost = (res.first['stock_value_cost'] as num?)?.toDouble() ?? 0.0;
-    final stockValueRetail = (res.first['stock_value_retail'] as num?)?.toDouble() ?? 0.0;
+    final totalQuantity =
+        (res.first['total_quantity'] as num?)?.toDouble() ?? 0.0;
+    final stockValueCost =
+        (res.first['stock_value_cost'] as num?)?.toDouble() ?? 0.0;
+    final stockValueRetail =
+        (res.first['stock_value_retail'] as num?)?.toDouble() ?? 0.0;
     final potentialProfit = stockValueRetail - stockValueCost;
 
     return {
@@ -408,54 +459,66 @@ class ReportRepository extends BaseRepository {
 
     // 1. Sales Summary
     final salesRes = await db.rawQuery(
-      "SELECT COUNT(*) as invoice_count, SUM(total_amount) as total_sales, SUM(paid_amount) as total_paid, SUM(due_amount) as total_due, SUM(tax_amount) as output_tax FROM sales s WHERE s.sale_status = 'final'$salesDateClause",
+      "SELECT COUNT(*) as invoice_count, SUM(total_amount) as total_sales, SUM(paid_amount) as total_paid, SUM(CASE WHEN COALESCE(due_amount, 0) > 0 THEN due_amount ELSE MAX(total_amount - paid_amount, 0) END) as total_due, SUM(tax_amount) as output_tax FROM sales s WHERE s.sale_status = 'final'$salesDateClause",
       salesArgs,
     );
     final invoiceCount = (salesRes.first['invoice_count'] as int?) ?? 0;
-    final totalSales = (salesRes.first['total_sales'] as num?)?.toDouble() ?? 0.0;
-    final totalPaidSales = (salesRes.first['total_paid'] as num?)?.toDouble() ?? 0.0;
-    final totalDueSales = (salesRes.first['total_due'] as num?)?.toDouble() ?? 0.0;
+    final totalSales =
+        (salesRes.first['total_sales'] as num?)?.toDouble() ?? 0.0;
+    final totalPaidSales =
+        (salesRes.first['total_paid'] as num?)?.toDouble() ?? 0.0;
+    final totalDueSales =
+        (salesRes.first['total_due'] as num?)?.toDouble() ?? 0.0;
     final outputTax = (salesRes.first['output_tax'] as num?)?.toDouble() ?? 0.0;
 
-    // 2. COGS (Cost of goods sold)
+    // 2. COGS (Cost of goods sold with unit_multiplier)
     final cogsRes = await db.rawQuery(
-      "SELECT SUM(si.quantity * p.purchase_price) as cogs FROM sale_items si JOIN sales s ON si.sale_id = s.id JOIN products p ON si.product_id = p.id WHERE s.sale_status = 'final'$salesDateClause",
+      "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id WHERE s.sale_status = 'final'$salesDateClause",
       salesArgs,
     );
-    final cogs = (cogsRes.first['cogs'] as num?)?.toDouble() ?? (totalSales * 0.65);
+    final cogs = (cogsRes.first['cogs'] as num?)?.toDouble() ?? 0.0;
     final grossProfit = totalSales - cogs;
 
-    // 3. Purchases Summary
+    // 3. Purchases Summary & Real Input Tax
     final purchasesRes = await db.rawQuery(
-      "SELECT COUNT(*) as po_count, SUM(total_amount) as total_purchases, SUM(paid_amount) as total_paid, SUM(total_amount - paid_amount) as total_due FROM purchases p WHERE p.status = 'received'$purchasesDateClause",
+      "SELECT COUNT(*) as po_count, SUM(total_amount) as total_purchases, SUM(paid_amount) as total_paid, SUM(total_amount - paid_amount) as total_due, SUM(tax_amount) as input_tax FROM purchases p WHERE p.status = 'received'$purchasesDateClause",
       purchasesArgs,
     );
     final poCount = (purchasesRes.first['po_count'] as int?) ?? 0;
-    final totalPurchases = (purchasesRes.first['total_purchases'] as num?)?.toDouble() ?? 0.0;
-    final totalPaidPurchases = (purchasesRes.first['total_paid'] as num?)?.toDouble() ?? 0.0;
-    final totalDuePurchases = (purchasesRes.first['total_due'] as num?)?.toDouble() ?? 0.0;
-    const inputTax = 0.0; // Input tax credit when applicable
+    final totalPurchases =
+        (purchasesRes.first['total_purchases'] as num?)?.toDouble() ?? 0.0;
+    final totalPaidPurchases =
+        (purchasesRes.first['total_paid'] as num?)?.toDouble() ?? 0.0;
+    final totalDuePurchases =
+        (purchasesRes.first['total_due'] as num?)?.toDouble() ?? 0.0;
+    final inputTax =
+        (purchasesRes.first['input_tax'] as num?)?.toDouble() ?? 0.0;
 
     // 4. Expenses Summary & Breakdown
     final expRes = await db.rawQuery(
       "SELECT SUM(amount) as total_expenses FROM expenses$expensesDateClause",
       expensesArgs,
     );
-    final totalExpenses = (expRes.first['total_expenses'] as num?)?.toDouble() ?? 0.0;
+    final totalExpenses =
+        (expRes.first['total_expenses'] as num?)?.toDouble() ?? 0.0;
 
     final expCatRows = await db.rawQuery(
       "SELECT category, SUM(amount) as cat_total, COUNT(*) as cat_count FROM expenses$expensesDateClause GROUP BY category ORDER BY cat_total DESC",
       expensesArgs,
     );
-    final expenseCategories = expCatRows.map((r) => {
-      'category': r['category'] as String? ?? 'General Expense',
-      'amount': (r['cat_total'] as num?)?.toDouble() ?? 0.0,
-      'count': (r['cat_count'] as int?) ?? 0,
-    }).toList();
+    final expenseCategories = expCatRows
+        .map((r) => {
+              'category': r['category'] as String? ?? 'General Expense',
+              'amount': (r['cat_total'] as num?)?.toDouble() ?? 0.0,
+              'count': (r['cat_count'] as int?) ?? 0,
+            })
+        .toList();
 
     // 5. Stock Adjustments Recovery
-    final adjRecoveryRes = await db.rawQuery("SELECT SUM(recovered_amount) as total_recovered FROM stock_adjustments");
-    final recoveredAmount = (adjRecoveryRes.first['total_recovered'] as num?)?.toDouble() ?? 0.0;
+    final adjRecoveryRes = await db.rawQuery(
+        "SELECT SUM(recovered_amount) as total_recovered FROM stock_adjustments");
+    final recoveredAmount =
+        (adjRecoveryRes.first['total_recovered'] as num?)?.toDouble() ?? 0.0;
 
     final netProfit = grossProfit - totalExpenses + recoveredAmount;
     final netTaxPayable = outputTax - inputTax;
@@ -465,34 +528,46 @@ class ReportRepository extends BaseRepository {
       "SELECT si.product_name, p.sku, SUM(si.quantity) as total_qty, SUM(si.subtotal) as total_rev FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id WHERE s.sale_status = 'final'$salesDateClause GROUP BY si.product_name, p.sku ORDER BY total_qty DESC LIMIT 10",
       salesArgs,
     );
-    final topSellingProducts = topProductsRes.map((r) => {
-      'name': r['product_name'] as String? ?? 'Product',
-      'sku': r['sku'] as String? ?? '-',
-      'quantity': (r['total_qty'] as num?)?.toDouble() ?? 0.0,
-      'revenue': (r['total_rev'] as num?)?.toDouble() ?? 0.0,
-    }).toList();
+    final topSellingProducts = topProductsRes
+        .map((r) => {
+              'name': r['product_name'] as String? ?? 'Product',
+              'sku': r['sku'] as String? ?? '-',
+              'quantity': (r['total_qty'] as num?)?.toDouble() ?? 0.0,
+              'revenue': (r['total_rev'] as num?)?.toDouble() ?? 0.0,
+            })
+        .toList();
 
     // 7. Customer Receivables & Top Debtors
-    final custDuesRes = await db.rawQuery("SELECT SUM(balance) as total_ar FROM contacts WHERE type = 'customer' AND balance > 0");
-    final totalCustomerDue = (custDuesRes.first['total_ar'] as num?)?.toDouble() ?? 0.0;
+    final custDuesRes = await db.rawQuery(
+        "SELECT SUM(balance) as total_ar FROM contacts WHERE type = 'customer' AND balance > 0");
+    final totalCustomerDue =
+        (custDuesRes.first['total_ar'] as num?)?.toDouble() ?? 0.0;
 
-    final topDebtorsRes = await db.rawQuery("SELECT name, phone, balance FROM contacts WHERE type = 'customer' AND balance > 0 ORDER BY balance DESC LIMIT 5");
-    final topDebtors = topDebtorsRes.map((r) => {
-      'name': r['name'] as String? ?? 'Customer',
-      'phone': r['phone'] as String? ?? '-',
-      'balance': (r['balance'] as num?)?.toDouble() ?? 0.0,
-    }).toList();
+    final topDebtorsRes = await db.rawQuery(
+        "SELECT name, phone, balance FROM contacts WHERE type = 'customer' AND balance > 0 ORDER BY balance DESC LIMIT 5");
+    final topDebtors = topDebtorsRes
+        .map((r) => {
+              'name': r['name'] as String? ?? 'Customer',
+              'phone': r['phone'] as String? ?? '-',
+              'balance': (r['balance'] as num?)?.toDouble() ?? 0.0,
+            })
+        .toList();
 
     // 8. Supplier Payables & Top Creditors
-    final suppDuesRes = await db.rawQuery("SELECT SUM(balance) as total_ap FROM contacts WHERE type = 'supplier' AND balance > 0");
-    final totalSupplierPayable = (suppDuesRes.first['total_ap'] as num?)?.toDouble() ?? 0.0;
+    final suppDuesRes = await db.rawQuery(
+        "SELECT SUM(balance) as total_ap FROM contacts WHERE type = 'supplier' AND balance > 0");
+    final totalSupplierPayable =
+        (suppDuesRes.first['total_ap'] as num?)?.toDouble() ?? 0.0;
 
-    final topCreditorsRes = await db.rawQuery("SELECT name, phone, balance FROM contacts WHERE type = 'supplier' AND balance > 0 ORDER BY balance DESC LIMIT 5");
-    final topCreditors = topCreditorsRes.map((r) => {
-      'name': r['name'] as String? ?? 'Supplier',
-      'phone': r['phone'] as String? ?? '-',
-      'balance': (r['balance'] as num?)?.toDouble() ?? 0.0,
-    }).toList();
+    final topCreditorsRes = await db.rawQuery(
+        "SELECT name, phone, balance FROM contacts WHERE type = 'supplier' AND balance > 0 ORDER BY balance DESC LIMIT 5");
+    final topCreditors = topCreditorsRes
+        .map((r) => {
+              'name': r['name'] as String? ?? 'Supplier',
+              'phone': r['phone'] as String? ?? '-',
+              'balance': (r['balance'] as num?)?.toDouble() ?? 0.0,
+            })
+        .toList();
 
     // 9. Stock Valuation
     final stockValuation = await getStockValuationReport();
@@ -556,7 +631,6 @@ class ReportRepository extends BaseRepository {
     }
     return expiring;
   }
-
 
   Future<List<Map<String, dynamic>>> getDailySalesTrend({
     int days = 7,
@@ -635,7 +709,9 @@ class ReportRepository extends BaseRepository {
     final Map<String, double> result = {};
     for (final r in rows) {
       final rawMethod = (r['payment_method'] as String?)?.trim();
-      final method = (rawMethod != null && rawMethod.isNotEmpty) ? rawMethod.toUpperCase() : 'CASH';
+      final method = (rawMethod != null && rawMethod.isNotEmpty)
+          ? rawMethod.toUpperCase()
+          : 'CASH';
       final total = (r['total_amount'] as num?)?.toDouble() ?? 0.0;
       result[method] = (result[method] ?? 0.0) + total;
     }
@@ -672,11 +748,13 @@ class ReportRepository extends BaseRepository {
       LIMIT ?
     ''', args);
 
-    return rows.map((r) => {
-      'name': (r['product_name'] as String?) ?? 'Unknown Item',
-      'qty': (r['total_qty'] as num?)?.toDouble() ?? 0.0,
-      'revenue': (r['total_revenue'] as num?)?.toDouble() ?? 0.0,
-    }).toList();
+    return rows
+        .map((r) => {
+              'name': (r['product_name'] as String?) ?? 'Unknown Item',
+              'qty': (r['total_qty'] as num?)?.toDouble() ?? 0.0,
+              'revenue': (r['total_revenue'] as num?)?.toDouble() ?? 0.0,
+            })
+        .toList();
   }
 
   Future<Map<String, dynamic>> getTodaySalesMetrics() async {

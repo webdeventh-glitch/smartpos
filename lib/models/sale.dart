@@ -18,7 +18,8 @@ class Sale {
   final String
       paymentMethod; // 'cash', 'card', 'bank_transfer', 'cheque', 'split'
   final String paymentStatus; // 'paid', 'partial', 'due'
-  final String saleStatus; // 'final', 'draft', 'quotation', 'suspended', 'sales_order'
+  final String
+      saleStatus; // 'final', 'draft', 'quotation', 'suspended', 'sales_order'
   final String orderStatus; // '', 'ordered', 'partial', 'completed'
   final String note;
   final String createdAt;
@@ -33,6 +34,8 @@ class Sale {
   final double commissionAmount;
   final int? taxGroupId;
   final String taxBreakdownJson;
+  final int? cashRegisterId;
+  final int locationId;
 
   Sale({
     this.id,
@@ -64,6 +67,8 @@ class Sale {
     this.commissionAmount = 0.0,
     this.taxGroupId,
     this.taxBreakdownJson = '',
+    this.cashRegisterId,
+    this.locationId = 1,
   }) : cashierName = cashierName ?? userName ?? 'Cashier';
 
   final String cashierName;
@@ -71,8 +76,7 @@ class Sale {
   double get dueAmount => totalAmount - paidAmount;
   bool get isQuotation => saleStatus == 'quotation';
   bool get isSalesOrder => saleStatus == 'sales_order';
-  bool get isPendingSalesOrder =>
-      isSalesOrder && orderStatus != 'completed';
+  bool get isPendingSalesOrder => isSalesOrder && orderStatus != 'completed';
   bool get isConvertedQuotation =>
       isQuotation && convertedToSaleId != null && convertedToSaleId! > 0;
 
@@ -84,7 +88,8 @@ class Sale {
         (k, v) => MapEntry(k, (v as num?)?.toDouble() ?? 0.0),
       );
     } catch (e, st) {
-      AppLogger.warning('Sale', 'Failed to parse tax_breakdown_json for $invoiceNo', e, st);
+      AppLogger.warning(
+          'Sale', 'Failed to parse tax_breakdown_json for $invoiceNo', e, st);
       return const {};
     }
   }
@@ -96,11 +101,13 @@ class Sale {
         'customer_name': customerName,
         'subtotal': subtotal,
         'discount': discount,
+        'discount_amount': discount,
         'tax_amount': taxAmount,
         'tax_rate': taxRate,
         'shipping': shipping,
         'total_amount': totalAmount,
         'paid_amount': paidAmount,
+        'due_amount': (totalAmount - paidAmount).clamp(0.0, double.infinity),
         'payment_method': paymentMethod,
         'payment_status': paymentStatus,
         'sale_status': saleStatus,
@@ -108,14 +115,15 @@ class Sale {
         'note': note,
         'created_at': createdAt,
         'user_name': userName ?? cashierName,
+        if (cashRegisterId != null) 'cash_register_id': cashRegisterId,
+        'location_id': locationId,
         if (convertedFromQuotationId != null)
           'converted_from_quotation_id': convertedFromQuotationId,
         if (convertedToSaleId != null)
           'converted_to_sale_id': convertedToSaleId,
         if (convertedFromOrderId != null)
           'converted_from_order_id': convertedFromOrderId,
-        if (commissionAgentId != null)
-          'commission_agent_id': commissionAgentId,
+        if (commissionAgentId != null) 'commission_agent_id': commissionAgentId,
         'commission_agent_name': commissionAgentName,
         'commission_percent': commissionPercent,
         'commission_amount': commissionAmount,
@@ -149,9 +157,12 @@ class Sale {
         convertedFromOrderId: map['converted_from_order_id'] as int?,
         commissionAgentId: map['commission_agent_id'] as int?,
         commissionAgentName: map['commission_agent_name'] as String? ?? '',
-        commissionPercent: (map['commission_percent'] as num?)?.toDouble() ?? 0.0,
+        commissionPercent:
+            (map['commission_percent'] as num?)?.toDouble() ?? 0.0,
         commissionAmount: (map['commission_amount'] as num?)?.toDouble() ?? 0.0,
         taxGroupId: map['tax_group_id'] as int?,
         taxBreakdownJson: map['tax_breakdown_json'] as String? ?? '',
+        cashRegisterId: map['cash_register_id'] as int?,
+        locationId: (map['location_id'] as int?) ?? 1,
       );
 }

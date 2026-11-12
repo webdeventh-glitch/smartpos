@@ -12,6 +12,8 @@ class Contact {
   final double loyaltyPoints;
   final int? customerGroupId;
   final String? customerGroupName;
+  final String taxNumber;
+  final bool isDefaultWalkIn;
 
   Contact({
     this.id,
@@ -26,6 +28,8 @@ class Contact {
     this.loyaltyPoints = 0.0,
     this.customerGroupId,
     this.customerGroupName,
+    this.taxNumber = '',
+    this.isDefaultWalkIn = false,
   });
 
   bool get isCustomer => type == 'customer';
@@ -43,6 +47,8 @@ class Contact {
         'credit_limit': creditLimit,
         'loyalty_points': loyaltyPoints,
         'customer_group_id': customerGroupId,
+        'tax_number': taxNumber,
+        'is_default_walk_in': isDefaultWalkIn ? 1 : 0,
       };
 
   factory Contact.fromMap(Map<String, dynamic> map) => Contact(
@@ -58,5 +64,7 @@ class Contact {
         loyaltyPoints: (map['loyalty_points'] as num?)?.toDouble() ?? 0.0,
         customerGroupId: map['customer_group_id'] as int?,
         customerGroupName: map['customer_group_name'] as String?,
+        taxNumber: map['tax_number'] as String? ?? '',
+        isDefaultWalkIn: (map['is_default_walk_in'] as int? ?? 0) == 1,
       );
 }

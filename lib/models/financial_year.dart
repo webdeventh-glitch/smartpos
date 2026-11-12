@@ -46,6 +46,8 @@ class FinancialYear {
         'total_expenses': totalExpenses,
         'net_profit': netProfit,
         'closing_stock_value': stockValuation,
+        'receivables': receivables,
+        'payables': payables,
         'carried_forward_balance': receivables - payables,
         'status': status,
         'notes': notes,

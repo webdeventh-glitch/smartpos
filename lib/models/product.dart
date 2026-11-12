@@ -28,6 +28,7 @@ class Product {
   final int? taxRateId;
   final int? taxGroupId;
   final bool isFeatured;
+  final String? rackLocation;
 
   Product({
     this.id,
@@ -56,6 +57,7 @@ class Product {
     this.taxRateId,
     this.taxGroupId,
     this.isFeatured = false,
+    this.rackLocation,
   });
 
   bool get isVariable => type == 'variable';
@@ -96,6 +98,7 @@ class Product {
         'tax_rate_id': taxRateId,
         'tax_group_id': taxGroupId,
         'is_featured': isFeatured ? 1 : 0,
+        if (rackLocation != null) 'rack_location': rackLocation,
       };
 
   factory Product.fromMap(Map<String, dynamic> map,
@@ -127,6 +130,7 @@ class Product {
         taxRateId: map['tax_rate_id'] as int?,
         taxGroupId: map['tax_group_id'] as int?,
         isFeatured: (map['is_featured'] as int? ?? 0) == 1,
+        rackLocation: map['rack_location'] as String?,
       );
 
   Product copyWith({
@@ -157,6 +161,7 @@ class Product {
     int? taxRateId,
     int? taxGroupId,
     bool? isFeatured,
+    String? rackLocation,
   }) =>
       Product(
         id: id ?? this.id,
@@ -185,5 +190,6 @@ class Product {
         taxRateId: taxRateId ?? this.taxRateId,
         taxGroupId: taxGroupId ?? this.taxGroupId,
         isFeatured: isFeatured ?? this.isFeatured,
+        rackLocation: rackLocation ?? this.rackLocation,
       );
 }

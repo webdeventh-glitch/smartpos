@@ -45,7 +45,8 @@ void main() {
     }
   });
 
-  test('v6 to v7 schema migration adds Phase 6 tables, columns, and indexes', () async {
+  test('v6 to v7 schema migration adds Phase 6 tables, columns, and indexes',
+      () async {
     final dbPath = p.join(tempDir.path, 'upgrade_v6_v7.db');
     final raw = await databaseFactoryFfi.openDatabase(
       dbPath,
@@ -62,10 +63,12 @@ void main() {
 
     final upgraded = await DatabaseService.initialize(customPath: dbPath);
     try {
-      expect(await upgraded.db.getVersion(), DatabaseService.currentSchemaVersion);
+      expect(
+          await upgraded.db.getVersion(), DatabaseService.currentSchemaVersion);
       final migrations =
           await upgraded.db.query('schema_migrations', orderBy: 'version ASC');
-      expect(migrations.map((m) => m['version']).toList(), [2, 3, 4, 5, 6, 7, 8]);
+      expect(migrations.map((m) => m['version']).toList(),
+          [2, 3, 4, 5, 6, 7, 8, 9]);
 
       final salesCols = (await upgraded.db.rawQuery('PRAGMA table_info(sales)'))
           .map((r) => r['name'])
@@ -80,7 +83,8 @@ void main() {
         isTrue,
       );
 
-      final txnCols = (await upgraded.db.rawQuery('PRAGMA table_info(payment_transactions)'))
+      final txnCols = (await upgraded.db
+              .rawQuery('PRAGMA table_info(payment_transactions)'))
           .map((r) => r['name'])
           .toSet();
       expect(
@@ -101,7 +105,9 @@ void main() {
     }
   });
 
-  test('Step 6.1: Sales Order workflow (ordered -> partial -> completed & stock sync)', () async {
+  test(
+      'Step 6.1: Sales Order workflow (ordered -> partial -> completed & stock sync)',
+      () async {
     final dbPath = p.join(tempDir.path, 'sales_orders.db');
     final db = await DatabaseService.initialize(customPath: dbPath);
     try {
@@ -118,7 +124,8 @@ void main() {
           stockQuantity: 20,
         ),
       );
-      final product = (await db.getProducts()).firstWhere((p) => p.id == prodId);
+      final product =
+          (await db.getProducts()).firstWhere((p) => p.id == prodId);
       final agentId = await db.addCommissionAgent(
         CommissionAgent(
           name: 'Ali Raza',
@@ -144,11 +151,15 @@ void main() {
           commissionPercent: 5.0,
           createdAt: DateTime.now().toIso8601String(),
         ),
-        items: [CartItem(product: product, unitPrice: product.sellingPrice, quantity: 10)],
+        items: [
+          CartItem(
+              product: product, unitPrice: product.sellingPrice, quantity: 10)
+        ],
       );
 
       // Stock must NOT be deducted while still a pending Sales Order
-      final afterOrderProd = (await db.getProducts()).firstWhere((p) => p.id == prodId);
+      final afterOrderProd =
+          (await db.getProducts()).firstWhere((p) => p.id == prodId);
       expect(afterOrderProd.stockQuantity, 20.0);
 
       final pendingBefore = await db.getPendingSalesOrdersSummary();
@@ -169,11 +180,13 @@ void main() {
       expect(partialInv.totalAmount, closeTo(8800.0, 0.01));
       expect(partialInv.commissionAmount, closeTo(440.0, 0.01));
 
-      final afterPartialStock =
-          (await db.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity;
+      final afterPartialStock = (await db.getProducts())
+          .firstWhere((p) => p.id == prodId)
+          .stockQuantity;
       expect(afterPartialStock, closeTo(16.0, 0.001));
 
-      final orderAfterPartial = (await db.getSales(status: 'sales_order')).first;
+      final orderAfterPartial =
+          (await db.getSales(status: 'sales_order')).first;
       expect(orderAfterPartial.orderStatus, 'partial');
 
       // Convert remaining 6 units -> completes Sales Order
@@ -184,7 +197,9 @@ void main() {
       );
       expect(finalInv.totalAmount, closeTo(13200.0, 0.01));
       expect(
-        (await db.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity,
+        (await db.getProducts())
+            .firstWhere((p) => p.id == prodId)
+            .stockQuantity,
         closeTo(10.0, 0.001),
       );
       final completedOrder = (await db.getSales(status: 'sales_order')).first;
@@ -197,12 +212,17 @@ void main() {
     }
   });
 
-  test('Step 6.2: Purchase Order partial and full receiving transitions status & stock', () async {
+  test(
+      'Step 6.2: Purchase Order partial and full receiving transitions status & stock',
+      () async {
     final dbPath = p.join(tempDir.path, 'purchase_orders.db');
     final db = await DatabaseService.initialize(customPath: dbPath);
     try {
       final supId = await db.addContact(
-        Contact(type: 'supplier', name: 'Global Foods Distributors', phone: '03210009988'),
+        Contact(
+            type: 'supplier',
+            name: 'Global Foods Distributors',
+            phone: '03210009988'),
       );
       final prodId = await db.addProduct(
         Product(
@@ -244,7 +264,11 @@ void main() {
       );
 
       // No stock added while PO is ordered
-      expect((await db.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 5.0);
+      expect(
+          (await db.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          5.0);
 
       // Receive 6 units partially
       await db.receivePurchaseOrderItems(
@@ -253,8 +277,13 @@ void main() {
         paidNow: 10000.0,
         paymentMethod: 'cash',
       );
-      expect((await db.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 11.0);
-      final poPartial = (await db.getPurchases()).firstWhere((p) => p.id == poId);
+      expect(
+          (await db.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          11.0);
+      final poPartial =
+          (await db.getPurchases()).firstWhere((p) => p.id == poId);
       expect(poPartial.status, 'partial');
 
       // Receive remaining 4 units -> PO becomes received
@@ -266,7 +295,11 @@ void main() {
         bankName: 'HBL',
         chequeDueDate: '2026-12-01',
       );
-      expect((await db.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 15.0);
+      expect(
+          (await db.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          15.0);
       final poDone = (await db.getPurchases()).firstWhere((p) => p.id == poId);
       expect(poDone.status, 'received');
 
@@ -277,7 +310,8 @@ void main() {
     }
   });
 
-  test('Step 6.3 & 6.4: Cheque clearance workflow & Commission Agent reporting', () async {
+  test('Step 6.3 & 6.4: Cheque clearance workflow & Commission Agent reporting',
+      () async {
     final dbPath = p.join(tempDir.path, 'cheques_commissions.db');
     final db = await DatabaseService.initialize(customPath: dbPath);
     try {
@@ -317,7 +351,9 @@ void main() {
           commissionAmount: 4000.0,
           createdAt: DateTime.now().toIso8601String(),
         ),
-        items: [CartItem(product: prod, unitPrice: prod.sellingPrice, quantity: 1)],
+        items: [
+          CartItem(product: prod, unitPrice: prod.sellingPrice, quantity: 1)
+        ],
         chequeNumber: 'CHQ-7712',
         bankName: 'Meezan Bank',
         chequeDueDate: '2020-01-15', // Past date -> Overdue!
@@ -353,7 +389,9 @@ void main() {
     }
   });
 
-  test('Step 6.5: Discount schedules evaluate Buy X Get Y, Quantity Break, and Time-Based rules', () async {
+  test(
+      'Step 6.5: Discount schedules evaluate Buy X Get Y, Quantity Break, and Time-Based rules',
+      () async {
     final dbPath = p.join(tempDir.path, 'discounts.db');
     final db = await DatabaseService.initialize(customPath: dbPath);
     try {
@@ -367,7 +405,8 @@ void main() {
         stockQuantity: 100,
       );
 
-      final mondayMidday = DateTime(2026, 11, 9, 15, 0); // Monday 15:00 (weekday = 1)
+      final mondayMidday =
+          DateTime(2026, 11, 9, 15, 0); // Monday 15:00 (weekday = 1)
       await db.addDiscountRule(
         DiscountRule(
           name: 'Happy Hour 10%',
@@ -430,7 +469,8 @@ void main() {
     }
   });
 
-  test('Step 6.6: Scheduled backup retention and due-interval execution', () async {
+  test('Step 6.6: Scheduled backup retention and due-interval execution',
+      () async {
     final dbPath = p.join(tempDir.path, 'sched_backup.db');
     final backupDir = Directory(p.join(tempDir.path, 'backups'));
     final db = await DatabaseService.initialize(customPath: dbPath);
@@ -445,7 +485,8 @@ void main() {
       await db.updateBusinessSettings(settings);
 
       final t1 = DateTime(2026, 11, 12, 8, 0);
-      final firstFile = await BackupUpdateService.instance.runScheduledBackupIfDue(
+      final firstFile =
+          await BackupUpdateService.instance.runScheduledBackupIfDue(
         settings: settings,
         db: db,
         targetDir: backupDir,
@@ -459,7 +500,8 @@ void main() {
       expect(savedAfterFirst.lastAutoBackupAt, t1.toIso8601String());
 
       // Too soon (2 hours later) -> should NOT create another backup
-      final tooSoon = await BackupUpdateService.instance.runScheduledBackupIfDue(
+      final tooSoon =
+          await BackupUpdateService.instance.runScheduledBackupIfDue(
         settings: savedAfterFirst,
         db: db,
         targetDir: backupDir,
@@ -484,7 +526,8 @@ void main() {
     }
   });
 
-  testWidgets('Phase 6 screens render cleanly without exceptions', (tester) async {
+  testWidgets('Phase 6 screens render cleanly without exceptions',
+      (tester) async {
     final dbPath = p.join(tempDir.path, 'ui_test.db');
     await tester.runAsync(() async {
       await DatabaseService.initialize(customPath: dbPath);

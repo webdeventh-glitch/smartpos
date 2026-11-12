@@ -12,8 +12,10 @@ void main() {
   });
 
   group('Comprehensive Enterprise Purchase Engine Tests', () {
-    test('1. Full purchase calculation, batch insertion & stock update', () async {
-      final db = await DatabaseService.initialize(customPath: inMemoryDatabasePath);
+    test('1. Full purchase calculation, batch insertion & stock update',
+        () async {
+      final db =
+          await DatabaseService.initialize(customPath: inMemoryDatabasePath);
 
       // Create a test product
       final prodId = await db.addProduct(Product(
@@ -84,7 +86,8 @@ void main() {
         paymentAccountId: accId,
       );
 
-      final purchaseId = await db.createPurchase(purchase: purchase, items: items);
+      final purchaseId =
+          await db.createPurchase(purchase: purchase, items: items);
       expect(purchaseId, greaterThan(0));
 
       // Verify product stock increased by 5 (10 + 5 = 15) and purchase price updated
@@ -97,7 +100,8 @@ void main() {
       // Verify batch record was automatically inserted into product_serials_batches
       final batches = await db.getActiveBatchesForProduct(prodId);
       expect(batches.isNotEmpty, isTrue);
-      final testBatch = batches.firstWhere((b) => b.batchNumber == 'BAT-2026-X');
+      final testBatch =
+          batches.firstWhere((b) => b.batchNumber == 'BAT-2026-X');
       expect(testBatch.purchaseId, purchaseId);
       expect(testBatch.status, 'in_stock');
       expect(testBatch.expiryDate, '2028-12-31');
@@ -114,7 +118,8 @@ void main() {
       expect(updatedAcc.currentBalance, 9500.0);
 
       // Verify supplier ledger reflects bill credit and payment debit
-      final ledger = await db.getContactLedger(contactId: supId, contactType: 'supplier');
+      final ledger =
+          await db.getContactLedger(contactId: supId, contactType: 'supplier');
       final entries = ledger['entries'] as List<LedgerEntry>;
       expect(entries.any((e) => e.refNo == 'PO-TEST-001'), isTrue);
 
@@ -132,11 +137,14 @@ void main() {
 
       // Account balance restored back to 10000.0
       final accountsAfterDelete = await db.getPaymentAccounts();
-      final accAfterDelete = accountsAfterDelete.firstWhere((a) => a.id == accId);
+      final accAfterDelete =
+          accountsAfterDelete.firstWhere((a) => a.id == accId);
       expect(accAfterDelete.currentBalance, 10000.0);
     });
 
-    testWidgets('2. AddPurchaseScreen renders full-page layout, cards and enterprise controls', (tester) async {
+    testWidgets(
+        '2. AddPurchaseScreen renders full-page layout, cards and enterprise controls',
+        (tester) async {
       await tester.binding.setSurfaceSize(const Size(1400, 900));
 
       final settings = BusinessSettings(
@@ -161,7 +169,13 @@ void main() {
       });
 
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      for (int i = 0; i < 25; i++) {
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        });
+        await tester.pump();
+        if (find.text('Add Purchase').evaluate().isNotEmpty) break;
+      }
 
       // Verify title & subtitles
       expect(find.text('Add Purchase'), findsOneWidget);

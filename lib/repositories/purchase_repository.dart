@@ -143,7 +143,9 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
         if (productId != null) {
           if (isReceived) {
             if (variationId != null) {
-              if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+              if (unitCost != null &&
+                  sellingPrice != null &&
+                  sellingPrice > 0) {
                 await txn.rawUpdate(
                   'UPDATE variations SET purchase_price = ?, selling_price = ? WHERE id = ?',
                   [unitCost, sellingPrice, variationId],
@@ -155,7 +157,9 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
                 );
               }
             } else {
-              if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+              if (unitCost != null &&
+                  sellingPrice != null &&
+                  sellingPrice > 0) {
                 await txn.rawUpdate(
                   'UPDATE products SET purchase_price = ?, selling_price = ? WHERE id = ?',
                   [unitCost, sellingPrice, productId],
@@ -328,7 +332,9 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
 
           if (productId != null) {
             if (variationId != null) {
-              if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+              if (unitCost != null &&
+                  sellingPrice != null &&
+                  sellingPrice > 0) {
                 await txn.rawUpdate(
                   'UPDATE variations SET purchase_price = ?, selling_price = ? WHERE id = ?',
                   [unitCost, sellingPrice, variationId],
@@ -340,7 +346,9 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
                 );
               }
             } else {
-              if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+              if (unitCost != null &&
+                  sellingPrice != null &&
+                  sellingPrice > 0) {
                 await txn.rawUpdate(
                   'UPDATE products SET purchase_price = ?, selling_price = ? WHERE id = ?',
                   [unitCost, sellingPrice, productId],
@@ -562,7 +570,9 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
       baseConditions.add('status = ?');
       baseArgs.add(status);
     }
-    if (paymentStatus != null && paymentStatus.isNotEmpty && paymentStatus != 'all') {
+    if (paymentStatus != null &&
+        paymentStatus.isNotEmpty &&
+        paymentStatus != 'all') {
       baseConditions.add('payment_status = ?');
       baseArgs.add(paymentStatus);
     }
@@ -594,8 +604,9 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
 
     int totalCount = 0;
     if (includeTotalCount) {
-      final baseWhere =
-          baseConditions.isNotEmpty ? 'WHERE ${baseConditions.join(' AND ')}' : '';
+      final baseWhere = baseConditions.isNotEmpty
+          ? 'WHERE ${baseConditions.join(' AND ')}'
+          : '';
       final countRows = await db.rawQuery(
         'SELECT COUNT(*) AS total FROM purchases $baseWhere',
         baseArgs,
@@ -670,9 +681,12 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
         'supplier_name': pr.supplierName,
         'total_amount': pr.totalAmount,
         'refund_amount': pr.refundAmount,
-        'refund_method': 'cash',
+        'refund_method': pr.note.toLowerCase().contains('credit_note')
+            ? 'credit_note'
+            : 'cash',
         'status': pr.status,
         'date': pr.date,
+        'reason': pr.reason,
         'note': pr.note.isNotEmpty ? pr.note : pr.reason,
         'items_json': jsonEncode(pr.items.map((i) => i.toMap()).toList()),
       };
@@ -689,8 +703,11 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
         );
       }
 
-      // Deduct payable to supplier
-      if (pr.supplierId != null && pr.refundAmount > 0) {
+      // Reduce supplier payable only on credit-note/payable adjustment (not cash refund)
+      final method = (map['refund_method'] as String? ?? 'cash').toLowerCase();
+      if (pr.supplierId != null &&
+          pr.refundAmount > 0 &&
+          method == 'credit_note') {
         await txn.rawUpdate(
           'UPDATE contacts SET balance = balance - ? WHERE id = ?',
           [pr.refundAmount, pr.supplierId],
@@ -708,7 +725,8 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
     return 'PO-ORD-${maxId + 1}';
   }
 
-  Future<Map<String, dynamic>> getPendingPurchaseOrdersSummary({int limit = 5}) async {
+  Future<Map<String, dynamic>> getPendingPurchaseOrdersSummary(
+      {int limit = 5}) async {
     final rows = await db.query(
       'purchases',
       where: "is_purchase_order = 1 AND status != 'received'",
@@ -748,7 +766,8 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
       if (rows.isEmpty) throw Exception('Purchase Order #$poId not found');
       final po = Purchase.fromMap(rows.first);
       if (po.status == 'received') {
-        throw Exception('Purchase Order ${po.refNo} is already fully received.');
+        throw Exception(
+            'Purchase Order ${po.refNo} is already fully received.');
       }
 
       final poItems = po.getItems();
@@ -764,7 +783,8 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
         final orderedQty = (line['quantity'] as num?)?.toDouble() ?? 0.0;
         final alreadyReceived =
             (line['received_quantity'] as num?)?.toDouble() ?? 0.0;
-        final remaining = (orderedQty - alreadyReceived).clamp(0.0, double.infinity);
+        final remaining =
+            (orderedQty - alreadyReceived).clamp(0.0, double.infinity);
         if (remaining <= 0) continue;
 
         final req = receiveQtyByLineIndex != null
@@ -844,7 +864,8 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
         whereArgs: [poId],
       );
 
-      final maxRows = await txn.rawQuery('SELECT MAX(id) as max_id FROM purchases');
+      final maxRows =
+          await txn.rawQuery('SELECT MAX(id) as max_id FROM purchases');
       final maxId = (maxRows.first['max_id'] as int?) ?? 100;
       final nowStr = DateTime.now().toIso8601String();
       final effectiveRef = supplierInvoiceRef.trim().isNotEmpty

@@ -32,7 +32,8 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
         _members = rows.map((r) => Map<String, dynamic>.from(r)).toList();
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.warning('GymFitnessScreen', 'Failed loading members', e, st);
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -45,7 +46,8 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
       await db.updateGymMember(id, {
         'status': 'Active',
         'days_left': 30,
-        'expiry_date': '30 Days Added (${DateTime.now().add(const Duration(days: 30)).toString().substring(0, 10)})',
+        'expiry_date':
+            '30 Days Added (${DateTime.now().add(const Duration(days: 30)).toString().substring(0, 10)})',
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -57,7 +59,8 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
       }
       _loadMembers();
     } catch (e, st) {
-      AppLogger.error('GymFitness', 'Failed renewing membership for ${m['name']}', e, st);
+      AppLogger.error(
+          'GymFitness', 'Failed renewing membership for ${m['name']}', e, st);
       if (mounted) {
         await AppErrorHandler.showErrorDialog(
           context,
@@ -76,11 +79,16 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Member'),
-        content: Text('Are you sure you want to remove "$name" from membership?'),
+        content:
+            Text('Are you sure you want to remove "$name" from membership?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -122,47 +130,67 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
               children: [
                 TextField(
                   controller: nameCtrl,
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
                     labelText: 'Member Full Name*',
-                    labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    labelStyle: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: phoneCtrl,
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
                     labelText: 'Mobile Phone Number*',
-                    labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    labelStyle: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: lockerCtrl,
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
                     labelText: 'Assigned Locker (e.g. L-15)',
-                    labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    labelStyle: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: trainerCtrl,
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
                     labelText: 'Assigned Trainer',
-                    labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    labelStyle: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: feeCtrl,
                   keyboardType: TextInputType.number,
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
                     labelText: 'Membership Fee Amount',
-                    labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    labelStyle: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                   ),
                 ),
               ],
@@ -171,10 +199,16 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+              child: Text('Cancel',
+                  style: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B))),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEF4444),
+                  foregroundColor: Colors.white),
               onPressed: () async {
                 if (nameCtrl.text.trim().isNotEmpty) {
                   final db = await DatabaseService.initialize();
@@ -184,9 +218,16 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                     'phone': phoneCtrl.text.trim(),
                     'plan': plan,
                     'fee': double.tryParse(feeCtrl.text.trim()) ?? 4000.0,
-                    'locker': lockerCtrl.text.trim().isEmpty ? 'None' : lockerCtrl.text.trim(),
-                    'trainer': trainerCtrl.text.trim().isEmpty ? 'General Floor' : trainerCtrl.text.trim(),
-                    'expiry_date': DateTime.now().add(const Duration(days: 30)).toString().substring(0, 10),
+                    'locker': lockerCtrl.text.trim().isEmpty
+                        ? 'None'
+                        : lockerCtrl.text.trim(),
+                    'trainer': trainerCtrl.text.trim().isEmpty
+                        ? 'General Floor'
+                        : trainerCtrl.text.trim(),
+                    'expiry_date': DateTime.now()
+                        .add(const Duration(days: 30))
+                        .toString()
+                        .substring(0, 10),
                     'days_left': 30,
                     'status': 'Active',
                     'created_at': DateTime.now().toIso8601String(),
@@ -209,13 +250,15 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
     final currency = widget.settings.currencySymbol;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         elevation: 1,
         title: Row(
           children: [
-            const Icon(Icons.fitness_center_rounded, color: Color(0xFFEF4444), size: 22),
+            const Icon(Icons.fitness_center_rounded,
+                color: Color(0xFFEF4444), size: 22),
             const SizedBox(width: 10),
             Text(
               'Gym & Fitness Club Membership Tracker',
@@ -236,7 +279,9 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEF4444),
+                  foregroundColor: Colors.white),
               onPressed: _showAddMemberModal,
               icon: const Icon(Icons.person_add, size: 16),
               label: const Text('Add Member'),
@@ -254,7 +299,12 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                   // Filter Pills
                   Row(
                     children: [
-                      for (final f in ['All', 'Active', 'Expiring Soon', 'Expired'])
+                      for (final f in [
+                        'All',
+                        'Active',
+                        'Expiring Soon',
+                        'Expired'
+                      ])
                         Padding(
                           padding: const EdgeInsets.only(right: 10),
                           child: ChoiceChip(
@@ -262,7 +312,11 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                             selected: _filter == f,
                             selectedColor: const Color(0xFFEF4444),
                             labelStyle: TextStyle(
-                              color: _filter == f ? Colors.white : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                              color: _filter == f
+                                  ? Colors.white
+                                  : (isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A)),
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -283,9 +337,16 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0)),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+                        BoxShadow(
+                            color: Colors.black
+                                .withValues(alpha: isDark ? 0.2 : 0.02),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2)),
                       ],
                     ),
                     child: Column(
@@ -300,18 +361,26 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A),
                                 ),
                               ),
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                      color: const Color(0xFF10B981)
+                                          .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: const Text('SQLite Synced', style: TextStyle(fontSize: 11, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
+                                    child: const Text('SQLite Synced',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF10B981),
+                                            fontWeight: FontWeight.bold)),
                                   ),
                                 ],
                               ),
@@ -325,9 +394,18 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                             child: Center(
                               child: Column(
                                 children: [
-                                  Icon(Icons.fitness_center_outlined, size: 48, color: isDark ? Colors.white24 : Colors.black26),
+                                  Icon(Icons.fitness_center_outlined,
+                                      size: 48,
+                                      color: isDark
+                                          ? Colors.white24
+                                          : Colors.black26),
                                   const SizedBox(height: 12),
-                                  Text('No gym members found for filter: $_filter', style: TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
+                                  Text(
+                                      'No gym members found for filter: $_filter',
+                                      style: TextStyle(
+                                          color: isDark
+                                              ? Colors.white60
+                                              : Colors.black54)),
                                 ],
                               ),
                             ),
@@ -336,25 +414,77 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: DataTable(
-                              headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                              headingRowColor: WidgetStateProperty.all(isDark
+                                  ? const Color(0xFF0F172A)
+                                  : const Color(0xFFF8FAFC)),
                               columns: [
-                                DataColumn(label: Text('MEMBER', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
-                                DataColumn(label: Text('MEMBERSHIP PLAN', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
-                                DataColumn(label: Text('FEE / RATE', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
-                                DataColumn(label: Text('LOCKER / TRAINER', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
-                                DataColumn(label: Text('EXPIRY DATE', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
-                                DataColumn(label: Text('STATUS', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
-                                DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
+                                DataColumn(
+                                    label: Text('MEMBER',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF475569)))),
+                                DataColumn(
+                                    label: Text('MEMBERSHIP PLAN',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF475569)))),
+                                DataColumn(
+                                    label: Text('FEE / RATE',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF475569)))),
+                                DataColumn(
+                                    label: Text('LOCKER / TRAINER',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF475569)))),
+                                DataColumn(
+                                    label: Text('EXPIRY DATE',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF475569)))),
+                                DataColumn(
+                                    label: Text('STATUS',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF475569)))),
+                                DataColumn(
+                                    label: Text('ACTIONS',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF475569)))),
                               ],
                               rows: _members.map((m) {
-                                final status = m['status']?.toString() ?? 'Active';
+                                final status =
+                                    m['status']?.toString() ?? 'Active';
                                 Color statusColor = const Color(0xFF10B981);
-                                if (status == 'Expiring Soon') statusColor = const Color(0xFFF59E0B);
-                                if (status == 'Expired') statusColor = const Color(0xFFEF4444);
+                                if (status == 'Expiring Soon')
+                                  statusColor = const Color(0xFFF59E0B);
+                                if (status == 'Expired')
+                                  statusColor = const Color(0xFFEF4444);
 
-                                final feeVal = (m['fee'] is num) ? (m['fee'] as num).toDouble() : 0.0;
-                                final nameVal = m['name']?.toString() ?? 'Member';
-                                final memberCode = m['member_id']?.toString() ?? m['id']?.toString() ?? 'GYM';
+                                final feeVal = (m['fee'] is num)
+                                    ? (m['fee'] as num).toDouble()
+                                    : 0.0;
+                                final nameVal =
+                                    m['name']?.toString() ?? 'Member';
+                                final memberCode = m['member_id']?.toString() ??
+                                    m['id']?.toString() ??
+                                    'GYM';
 
                                 return DataRow(
                                   cells: [
@@ -363,61 +493,147 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                                         children: [
                                           CircleAvatar(
                                             radius: 16,
-                                            backgroundColor: const Color(0xFFEF4444).withValues(alpha: 0.15),
+                                            backgroundColor:
+                                                const Color(0xFFEF4444)
+                                                    .withValues(alpha: 0.15),
                                             child: Text(
-                                              nameVal.isNotEmpty ? nameVal.substring(0, 1) : 'M',
-                                              style: const TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold),
+                                              nameVal.isNotEmpty
+                                                  ? nameVal.substring(0, 1)
+                                                  : 'M',
+                                              style: const TextStyle(
+                                                  color: Color(0xFFEF4444),
+                                                  fontWeight: FontWeight.bold),
                                             ),
                                           ),
                                           const SizedBox(width: 10),
                                           Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
-                                              Text(nameVal, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                                              Text('$memberCode • ${m['phone'] ?? ''}', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                                              Text(nameVal,
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: isDark
+                                                          ? Colors.white
+                                                          : const Color(
+                                                              0xFF0F172A))),
+                                              Text(
+                                                  '$memberCode • ${m['phone'] ?? ''}',
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF94A3B8)
+                                                          : const Color(
+                                                              0xFF64748B))),
                                             ],
                                           ),
                                         ],
                                       ),
                                     ),
-                                    DataCell(Text(m['plan']?.toString() ?? 'Standard', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)))),
-                                    DataCell(Text('$currency${feeVal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981)))),
-                                    DataCell(Text('${m['locker'] ?? 'None'} | ${m['trainer'] ?? 'General'}', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)))),
-                                    DataCell(Text(m['expiry_date']?.toString() ?? m['expiry']?.toString() ?? 'Active', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)))),
+                                    DataCell(Text(
+                                        m['plan']?.toString() ?? 'Standard',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: isDark
+                                                ? const Color(0xFFCBD5E1)
+                                                : const Color(0xFF334155)))),
+                                    DataCell(Text(
+                                        '$currency${feeVal.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF10B981)))),
+                                    DataCell(Text(
+                                        '${m['locker'] ?? 'None'} | ${m['trainer'] ?? 'General'}',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF64748B)))),
+                                    DataCell(Text(
+                                        m['expiry_date']?.toString() ??
+                                            m['expiry']?.toString() ??
+                                            'Active',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: isDark
+                                                ? const Color(0xFFCBD5E1)
+                                                : const Color(0xFF334155)))),
                                     DataCell(
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: statusColor.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(6),
+                                          color: statusColor.withValues(
+                                              alpha: 0.15),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
                                         ),
-                                        child: Text(status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
+                                        child: Text(status,
+                                            style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: statusColor)),
                                       ),
                                     ),
                                     DataCell(
                                       Row(
                                         children: [
                                           IconButton(
-                                            icon: const Icon(Icons.how_to_reg, size: 18, color: Color(0xFF10B981)),
+                                            icon: const Icon(Icons.how_to_reg,
+                                                size: 18,
+                                                color: Color(0xFF10B981)),
                                             tooltip: 'Mark Attendance Check-In',
-                                            onPressed: () {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Attendance recorded for $nameVal')),
+                                            onPressed: () async {
+                                              final db = await DatabaseService
+                                                  .initialize();
+                                              await db.saveModuleRecord(
+                                                moduleKey: 'gym',
+                                                recordType: 'attendance',
+                                                title: nameVal,
+                                                status: 'checked_in',
+                                                data: {
+                                                  'memberId': m['id'],
+                                                  'name': nameVal,
+                                                  'time': DateTime.now()
+                                                      .toIso8601String(),
+                                                },
+                                              );
+                                              if (!mounted) return;
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                      'Attendance saved to database for $nameVal'),
+                                                  backgroundColor:
+                                                      const Color(0xFF10B981),
+                                                ),
                                               );
                                             },
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.autorenew_rounded, size: 18, color: Color(0xFF3B82F6)),
-                                            tooltip: 'Renew Membership (+30 Days)',
-                                            onPressed: () => _renewMembership(m),
+                                            icon: const Icon(
+                                                Icons.autorenew_rounded,
+                                                size: 18,
+                                                color: Color(0xFF3B82F6)),
+                                            tooltip:
+                                                'Renew Membership (+30 Days)',
+                                            onPressed: () =>
+                                                _renewMembership(m),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
+                                            icon: const Icon(
+                                                Icons.delete_outline_rounded,
+                                                size: 18,
+                                                color: Color(0xFFEF4444)),
                                             tooltip: 'Delete Member',
                                             onPressed: () {
                                               if (m['id'] is int) {
-                                                _deleteMember(m['id'] as int, nameVal);
+                                                _deleteMember(
+                                                    m['id'] as int, nameVal);
                                               }
                                             },
                                           ),

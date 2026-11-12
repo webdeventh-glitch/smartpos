@@ -71,38 +71,54 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
             children: [
               TextField(
                 controller: roomNoCtrl,
-                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
                   labelText: 'Room Number (e.g. 301)*',
-                  labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  labelStyle: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B)),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: typeCtrl,
-                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
                   labelText: 'Room Category / Type',
-                  labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  labelStyle: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B)),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: floorCtrl,
-                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
                   labelText: 'Floor Location (e.g. 3rd Floor)',
-                  labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  labelStyle: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B)),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: rateCtrl,
                 keyboardType: TextInputType.number,
-                style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
                   labelText: 'Nightly Rate (${widget.settings.currencySymbol})',
-                  labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  labelStyle: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B)),
                 ),
               ),
             ],
@@ -110,10 +126,16 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+              child: Text('Cancel',
+                  style: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B))),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3B82F6),
+                  foregroundColor: Colors.white),
               onPressed: () async {
                 if (roomNoCtrl.text.trim().isNotEmpty) {
                   final db = await DatabaseService.initialize();
@@ -152,45 +174,64 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          title: Text('Check-In Room ${room['room']}', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.bold)),
+          title: Text('Check-In Room ${room['room']}',
+              style: TextStyle(
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: guestCtrl,
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
                     labelText: 'Primary Guest Full Name*',
-                    labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    labelStyle: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: cnicCtrl,
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
                     labelText: 'CNIC / National ID / Passport No.*',
-                    labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    labelStyle: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: phoneCtrl,
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
                     labelText: 'Mobile Phone Number',
-                    labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    labelStyle: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: nightsCtrl,
                   keyboardType: TextInputType.number,
-                  style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
                     labelText: 'Number of Nights Stay',
-                    labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    labelStyle: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                   ),
                 ),
               ],
@@ -199,16 +240,23 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+              child: Text('Cancel',
+                  style: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B))),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3B82F6),
+                  foregroundColor: Colors.white),
               onPressed: () async {
                 if (guestCtrl.text.trim().isNotEmpty && room['id'] != null) {
                   final db = await DatabaseService.initialize();
                   await db.updateHotelRoom(room['id'] as int, {
                     'status': 'occupied',
-                    'guest': '${guestCtrl.text.trim()} (CNIC: ${cnicCtrl.text.trim()})',
+                    'guest':
+                        '${guestCtrl.text.trim()} (CNIC: ${cnicCtrl.text.trim()})',
                     'nights': int.tryParse(nightsCtrl.text) ?? 1,
                     'check_in': 'Today',
                     'room_service': 0.0,
@@ -228,7 +276,104 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
   Future<void> _checkOut(Map<String, dynamic> room) async {
     final id = room['id'] as int?;
     if (id == null) return;
+    final rate = (room['rate'] is num) ? (room['rate'] as num).toDouble() : 0.0;
+    final nights =
+        (room['nights'] is num) ? (room['nights'] as num).toInt() : 1;
+    final roomService = (room['room_service'] is num)
+        ? (room['room_service'] as num).toDouble()
+        : 0.0;
+    final roomRent = rate * (nights > 0 ? nights : 1);
+    final totalBill = roomRent + roomService;
+    final currency = widget.settings.currencySymbol;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Room ${room['room']} Checkout'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Guest: ${room['guest'] ?? 'Guest'}'),
+            const SizedBox(height: 8),
+            Text(
+                'Room Stay ($nights nights x $currency${rate.toStringAsFixed(0)}): $currency${roomRent.toStringAsFixed(2)}'),
+            Text(
+                'Room Service Charges: $currency${roomService.toStringAsFixed(2)}'),
+            const Divider(),
+            Text(
+                'Final Invoice Total: $currency${totalBill.toStringAsFixed(2)}',
+                style:
+                    const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Settle Bill & Check Out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     final db = await DatabaseService.initialize();
+    if (totalBill > 0) {
+      final invNo = await db.generateNextInvoiceNo();
+      final nowStr = DateTime.now().toString().substring(0, 19);
+      await db.createSale(
+        sale: Sale(
+          invoiceNo: invNo,
+          customerName: (room['guest'] as String? ?? 'Hotel Guest')
+              .split('(')
+              .first
+              .trim(),
+          subtotal: totalBill,
+          totalAmount: totalBill,
+          paidAmount: totalBill,
+          paymentMethod: 'cash',
+          paymentStatus: 'paid',
+          saleStatus: 'final',
+          note: 'Hotel Checkout • Room ${room['room']} ($nights nights)',
+          createdAt: nowStr,
+        ),
+        items: [
+          CartItem(
+            product: Product(
+              name: 'Room ${room['room']} Stay ($nights nights)',
+              sku: 'ROOM-${room['room']}',
+              barcode: 'ROOM-${room['room']}',
+              purchasePrice: 0,
+              sellingPrice: roomRent,
+              stockQuantity: 1,
+            ),
+            quantity: 1,
+            unitPrice: roomRent,
+          ),
+          if (roomService > 0)
+            CartItem(
+              product: Product(
+                name: 'Room Service Charges (${room['room']})',
+                sku: 'RS-${room['room']}',
+                barcode: 'RS-${room['room']}',
+                purchasePrice: 0,
+                sellingPrice: roomService,
+                stockQuantity: 1,
+              ),
+              quantity: 1,
+              unitPrice: roomService,
+            ),
+        ],
+        enforceStock: false,
+      );
+    }
+
     await db.updateHotelRoom(id, {
       'status': 'cleaning',
       'guest': '',
@@ -238,7 +383,11 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
     });
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Room ${room['room']} checked out. Marked for housekeeping/cleaning.')),
+        SnackBar(
+          content: Text(
+              'Room ${room['room']} billed ($currency${totalBill.toStringAsFixed(0)}) & marked for housekeeping.'),
+          backgroundColor: const Color(0xFF10B981),
+        ),
       );
     }
     _loadRooms();
@@ -257,14 +406,57 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
   Future<void> _addServiceCharge(Map<String, dynamic> room) async {
     final id = room['id'] as int?;
     if (id == null) return;
-    final current = (room['room_service'] is num) ? (room['room_service'] as num).toDouble() : 0.0;
+    final amountCtrl = TextEditingController(text: '500');
+    final descCtrl = TextEditingController(text: 'Room Service / Laundry');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Add Service Charge • Room ${room['room']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+                controller: descCtrl,
+                decoration:
+                    const InputDecoration(labelText: 'Service Description')),
+            const SizedBox(height: 10),
+            TextField(
+              controller: amountCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                  labelText:
+                      'Charge Amount (${widget.settings.currencySymbol})'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Add Charge')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final charge = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+    if (charge <= 0) return;
+    final current = (room['room_service'] is num)
+        ? (room['room_service'] as num).toDouble()
+        : 0.0;
     final db = await DatabaseService.initialize();
     await db.updateHotelRoom(id, {
-      'room_service': current + 500.0,
+      'room_service': current + charge,
     });
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Room service order of Rs 500 added to Room ${room['room']}')),
+        SnackBar(
+          content: Text(
+              '${descCtrl.text.trim()} (${widget.settings.currencySymbol}${charge.toStringAsFixed(0)}) added to Room ${room['room']}'),
+          backgroundColor: const Color(0xFF10B981),
+        ),
       );
     }
     _loadRooms();
@@ -277,11 +469,13 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
 
     final totalRooms = _rooms.length;
     final occupiedRooms = _rooms.where((r) => r['status'] == 'occupied').length;
-    final availableRooms = _rooms.where((r) => r['status'] == 'available').length;
+    final availableRooms =
+        _rooms.where((r) => r['status'] == 'available').length;
     final cleaningRooms = _rooms.where((r) => r['status'] == 'cleaning').length;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         elevation: 1,
@@ -308,7 +502,9 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3B82F6),
+                  foregroundColor: Colors.white),
               onPressed: _showAddRoomModal,
               icon: const Icon(Icons.add_home_work_rounded, size: 16),
               label: const Text('Add Room'),
@@ -326,13 +522,17 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   // Status Metric Badges
                   Row(
                     children: [
-                      _metric('Total Rooms', '$totalRooms', const Color(0xFF6366F1), isDark),
+                      _metric('Total Rooms', '$totalRooms',
+                          const Color(0xFF6366F1), isDark),
                       const SizedBox(width: 14),
-                      _metric('Occupied Rooms', '$occupiedRooms', const Color(0xFF3B82F6), isDark),
+                      _metric('Occupied Rooms', '$occupiedRooms',
+                          const Color(0xFF3B82F6), isDark),
                       const SizedBox(width: 14),
-                      _metric('Available Rooms', '$availableRooms', const Color(0xFF10B981), isDark),
+                      _metric('Available Rooms', '$availableRooms',
+                          const Color(0xFF10B981), isDark),
                       const SizedBox(width: 14),
-                      _metric('Cleaning / Maint.', '$cleaningRooms', const Color(0xFFF59E0B), isDark),
+                      _metric('Cleaning / Maint.', '$cleaningRooms',
+                          const Color(0xFFF59E0B), isDark),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -341,7 +541,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 4,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
@@ -352,22 +553,37 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                       final r = _rooms[idx];
                       final status = r['status']?.toString() ?? 'available';
                       Color statusColor = const Color(0xFF10B981);
-                      if (status == 'occupied') statusColor = const Color(0xFF3B82F6);
-                      if (status == 'cleaning') statusColor = const Color(0xFFF59E0B);
+                      if (status == 'occupied')
+                        statusColor = const Color(0xFF3B82F6);
+                      if (status == 'cleaning')
+                        statusColor = const Color(0xFFF59E0B);
 
-                      final rateVal = (r['rate'] is num) ? (r['rate'] as num).toDouble() : 0.0;
-                      final nightsVal = (r['nights'] is num) ? (r['nights'] as num).toInt() : 0;
-                      final roomServiceVal = (r['room_service'] is num) ? (r['room_service'] as num).toDouble() : 0.0;
+                      final rateVal = (r['rate'] is num)
+                          ? (r['rate'] as num).toDouble()
+                          : 0.0;
+                      final nightsVal = (r['nights'] is num)
+                          ? (r['nights'] as num).toInt()
+                          : 0;
+                      final roomServiceVal = (r['room_service'] is num)
+                          ? (r['room_service'] as num).toDouble()
+                          : 0.0;
                       final totalBill = (rateVal * nightsVal) + roomServiceVal;
 
                       return Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          color:
+                              isDark ? const Color(0xFF1E293B) : Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: statusColor.withValues(alpha: 0.6), width: 2),
+                          border: Border.all(
+                              color: statusColor.withValues(alpha: 0.6),
+                              width: 2),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+                            BoxShadow(
+                                color: Colors.black
+                                    .withValues(alpha: isDark ? 0.2 : 0.02),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2)),
                           ],
                         ),
                         child: Column(
@@ -381,48 +597,84 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                                   children: [
                                     Text(
                                       'Room ${r['room']}',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w900,
+                                          color: isDark
+                                              ? Colors.white
+                                              : const Color(0xFF0F172A)),
                                     ),
                                     const SizedBox(width: 8),
-                                    Text('(${r['type'] ?? ''})', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                                    Text('(${r['type'] ?? ''})',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF64748B))),
                                   ],
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: statusColor.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     status.toUpperCase(),
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor),
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: statusColor),
                                   ),
                                 ),
                               ],
                             ),
                             Text(
                               'Floor: ${r['floor'] ?? '1st Floor'} • Rate: $currency${rateVal.toStringAsFixed(0)} / night',
-                              style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B)),
                             ),
                             if (status == 'occupied') ...[
                               Text(
                                 'Guest: ${r['guest'] ?? 'Guest'}',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF0F172A)),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
                                 'Stay: $nightsVal Nights • Service: $currency${roomServiceVal.toStringAsFixed(0)}',
-                                style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B)),
                               ),
                               Text(
                                 'Total Bill: $currency${totalBill.toStringAsFixed(0)}',
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF3B82F6)),
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF3B82F6)),
                               ),
                             ] else ...[
                               Text(
-                                status == 'cleaning' ? 'Room is undergoing sanitization' : 'Ready for guest check-in (SQLite Saved)',
-                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                status == 'cleaning'
+                                    ? 'Room is undergoing sanitization'
+                                    : 'Ready for guest check-in (SQLite Saved)',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B)),
                               ),
                             ],
                             Row(
@@ -433,30 +685,40 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF3B82F6),
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 6),
                                       visualDensity: VisualDensity.compact,
                                     ),
                                     onPressed: () => _showCheckInModal(r),
-                                    child: const Text('Check-In', style: TextStyle(fontSize: 11)),
+                                    child: const Text('Check-In',
+                                        style: TextStyle(fontSize: 11)),
                                   )
                                 else if (status == 'occupied')
                                   Row(
                                     children: [
                                       OutlinedButton(
-                                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), visualDensity: VisualDensity.compact),
+                                        style: OutlinedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 6),
+                                            visualDensity:
+                                                VisualDensity.compact),
                                         onPressed: () => _addServiceCharge(r),
-                                        child: const Text('+ Service', style: TextStyle(fontSize: 11)),
+                                        child: const Text('+ Service',
+                                            style: TextStyle(fontSize: 11)),
                                       ),
                                       const SizedBox(width: 6),
                                       ElevatedButton(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF10B981),
+                                          backgroundColor:
+                                              const Color(0xFF10B981),
                                           foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 6),
                                           visualDensity: VisualDensity.compact,
                                         ),
                                         onPressed: () => _checkOut(r),
-                                        child: const Text('Check-Out', style: TextStyle(fontSize: 11)),
+                                        child: const Text('Check-Out',
+                                            style: TextStyle(fontSize: 11)),
                                       ),
                                     ],
                                   )
@@ -465,11 +727,13 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF10B981),
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 6),
                                       visualDensity: VisualDensity.compact,
                                     ),
                                     onPressed: () => _markAvailable(r),
-                                    child: const Text('Mark Available', style: TextStyle(fontSize: 11)),
+                                    child: const Text('Mark Available',
+                                        style: TextStyle(fontSize: 11)),
                                   ),
                               ],
                             ),
@@ -491,14 +755,24 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          border: Border.all(
+              color:
+                  isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w600)),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            Text(val, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+            Text(val,
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w900, color: color)),
           ],
         ),
       ),

@@ -17,7 +17,8 @@ class AccountingRepository extends BaseRepository {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final contactRows = await db.query('contacts', where: 'id = ?', whereArgs: [contactId], limit: 1);
+    final contactRows = await db.query('contacts',
+        where: 'id = ?', whereArgs: [contactId], limit: 1);
     if (contactRows.isEmpty) {
       return {
         'contact': null,
@@ -52,7 +53,8 @@ class AccountingRepository extends BaseRepository {
           'date': dateStr,
           'type': 'sale_invoice',
           'refNo': inv,
-          'desc': 'Sales Invoice ($inv) - Due: ${due > 0 ? due.toStringAsFixed(2) : "Paid"}',
+          'desc':
+              'Sales Invoice ($inv) - Due: ${due > 0 ? due.toStringAsFixed(2) : "Paid"}',
           'method': s['payment_method'] ?? 'cash',
           'account': 'Accounts Receivable',
           'debit': total,
@@ -68,7 +70,9 @@ class AccountingRepository extends BaseRepository {
             'refNo': inv,
             'desc': 'Counter Payment received for $inv',
             'method': s['payment_method'] ?? 'cash',
-            'account': s['payment_method'] == 'cash' ? 'Cash Register' : 'Bank Account',
+            'account': s['payment_method'] == 'cash'
+                ? 'Cash Register'
+                : 'Bank Account',
             'debit': 0.0,
             'credit': paid,
             'id': s['id'],
@@ -92,9 +96,11 @@ class AccountingRepository extends BaseRepository {
           'date': dateStr,
           'type': 'customer_payment',
           'refNo': ref.isNotEmpty ? ref : 'PAY-$dateStr',
-          'desc': 'Payment received (${p['payment_method']?.toString().toUpperCase()}) ${note.isNotEmpty ? "- $note" : ""}',
+          'desc':
+              'Payment received (${p['payment_method']?.toString().toUpperCase()}) ${note.isNotEmpty ? "- $note" : ""}',
           'method': p['payment_method'] ?? 'cash',
-          'account': p['payment_method'] == 'cash' ? 'Cash Register' : 'Bank Account',
+          'account':
+              p['payment_method'] == 'cash' ? 'Cash Register' : 'Bank Account',
           'debit': 0.0,
           'credit': amt,
           'id': p['id'],
@@ -183,9 +189,11 @@ class AccountingRepository extends BaseRepository {
           'date': dateStr,
           'type': 'supplier_payment',
           'refNo': ref.isNotEmpty ? ref : 'PAY-$dateStr',
-          'desc': 'Vendor Payment (${p['payment_method']?.toString().toUpperCase()}) ${note.isNotEmpty ? "- $note" : ""}',
+          'desc':
+              'Vendor Payment (${p['payment_method']?.toString().toUpperCase()}) ${note.isNotEmpty ? "- $note" : ""}',
           'method': p['payment_method'] ?? 'cash',
-          'account': p['payment_method'] == 'cash' ? 'Cash Register' : 'Bank Account',
+          'account':
+              p['payment_method'] == 'cash' ? 'Cash Register' : 'Bank Account',
           'debit': amt,
           'credit': 0.0,
           'id': p['id'],
@@ -218,7 +226,8 @@ class AccountingRepository extends BaseRepository {
     }
 
     // Sort chronologically
-    rawItems.sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
+    rawItems
+        .sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
 
     double openingBalance = 0.0;
     final List<LedgerEntry> periodEntries = [];
@@ -230,16 +239,21 @@ class AccountingRepository extends BaseRepository {
       try {
         itemDate = DateTime.parse(dateStr);
       } catch (e, st) {
-        AppLogger.warning('DatabaseService', 'Invalid contact ledger date "$dateStr"', e, st);
+        AppLogger.warning(
+            'DatabaseService', 'Invalid contact ledger date "$dateStr"', e, st);
       }
 
       final dr = item['debit'] as double;
       final cr = item['credit'] as double;
       final delta = isCustomer ? (dr - cr) : (cr - dr);
 
-      if (startDate != null && itemDate != null && itemDate.isBefore(startDate)) {
+      if (startDate != null &&
+          itemDate != null &&
+          itemDate.isBefore(startDate)) {
         openingBalance += delta;
-      } else if (endDate != null && itemDate != null && itemDate.isAfter(endDate)) {
+      } else if (endDate != null &&
+          itemDate != null &&
+          itemDate.isAfter(endDate)) {
         // after period
       } else {
         if (periodEntries.isEmpty) {
@@ -265,7 +279,9 @@ class AccountingRepository extends BaseRepository {
 
     final totalDebit = periodEntries.fold(0.0, (sum, e) => sum + e.debit);
     final totalCredit = periodEntries.fold(0.0, (sum, e) => sum + e.credit);
-    final closingBalance = periodEntries.isNotEmpty ? periodEntries.last.runningBalance : openingBalance;
+    final closingBalance = periodEntries.isNotEmpty
+        ? periodEntries.last.runningBalance
+        : openingBalance;
 
     return {
       'contact': contact,
@@ -284,8 +300,11 @@ class AccountingRepository extends BaseRepository {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final accRows = await db.query('payment_accounts', where: 'id = ?', whereArgs: [accountId], limit: 1);
-    final double initialOpening = accRows.isNotEmpty ? ((accRows.first['opening_balance'] as num?)?.toDouble() ?? 0.0) : 0.0;
+    final accRows = await db.query('payment_accounts',
+        where: 'id = ?', whereArgs: [accountId], limit: 1);
+    final double initialOpening = accRows.isNotEmpty
+        ? ((accRows.first['opening_balance'] as num?)?.toDouble() ?? 0.0)
+        : 0.0;
 
     final rawItems = <Map<String, dynamic>>[];
 
@@ -299,7 +318,10 @@ class AccountingRepository extends BaseRepository {
     for (final t in txns) {
       final amt = (t['amount'] as num?)?.toDouble() ?? 0.0;
       final type = t['transaction_type'] as String? ?? '';
-      final isDeposit = type == 'sale' || type == 'customer_payment' || type == 'deposit' || type == 'journal_debit';
+      final isDeposit = type == 'sale' ||
+          type == 'customer_payment' ||
+          type == 'deposit' ||
+          type == 'journal_debit';
       rawItems.add({
         'date': t['transaction_date'] ?? t['created_at'] ?? '',
         'type': type,
@@ -313,14 +335,17 @@ class AccountingRepository extends BaseRepository {
     }
 
     // 2. Transfers into this account
-    final transfersIn = await db.query('account_transfers', where: 'to_account_id = ?', whereArgs: [accountId]);
+    final transfersIn = await db.query('account_transfers',
+        where: 'to_account_id = ?', whereArgs: [accountId]);
     for (final tr in transfersIn) {
       final amt = (tr['amount'] as num?)?.toDouble() ?? 0.0;
       rawItems.add({
         'date': tr['date'] ?? '',
         'type': 'transfer_in',
         'refNo': tr['ref_no'] ?? '',
-        'desc': 'Transfer In from ${tr['from_account_name']} ${tr['note'] != null && tr['note'].toString().isNotEmpty ? "- ${tr['note']}" : ""}'.trim(),
+        'desc':
+            'Transfer In from ${tr['from_account_name']} ${tr['note'] != null && tr['note'].toString().isNotEmpty ? "- ${tr['note']}" : ""}'
+                .trim(),
         'method': 'transfer',
         'debit': amt,
         'credit': 0.0,
@@ -329,14 +354,17 @@ class AccountingRepository extends BaseRepository {
     }
 
     // 3. Transfers out of this account
-    final transfersOut = await db.query('account_transfers', where: 'from_account_id = ?', whereArgs: [accountId]);
+    final transfersOut = await db.query('account_transfers',
+        where: 'from_account_id = ?', whereArgs: [accountId]);
     for (final tr in transfersOut) {
       final amt = (tr['amount'] as num?)?.toDouble() ?? 0.0;
       rawItems.add({
         'date': tr['date'] ?? '',
         'type': 'transfer_out',
         'refNo': tr['ref_no'] ?? '',
-        'desc': 'Transfer Out to ${tr['to_account_name']} ${tr['note'] != null && tr['note'].toString().isNotEmpty ? "- ${tr['note']}" : ""}'.trim(),
+        'desc':
+            'Transfer Out to ${tr['to_account_name']} ${tr['note'] != null && tr['note'].toString().isNotEmpty ? "- ${tr['note']}" : ""}'
+                .trim(),
         'method': 'transfer',
         'debit': 0.0,
         'credit': amt,
@@ -345,7 +373,8 @@ class AccountingRepository extends BaseRepository {
     }
 
     // Sort chronologically
-    rawItems.sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
+    rawItems
+        .sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
 
     double openingBalance = initialOpening;
     final List<LedgerEntry> periodEntries = [];
@@ -357,16 +386,21 @@ class AccountingRepository extends BaseRepository {
       try {
         itemDate = DateTime.parse(dateStr);
       } catch (e, st) {
-        AppLogger.warning('DatabaseService', 'Invalid account statement date "$dateStr"', e, st);
+        AppLogger.warning('DatabaseService',
+            'Invalid account statement date "$dateStr"', e, st);
       }
 
       final dr = item['debit'] as double;
       final cr = item['credit'] as double;
       final delta = dr - cr;
 
-      if (startDate != null && itemDate != null && itemDate.isBefore(startDate)) {
+      if (startDate != null &&
+          itemDate != null &&
+          itemDate.isBefore(startDate)) {
         openingBalance += delta;
-      } else if (endDate != null && itemDate != null && itemDate.isAfter(endDate)) {
+      } else if (endDate != null &&
+          itemDate != null &&
+          itemDate.isAfter(endDate)) {
         // after period
       } else {
         if (periodEntries.isEmpty) {
@@ -391,7 +425,9 @@ class AccountingRepository extends BaseRepository {
 
     final totalInflow = periodEntries.fold(0.0, (sum, e) => sum + e.debit);
     final totalOutflow = periodEntries.fold(0.0, (sum, e) => sum + e.credit);
-    final closingBalance = periodEntries.isNotEmpty ? periodEntries.last.runningBalance : openingBalance;
+    final closingBalance = periodEntries.isNotEmpty
+        ? periodEntries.last.runningBalance
+        : openingBalance;
 
     return {
       'accountName': accountName,
@@ -405,46 +441,73 @@ class AccountingRepository extends BaseRepository {
 
   /// Computes live financial summary for Modern Chart of Accounts & Trial Balance
   Future<Map<String, dynamic>> getFinancialTrialBalance() async {
-    // 1. Cash In Hand (Active Cash Register opening + net cash sales + cash payments)
-    final regRows = await db.rawQuery("SELECT SUM(opening_amount + total_sales_cash) as cash FROM cash_registers WHERE status = 'open'");
-    final openCash = (regRows.first['cash'] as num?)?.toDouble() ?? 0.0;
+    // 1. Cash In Hand (Active Cash Registers + Cash-type Payment Accounts)
+    final regRows = await db.rawQuery(
+        "SELECT SUM(opening_amount + total_sales_cash) as cash FROM cash_registers WHERE status = 'open'");
+    final openRegCash = (regRows.first['cash'] as num?)?.toDouble() ?? 0.0;
+    final cashAcctRows = await db.rawQuery(
+        "SELECT SUM(current_balance) as cash_acct FROM payment_accounts WHERE account_type = 'cash'");
+    final cashAcctBal =
+        (cashAcctRows.first['cash_acct'] as num?)?.toDouble() ?? 0.0;
+    final openCash = openRegCash + cashAcctBal;
 
     // 2. Bank Accounts
-    final bankRows = await db.rawQuery("SELECT SUM(current_balance) as bank_total FROM payment_accounts WHERE account_type != 'cash'");
+    final bankRows = await db.rawQuery(
+        "SELECT SUM(current_balance) as bank_total FROM payment_accounts WHERE account_type != 'cash'");
     final bankTotal = (bankRows.first['bank_total'] as num?)?.toDouble() ?? 0.0;
 
     // 3. Accounts Receivable (Total customer dues)
-    final arRows = await db.rawQuery("SELECT SUM(balance) as ar FROM contacts WHERE type = 'customer' AND balance > 0");
+    final arRows = await db.rawQuery(
+        "SELECT SUM(balance) as ar FROM contacts WHERE type = 'customer' AND balance > 0");
     final accountsReceivable = (arRows.first['ar'] as num?)?.toDouble() ?? 0.0;
 
     // 4. Accounts Payable (Total supplier dues)
-    final apRows = await db.rawQuery("SELECT SUM(balance) as ap FROM contacts WHERE type = 'supplier' AND balance > 0");
+    final apRows = await db.rawQuery(
+        "SELECT SUM(balance) as ap FROM contacts WHERE type = 'supplier' AND balance > 0");
     final accountsPayable = (apRows.first['ap'] as num?)?.toDouble() ?? 0.0;
 
     // 5. Inventory Valuation (Stock Quantity * Purchase Price)
-    final invRows = await db.rawQuery("SELECT SUM(stock_quantity * purchase_price) as stock_val FROM products WHERE stock_quantity > 0");
-    final inventoryValuation = (invRows.first['stock_val'] as num?)?.toDouble() ?? 0.0;
+    final invRows = await db.rawQuery(
+        "SELECT SUM(stock_quantity * purchase_price) as stock_val FROM products WHERE stock_quantity > 0");
+    final inventoryValuation =
+        (invRows.first['stock_val'] as num?)?.toDouble() ?? 0.0;
 
-    // 6. Sales Revenue (Gross)
-    final salesRows = await db.rawQuery("SELECT SUM(total_amount) as total_rev FROM sales WHERE sale_status = 'final'");
-    final salesRevenue = (salesRows.first['total_rev'] as num?)?.toDouble() ?? 0.0;
+    // 6. Net Sales Revenue (Gross Final Sales minus Sale Returns)
+    final salesRows = await db.rawQuery(
+        "SELECT SUM(total_amount) as total_rev FROM sales WHERE sale_status = 'final'");
+    final grossSalesRev =
+        (salesRows.first['total_rev'] as num?)?.toDouble() ?? 0.0;
+    double retRev = 0.0;
+    try {
+      final retRows = await db
+          .rawQuery('SELECT SUM(total_amount) as total_ret FROM sale_returns');
+      retRev = (retRows.first['total_ret'] as num?)?.toDouble() ?? 0.0;
+    } catch (_) {}
+    final salesRevenue = (grossSalesRev - retRev).clamp(0.0, double.infinity);
 
-    // 7. Cost of Goods Sold / Purchases
-    final purRows = await db.rawQuery("SELECT SUM(total_amount) as total_pur FROM purchases WHERE status = 'received'");
-    final purchasesTotal = (purRows.first['total_pur'] as num?)?.toDouble() ?? 0.0;
+    // 7. True Cost of Goods Sold (using unit_multiplier)
+    final cogsRows = await db.rawQuery(
+      "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
+      "FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id "
+      "WHERE s.sale_status = 'final'",
+    );
+    final cogsTotal = (cogsRows.first['cogs'] as num?)?.toDouble() ?? 0.0;
 
     // 8. Operating Expenses
-    final expRows = await db.rawQuery("SELECT SUM(amount) as total_exp FROM expenses");
-    final expensesTotal = (expRows.first['total_exp'] as num?)?.toDouble() ?? 0.0;
+    final expRows =
+        await db.rawQuery("SELECT SUM(amount) as total_exp FROM expenses");
+    final expensesTotal =
+        (expRows.first['total_exp'] as num?)?.toDouble() ?? 0.0;
 
     // 9. Total Assets
-    final totalAssets = openCash + bankTotal + accountsReceivable + inventoryValuation;
+    final totalAssets =
+        openCash + bankTotal + accountsReceivable + inventoryValuation;
 
     // 10. Total Liabilities
     final totalLiabilities = accountsPayable;
 
-    // 11. Net Profit = Revenue - (COGS + Expenses)
-    final grossProfit = salesRevenue - purchasesTotal;
+    // 11. Gross & Net Profit = Net Revenue - COGS - Expenses
+    final grossProfit = salesRevenue - cogsTotal;
     final netProfit = grossProfit - expensesTotal;
 
     // 12. Owner Equity = Assets - Liabilities
@@ -459,7 +522,7 @@ class AccountingRepository extends BaseRepository {
       'accountsPayable': accountsPayable,
       'totalLiabilities': totalLiabilities,
       'salesRevenue': salesRevenue,
-      'costOfGoods': purchasesTotal,
+      'costOfGoods': cogsTotal,
       'operatingExpenses': expensesTotal,
       'grossProfit': grossProfit,
       'netProfit': netProfit,
@@ -476,7 +539,8 @@ class AccountingRepository extends BaseRepository {
     String? refNo,
   }) async {
     final nowStr = DateTime.now().toIso8601String();
-    final voucherRef = refNo ?? 'JV-${DateTime.now().millisecondsSinceEpoch % 100000}';
+    final voucherRef =
+        refNo ?? 'JV-${DateTime.now().millisecondsSinceEpoch % 100000}';
 
     return await db.transaction((txn) async {
       // 1. Debit Entry
@@ -543,7 +607,9 @@ class AccountingRepository extends BaseRepository {
         limit: 1,
       );
       final crAccount = crRows.isNotEmpty
-          ? (crRows.first['contact_name'] ?? crRows.first['account_name'] ?? 'General')
+          ? (crRows.first['contact_name'] ??
+              crRows.first['account_name'] ??
+              'General')
           : 'General';
       final dateStr = (r['transaction_date'] as String? ?? '').split('T').first;
       final rawNote = r['note'] as String? ?? '';
@@ -564,7 +630,8 @@ class AccountingRepository extends BaseRepository {
   // Parked / Suspended Sales
 
   Future<String> generateNextAccountTransferRef() async {
-    final rows = await db.rawQuery('SELECT MAX(id) as max_id FROM account_transfers');
+    final rows =
+        await db.rawQuery('SELECT MAX(id) as max_id FROM account_transfers');
     final maxId = (rows.first['max_id'] as int?) ?? 0;
     return 'TRF-2026-${(maxId + 1).toString().padLeft(4, '0')}';
   }
@@ -585,7 +652,8 @@ class AccountingRepository extends BaseRepository {
 
   Future<int> transferAccountFunds(AccountTransfer transfer) async {
     return await db.transaction((txn) async {
-      final transferId = await txn.insert('account_transfers', transfer.toMap());
+      final transferId =
+          await txn.insert('account_transfers', transfer.toMap());
 
       // Deduct from sender account
       await txn.rawUpdate(
@@ -617,7 +685,8 @@ class AccountingRepository extends BaseRepository {
   /// Reverses and deletes an inter-account fund transfer
   Future<bool> deleteAccountTransfer(int transferId) async {
     return await db.transaction((txn) async {
-      final rows = await txn.query('account_transfers', where: 'id = ?', whereArgs: [transferId], limit: 1);
+      final rows = await txn.query('account_transfers',
+          where: 'id = ?', whereArgs: [transferId], limit: 1);
       if (rows.isEmpty) return false;
       final transfer = AccountTransfer.fromMap(rows.first);
 
@@ -633,13 +702,15 @@ class AccountingRepository extends BaseRepository {
         [transfer.amount, transfer.toAccountId],
       );
 
-      await txn.delete('account_transfers', where: 'id = ?', whereArgs: [transferId]);
+      await txn.delete('account_transfers',
+          where: 'id = ?', whereArgs: [transferId]);
 
       await txn.insert('sync_queue', {
         'entity_type': 'account_transfer',
         'entity_id': transferId.toString(),
         'action': 'delete',
-        'payload_json': jsonEncode({'id': transferId, 'ref_no': transfer.refNo}),
+        'payload_json':
+            jsonEncode({'id': transferId, 'ref_no': transfer.refNo}),
         'status': 'pending',
         'retry_count': 0,
         'created_at': DateTime.now().toIso8601String(),
@@ -657,8 +728,11 @@ class AccountingRepository extends BaseRepository {
     String paymentMethod = 'cash',
   }) async {
     return await db.transaction((txn) async {
-      final accRows = await txn.query('payment_accounts', where: 'id = ?', whereArgs: [accountId], limit: 1);
-      final accName = accRows.isNotEmpty ? (accRows.first['name'] as String? ?? 'Account') : 'Account';
+      final accRows = await txn.query('payment_accounts',
+          where: 'id = ?', whereArgs: [accountId], limit: 1);
+      final accName = accRows.isNotEmpty
+          ? (accRows.first['name'] as String? ?? 'Account')
+          : 'Account';
 
       // Increment account balance
       await txn.rawUpdate(
@@ -678,7 +752,8 @@ class AccountingRepository extends BaseRepository {
         'payment_method': paymentMethod,
         'account_id': accountId,
         'account_name': accName,
-        'transaction_date': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+        'transaction_date':
+            DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
         'note': note.isNotEmpty ? note : 'Deposit to $accName',
         'created_at': DateTime.now().toIso8601String(),
       });
@@ -725,5 +800,4 @@ class AccountingRepository extends BaseRepository {
       return id;
     });
   }
-
 }

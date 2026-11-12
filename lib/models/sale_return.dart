@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 /// Sales Return Model
 class SaleReturn {
   final int? id;
@@ -38,7 +40,6 @@ class SaleReturn {
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
-        'return_no': returnNo,
         'ref_no': returnNo,
         'sale_id': saleId ?? 0,
         'invoice_no': invoiceNo,
@@ -47,13 +48,12 @@ class SaleReturn {
         'date': date,
         'total_amount': totalAmount,
         'refund_amount': refundAmount,
-        'refund_status': refundStatus,
         'status': refundStatus,
-        'payment_method': paymentMethod,
         'refund_method': paymentMethod,
         'reason': reason,
         'note': note,
         'created_by': createdBy,
+        'items_json': jsonEncode(items.map((i) => i.toMap()).toList()),
       };
 
   factory SaleReturn.fromMap(Map<String, dynamic> map,
@@ -90,6 +90,7 @@ class SaleReturnItem {
   final String sku;
   final String batchNumber;
   final double quantity;
+  final double unitMultiplier;
   final double unitPrice;
   final double subtotal;
 
@@ -103,6 +104,7 @@ class SaleReturnItem {
     this.sku = '',
     this.batchNumber = '',
     required this.quantity,
+    this.unitMultiplier = 1.0,
     required this.unitPrice,
     required this.subtotal,
   });
@@ -118,6 +120,7 @@ class SaleReturnItem {
         'sku': sku,
         'batch_number': batchNumber,
         'quantity': quantity,
+        'unit_multiplier': unitMultiplier,
         'unit_price': unitPrice,
         'subtotal': subtotal,
       };
@@ -134,6 +137,7 @@ class SaleReturnItem {
         sku: map['sku'] as String? ?? '',
         batchNumber: map['batch_number'] as String? ?? '',
         quantity: (map['quantity'] as num?)?.toDouble() ?? 0.0,
+        unitMultiplier: (map['unit_multiplier'] as num?)?.toDouble() ?? 1.0,
         unitPrice: (map['unit_price'] as num?)?.toDouble() ?? 0.0,
         subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0.0,
       );

@@ -41,7 +41,9 @@ void main() {
   });
 
   group('Phase 1.1: Authentication Hardening', () {
-    test('Argon2id hashes use unique random salts and remove all hardcoded backdoors', () async {
+    test(
+        'Argon2id hashes use unique random salts and remove all hardcoded backdoors',
+        () async {
       final db = await DatabaseService.initialize(
         customPath: p.join(tempDir.path, 'auth_hardening.db'),
       );
@@ -50,7 +52,12 @@ void main() {
         expect(await db.getUsers(), isEmpty);
 
         // No hardcoded fallback logins work
-        for (final badUser in ['admin', 'webdeventh', 'superadmin', 'salesman1']) {
+        for (final badUser in [
+          'admin',
+          'webdeventh',
+          'superadmin',
+          'salesman1'
+        ]) {
           final res = await AuthService.loginDetailed(badUser, 'password');
           expect(res.success, isFalse);
         }
@@ -58,7 +65,8 @@ void main() {
         // Password strength checks
         expect(AuthService.validatePasswordStrength('short'), isNotNull);
         expect(AuthService.validatePasswordStrength('password'), isNotNull);
-        expect(AuthService.validatePasswordStrength('OnlyLettersHere'), isNotNull);
+        expect(
+            AuthService.validatePasswordStrength('OnlyLettersHere'), isNotNull);
         expect(AuthService.validatePasswordStrength('1234567890'), isNotNull);
         expect(AuthService.validatePasswordStrength('StrongPos#2026'), isNull);
 
@@ -82,7 +90,9 @@ void main() {
       }
     });
 
-    test('Brute-force lockout activates after 5 failed attempts and expires after 15 minutes', () async {
+    test(
+        'Brute-force lockout activates after 5 failed attempts and expires after 15 minutes',
+        () async {
       final db = await DatabaseService.initialize(
         customPath: p.join(tempDir.path, 'lockout.db'),
       );
@@ -97,31 +107,37 @@ void main() {
         );
 
         for (int i = 1; i <= 4; i++) {
-          final res = await AuthService.loginDetailed('lockowner', 'WrongPass!$i');
+          final res =
+              await AuthService.loginDetailed('lockowner', 'WrongPass!$i');
           expect(res.success, isFalse);
           expect(res.isLockedOut, isFalse);
         }
 
         // 5th attempt triggers 15-minute lockout
-        final fifth = await AuthService.loginDetailed('lockowner', 'WrongPass!5');
+        final fifth =
+            await AuthService.loginDetailed('lockowner', 'WrongPass!5');
         expect(fifth.success, isFalse);
         expect(fifth.isLockedOut, isTrue);
 
         // Even the real password is rejected while locked out
-        final blockedValid = await AuthService.loginDetailed('lockowner', 'LockOwner#2026');
+        final blockedValid =
+            await AuthService.loginDetailed('lockowner', 'LockOwner#2026');
         expect(blockedValid.success, isFalse);
         expect(blockedValid.isLockedOut, isTrue);
 
         // Advance clock by 16 minutes -> lockout clears automatically
         fakeNow = fakeNow.add(const Duration(minutes: 16));
-        final recovered = await AuthService.loginDetailed('lockowner', 'LockOwner#2026');
+        final recovered =
+            await AuthService.loginDetailed('lockowner', 'LockOwner#2026');
         expect(recovered.success, isTrue);
       } finally {
         await db.db.close();
       }
     });
 
-    test('Configurable session timeout logs out idle user and Forced Password Change completes', () async {
+    test(
+        'Configurable session timeout logs out idle user and Forced Password Change completes',
+        () async {
       final db = await DatabaseService.initialize(
         customPath: p.join(tempDir.path, 'session_force.db'),
       );
@@ -142,7 +158,8 @@ void main() {
           mustChangePassword: true,
         );
 
-        final loginRes = await AuthService.loginDetailed('sysadmin', 'InitialTemp#2026');
+        final loginRes =
+            await AuthService.loginDetailed('sysadmin', 'InitialTemp#2026');
         expect(loginRes.success, isTrue);
         expect(loginRes.mustChangePassword, isTrue);
         expect(AuthService.currentUser?.mustChangePassword, isTrue);
@@ -175,7 +192,8 @@ void main() {
       }
     });
 
-    test('Legacy SHA-256 hash seamlessly upgrades to Argon2id on login', () async {
+    test('Legacy SHA-256 hash seamlessly upgrades to Argon2id on login',
+        () async {
       final db = await DatabaseService.initialize(
         customPath: p.join(tempDir.path, 'sha_upgrade.db'),
       );
@@ -192,11 +210,12 @@ void main() {
           status: 'active',
         ));
 
-        final res = await AuthService.loginDetailed('legacy_sha', 'Legacy@Pass2026');
+        final res =
+            await AuthService.loginDetailed('legacy_sha', 'Legacy@Pass2026');
         expect(res.success, isTrue);
 
-        final refreshed = (await db.getUsers())
-            .firstWhere((u) => u.username == 'legacy_sha');
+        final refreshed =
+            (await db.getUsers()).firstWhere((u) => u.username == 'legacy_sha');
         expect(refreshed.password, startsWith('argon2id\$'));
       } finally {
         await db.db.close();
@@ -205,7 +224,9 @@ void main() {
   });
 
   group('Phase 1.2: Versioned Schema Migration (v1 -> v3)', () {
-    test('Upgrades legacy v1 SQLite database preserving rows and hashing plaintext passwords', () async {
+    test(
+        'Upgrades legacy v1 SQLite database preserving rows and hashing plaintext passwords',
+        () async {
       final v1Path = p.join(tempDir.path, 'legacy_v1.db');
       final rawDb = await databaseFactoryFfi.openDatabase(
         v1Path,
@@ -268,35 +289,46 @@ void main() {
       // Re-open with current DatabaseService -> should upgrade v1 -> v3
       final upgraded = await DatabaseService.initialize(customPath: v1Path);
       try {
-        expect(await upgraded.db.getVersion(), DatabaseService.currentSchemaVersion);
+        expect(await upgraded.db.getVersion(),
+            DatabaseService.currentSchemaVersion);
 
-        // Verify schema_migrations table recorded v2 through v8 migrations
-        final migrations = await upgraded.db.query('schema_migrations', orderBy: 'version ASC');
-        expect(migrations.map((m) => m['version']).toList(), [2, 3, 4, 5, 6, 7, 8]);
+        // Verify schema_migrations table recorded v2 through v9 migrations
+        final migrations = await upgraded.db
+            .query('schema_migrations', orderBy: 'version ASC');
+        expect(migrations.map((m) => m['version']).toList(),
+            [2, 3, 4, 5, 6, 7, 8, 9]);
 
         // Verify PRAGMA added new columns to users & business_settings
         final userCols = await upgraded.db.rawQuery('PRAGMA table_info(users)');
         final userColNames = userCols.map((r) => r['name']).toSet();
-        expect(userColNames.containsAll([
-          'must_change_password',
-          'failed_login_attempts',
-          'locked_until',
-          'password_changed_at',
-        ]), isTrue);
+        expect(
+            userColNames.containsAll([
+              'must_change_password',
+              'failed_login_attempts',
+              'locked_until',
+              'password_changed_at',
+            ]),
+            isTrue);
 
         // Preserved product data
         final products = await upgraded.getProducts();
-        expect(products.any((p) => p.sku == 'ASP-100' && p.stockQuantity == 75.0), isTrue);
+        expect(
+            products.any((p) => p.sku == 'ASP-100' && p.stockQuantity == 75.0),
+            isTrue);
 
         // Legacy plaintext password hashed to Argon2id with forced change flag
         final migratedUser = (await upgraded.getUsers())
             .firstWhere((u) => u.username == 'old_owner');
         expect(migratedUser.password, startsWith('argon2id\$'));
         expect(migratedUser.mustChangePassword, isTrue);
-        expect(AuthService.verifyPassword('oldPlainPassword', migratedUser.password), isTrue);
+        expect(
+            AuthService.verifyPassword(
+                'oldPlainPassword', migratedUser.password),
+            isTrue);
 
         // Legacy plaintext DB password encrypted in raw table & decrypted on getter
-        final rawSettings = (await upgraded.db.query('business_settings')).first;
+        final rawSettings =
+            (await upgraded.db.query('business_settings')).first;
         expect(rawSettings['db_password'].toString(), startsWith('enc:gcm1:'));
         final settings = await upgraded.getBusinessSettings();
         expect(settings.dbPassword, 'plainMysqlSecret!');
@@ -306,8 +338,11 @@ void main() {
     });
   });
 
-  group('Phase 1.4 & 1.5: AES-256-GCM Encryption, Backups & AppLogger Rotation', () {
-    test('AES-256-GCM field encryption detects tampering and encrypts stored secrets', () async {
+  group('Phase 1.4 & 1.5: AES-256-GCM Encryption, Backups & AppLogger Rotation',
+      () {
+    test(
+        'AES-256-GCM field encryption detects tampering and encrypts stored secrets',
+        () async {
       const secret = 'sk-live-secret-api-token-9988';
       final cipher = await DatabaseEncryptionService.encryptString(secret);
       expect(cipher, startsWith('enc:gcm1:'));
@@ -352,7 +387,8 @@ void main() {
         dbPathOverride: dbPath,
       );
       expect(backupFile.path, endsWith('.db.enc'));
-      expect(await DatabaseEncryptionService.isEncryptedFile(backupFile), isTrue);
+      expect(
+          await DatabaseEncryptionService.isEncryptedFile(backupFile), isTrue);
 
       // Save an unencrypted legacy .db snapshot before closing to also verify legacy restore
       final legacyCopy = File(p.join(backupDir.path, 'legacy_plain.db'));
@@ -384,9 +420,11 @@ void main() {
         dbPathOverride: dbPath,
       );
       expect(legacyOk, isTrue);
-      final restoredLegacy = await DatabaseService.initialize(customPath: dbPath);
+      final restoredLegacy =
+          await DatabaseService.initialize(customPath: dbPath);
       try {
-        expect((await restoredLegacy.getProductById(prodId))?.name, 'Backup Product Alpha');
+        expect((await restoredLegacy.getProductById(prodId))?.name,
+            'Backup Product Alpha');
       } finally {
         await restoredLegacy.db.close();
       }
@@ -402,7 +440,8 @@ void main() {
       );
 
       for (int i = 0; i < 12; i++) {
-        AppLogger.error('RotationTest', 'Entry number $i with enough padding to rotate file');
+        AppLogger.error('RotationTest',
+            'Entry number $i with enough padding to rotate file');
       }
 
       final logFiles = logsDir.listSync().whereType<File>().toList();
@@ -412,7 +451,9 @@ void main() {
       expect(combined, contains('[ERROR] [RotationTest]'));
     });
 
-    test('rotateEncryptionPassphrase preserves business, AI, and SMS encrypted secrets', () async {
+    test(
+        'rotateEncryptionPassphrase preserves business, AI, and SMS encrypted secrets',
+        () async {
       final dbPath = p.join(tempDir.path, 'key_rotation.db');
       final db = await DatabaseService.initialize(customPath: dbPath);
       try {
@@ -424,7 +465,10 @@ void main() {
           ),
         );
         await db.saveAiSettings(
-          AiSettings(provider: 'gemini', apiKey: 'AIzaTestSecretKey99', isEnabled: true),
+          AiSettings(
+              provider: 'gemini',
+              apiKey: 'AIzaTestSecretKey99',
+              isEnabled: true),
         );
         await db.addSmsGateway(
           SmsGateway(
@@ -454,7 +498,8 @@ void main() {
         expect(afterSms.apiSecret, 'sms-sec-456');
 
         // Also verify ciphertext in raw SQLite rows starts with enc:gcm1:
-        final rawAi = (await db.db.query('ai_settings')).first['api_key'].toString();
+        final rawAi =
+            (await db.db.query('ai_settings')).first['api_key'].toString();
         final rawSms = (await db.db.query(
           'sms_gateways',
           where: 'name = ?',
@@ -469,7 +514,9 @@ void main() {
       }
     });
 
-    test('addUser rejects duplicate username and factoryReset logs out active session', () async {
+    test(
+        'addUser rejects duplicate username and factoryReset logs out active session',
+        () async {
       final db = await DatabaseService.initialize(
         customPath: p.join(tempDir.path, 'user_collision.db'),
       );
@@ -504,7 +551,8 @@ void main() {
       }
     });
 
-    test('Live restore succeeds while DatabaseService handle is open on disk', () async {
+    test('Live restore succeeds while DatabaseService handle is open on disk',
+        () async {
       final dbPath = p.join(tempDir.path, 'live_restore.db');
       final db = await DatabaseService.initialize(customPath: dbPath);
       final prodId = await db.addProduct(
@@ -544,7 +592,8 @@ void main() {
 
       final reopened = DatabaseService.instance;
       try {
-        expect((await reopened.getProductById(prodId))?.name, 'Pre-Snapshot Item');
+        expect(
+            (await reopened.getProductById(prodId))?.name, 'Pre-Snapshot Item');
         final products = await reopened.getProducts();
         expect(products.any((p) => p.sku == 'LIVE-02'), isFalse);
       } finally {
@@ -552,30 +601,37 @@ void main() {
       }
     });
 
-    test('LocalApiService enforces Bearer/X-API-Key authentication when syncApiKey is set', () async {
+    test(
+        'LocalApiService enforces Bearer/X-API-Key authentication when syncApiKey is set',
+        () async {
       final db = await DatabaseService.initialize(
         customPath: p.join(tempDir.path, 'local_api_auth.db'),
       );
       final api = LocalApiService.instance;
       try {
         final s = await db.getBusinessSettings();
-        await db.updateBusinessSettings(s.copyWith(syncApiKey: 'lan-secret-2026'));
+        await db
+            .updateBusinessSettings(s.copyWith(syncApiKey: 'lan-secret-2026'));
 
         final started = await api.startServer(port: 9097);
         expect(started, isTrue);
 
         final client = HttpClient();
         try {
-          final healthReq = await client.getUrl(Uri.parse('http://127.0.0.1:9097/health'));
+          final healthReq =
+              await client.getUrl(Uri.parse('http://127.0.0.1:9097/health'));
           final healthRes = await healthReq.close();
           expect(healthRes.statusCode, HttpStatus.ok);
 
-          final unauthReq = await client.getUrl(Uri.parse('http://127.0.0.1:9097/products'));
+          final unauthReq =
+              await client.getUrl(Uri.parse('http://127.0.0.1:9097/products'));
           final unauthRes = await unauthReq.close();
           expect(unauthRes.statusCode, HttpStatus.unauthorized);
 
-          final authReq = await client.getUrl(Uri.parse('http://127.0.0.1:9097/products'));
-          authReq.headers.set(HttpHeaders.authorizationHeader, 'Bearer lan-secret-2026');
+          final authReq =
+              await client.getUrl(Uri.parse('http://127.0.0.1:9097/products'));
+          authReq.headers
+              .set(HttpHeaders.authorizationHeader, 'Bearer lan-secret-2026');
           final authRes = await authReq.close();
           expect(authRes.statusCode, HttpStatus.ok);
         } finally {
@@ -587,9 +643,12 @@ void main() {
       }
     });
 
-    test('WindowsCredentialStore native advapi32.dll roundtrip works on Windows', () async {
+    test(
+        'WindowsCredentialStore native advapi32.dll roundtrip works on Windows',
+        () async {
       if (!Platform.isWindows) return;
-      final uniqueTarget = 'SmartPOS/SelfTest_${DateTime.now().microsecondsSinceEpoch}';
+      final uniqueTarget =
+          'SmartPOS/SelfTest_${DateTime.now().microsecondsSinceEpoch}';
       const secretPayload = 'win32-cred-ffi-secret-key-256bit';
 
       WindowsCredentialStore.useInMemoryForTest = false;

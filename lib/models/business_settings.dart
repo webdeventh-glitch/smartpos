@@ -94,6 +94,7 @@ class BusinessSettings {
   final String lastAutoBackupAt;
   final bool touchFriendlyMode;
   final String keyboardShortcutsJson;
+  final bool allowOverselling;
 
   BusinessSettings({
     this.id = 1,
@@ -186,6 +187,7 @@ class BusinessSettings {
     this.lastAutoBackupAt = '',
     this.touchFriendlyMode = false,
     this.keyboardShortcutsJson = '',
+    this.allowOverselling = false,
   });
 
   String get effectiveLoginBanner {
@@ -630,6 +632,7 @@ class BusinessSettings {
     String? lastAutoBackupAt,
     bool? touchFriendlyMode,
     String? keyboardShortcutsJson,
+    bool? allowOverselling,
   }) {
     return BusinessSettings(
       id: id ?? this.id,
@@ -732,6 +735,7 @@ class BusinessSettings {
       touchFriendlyMode: touchFriendlyMode ?? this.touchFriendlyMode,
       keyboardShortcutsJson:
           keyboardShortcutsJson ?? this.keyboardShortcutsJson,
+      allowOverselling: allowOverselling ?? this.allowOverselling,
     );
   }
 
@@ -826,6 +830,7 @@ class BusinessSettings {
         'last_auto_backup_at': lastAutoBackupAt,
         'touch_friendly_mode': touchFriendlyMode ? 1 : 0,
         'keyboard_shortcuts_json': keyboardShortcutsJson,
+        'allow_overselling': allowOverselling ? 1 : 0,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
@@ -856,7 +861,8 @@ class BusinessSettings {
         timeFormat: modelAsString(map['time_format'], '12 Hour'),
         currencyPrecision: modelAsInt(map['currency_precision'], 2),
         quantityPrecision: modelAsInt(map['quantity_precision'], 2),
-        defaultProfitPercent: modelAsDouble(map['default_profit_percent'], 25.0),
+        defaultProfitPercent:
+            modelAsDouble(map['default_profit_percent'], 25.0),
         startDate: modelAsString(map['start_date'], '01/01/2026'),
         isConfigured: modelAsBool(map['is_configured'], false),
         logoPath: modelAsString(map['logo_path']),
@@ -866,7 +872,8 @@ class BusinessSettings {
         syncServerUrl: modelAsString(map['sync_server_url']),
         syncApiKey: modelAsString(map['sync_api_key']),
         syncBranchId: modelAsInt(map['sync_branch_id'], 1),
-        syncAutoIntervalMinutes: modelAsInt(map['sync_auto_interval_minutes'], 5),
+        syncAutoIntervalMinutes:
+            modelAsInt(map['sync_auto_interval_minutes'], 5),
         lastSyncTimestamp: modelAsString(map['last_sync_timestamp']),
         loginBannerPath: modelAsString(map['login_banner_path']),
         loginSideTitle: modelAsString(map['login_side_title']),
@@ -911,14 +918,16 @@ class BusinessSettings {
         showExpiryOnInvoice: modelAsBool(map['show_expiry_on_invoice'], true),
         showBrandOnInvoice: modelAsBool(map['show_brand_on_invoice'], true),
         showSkuOnInvoice: modelAsBool(map['show_sku_on_invoice'], true),
-        showWarrantyOnInvoice: modelAsBool(map['show_warranty_on_invoice'], true),
+        showWarrantyOnInvoice:
+            modelAsBool(map['show_warranty_on_invoice'], true),
         showTotalInWords: modelAsBool(map['show_total_in_words'], true),
-        totalInWordsLanguage: modelAsString(map['total_in_words_language'], 'ur'),
-        enableSecondaryLanguage: modelAsBool(map['enable_secondary_language'], false),
+        totalInWordsLanguage:
+            modelAsString(map['total_in_words_language'], 'ur'),
+        enableSecondaryLanguage:
+            modelAsBool(map['enable_secondary_language'], false),
         secondaryLanguage: modelAsString(map['secondary_language'], 'ur'),
         invoiceHeading: modelAsString(map['invoice_heading'], 'TAX INVOICE'),
-        sessionTimeoutMinutes:
-            modelAsInt(map['session_timeout_minutes'], 480),
+        sessionTimeoutMinutes: modelAsInt(map['session_timeout_minutes'], 480),
         autoPrintReceipt: modelAsBool(map['auto_print_receipt'], false),
         autoPrintKot: modelAsBool(map['auto_print_kot'], false),
         defaultPrinterId: map['default_printer_id'] as int?,
@@ -929,7 +938,7 @@ class BusinessSettings {
         backupRetentionCount: modelAsInt(map['backup_retention_count'], 10),
         lastAutoBackupAt: modelAsString(map['last_auto_backup_at']),
         touchFriendlyMode: modelAsBool(map['touch_friendly_mode'], false),
-        keyboardShortcutsJson:
-            modelAsString(map['keyboard_shortcuts_json']),
+        keyboardShortcutsJson: modelAsString(map['keyboard_shortcuts_json']),
+        allowOverselling: modelAsBool(map['allow_overselling'], false),
       );
 }

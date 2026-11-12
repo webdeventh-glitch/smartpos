@@ -21,11 +21,13 @@ class SalesReturnDialog extends StatefulWidget {
 
 class _ReturnItemSelection {
   final SaleItem saleItem;
+  final double maxReturnable;
   bool selected;
   double returnQty;
 
   _ReturnItemSelection({
     required this.saleItem,
+    required this.maxReturnable,
     this.selected = true,
     required this.returnQty,
   });
@@ -51,13 +53,16 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
   // Manual Mode fields
   Contact? _manualCustomer;
   Product? _manualProduct;
-  final TextEditingController _manualInvoiceNoCtrl = TextEditingController(text: 'INV-1001');
+  final TextEditingController _manualInvoiceNoCtrl =
+      TextEditingController(text: 'INV-1001');
   final TextEditingController _manualQtyCtrl = TextEditingController(text: '1');
-  final TextEditingController _manualPriceCtrl = TextEditingController(text: '0.00');
+  final TextEditingController _manualPriceCtrl =
+      TextEditingController(text: '0.00');
 
   // Common fields
   String _refundMethod = 'cash'; // 'cash', 'credit_note', 'bank'
-  final TextEditingController _reasonCtrl = TextEditingController(text: 'Customer Return');
+  final TextEditingController _reasonCtrl =
+      TextEditingController(text: 'Customer Return');
 
   @override
   void initState() {
@@ -107,6 +112,7 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
   Future<void> _selectSale(Sale sale) async {
     final db = await DatabaseService.initialize();
     final items = await db.getSaleItems(sale.id!);
+    final alreadyReturned = await db.getReturnedQuantitiesForSale(sale.id!);
 
     if (!mounted) return;
 
@@ -114,10 +120,16 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
       _selectedSale = sale;
       _invoiceSearchCtrl.text = sale.invoiceNo;
       _itemSelections = items.map((i) {
+        final prevRet = (i.productId != null)
+            ? (alreadyReturned[i.productId!] ?? 0.0)
+            : 0.0;
+        final remaining =
+            (i.quantity - prevRet).clamp(0.0, i.quantity).toDouble();
         return _ReturnItemSelection(
           saleItem: i,
-          selected: true,
-          returnQty: i.quantity,
+          maxReturnable: remaining,
+          selected: remaining > 0,
+          returnQty: remaining,
         );
       }).toList();
     });
@@ -181,7 +193,8 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
     if (total <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select at least one product with quantity > 0 to return.'),
+          content: Text(
+              'Please select at least one product with quantity > 0 to return.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -197,19 +210,37 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
       if (_selectedSale == null) return;
       for (final sel in _itemSelections) {
         if (sel.selected && sel.returnQty > 0) {
+          final clampedQty =
+              sel.returnQty.clamp(0.0, sel.maxReturnable).toDouble();
+          if (clampedQty <= 0) continue;
           returnItems.add(
             SaleReturnItem(
               returnId: 0,
               productId: sel.saleItem.productId ?? 0,
+              variationId: sel.saleItem.variationId,
+              variationName: sel.saleItem.variationName,
               productName: sel.saleItem.productName,
               sku: sel.saleItem.sku,
               batchNumber: sel.saleItem.batchNumber ?? '',
-              quantity: sel.returnQty,
+              quantity: clampedQty,
+              unitMultiplier: sel.saleItem.unitMultiplier,
               unitPrice: sel.saleItem.unitPrice,
-              subtotal: sel.subtotal,
+              subtotal: clampedQty * sel.saleItem.unitPrice,
             ),
           );
         }
+      }
+      if (returnItems.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'No returnable quantity remains for the selected items.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
       }
 
       final sr = SaleReturn(
@@ -266,7 +297,8 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
       widget.onReturnSuccess();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Sales return $_nextRef processed successfully! Items restocked into inventory.'),
+          content: Text(
+              'Sales return $_nextRef processed successfully! Items restocked into inventory.'),
           backgroundColor: const Color(0xFF10B981),
           duration: const Duration(seconds: 3),
         ),
@@ -300,7 +332,11 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                   Container(
                     padding: const EdgeInsets.fromLTRB(22, 18, 18, 16),
                     decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                      border: Border(
+                          bottom: BorderSide(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE2E8F0))),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -313,7 +349,8 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                                 color: const Color(0xFFFEF2F2),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.assignment_return_rounded, color: Color(0xFFDC2626), size: 22),
+                              child: const Icon(Icons.assignment_return_rounded,
+                                  color: Color(0xFFDC2626), size: 22),
                             ),
                             const SizedBox(width: 12),
                             Column(
@@ -324,7 +361,9 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w900,
-                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF0F172A),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -332,7 +371,9 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                                   'Ref: $_nextRef • Return entire bill or selected products',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B),
                                   ),
                                 ),
                               ],
@@ -353,7 +394,9 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                     child: Container(
                       padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -363,12 +406,22 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                               onTap: () => setState(() => _mode = 0),
                               borderRadius: BorderRadius.circular(6),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: _mode == 0 ? (isDark ? const Color(0xFF1E293B) : Colors.white) : Colors.transparent,
+                                  color: _mode == 0
+                                      ? (isDark
+                                          ? const Color(0xFF1E293B)
+                                          : Colors.white)
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(6),
                                   boxShadow: _mode == 0
-                                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4)]
+                                      ? [
+                                          BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.08),
+                                              blurRadius: 4)
+                                        ]
                                       : null,
                                 ),
                                 child: Row(
@@ -377,16 +430,22 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                                     Icon(
                                       Icons.receipt_long_rounded,
                                       size: 16,
-                                      color: _mode == 0 ? const Color(0xFF004EEB) : Colors.grey,
+                                      color: _mode == 0
+                                          ? const Color(0xFF004EEB)
+                                          : Colors.grey,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       'From Sale Bill / Invoice (Recommended)',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        fontWeight: _mode == 0 ? FontWeight.bold : FontWeight.normal,
+                                        fontWeight: _mode == 0
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
                                         color: _mode == 0
-                                            ? (isDark ? Colors.white : const Color(0xFF0F172A))
+                                            ? (isDark
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A))
                                             : Colors.grey,
                                       ),
                                     ),
@@ -400,12 +459,22 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                               onTap: () => setState(() => _mode = 1),
                               borderRadius: BorderRadius.circular(6),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: _mode == 1 ? (isDark ? const Color(0xFF1E293B) : Colors.white) : Colors.transparent,
+                                  color: _mode == 1
+                                      ? (isDark
+                                          ? const Color(0xFF1E293B)
+                                          : Colors.white)
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(6),
                                   boxShadow: _mode == 1
-                                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4)]
+                                      ? [
+                                          BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.08),
+                                              blurRadius: 4)
+                                        ]
                                       : null,
                                 ),
                                 child: Row(
@@ -414,16 +483,22 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                                     Icon(
                                       Icons.edit_note_rounded,
                                       size: 16,
-                                      color: _mode == 1 ? const Color(0xFF004EEB) : Colors.grey,
+                                      color: _mode == 1
+                                          ? const Color(0xFF004EEB)
+                                          : Colors.grey,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       'Manual Return (No Invoice)',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        fontWeight: _mode == 1 ? FontWeight.bold : FontWeight.normal,
+                                        fontWeight: _mode == 1
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
                                         color: _mode == 1
-                                            ? (isDark ? Colors.white : const Color(0xFF0F172A))
+                                            ? (isDark
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A))
                                             : Colors.grey,
                                       ),
                                     ),
@@ -441,16 +516,25 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                   Flexible(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(22),
-                      child: _mode == 0 ? _buildInvoiceReturnContent(isDark, currency) : _buildManualReturnContent(isDark, currency),
+                      child: _mode == 0
+                          ? _buildInvoiceReturnContent(isDark, currency)
+                          : _buildManualReturnContent(isDark, currency),
                     ),
                   ),
 
                   // Bottom Action & Refund Summary Banner
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 22, vertical: 14),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                      border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
+                      border: Border(
+                          top: BorderSide(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE2E8F0))),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -464,7 +548,9 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B),
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -481,7 +567,9 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                               '$_selectedItemsCount items selected for return & restock',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B),
                               ),
                             ),
                           ],
@@ -492,8 +580,12 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                           children: [
                             OutlinedButton(
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                side: BorderSide(
+                                    color: isDark
+                                        ? const Color(0xFF334155)
+                                        : const Color(0xFFCBD5E1)),
                               ),
                               onPressed: () => Navigator.pop(context),
                               child: const Text('Cancel'),
@@ -503,12 +595,17 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFDC2626),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8)),
                                 elevation: 2,
                               ),
-                              icon: const Icon(Icons.check_circle_outline, size: 18),
-                              label: const Text('Confirm Return & Restock', style: TextStyle(fontWeight: FontWeight.bold)),
+                              icon: const Icon(Icons.check_circle_outline,
+                                  size: 18),
+                              label: const Text('Confirm Return & Restock',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
                               onPressed: totalRefund > 0 ? _submitReturn : null,
                             ),
                           ],
@@ -567,7 +664,8 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                       decoration: const InputDecoration(
                         hintText: 'Search Invoice No...',
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                       ),
                       onSubmitted: _searchAndSelectInvoice,
                     ),
@@ -575,11 +673,13 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                   const SizedBox(width: 6),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                       backgroundColor: const Color(0xFF004EEB),
                       foregroundColor: Colors.white,
                     ),
-                    onPressed: () => _searchAndSelectInvoice(_invoiceSearchCtrl.text),
+                    onPressed: () =>
+                        _searchAndSelectInvoice(_invoiceSearchCtrl.text),
                     child: const Text('Find', style: TextStyle(fontSize: 12)),
                   ),
                 ],
@@ -596,14 +696,18 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFCBD5E1)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.person_outline, size: 16, color: Color(0xFF004EEB)),
+                    const Icon(Icons.person_outline,
+                        size: 16, color: Color(0xFF004EEB)),
                     const SizedBox(width: 6),
                     Text(
                       _selectedSale!.customerName,
@@ -616,13 +720,20 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                     const SizedBox(width: 14),
                     Text(
                       '• Date: ${_selectedSale!.createdAt}',
-                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                     ),
                   ],
                 ),
                 Text(
                   'Bill Total: $currency ${_selectedSale!.totalAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF004EEB)),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      color: Color(0xFF004EEB)),
                 ),
               ],
             ),
@@ -643,21 +754,26 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFDC2626),
                       side: const BorderSide(color: Color(0xFFDC2626)),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       visualDensity: VisualDensity.compact,
                     ),
                     icon: const Icon(Icons.select_all_rounded, size: 14),
-                    label: const Text('Return Full Bill (Pura Bill)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    label: const Text('Return Full Bill (Pura Bill)',
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold)),
                     onPressed: () => _selectAllItems(true),
                   ),
                   const SizedBox(width: 8),
                   TextButton(
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       visualDensity: VisualDensity.compact,
                     ),
                     onPressed: () => _selectAllItems(false),
-                    child: const Text('Clear All', style: TextStyle(fontSize: 11)),
+                    child:
+                        const Text('Clear All', style: TextStyle(fontSize: 11)),
                   ),
                 ],
               ),
@@ -669,24 +785,56 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
             ),
             child: Column(
               children: [
                 // Table Header
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                    color: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(8)),
                   ),
                   child: const Row(
                     children: [
-                      SizedBox(width: 40, child: Text('Return', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                      Expanded(flex: 4, child: Text('Product / Item', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                      Expanded(flex: 2, child: Text('Sold Qty & Price', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                      Expanded(flex: 3, child: Center(child: Text('Return Quantity', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)))),
-                      Expanded(flex: 2, child: Align(alignment: Alignment.centerRight, child: Text('Refund Subtotal', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)))),
+                      SizedBox(
+                          width: 40,
+                          child: Text('Return',
+                              style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.bold))),
+                      Expanded(
+                          flex: 4,
+                          child: Text('Product / Item',
+                              style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.bold))),
+                      Expanded(
+                          flex: 2,
+                          child: Text('Sold Qty & Price',
+                              style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.bold))),
+                      Expanded(
+                          flex: 3,
+                          child: Center(
+                              child: Text('Return Quantity',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold)))),
+                      Expanded(
+                          flex: 2,
+                          child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text('Refund Subtotal',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold)))),
                     ],
                   ),
                 ),
@@ -695,10 +843,17 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                 // Table Rows
                 ..._itemSelections.map((sel) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: sel.selected ? (isDark ? const Color(0xFF1E293B) : Colors.white) : (isDark ? Colors.black26 : const Color(0xFFF8FAFC)),
-                      border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9))),
+                      color: sel.selected
+                          ? (isDark ? const Color(0xFF1E293B) : Colors.white)
+                          : (isDark ? Colors.black26 : const Color(0xFFF8FAFC)),
+                      border: Border(
+                          bottom: BorderSide(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFF1F5F9))),
                     ),
                     child: Row(
                       children: [
@@ -727,13 +882,19 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: sel.selected ? (isDark ? Colors.white : const Color(0xFF0F172A)) : Colors.grey,
+                                  color: sel.selected
+                                      ? (isDark
+                                          ? Colors.white
+                                          : const Color(0xFF0F172A))
+                                      : Colors.grey,
                                 ),
                               ),
-                              if (sel.saleItem.batchNumber != null && sel.saleItem.batchNumber!.isNotEmpty)
+                              if (sel.saleItem.batchNumber != null &&
+                                  sel.saleItem.batchNumber!.isNotEmpty)
                                 Text(
                                   'Batch: ${sel.saleItem.batchNumber}',
-                                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.grey),
                                 ),
                             ],
                           ),
@@ -744,7 +905,9 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                             '${sel.saleItem.quantity} pcs @ $currency${sel.saleItem.unitPrice.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: 11,
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B),
                             ),
                           ),
                         ),
@@ -754,33 +917,67 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.remove_circle_outline, size: 18),
-                                color: sel.selected && sel.returnQty > 1 ? const Color(0xFFDC2626) : Colors.grey,
-                                onPressed: sel.selected && sel.returnQty > 1
-                                    ? () => setState(() => sel.returnQty--)
+                                icon: const Icon(Icons.remove_circle_outline,
+                                    size: 18),
+                                color: sel.selected && sel.returnQty > 0.5
+                                    ? const Color(0xFFDC2626)
+                                    : Colors.grey,
+                                onPressed: sel.selected && sel.returnQty > 0.5
+                                    ? () => setState(() {
+                                          final step = (sel.returnQty % 1 !=
+                                                      0 ||
+                                                  sel.maxReturnable % 1 != 0)
+                                              ? 0.5
+                                              : 1.0;
+                                          sel.returnQty = (sel.returnQty - step)
+                                              .clamp(0.5, sel.maxReturnable);
+                                        })
                                     : null,
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                                  border: Border.all(
+                                      color: isDark
+                                          ? const Color(0xFF334155)
+                                          : const Color(0xFFCBD5E1)),
                                   borderRadius: BorderRadius.circular(4),
-                                  color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                                  color: isDark
+                                      ? const Color(0xFF0F172A)
+                                      : Colors.white,
                                 ),
                                 child: Text(
-                                  '${sel.returnQty.toStringAsFixed(0)} / ${sel.saleItem.quantity.toStringAsFixed(0)}',
+                                  '${sel.returnQty % 1 == 0 ? sel.returnQty.toStringAsFixed(0) : sel.returnQty.toStringAsFixed(2)} / ${sel.maxReturnable % 1 == 0 ? sel.maxReturnable.toStringAsFixed(0) : sel.maxReturnable.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: sel.selected ? (isDark ? Colors.white : const Color(0xFF0F172A)) : Colors.grey,
+                                    color: sel.selected
+                                        ? (isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A))
+                                        : Colors.grey,
                                   ),
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.add_circle_outline, size: 18),
-                                color: sel.selected && sel.returnQty < sel.saleItem.quantity ? const Color(0xFF10B981) : Colors.grey,
-                                onPressed: sel.selected && sel.returnQty < sel.saleItem.quantity
-                                    ? () => setState(() => sel.returnQty++)
+                                icon: const Icon(Icons.add_circle_outline,
+                                    size: 18),
+                                color: sel.selected &&
+                                        sel.returnQty < sel.maxReturnable
+                                    ? const Color(0xFF10B981)
+                                    : Colors.grey,
+                                onPressed: sel.selected &&
+                                        sel.returnQty < sel.maxReturnable
+                                    ? () => setState(() {
+                                          final step = (sel.returnQty % 1 !=
+                                                      0 ||
+                                                  sel.maxReturnable % 1 != 0)
+                                              ? 0.5
+                                              : 1.0;
+                                          sel.returnQty = (sel.returnQty + step)
+                                              .clamp(0.0, sel.maxReturnable);
+                                        })
                                     : null,
                               ),
                             ],
@@ -791,11 +988,15 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                           child: Align(
                             alignment: Alignment.centerRight,
                             child: Text(
-                              sel.selected ? '$currency ${sel.subtotal.toStringAsFixed(2)}' : '$currency 0.00',
+                              sel.selected
+                                  ? '$currency ${sel.subtotal.toStringAsFixed(2)}'
+                                  : '$currency 0.00',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
-                                color: sel.selected ? const Color(0xFFDC2626) : Colors.grey,
+                                color: sel.selected
+                                    ? const Color(0xFFDC2626)
+                                    : Colors.grey,
                               ),
                             ),
                           ),
@@ -810,7 +1011,9 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
         ] else ...[
           const Padding(
             padding: EdgeInsets.all(30),
-            child: Center(child: Text('No invoice selected. Please pick or search an invoice above.')),
+            child: Center(
+                child: Text(
+                    'No invoice selected. Please pick or search an invoice above.')),
           ),
         ],
 
@@ -830,9 +1033,12 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
               child: DropdownButtonFormField<Contact>(
                 initialValue: _manualCustomer,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Customer *', isDense: true),
+                decoration: const InputDecoration(
+                    labelText: 'Customer *', isDense: true),
                 dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                items: _customers.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
+                items: _customers
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
+                    .toList(),
                 onChanged: (v) => setState(() => _manualCustomer = v),
               ),
             ),
@@ -840,22 +1046,24 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
             Expanded(
               child: TextFormField(
                 controller: _manualInvoiceNoCtrl,
-                decoration: const InputDecoration(labelText: 'Original Invoice No *', isDense: true),
+                decoration: const InputDecoration(
+                    labelText: 'Original Invoice No *', isDense: true),
               ),
             ),
           ],
         ),
         const SizedBox(height: 14),
-
         DropdownButtonFormField<Product>(
           initialValue: _manualProduct,
           isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Select Product to Return *', isDense: true),
+          decoration: const InputDecoration(
+              labelText: 'Select Product to Return *', isDense: true),
           dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           items: _allProducts.take(150).map((p) {
             return DropdownMenuItem(
               value: p,
-              child: Text('${p.name} (${p.batchNumber ?? "No Batch"}) - Stock: ${p.stockQuantity}'),
+              child: Text(
+                  '${p.name} (${p.batchNumber ?? "No Batch"}) - Stock: ${p.stockQuantity}'),
             );
           }).toList(),
           onChanged: (p) {
@@ -868,14 +1076,14 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
           },
         ),
         const SizedBox(height: 14),
-
         Row(
           children: [
             Expanded(
               child: TextFormField(
                 controller: _manualQtyCtrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Return Quantity *', isDense: true),
+                decoration: const InputDecoration(
+                    labelText: 'Return Quantity *', isDense: true),
                 onChanged: (_) => setState(() {}),
               ),
             ),
@@ -884,7 +1092,10 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
               child: TextFormField(
                 controller: _manualPriceCtrl,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Refund Unit Price *', prefixText: '$currency ', isDense: true),
+                decoration: InputDecoration(
+                    labelText: 'Refund Unit Price *',
+                    prefixText: '$currency ',
+                    isDense: true),
                 onChanged: (_) => setState(() {}),
               ),
             ),
@@ -902,7 +1113,8 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -912,12 +1124,18 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: _refundMethod,
-                  decoration: const InputDecoration(labelText: 'Refund Payment Mode', isDense: true),
-                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  decoration: const InputDecoration(
+                      labelText: 'Refund Payment Mode', isDense: true),
+                  dropdownColor:
+                      isDark ? const Color(0xFF1E293B) : Colors.white,
                   items: const [
-                    DropdownMenuItem(value: 'cash', child: Text('Cash Refund (Paid Out)')),
-                    DropdownMenuItem(value: 'credit_note', child: Text('Credit Note (Customer Balance)')),
-                    DropdownMenuItem(value: 'bank', child: Text('Bank / Digital Transfer')),
+                    DropdownMenuItem(
+                        value: 'cash', child: Text('Cash Refund (Paid Out)')),
+                    DropdownMenuItem(
+                        value: 'credit_note',
+                        child: Text('Credit Note (Customer Balance)')),
+                    DropdownMenuItem(
+                        value: 'bank', child: Text('Bank / Digital Transfer')),
                   ],
                   onChanged: (v) => setState(() => _refundMethod = v ?? 'cash'),
                 ),
@@ -960,7 +1178,9 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF004EEB) : Colors.grey.withValues(alpha: 0.15),
+          color: isSelected
+              ? const Color(0xFF004EEB)
+              : Colors.grey.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(

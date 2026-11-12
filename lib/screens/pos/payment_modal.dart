@@ -47,17 +47,21 @@ class _PaymentModalState extends State<PaymentModal> {
   // Cheque tracking controllers (Step 6.3)
   final TextEditingController _chequeNoController = TextEditingController();
   final TextEditingController _chequeBankController = TextEditingController();
-  final TextEditingController _chequeDueDateController = TextEditingController();
+  final TextEditingController _chequeDueDateController =
+      TextEditingController();
 
   bool _isSplitMode = false;
-  String _selectedMethod = 'cash'; // 'cash', 'card', 'bank_transfer', 'cheque', 'credit'
+  String _selectedMethod =
+      'cash'; // 'cash', 'card', 'bank_transfer', 'cheque', 'credit'
   String? _validationError;
 
   // Loyalty Rewards Redemption (Strictly manual, default OFF)
   bool _redeemLoyalty = false;
   double _loyaltyDiscount = 0.0;
 
-  double get payableTotal => (widget.grandTotal - (_redeemLoyalty ? _loyaltyDiscount : 0.0)).clamp(0.0, double.infinity);
+  double get payableTotal =>
+      (widget.grandTotal - (_redeemLoyalty ? _loyaltyDiscount : 0.0))
+          .clamp(0.0, double.infinity);
 
   @override
   void initState() {
@@ -85,7 +89,8 @@ class _PaymentModalState extends State<PaymentModal> {
   }
 
   bool get _isForeign => _selectedRate != null;
-  double get _foreignTendered => double.tryParse(_foreignTenderedCtrl.text.trim()) ?? 0.0;
+  double get _foreignTendered =>
+      double.tryParse(_foreignTenderedCtrl.text.trim()) ?? 0.0;
   double get _effectiveRate => _selectedRate?.effectiveRate ?? 1.0;
   double get _foreignTotal => _selectedRate != null && _effectiveRate > 0
       ? double.parse((payableTotal / _effectiveRate).toStringAsFixed(2))
@@ -93,27 +98,35 @@ class _PaymentModalState extends State<PaymentModal> {
 
   double get _tendered {
     if (_isForeign) {
-      return double.parse((_foreignTendered * _effectiveRate).toStringAsFixed(2));
+      return double.parse(
+          (_foreignTendered * _effectiveRate).toStringAsFixed(2));
     }
     return double.tryParse(_tenderedController.text.trim()) ?? 0.0;
   }
 
-  double get _changeReturn => _tendered > payableTotal ? _tendered - payableTotal : 0.0;
+  double get _changeReturn =>
+      _tendered > payableTotal ? _tendered - payableTotal : 0.0;
   double get _foreignChangeReturn => (_isForeign && _effectiveRate > 0)
       ? double.parse((_changeReturn / _effectiveRate).toStringAsFixed(2))
       : 0.0;
-  double get _balanceDue => _tendered < payableTotal ? payableTotal - _tendered : 0.0;
+  double get _balanceDue =>
+      _tendered < payableTotal ? payableTotal - _tendered : 0.0;
   double get _foreignBalanceDue => (_isForeign && _effectiveRate > 0)
       ? double.parse((_balanceDue / _effectiveRate).toStringAsFixed(2))
       : 0.0;
 
   // Split calculation getters
-  double get _splitCash => double.tryParse(_splitCashController.text.trim()) ?? 0.0;
-  double get _splitCard => double.tryParse(_splitCardController.text.trim()) ?? 0.0;
-  double get _splitBank => double.tryParse(_splitBankController.text.trim()) ?? 0.0;
+  double get _splitCash =>
+      double.tryParse(_splitCashController.text.trim()) ?? 0.0;
+  double get _splitCard =>
+      double.tryParse(_splitCardController.text.trim()) ?? 0.0;
+  double get _splitBank =>
+      double.tryParse(_splitBankController.text.trim()) ?? 0.0;
   double get _splitTotalPaid => _splitCash + _splitCard + _splitBank;
-  double get _splitBalanceDue => _splitTotalPaid < payableTotal ? payableTotal - _splitTotalPaid : 0.0;
-  double get _splitChangeReturn => _splitTotalPaid > payableTotal ? _splitTotalPaid - payableTotal : 0.0;
+  double get _splitBalanceDue =>
+      _splitTotalPaid < payableTotal ? payableTotal - _splitTotalPaid : 0.0;
+  double get _splitChangeReturn =>
+      _splitTotalPaid > payableTotal ? _splitTotalPaid - payableTotal : 0.0;
 
   void _selectTenderCurrency(CurrencyRate? rate) {
     setState(() {
@@ -127,7 +140,8 @@ class _PaymentModalState extends State<PaymentModal> {
           effectiveRate: rate.effectiveRate,
         );
         _foreignTenderedCtrl.text = fDue.toStringAsFixed(2);
-        _tenderedController.text = (fDue * rate.effectiveRate).toStringAsFixed(2);
+        _tenderedController.text =
+            (fDue * rate.effectiveRate).toStringAsFixed(2);
       }
     });
   }
@@ -164,19 +178,22 @@ class _PaymentModalState extends State<PaymentModal> {
       // Split payment mode validation
       if (widget.isWalkIn && _splitTotalPaid < payableTotal) {
         setState(() {
-          _validationError = 'Strict Walk-in Rule: Walk-in customers must pay 100% upfront (${widget.currencySymbol}${payableTotal.toStringAsFixed(2)}). Partial split payments are disabled.';
+          _validationError =
+              'Strict Walk-in Rule: Walk-in customers must pay 100% upfront (${widget.currencySymbol}${payableTotal.toStringAsFixed(2)}). Partial split payments are disabled.';
         });
         return;
       }
 
       if (_splitTotalPaid <= 0 && widget.isWalkIn) {
         setState(() {
-          _validationError = 'Please allocate payment amounts across Cash, Card, or Bank.';
+          _validationError =
+              'Please allocate payment amounts across Cash, Card, or Bank.';
         });
         return;
       }
 
-      final effectivePaid = _splitTotalPaid > payableTotal ? payableTotal : _splitTotalPaid;
+      final effectivePaid =
+          _splitTotalPaid > payableTotal ? payableTotal : _splitTotalPaid;
       String paymentStatus = 'paid';
       if (_splitTotalPaid == 0.0) {
         paymentStatus = 'due';
@@ -184,10 +201,25 @@ class _PaymentModalState extends State<PaymentModal> {
         paymentStatus = 'partial';
       }
 
+      final due = payableTotal - effectivePaid;
+      if (!widget.isWalkIn && due > 0 && widget.customerCreditLimit > 0) {
+        final projectedBalance = widget.customerCurrentBalance + due;
+        if (projectedBalance > widget.customerCreditLimit) {
+          setState(() {
+            _validationError =
+                'Credit Limit Exceeded: Projected balance (${widget.currencySymbol}${projectedBalance.toStringAsFixed(2)}) exceeds allowed limit of ${widget.currencySymbol}${widget.customerCreditLimit.toStringAsFixed(2)}.';
+          });
+          return;
+        }
+      }
+
       final splitTenders = <Map<String, dynamic>>[];
-      if (_splitCash > 0) splitTenders.add({'method': 'cash', 'amount': _splitCash});
-      if (_splitCard > 0) splitTenders.add({'method': 'card', 'amount': _splitCard});
-      if (_splitBank > 0) splitTenders.add({'method': 'bank_transfer', 'amount': _splitBank});
+      if (_splitCash > 0)
+        splitTenders.add({'method': 'cash', 'amount': _splitCash});
+      if (_splitCard > 0)
+        splitTenders.add({'method': 'card', 'amount': _splitCard});
+      if (_splitBank > 0)
+        splitTenders.add({'method': 'bank_transfer', 'amount': _splitBank});
 
       Navigator.of(context).pop({
         'isSplit': true,
@@ -208,14 +240,16 @@ class _PaymentModalState extends State<PaymentModal> {
     if (widget.isWalkIn) {
       if (_selectedMethod == 'credit') {
         setState(() {
-          _validationError = 'Strict Walk-in Rule: Walk-in customers cannot buy on credit. Please select a registered customer account.';
+          _validationError =
+              'Strict Walk-in Rule: Walk-in customers cannot buy on credit. Please select a registered customer account.';
         });
         return;
       }
 
       if (_tendered < payableTotal) {
         setState(() {
-          _validationError = 'Strict Walk-in Rule: Walk-in customers must pay 100% upfront (${widget.currencySymbol}${payableTotal.toStringAsFixed(2)}). Partial balance due is strictly restricted.';
+          _validationError =
+              'Strict Walk-in Rule: Walk-in customers must pay 100% upfront (${widget.currencySymbol}${payableTotal.toStringAsFixed(2)}). Partial balance due is strictly restricted.';
         });
         return;
       }
@@ -235,12 +269,16 @@ class _PaymentModalState extends State<PaymentModal> {
       paymentStatus = 'partial';
     }
 
-    // Credit limit warning for registered customers
+    // Credit limit enforcement for registered customers
     final due = payableTotal - paid;
     if (!widget.isWalkIn && due > 0 && widget.customerCreditLimit > 0) {
       final projectedBalance = widget.customerCurrentBalance + due;
       if (projectedBalance > widget.customerCreditLimit) {
-        // Enforce or warn
+        setState(() {
+          _validationError =
+              'Credit Limit Exceeded: Projected balance (${widget.currencySymbol}${projectedBalance.toStringAsFixed(2)}) exceeds allowed limit of ${widget.currencySymbol}${widget.customerCreditLimit.toStringAsFixed(2)}. Collect at least ${widget.currencySymbol}${(projectedBalance - widget.customerCreditLimit).toStringAsFixed(2)} upfront.';
+        });
+        return;
       }
     }
 
@@ -275,9 +313,13 @@ class _PaymentModalState extends State<PaymentModal> {
             },
           },
       ],
-      'chequeNumber': _selectedMethod == 'cheque' ? _chequeNoController.text.trim() : '',
-      'bankName': _selectedMethod == 'cheque' ? _chequeBankController.text.trim() : '',
-      'chequeDueDate': _selectedMethod == 'cheque' ? _chequeDueDateController.text.trim() : '',
+      'chequeNumber':
+          _selectedMethod == 'cheque' ? _chequeNoController.text.trim() : '',
+      'bankName':
+          _selectedMethod == 'cheque' ? _chequeBankController.text.trim() : '',
+      'chequeDueDate': _selectedMethod == 'cheque'
+          ? _chequeDueDateController.text.trim()
+          : '',
       'note': isForeign
           ? 'Foreign Currency Tender: $tenderCode (${_selectedRate!.symbol}$foreignTenderedVal @ ${rate.toStringAsFixed(2)} = ${widget.currencySymbol}${_tendered.toStringAsFixed(2)}). Change: ${widget.currencySymbol}${_changeReturn.toStringAsFixed(2)} (${_selectedRate!.symbol}${foreignChangeVal.toStringAsFixed(2)})'
           : _noteController.text.trim(),
@@ -290,12 +332,14 @@ class _PaymentModalState extends State<PaymentModal> {
 
     return Expanded(
       child: Tooltip(
-        message: isCreditDisabled ? 'Credit disabled for Walk-in customers' : '',
+        message:
+            isCreditDisabled ? 'Credit disabled for Walk-in customers' : '',
         child: InkWell(
           onTap: isCreditDisabled
               ? () {
                   setState(() {
-                    _validationError = 'Credit/Due sales are strictly reserved for registered account holders.';
+                    _validationError =
+                        'Credit/Due sales are strictly reserved for registered account holders.';
                   });
                 }
               : () => setState(() {
@@ -307,16 +351,24 @@ class _PaymentModalState extends State<PaymentModal> {
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
               color: isCreditDisabled
-                  ? (isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : const Color(0xFFF1F5F9))
+                  ? (isDark
+                      ? const Color(0xFF1E293B).withValues(alpha: 0.5)
+                      : const Color(0xFFF1F5F9))
                   : (isSelected
                       ? const Color(0xFF4F46E5)
-                      : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC))),
+                      : (isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC))),
               border: Border.all(
                 color: isCreditDisabled
-                    ? (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))
+                    ? (isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFCBD5E1))
                     : (isSelected
                         ? const Color(0xFF4F46E5)
-                        : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                        : (isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0))),
                 width: 1.5,
               ),
               borderRadius: BorderRadius.circular(10),
@@ -330,10 +382,14 @@ class _PaymentModalState extends State<PaymentModal> {
                     Icon(
                       icon,
                       color: isCreditDisabled
-                          ? (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8))
+                          ? (isDark
+                              ? const Color(0xFF64748B)
+                              : const Color(0xFF94A3B8))
                           : (isSelected
                               ? Colors.white
-                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569))),
+                              : (isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF475569))),
                       size: 22,
                     ),
                     if (isCreditDisabled)
@@ -347,10 +403,14 @@ class _PaymentModalState extends State<PaymentModal> {
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                     color: isCreditDisabled
-                        ? (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8))
+                        ? (isDark
+                            ? const Color(0xFF64748B)
+                            : const Color(0xFF94A3B8))
                         : (isSelected
                             ? Colors.white
-                            : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1E293B))),
+                            : (isDark
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF1E293B))),
                   ),
                 ),
               ],
@@ -366,14 +426,17 @@ class _PaymentModalState extends State<PaymentModal> {
       padding: const EdgeInsets.only(right: 6, bottom: 6),
       child: OutlinedButton(
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+          side: BorderSide(
+              color:
+                  isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
           backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
           foregroundColor: isDark ? Colors.white : const Color(0xFF1E293B),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         onPressed: onTap,
-        child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+        child: Text(text,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
       ),
     );
   }
@@ -412,12 +475,15 @@ class _PaymentModalState extends State<PaymentModal> {
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A),
                                 ),
                               ),
                               const SizedBox(width: 10),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: widget.isWalkIn
                                       ? Colors.amber.withValues(alpha: 0.15)
@@ -433,17 +499,25 @@ class _PaymentModalState extends State<PaymentModal> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      widget.isWalkIn ? Icons.person_outline : Icons.verified_user_outlined,
+                                      widget.isWalkIn
+                                          ? Icons.person_outline
+                                          : Icons.verified_user_outlined,
                                       size: 13,
-                                      color: widget.isWalkIn ? Colors.amber[700] : Colors.blue[600],
+                                      color: widget.isWalkIn
+                                          ? Colors.amber[700]
+                                          : Colors.blue[600],
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      widget.isWalkIn ? 'Walk-in (100% Upfront)' : 'Registered Account',
+                                      widget.isWalkIn
+                                          ? 'Walk-in (100% Upfront)'
+                                          : 'Registered Account',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
-                                        color: widget.isWalkIn ? Colors.amber[700] : Colors.blue[600],
+                                        color: widget.isWalkIn
+                                            ? Colors.amber[700]
+                                            : Colors.blue[600],
                                       ),
                                     ),
                                   ],
@@ -455,39 +529,57 @@ class _PaymentModalState extends State<PaymentModal> {
                         const SizedBox(height: 2),
                         Text(
                           'Customer: ${widget.customerName}' +
-                              (!widget.isWalkIn && widget.customerCreditLimit > 0
+                              (!widget.isWalkIn &&
+                                      widget.customerCreditLimit > 0
                                   ? ' • Credit Limit: $currency${widget.customerCreditLimit.toStringAsFixed(0)} • Current Due: $currency${widget.customerCurrentBalance.toStringAsFixed(0)}'
                                   : '') +
-                              (!widget.isWalkIn && widget.customerLoyaltyPoints > 0
+                              (!widget.isWalkIn &&
+                                      widget.customerLoyaltyPoints > 0
                                   ? ' • Loyalty: ${widget.customerLoyaltyPoints.toInt()} pts'
                                   : ''),
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
                           ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    icon: Icon(Icons.close,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
-              Divider(height: 20, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              Divider(
+                  height: 20,
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
 
               // Amount Payable Display Box
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
-                        ? [const Color(0xFF1E3A8A).withValues(alpha: 0.4), const Color(0xFF1E293B)]
+                        ? [
+                            const Color(0xFF1E3A8A).withValues(alpha: 0.4),
+                            const Color(0xFF1E293B)
+                          ]
                         : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? const Color(0xFF1E40AF) : const Color(0xFFBFDBFE)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF1E40AF)
+                          : const Color(0xFFBFDBFE)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -500,7 +592,9 @@ class _PaymentModalState extends State<PaymentModal> {
                             'TOTAL PAYABLE AMOUNT',
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
-                              color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF),
+                              color: isDark
+                                  ? const Color(0xFF93C5FD)
+                                  : const Color(0xFF1E40AF),
                               fontSize: 12,
                               letterSpacing: 0.5,
                             ),
@@ -519,7 +613,9 @@ class _PaymentModalState extends State<PaymentModal> {
                               'Must be paid in full (No credit)',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                                color: isDark
+                                    ? const Color(0xFFCBD5E1)
+                                    : const Color(0xFF475569),
                               ),
                             ),
                         ],
@@ -534,7 +630,9 @@ class _PaymentModalState extends State<PaymentModal> {
                             style: TextStyle(
                               fontSize: 12,
                               decoration: TextDecoration.lineThrough,
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B),
                             ),
                           ),
                         Text(
@@ -542,7 +640,9 @@ class _PaymentModalState extends State<PaymentModal> {
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 26,
-                            color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E3A8A),
+                            color: isDark
+                                ? const Color(0xFF60A5FA)
+                                : const Color(0xFF1E3A8A),
                           ),
                         ),
                       ],
@@ -554,15 +654,22 @@ class _PaymentModalState extends State<PaymentModal> {
               if (!widget.isWalkIn && widget.customerLoyaltyPoints > 0) ...[
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF451A03).withValues(alpha: 0.6) : const Color(0xFFFFFBEB),
+                    color: isDark
+                        ? const Color(0xFF451A03).withValues(alpha: 0.6)
+                        : const Color(0xFFFFFBEB),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A)),
+                    border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF78350F)
+                            : const Color(0xFFFDE68A)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.stars_rounded, color: Color(0xFFD97706), size: 24),
+                      const Icon(Icons.stars_rounded,
+                          color: Color(0xFFD97706), size: 24),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
@@ -573,7 +680,9 @@ class _PaymentModalState extends State<PaymentModal> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
-                                color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                                color: isDark
+                                    ? const Color(0xFFFDE68A)
+                                    : const Color(0xFF92400E),
                               ),
                             ),
                             Text(
@@ -582,7 +691,9 @@ class _PaymentModalState extends State<PaymentModal> {
                                   : 'Redeemable value: $currency${(widget.customerLoyaltyPoints > widget.grandTotal ? widget.grandTotal : widget.customerLoyaltyPoints).toStringAsFixed(2)} (Manual redeem only)',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: isDark ? const Color(0xFFFCD34D) : const Color(0xFFB45309),
+                                color: isDark
+                                    ? const Color(0xFFFCD34D)
+                                    : const Color(0xFFB45309),
                               ),
                             ),
                           ],
@@ -596,7 +707,9 @@ class _PaymentModalState extends State<PaymentModal> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF92400E),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF92400E),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -607,13 +720,16 @@ class _PaymentModalState extends State<PaymentModal> {
                               setState(() {
                                 _redeemLoyalty = val;
                                 if (val) {
-                                  _loyaltyDiscount = widget.customerLoyaltyPoints > widget.grandTotal
-                                      ? widget.grandTotal
-                                      : widget.customerLoyaltyPoints;
+                                  _loyaltyDiscount =
+                                      widget.customerLoyaltyPoints >
+                                              widget.grandTotal
+                                          ? widget.grandTotal
+                                          : widget.customerLoyaltyPoints;
                                 } else {
                                   _loyaltyDiscount = 0.0;
                                 }
-                                _tenderedController.text = payableTotal.toStringAsFixed(2);
+                                _tenderedController.text =
+                                    payableTotal.toStringAsFixed(2);
                               });
                             },
                           ),
@@ -628,9 +744,14 @@ class _PaymentModalState extends State<PaymentModal> {
               // Mode Tabs: Single Tender vs Split Payment
               Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
                 ),
                 padding: const EdgeInsets.all(4),
                 child: Row(
@@ -643,11 +764,16 @@ class _PaymentModalState extends State<PaymentModal> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
                             color: !_isSplitMode
-                                ? (isDark ? const Color(0xFF4F46E5) : Colors.white)
+                                ? (isDark
+                                    ? const Color(0xFF4F46E5)
+                                    : Colors.white)
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(8),
                             boxShadow: !_isSplitMode && !isDark
-                                ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                                ? [
+                                    const BoxShadow(
+                                        color: Colors.black12, blurRadius: 4)
+                                  ]
                                 : null,
                           ),
                           child: Center(
@@ -657,8 +783,12 @@ class _PaymentModalState extends State<PaymentModal> {
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                                 color: !_isSplitMode
-                                    ? (isDark ? Colors.white : const Color(0xFF1E293B))
-                                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                    ? (isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1E293B))
+                                    : (isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B)),
                               ),
                             ),
                           ),
@@ -670,7 +800,8 @@ class _PaymentModalState extends State<PaymentModal> {
                         onTap: () {
                           if (widget.isWalkIn) {
                             setState(() {
-                              _validationError = 'Strict Walk-in Rule: واک اِن کسٹمر کے لیے اسپلٹ / ملٹیپل پیمنٹ کی اجازت نہیں ہے۔ واک اِن کسٹمر مکمل کیش ادا کرتے ہیں۔';
+                              _validationError =
+                                  'Strict Walk-in Rule: واک اِن کسٹمر کے لیے اسپلٹ / ملٹیپل پیمنٹ کی اجازت نہیں ہے۔ واک اِن کسٹمر مکمل کیش ادا کرتے ہیں۔';
                             });
                             return;
                           }
@@ -681,11 +812,16 @@ class _PaymentModalState extends State<PaymentModal> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
                             color: _isSplitMode
-                                ? (isDark ? const Color(0xFF4F46E5) : Colors.white)
+                                ? (isDark
+                                    ? const Color(0xFF4F46E5)
+                                    : Colors.white)
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(8),
                             boxShadow: _isSplitMode && !isDark
-                                ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                                ? [
+                                    const BoxShadow(
+                                        color: Colors.black12, blurRadius: 4)
+                                  ]
                                 : null,
                           ),
                           child: Center(
@@ -693,7 +829,9 @@ class _PaymentModalState extends State<PaymentModal> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  widget.isWalkIn ? Icons.lock_outline_rounded : Icons.call_split_rounded,
+                                  widget.isWalkIn
+                                      ? Icons.lock_outline_rounded
+                                      : Icons.call_split_rounded,
                                   size: 16,
                                   color: widget.isWalkIn ? Colors.grey : null,
                                 ),
@@ -709,8 +847,12 @@ class _PaymentModalState extends State<PaymentModal> {
                                       color: widget.isWalkIn
                                           ? Colors.grey
                                           : (_isSplitMode
-                                              ? (isDark ? Colors.white : const Color(0xFF1E293B))
-                                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                                              ? (isDark
+                                                  ? Colors.white
+                                                  : const Color(0xFF1E293B))
+                                              : (isDark
+                                                  ? const Color(0xFF94A3B8)
+                                                  : const Color(0xFF64748B))),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -732,16 +874,21 @@ class _PaymentModalState extends State<PaymentModal> {
                   decoration: BoxDecoration(
                     color: Colors.red.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                    border:
+                        Border.all(color: Colors.red.withValues(alpha: 0.4)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                      const Icon(Icons.error_outline,
+                          color: Colors.red, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _validationError!,
-                          style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -757,31 +904,38 @@ class _PaymentModalState extends State<PaymentModal> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
                     letterSpacing: 0.8,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _methodTile('cash', 'Cash', Icons.payments_outlined, isDark),
+                    _methodTile(
+                        'cash', 'Cash', Icons.payments_outlined, isDark),
                     const SizedBox(width: 8),
-                    _methodTile('card', 'Card', Icons.credit_card_outlined, isDark),
+                    _methodTile(
+                        'card', 'Card', Icons.credit_card_outlined, isDark),
                     const SizedBox(width: 8),
-                    _methodTile('bank_transfer', 'Bank', Icons.account_balance_outlined, isDark),
+                    _methodTile('bank_transfer', 'Bank',
+                        Icons.account_balance_outlined, isDark),
                     const SizedBox(width: 8),
-                    _methodTile('cheque', 'Cheque', Icons.article_outlined, isDark),
+                    _methodTile(
+                        'cheque', 'Cheque', Icons.article_outlined, isDark),
                     if (!widget.isWalkIn) ...[
                       const SizedBox(width: 8),
-                      _methodTile('credit', 'Due/Credit', Icons.pending_actions_outlined, isDark),
+                      _methodTile('credit', 'Due/Credit',
+                          Icons.pending_actions_outlined, isDark),
                     ],
                   ],
                 ),
                 const SizedBox(height: 16),
-
                 if (_selectedMethod != 'credit') ...[
                   // Multi-Currency Tender Selector (If enabled)
-                  if (widget.multiCurrencyEnabled && widget.availableRates.isNotEmpty) ...[
+                  if (widget.multiCurrencyEnabled &&
+                      widget.availableRates.isNotEmpty) ...[
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -789,25 +943,34 @@ class _PaymentModalState extends State<PaymentModal> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.currency_exchange_rounded, size: 14, color: Color(0xFF16A34A)),
+                              const Icon(Icons.currency_exchange_rounded,
+                                  size: 14, color: Color(0xFF16A34A)),
                               const SizedBox(width: 6),
                               const Text(
                                 'PAYMENT CURRENCY (ادائیگی کی کرنسی)',
-                                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                                style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5),
                               ),
                             ],
                           ),
                           if (_selectedRate != null) ...[
                             const SizedBox(width: 10),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF16A34A).withValues(alpha: 0.15),
+                                color: const Color(0xFF16A34A)
+                                    .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 'Rate: 1 ${_selectedRate!.code} = ${widget.currencySymbol}${_effectiveRate.toStringAsFixed(2)}',
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
+                                style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF16A34A)),
                               ),
                             ),
                           ],
@@ -823,14 +986,18 @@ class _PaymentModalState extends State<PaymentModal> {
                             avatar: const Icon(Icons.home_outlined, size: 13),
                             label: Text(
                               '${widget.currencyCode} (${widget.currencySymbol})',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.bold),
                             ),
                             selected: _selectedRate == null,
-                            selectedColor: const Color(0xFF4F46E5).withValues(alpha: 0.2),
+                            selectedColor:
+                                const Color(0xFF4F46E5).withValues(alpha: 0.2),
                             onSelected: (_) => _selectTenderCurrency(null),
                           ),
                           const SizedBox(width: 6),
-                          ...widget.availableRates.where((r) => r.isEnabled).map((rate) {
+                          ...widget.availableRates
+                              .where((r) => r.isEnabled)
+                              .map((rate) {
                             final isSel = _selectedRate?.code == rate.code;
                             return Padding(
                               padding: const EdgeInsets.only(right: 6),
@@ -840,11 +1007,13 @@ class _PaymentModalState extends State<PaymentModal> {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: isSel ? const Color(0xFF047857) : null,
+                                    color:
+                                        isSel ? const Color(0xFF047857) : null,
                                   ),
                                 ),
                                 selected: isSel,
-                                selectedColor: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                selectedColor: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.2),
                                 onSelected: (_) => _selectTenderCurrency(rate),
                               ),
                             );
@@ -860,9 +1029,14 @@ class _PaymentModalState extends State<PaymentModal> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.2) : const Color(0xFFF0FDF4),
+                        color: isDark
+                            ? const Color(0xFF064E3B).withValues(alpha: 0.2)
+                            : const Color(0xFFF0FDF4),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: isDark ? const Color(0xFF065F46) : const Color(0xFF86EFAC)),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF065F46)
+                                : const Color(0xFF86EFAC)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -875,7 +1049,9 @@ class _PaymentModalState extends State<PaymentModal> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF166534),
+                                  color: isDark
+                                      ? const Color(0xFF86EFAC)
+                                      : const Color(0xFF166534),
                                 ),
                               ),
                               Text(
@@ -883,7 +1059,9 @@ class _PaymentModalState extends State<PaymentModal> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
-                                  color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF166534),
+                                  color: isDark
+                                      ? const Color(0xFF86EFAC)
+                                      : const Color(0xFF166534),
                                 ),
                               ),
                             ],
@@ -894,38 +1072,52 @@ class _PaymentModalState extends State<PaymentModal> {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B),
                             ),
                           ),
                           const SizedBox(height: 6),
                           TextField(
                             controller: _foreignTenderedCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             onChanged: (val) {
                               final f = double.tryParse(val.trim()) ?? 0.0;
                               setState(() {
-                                _tenderedController.text = (f * _effectiveRate).toStringAsFixed(2);
+                                _tenderedController.text =
+                                    (f * _effectiveRate).toStringAsFixed(2);
                                 _validationError = null;
                               });
                             },
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
                             ),
                             decoration: InputDecoration(
                               prefixText: '${_selectedRate!.symbol} ',
                               prefixStyle: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
                               ),
                               filled: true,
-                              fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              fillColor: isDark
+                                  ? const Color(0xFF0F172A)
+                                  : Colors.white,
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10)),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: isDark ? const Color(0xFF065F46) : const Color(0xFF86EFAC)),
+                                borderSide: BorderSide(
+                                    color: isDark
+                                        ? const Color(0xFF065F46)
+                                        : const Color(0xFF86EFAC)),
                               ),
                             ),
                           ),
@@ -934,19 +1126,30 @@ class _PaymentModalState extends State<PaymentModal> {
                             spacing: 6,
                             runSpacing: 6,
                             children: [
-                              _quickCashBtn('Exact (${_selectedRate!.symbol}${_foreignTotal.toStringAsFixed(2)})', () => _setForeignTendered(_foreignTotal), isDark),
-                              _quickCashBtn('${_selectedRate!.symbol} 10', () => _setForeignTendered(10), isDark),
-                              _quickCashBtn('${_selectedRate!.symbol} 20', () => _setForeignTendered(20), isDark),
-                              _quickCashBtn('${_selectedRate!.symbol} 50', () => _setForeignTendered(50), isDark),
-                              _quickCashBtn('${_selectedRate!.symbol} 100', () => _setForeignTendered(100), isDark),
-                              _quickCashBtn('${_selectedRate!.symbol} 500', () => _setForeignTendered(500), isDark),
+                              _quickCashBtn(
+                                  'Exact (${_selectedRate!.symbol}${_foreignTotal.toStringAsFixed(2)})',
+                                  () => _setForeignTendered(_foreignTotal),
+                                  isDark),
+                              _quickCashBtn('${_selectedRate!.symbol} 10',
+                                  () => _setForeignTendered(10), isDark),
+                              _quickCashBtn('${_selectedRate!.symbol} 20',
+                                  () => _setForeignTendered(20), isDark),
+                              _quickCashBtn('${_selectedRate!.symbol} 50',
+                                  () => _setForeignTendered(50), isDark),
+                              _quickCashBtn('${_selectedRate!.symbol} 100',
+                                  () => _setForeignTendered(100), isDark),
+                              _quickCashBtn('${_selectedRate!.symbol} 500',
+                                  () => _setForeignTendered(500), isDark),
                             ],
                           ),
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                              color: isDark
+                                  ? const Color(0xFF0F172A)
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
@@ -954,11 +1157,17 @@ class _PaymentModalState extends State<PaymentModal> {
                               children: [
                                 Text(
                                   'Base Currency Equivalent:',
-                                  style: TextStyle(fontSize: 10.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                  style: TextStyle(
+                                      fontSize: 10.5,
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF64748B)),
                                 ),
                                 Text(
                                   '${widget.currencySymbol}${_tendered.toStringAsFixed(2)}',
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -973,14 +1182,17 @@ class _PaymentModalState extends State<PaymentModal> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B),
                         letterSpacing: 0.8,
                       ),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _tenderedController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       onChanged: (_) => setState(() => _validationError = null),
                       style: TextStyle(
                         fontSize: 20,
@@ -992,14 +1204,20 @@ class _PaymentModalState extends State<PaymentModal> {
                         prefixStyle: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
                         filled: true,
-                        fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        fillColor:
+                            isDark ? const Color(0xFF0F172A) : Colors.white,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          borderSide: BorderSide(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFCBD5E1)),
                         ),
                       ),
                     ),
@@ -1007,13 +1225,32 @@ class _PaymentModalState extends State<PaymentModal> {
 
                     Wrap(
                       children: [
-                        _quickCashBtn('Exact', () => _setTendered(widget.grandTotal), isDark),
-                        _quickCashBtn('$currency 100', () => _setTendered(100), isDark),
-                        _quickCashBtn('$currency 500', () => _setTendered(500), isDark),
-                        _quickCashBtn('$currency 1,000', () => _setTendered(1000), isDark),
-                        _quickCashBtn('$currency 5,000', () => _setTendered(5000), isDark),
-                        _quickCashBtn('+ $currency 500', () => _addTendered(500), isDark),
-                        _quickCashBtn('+ $currency 1,000', () => _addTendered(1000), isDark),
+                        _quickCashBtn(
+                            'Exact', () => _setTendered(payableTotal), isDark),
+                        _quickCashBtn(
+                            '$currency 50', () => _setTendered(50), isDark),
+                        _quickCashBtn(
+                            '$currency 100', () => _setTendered(100), isDark),
+                        _quickCashBtn(
+                            '$currency 200', () => _setTendered(200), isDark),
+                        _quickCashBtn(
+                            '$currency 500', () => _setTendered(500), isDark),
+                        _quickCashBtn('$currency 1,000',
+                            () => _setTendered(1000), isDark),
+                        _quickCashBtn('$currency 5,000',
+                            () => _setTendered(5000), isDark),
+                        if (payableTotal > 100 && (payableTotal % 100) != 0)
+                          _quickCashBtn(
+                            'Round ${(((payableTotal / 100).ceil()) * 100)}',
+                            () => _setTendered(
+                                (((payableTotal / 100).ceil()) * 100)
+                                    .toDouble()),
+                            isDark,
+                          ),
+                        _quickCashBtn(
+                            '+ $currency 500', () => _addTendered(500), isDark),
+                        _quickCashBtn('+ $currency 1,000',
+                            () => _addTendered(1000), isDark),
                       ],
                     ),
                   ],
@@ -1023,12 +1260,17 @@ class _PaymentModalState extends State<PaymentModal> {
                     children: [
                       Expanded(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFDEF7EC),
+                            color: isDark
+                                ? const Color(0xFF064E3B).withValues(alpha: 0.4)
+                                : const Color(0xFFDEF7EC),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: isDark ? const Color(0xFF065F46) : const Color(0xFFBCF0DA),
+                              color: isDark
+                                  ? const Color(0xFF065F46)
+                                  : const Color(0xFFBCF0DA),
                             ),
                           ),
                           child: Column(
@@ -1039,7 +1281,9 @@ class _PaymentModalState extends State<PaymentModal> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF03543F),
+                                  color: isDark
+                                      ? const Color(0xFF6EE7B7)
+                                      : const Color(0xFF03543F),
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -1048,7 +1292,9 @@ class _PaymentModalState extends State<PaymentModal> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
-                                  color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF03543F),
+                                  color: isDark
+                                      ? const Color(0xFF6EE7B7)
+                                      : const Color(0xFF03543F),
                                 ),
                               ),
                               if (_isForeign && _changeReturn > 0)
@@ -1057,7 +1303,9 @@ class _PaymentModalState extends State<PaymentModal> {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: isDark ? const Color(0xFFA7F3D0) : const Color(0xFF047857),
+                                    color: isDark
+                                        ? const Color(0xFFA7F3D0)
+                                        : const Color(0xFF047857),
                                   ),
                                 ),
                             ],
@@ -1067,16 +1315,27 @@ class _PaymentModalState extends State<PaymentModal> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
                             color: _balanceDue > 0
-                                ? (isDark ? const Color(0xFF450A0A).withValues(alpha: 0.5) : const Color(0xFFFDE8E8))
-                                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
+                                ? (isDark
+                                    ? const Color(0xFF450A0A)
+                                        .withValues(alpha: 0.5)
+                                    : const Color(0xFFFDE8E8))
+                                : (isDark
+                                    ? const Color(0xFF0F172A)
+                                    : const Color(0xFFF1F5F9)),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: _balanceDue > 0
-                                  ? (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFF87171).withValues(alpha: 0.3))
-                                  : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                  ? (isDark
+                                      ? const Color(0xFF7F1D1D)
+                                      : const Color(0xFFF87171)
+                                          .withValues(alpha: 0.3))
+                                  : (isDark
+                                      ? const Color(0xFF334155)
+                                      : const Color(0xFFE2E8F0)),
                             ),
                           ),
                           child: Column(
@@ -1088,8 +1347,12 @@ class _PaymentModalState extends State<PaymentModal> {
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: _balanceDue > 0
-                                      ? (isDark ? const Color(0xFFFCA5A5) : const Color(0xFF9B1C1C))
-                                      : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                      ? (isDark
+                                          ? const Color(0xFFFCA5A5)
+                                          : const Color(0xFF9B1C1C))
+                                      : (isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF64748B)),
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -1099,8 +1362,12 @@ class _PaymentModalState extends State<PaymentModal> {
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
                                   color: _balanceDue > 0
-                                      ? (isDark ? const Color(0xFFF87171) : const Color(0xFF9B1C1C))
-                                      : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+                                      ? (isDark
+                                          ? const Color(0xFFF87171)
+                                          : const Color(0xFF9B1C1C))
+                                      : (isDark
+                                          ? const Color(0xFFCBD5E1)
+                                          : const Color(0xFF334155)),
                                 ),
                               ),
                             ],
@@ -1117,7 +1384,9 @@ class _PaymentModalState extends State<PaymentModal> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -1130,23 +1399,30 @@ class _PaymentModalState extends State<PaymentModal> {
                       width: 130,
                       child: Row(
                         children: [
-                          const Icon(Icons.payments_outlined, size: 18, color: Colors.green),
+                          const Icon(Icons.payments_outlined,
+                              size: 18, color: Colors.green),
                           const SizedBox(width: 8),
-                          const Text('Cash:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          const Text('Cash:',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13)),
                         ],
                       ),
                     ),
                     Expanded(
                       child: TextField(
                         controller: _splitCashController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (_) => setState(() => _validationError = null),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        onChanged: (_) =>
+                            setState(() => _validationError = null),
                         decoration: InputDecoration(
                           prefixText: '$currency ',
                           isDense: true,
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          fillColor:
+                              isDark ? const Color(0xFF0F172A) : Colors.white,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                       ),
                     ),
@@ -1161,23 +1437,30 @@ class _PaymentModalState extends State<PaymentModal> {
                       width: 130,
                       child: Row(
                         children: [
-                          const Icon(Icons.credit_card_outlined, size: 18, color: Colors.indigo),
+                          const Icon(Icons.credit_card_outlined,
+                              size: 18, color: Colors.indigo),
                           const SizedBox(width: 8),
-                          const Text('Card / POS:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          const Text('Card / POS:',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13)),
                         ],
                       ),
                     ),
                     Expanded(
                       child: TextField(
                         controller: _splitCardController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (_) => setState(() => _validationError = null),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        onChanged: (_) =>
+                            setState(() => _validationError = null),
                         decoration: InputDecoration(
                           prefixText: '$currency ',
                           isDense: true,
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          fillColor:
+                              isDark ? const Color(0xFF0F172A) : Colors.white,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                       ),
                     ),
@@ -1192,24 +1475,31 @@ class _PaymentModalState extends State<PaymentModal> {
                       width: 130,
                       child: Row(
                         children: [
-                          const Icon(Icons.account_balance_outlined, size: 18, color: Colors.teal),
+                          const Icon(Icons.account_balance_outlined,
+                              size: 18, color: Colors.teal),
                           const SizedBox(width: 8),
-                          const Text('Bank / Online:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          const Text('Bank / Online:',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13)),
                         ],
                       ),
                     ),
                     Expanded(
                       child: TextField(
                         controller: _splitBankController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (_) => setState(() => _validationError = null),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        onChanged: (_) =>
+                            setState(() => _validationError = null),
                         decoration: InputDecoration(
                           prefixText: '$currency ',
                           hintText: '0.00',
                           isDense: true,
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          fillColor:
+                              isDark ? const Color(0xFF0F172A) : Colors.white,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                       ),
                     ),
@@ -1221,9 +1511,14 @@ class _PaymentModalState extends State<PaymentModal> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    color: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1231,31 +1526,74 @@ class _PaymentModalState extends State<PaymentModal> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Total Allocated: $currency${_splitTotalPaid.toStringAsFixed(2)}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          Text(
+                              'Total Allocated: $currency${_splitTotalPaid.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13)),
                           if (_splitBalanceDue > 0)
-                            Text('Remaining Due: $currency${_splitBalanceDue.toStringAsFixed(2)}',
-                                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+                            Text(
+                                'Remaining Due: $currency${_splitBalanceDue.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
                           if (_splitChangeReturn > 0)
-                            Text('Change Return: $currency${_splitChangeReturn.toStringAsFixed(2)}',
-                                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                            Text(
+                                'Change Return: $currency${_splitChangeReturn.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
                         ],
                       ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                          foregroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _splitCashController.text = (widget.grandTotal / 2).toStringAsFixed(2);
-                            _splitCardController.text = (widget.grandTotal / 2).toStringAsFixed(2);
-                            _splitBankController.clear();
-                          });
-                        },
-                        child: const Text('Split 50/50', style: TextStyle(fontSize: 11)),
+                      Wrap(
+                        spacing: 6,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE2E8F0),
+                              foregroundColor: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _splitCashController.text =
+                                    (payableTotal / 2).toStringAsFixed(2);
+                                _splitCardController.text =
+                                    (payableTotal / 2).toStringAsFixed(2);
+                                _splitBankController.clear();
+                              });
+                            },
+                            child: const Text('Split 50/50',
+                                style: TextStyle(fontSize: 11)),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4F46E5),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                            ),
+                            onPressed: () {
+                              final rem =
+                                  (payableTotal - _splitCash - _splitBank)
+                                      .clamp(0.0, double.infinity);
+                              setState(() {
+                                _splitCardController.text =
+                                    rem.toStringAsFixed(2);
+                              });
+                            },
+                            child: const Text('Card = Remaining',
+                                style: TextStyle(fontSize: 11)),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1269,7 +1607,9 @@ class _PaymentModalState extends State<PaymentModal> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -1279,15 +1619,23 @@ class _PaymentModalState extends State<PaymentModal> {
                     Expanded(
                       child: TextField(
                         controller: _chequeNoController,
-                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
                         decoration: InputDecoration(
                           hintText: 'Cheque No.',
                           isDense: true,
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          fillColor:
+                              isDark ? const Color(0xFF0F172A) : Colors.white,
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            borderSide: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFCBD5E1)),
                           ),
                         ),
                       ),
@@ -1296,15 +1644,23 @@ class _PaymentModalState extends State<PaymentModal> {
                     Expanded(
                       child: TextField(
                         controller: _chequeBankController,
-                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
                         decoration: InputDecoration(
                           hintText: 'Bank Name',
                           isDense: true,
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          fillColor:
+                              isDark ? const Color(0xFF0F172A) : Colors.white,
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            borderSide: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFCBD5E1)),
                           ),
                         ),
                       ),
@@ -1313,15 +1669,23 @@ class _PaymentModalState extends State<PaymentModal> {
                     Expanded(
                       child: TextField(
                         controller: _chequeDueDateController,
-                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
                         decoration: InputDecoration(
                           hintText: 'Due YYYY-MM-DD',
                           isDense: true,
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          fillColor:
+                              isDark ? const Color(0xFF0F172A) : Colors.white,
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                            borderSide: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFCBD5E1)),
                           ),
                         ),
                       ),
@@ -1336,23 +1700,35 @@ class _PaymentModalState extends State<PaymentModal> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  color: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF64748B),
                   letterSpacing: 0.8,
                 ),
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _noteController,
-                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  hintText: 'e.g. Card Auth #98124, Bank Ref PK9921, or Cheque #00452',
-                  hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                  hintText:
+                      'e.g. Card Auth #98124, Bank Ref PK9921, or Cheque #00452',
+                  hintStyle: TextStyle(
+                      fontSize: 13,
+                      color: isDark
+                          ? const Color(0xFF64748B)
+                          : const Color(0xFF94A3B8)),
                   isDense: true,
                   filled: true,
                   fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                    borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFCBD5E1)),
                   ),
                 ),
               ),
@@ -1364,13 +1740,22 @@ class _PaymentModalState extends State<PaymentModal> {
                 children: [
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                      side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      foregroundColor: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                      side: BorderSide(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFCBD5E1)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    child: const Text('Cancel',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
@@ -1378,13 +1763,18 @@ class _PaymentModalState extends State<PaymentModal> {
                       backgroundColor: const Color(0xFF059669),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: const Icon(Icons.check_circle_rounded, size: 18),
                     label: Text(
-                      _isSplitMode ? 'FINALIZE SPLIT PAYMENT' : 'FINALIZE PAYMENT',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                      _isSplitMode
+                          ? 'FINALIZE SPLIT PAYMENT'
+                          : 'FINALIZE PAYMENT',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 13),
                     ),
                     onPressed: _confirmPayment,
                   ),

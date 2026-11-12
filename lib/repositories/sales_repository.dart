@@ -11,19 +11,30 @@ abstract class ISalesRepository {
     String chequeNumber = '',
     String bankName = '',
     String chequeDueDate = '',
+    int pointsRedeemed = 0,
+    int pointsEarned = 0,
+    bool enforceStock = false,
   });
   Future<List<Sale>> getSales({String? status, String? search});
   Future<PagedResult<Sale>> getSalesPaged({
     String? status,
     String? search,
     String conversionFilter = 'all',
+    int? locationId,
+    int? customerId,
+    String? paymentStatus,
     int page = 1,
     int pageSize = 25,
     int? cursorId,
     bool includeTotalCount = true,
   });
-  Future<List<Sale>> getQuotations({String? search, String conversionFilter = 'all'});
-  Future<Sale> convertQuotationToInvoice({required int quotationId, String paymentMethod = 'cash', double? paidAmount, String note = ''});
+  Future<List<Sale>> getQuotations(
+      {String? search, String conversionFilter = 'all'});
+  Future<Sale> convertQuotationToInvoice(
+      {required int quotationId,
+      String paymentMethod = 'cash',
+      double? paidAmount,
+      String note = ''});
   Future<List<SaleItem>> getSaleItems(int saleId);
   Future<void> settleSalePayment({
     required int saleId,
@@ -58,32 +69,118 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     String chequeNumber = '',
     String bankName = '',
     String chequeDueDate = '',
+    int pointsRedeemed = 0,
+    int pointsEarned = 0,
+    bool enforceStock = false,
   }) async {
     final createdSale = await db.transaction((txn) async {
-      // 1. Insert Sale record
-      final saleId = await txn.insert('sales', sale.toMap());
+      int? activeRegisterId = sale.cashRegisterId;
+      if (activeRegisterId == null && sale.saleStatus == 'final') {
+        final regRows = await txn.query(
+          'cash_registers',
+          columns: ['id'],
+          where: "status = 'open'",
+          orderBy: 'id DESC',
+          limit: 1,
+        );
+        if (regRows.isNotEmpty) {
+          activeRegisterId = regRows.first['id'] as int?;
+        }
+      }
 
-      // 2. Insert items and decrement stock
+      if (enforceStock && sale.saleStatus == 'final') {
+        for (final item in items) {
+          if (item.product.id == null) continue;
+          final baseReq = item.quantity *
+              (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+          final prodRows = await txn.query(
+            'products',
+            columns: ['name', 'stock_quantity'],
+            where: 'id = ?',
+            whereArgs: [item.product.id],
+            limit: 1,
+          );
+          if (prodRows.isNotEmpty) {
+            final avail =
+                (prodRows.first['stock_quantity'] as num?)?.toDouble() ?? 0.0;
+            if (baseReq > avail + 0.0001) {
+              throw StateError(
+                'Insufficient stock for "${prodRows.first['name']}": available ${avail.toStringAsFixed(2)}, requested ${baseReq.toStringAsFixed(2)}.',
+              );
+            }
+          }
+        }
+      }
+
+      // 1. Insert Sale record
+      final saleMap = sale.toMap();
+      if (activeRegisterId != null) {
+        saleMap['cash_register_id'] = activeRegisterId;
+      }
+      final saleId = await txn.insert('sales', saleMap);
+
+      // 2. Insert items, decrement stock & location stock, and FEFO batches
       for (final item in items) {
         await txn.insert('sale_items', item.toMap(saleId));
 
         if (sale.saleStatus == 'final' && item.product.id != null) {
-          final baseDeduction = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+          final baseDeduction = item.quantity *
+              (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
           await adjustProductAndVariationStock(
             txn,
             productId: item.product.id!,
             variationId: item.variationId,
             delta: -baseDeduction,
           );
+          await txn.rawUpdate(
+            'UPDATE product_locations SET qty_available = qty_available - ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
+            [
+              baseDeduction,
+              DateTime.now().toIso8601String(),
+              item.product.id!,
+              sale.locationId,
+            ],
+          );
+
+          // Automate FEFO batch / serial deduction when batches are tracked
+          final batchRows = await txn.query(
+            'product_serials_batches',
+            where: "product_id = ? AND status = 'in_stock'",
+            whereArgs: [item.product.id!],
+            orderBy:
+                "CASE WHEN COALESCE(expiry_date, '') = '' THEN '9999-12-31' ELSE expiry_date END ASC, id ASC",
+          );
+          if (batchRows.isNotEmpty) {
+            int remainingUnits = baseDeduction.ceil();
+            for (final b in batchRows) {
+              if (remainingUnits <= 0) break;
+              await txn.update(
+                'product_serials_batches',
+                {'status': 'sold', 'sale_id': saleId},
+                where: 'id = ?',
+                whereArgs: [b['id']],
+              );
+              remainingUnits--;
+            }
+          }
         }
       }
 
-      // 3. Update customer balance if partial or due (Final sales only)
-      if (sale.saleStatus == 'final' && sale.customerId != null && sale.dueAmount > 0) {
-        await txn.rawUpdate(
-          'UPDATE contacts SET balance = balance + ? WHERE id = ?',
-          [sale.dueAmount, sale.customerId],
-        );
+      // 3. Update customer balance if partial or due + atomic loyalty points (Final sales only)
+      if (sale.saleStatus == 'final' && sale.customerId != null) {
+        if (sale.dueAmount > 0) {
+          await txn.rawUpdate(
+            'UPDATE contacts SET balance = balance + ? WHERE id = ?',
+            [sale.dueAmount, sale.customerId],
+          );
+        }
+        final netPointsDelta = pointsEarned - pointsRedeemed;
+        if (netPointsDelta != 0) {
+          await txn.rawUpdate(
+            'UPDATE contacts SET loyalty_points = MAX(0, loyalty_points + ?) WHERE id = ?',
+            [netPointsDelta.toDouble(), sale.customerId],
+          );
+        }
       }
 
       // 4. Update Cash register sales if final
@@ -149,8 +246,10 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
               'contact_name': sale.customerName,
               'payment_method': m,
               'amount': amt,
-              'account_name': (m == 'cash') ? 'Cash Register' : 'Main Bank Account',
-              'transaction_date': sale.createdAt.isNotEmpty ? sale.createdAt : nowStr,
+              'account_name':
+                  (m == 'cash') ? 'Cash Register' : 'Main Bank Account',
+              'transaction_date':
+                  sale.createdAt.isNotEmpty ? sale.createdAt : nowStr,
               'ref_no': sale.invoiceNo,
               'note': sale.note,
               'created_by': 'Cashier',
@@ -171,8 +270,11 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           'contact_name': sale.customerName,
           'payment_method': sale.paymentMethod,
           'amount': sale.paidAmount,
-          'account_name': (sale.paymentMethod == 'cash') ? 'Cash Register' : 'Main Bank Account',
-          'transaction_date': sale.createdAt.isNotEmpty ? sale.createdAt : nowStr,
+          'account_name': (sale.paymentMethod == 'cash')
+              ? 'Cash Register'
+              : 'Main Bank Account',
+          'transaction_date':
+              sale.createdAt.isNotEmpty ? sale.createdAt : nowStr,
           'ref_no': sale.invoiceNo,
           'note': sale.note,
           'created_by': 'Cashier',
@@ -264,6 +366,64 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     return createdSale;
   }
 
+  Future<void> _assertWithinTransactionEditWindow(
+    dynamic txn,
+    Sale existing,
+  ) async {
+    if (existing.saleStatus != 'final') return;
+    final bsRows = await txn.query(
+      'business_settings',
+      columns: ['transaction_edit_days'],
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+    final editDays = bsRows.isNotEmpty
+        ? ((bsRows.first['transaction_edit_days'] as num?)?.toInt() ?? 0)
+        : 0;
+    if (editDays <= 0) return;
+    final created =
+        DateTime.tryParse(existing.createdAt.replaceFirst(' ', 'T'));
+    if (created == null) return;
+    final ageDays = DateTime.now().difference(created).inDays;
+    if (ageDays > editDays) {
+      throw StateError(
+        'Transaction edit window ($editDays days) has expired for ${existing.invoiceNo}.',
+      );
+    }
+  }
+
+  Future<void> _revertRegisterTendersForSale(dynamic txn, Sale sale) async {
+    if (sale.id == null || sale.saleStatus != 'final') return;
+    final txns = await txn.query(
+      'payment_transactions',
+      where: "transaction_type = 'sale' AND parent_id = ?",
+      whereArgs: [sale.id],
+    );
+    if (txns.isNotEmpty) {
+      for (final row in txns) {
+        final amt = (row['amount'] as num?)?.toDouble() ?? 0.0;
+        final m = (row['payment_method'] as String? ?? 'cash').toLowerCase();
+        if (amt <= 0) continue;
+        final col = m == 'cash'
+            ? 'total_sales_cash'
+            : (m == 'card' ? 'total_sales_card' : 'total_sales_other');
+        await txn.rawUpdate(
+          'UPDATE cash_registers SET $col = $col - ? WHERE status = \'open\'',
+          [amt],
+        );
+      }
+    } else if (sale.paidAmount > 0) {
+      final m = sale.paymentMethod.toLowerCase();
+      final col = m == 'cash'
+          ? 'total_sales_cash'
+          : (m == 'card' ? 'total_sales_card' : 'total_sales_other');
+      await txn.rawUpdate(
+        'UPDATE cash_registers SET $col = $col - ? WHERE status = \'open\'',
+        [sale.paidAmount],
+      );
+    }
+  }
+
   Future<Sale> updateSale({
     required int saleId,
     required Sale sale,
@@ -271,18 +431,25 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     List<Map<String, dynamic>>? splitTenders,
   }) async {
     final updated = await db.transaction((txn) async {
-      final oldSaleRows = await txn.query('sales', where: 'id = ?', whereArgs: [saleId], limit: 1);
-      final oldSale = oldSaleRows.isNotEmpty ? Sale.fromMap(oldSaleRows.first) : null;
+      final oldSaleRows = await txn.query('sales',
+          where: 'id = ?', whereArgs: [saleId], limit: 1);
+      final oldSale =
+          oldSaleRows.isNotEmpty ? Sale.fromMap(oldSaleRows.first) : null;
+      if (oldSale != null) {
+        await _assertWithinTransactionEditWindow(txn, oldSale);
+      }
       final wasFinal = oldSale?.saleStatus == 'final';
       final isNowFinal = sale.saleStatus == 'final';
 
-      // If it was already final, restore old item stock and customer balance first
-      if (wasFinal) {
-        final oldItems = await txn.query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
+      // If it was already final, restore old item stock, register buckets, and customer balance first
+      if (wasFinal && oldSale != null) {
+        final oldItems = await txn
+            .query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
         for (final row in oldItems) {
           final item = SaleItem.fromMap(row);
           if (item.productId != null) {
-            final restoreQty = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+            final restoreQty = item.quantity *
+                (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
             await adjustProductAndVariationStock(
               txn,
               productId: item.productId!,
@@ -291,18 +458,25 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
             );
           }
         }
-        if (oldSale?.customerId != null && (oldSale?.dueAmount ?? 0) > 0) {
+        if (oldSale.customerId != null && oldSale.dueAmount > 0) {
           await txn.rawUpdate(
             'UPDATE contacts SET balance = balance - ? WHERE id = ?',
-            [oldSale!.dueAmount, oldSale.customerId],
+            [oldSale.dueAmount, oldSale.customerId],
           );
         }
+        await _revertRegisterTendersForSale(txn, oldSale);
+        await txn.delete(
+          'payment_transactions',
+          where: "transaction_type = 'sale' AND parent_id = ?",
+          whereArgs: [saleId],
+        );
       }
 
       // Update the sales record
       final updateMap = sale.toMap();
       updateMap.remove('id');
-      await txn.update('sales', updateMap, where: 'id = ?', whereArgs: [saleId]);
+      await txn
+          .update('sales', updateMap, where: 'id = ?', whereArgs: [saleId]);
 
       // Delete old sale_items
       await txn.delete('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
@@ -312,7 +486,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         await txn.insert('sale_items', item.toMap(saleId));
 
         if (isNowFinal && item.product.id != null) {
-          final baseDeduction = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+          final baseDeduction = item.quantity *
+              (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
           await adjustProductAndVariationStock(
             txn,
             productId: item.product.id!,
@@ -330,8 +505,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         );
       }
 
-      // Update cash register if now final (and was not final before)
-      if (isNowFinal && !wasFinal) {
+      // Update cash register whenever updated sale is final (old tender buckets were reverted above)
+      if (isNowFinal) {
         if (splitTenders != null && splitTenders.isNotEmpty) {
           for (final st in splitTenders) {
             final amt = (st['amount'] as num?)?.toDouble() ?? 0.0;
@@ -356,12 +531,14 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
             }
           }
         } else {
-          if (sale.paymentMethod.toLowerCase() == 'cash' && sale.paidAmount > 0) {
+          if (sale.paymentMethod.toLowerCase() == 'cash' &&
+              sale.paidAmount > 0) {
             await txn.rawUpdate(
               'UPDATE cash_registers SET total_sales_cash = total_sales_cash + ? WHERE status = \'open\'',
               [sale.paidAmount],
             );
-          } else if (sale.paymentMethod.toLowerCase() == 'card' && sale.paidAmount > 0) {
+          } else if (sale.paymentMethod.toLowerCase() == 'card' &&
+              sale.paidAmount > 0) {
             await txn.rawUpdate(
               'UPDATE cash_registers SET total_sales_card = total_sales_card + ? WHERE status = \'open\'',
               [sale.paidAmount],
@@ -402,25 +579,45 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
   Future<void> deleteSale(int saleId) async {
     await db.transaction((txn) async {
-      final saleRows = await txn.query('sales', where: 'id = ?', whereArgs: [saleId], limit: 1);
+      final saleRows = await txn.query('sales',
+          where: 'id = ?', whereArgs: [saleId], limit: 1);
       if (saleRows.isEmpty) return;
       final sale = Sale.fromMap(saleRows.first);
+      await _assertWithinTransactionEditWindow(txn, sale);
 
-      // If sale was final, revert stock and customer balance
+      // If sale was final, revert stock, FEFO batches, cash register tenders & customer balance
       if (sale.saleStatus == 'final') {
-        final itemRows = await txn.query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
+        final itemRows = await txn
+            .query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
         for (final row in itemRows) {
           final item = SaleItem.fromMap(row);
           if (item.productId != null) {
-            final qtyToRestore = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+            final qtyToRestore = item.quantity *
+                (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
             await adjustProductAndVariationStock(
               txn,
               productId: item.productId!,
               variationId: item.variationId,
               delta: qtyToRestore,
             );
+            await txn.rawUpdate(
+              'UPDATE product_locations SET qty_available = qty_available + ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
+              [
+                qtyToRestore,
+                DateTime.now().toIso8601String(),
+                item.productId!,
+                sale.locationId
+              ],
+            );
           }
         }
+
+        await txn.update(
+          'product_serials_batches',
+          {'status': 'in_stock', 'sale_id': null},
+          where: 'sale_id = ?',
+          whereArgs: [saleId],
+        );
 
         // Revert customer balance if due amount was added
         if (sale.customerId != null && sale.dueAmount > 0) {
@@ -430,13 +627,13 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           );
         }
 
-        // Revert cash register if paid in cash
-        if (sale.paymentMethod.toLowerCase() == 'cash' && sale.paidAmount > 0) {
-          await txn.rawUpdate(
-            'UPDATE cash_registers SET total_sales_cash = total_sales_cash - ? WHERE status = \'open\'',
-            [sale.paidAmount],
-          );
-        }
+        // Revert cash register across all payment methods (cash, card, other, split)
+        await _revertRegisterTendersForSale(txn, sale);
+        await txn.delete(
+          'payment_transactions',
+          where: "transaction_type = 'sale' AND parent_id = ?",
+          whereArgs: [saleId],
+        );
       }
 
       // Delete items & sale record
@@ -467,9 +664,11 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     final conditions = <String>["sale_status = 'quotation'"];
     final args = <dynamic>[];
     if (conversionFilter == 'pending') {
-      conditions.add('(converted_to_sale_id IS NULL OR converted_to_sale_id = 0)');
+      conditions
+          .add('(converted_to_sale_id IS NULL OR converted_to_sale_id = 0)');
     } else if (conversionFilter == 'converted') {
-      conditions.add('(converted_to_sale_id IS NOT NULL AND converted_to_sale_id > 0)');
+      conditions.add(
+          '(converted_to_sale_id IS NOT NULL AND converted_to_sale_id > 0)');
     }
     if (search != null && search.trim().isNotEmpty) {
       final q = '%${search.trim()}%';
@@ -495,7 +694,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     String note = '',
   }) async {
     final createdInvoice = await db.transaction((txn) async {
-      final quoteRows = await txn.query('sales', where: 'id = ?', whereArgs: [quotationId], limit: 1);
+      final quoteRows = await txn.query('sales',
+          where: 'id = ?', whereArgs: [quotationId], limit: 1);
       if (quoteRows.isEmpty) {
         throw StateError('Quotation #$quotationId not found.');
       }
@@ -504,17 +704,20 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         throw StateError('Record #${quotation.invoiceNo} is not a quotation.');
       }
       if (quotation.isConvertedQuotation) {
-        throw StateError('Quotation #${quotation.invoiceNo} has already been converted.');
+        throw StateError(
+            'Quotation #${quotation.invoiceNo} has already been converted.');
       }
 
-      final itemRows = await txn.query('sale_items', where: 'sale_id = ?', whereArgs: [quotationId]);
+      final itemRows = await txn
+          .query('sale_items', where: 'sale_id = ?', whereArgs: [quotationId]);
       final items = itemRows.map((r) => SaleItem.fromMap(r)).toList();
 
       final maxRow = await txn.rawQuery('SELECT MAX(id) as max_id FROM sales');
       final nextId = ((maxRow.first['max_id'] as int?) ?? 1000) + 1;
       final invoiceNo = 'INV-$nextId';
       final nowStr = DateTime.now().toIso8601String();
-      final resolvedPaid = (paidAmount ?? quotation.totalAmount).clamp(0.0, double.infinity);
+      final resolvedPaid =
+          (paidAmount ?? quotation.totalAmount).clamp(0.0, double.infinity);
       final payStatus = resolvedPaid >= quotation.totalAmount
           ? 'paid'
           : (resolvedPaid > 0 ? 'partial' : 'due');
@@ -573,7 +776,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         savedItems.add(newItem);
 
         if (item.productId != null) {
-          final deductQty = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+          final deductQty = item.quantity *
+              (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
           await adjustProductAndVariationStock(
             txn,
             productId: item.productId!,
@@ -583,7 +787,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         }
       }
 
-      final dueAmt = (invoiceSale.totalAmount - resolvedPaid).clamp(0.0, double.infinity);
+      final dueAmt =
+          (invoiceSale.totalAmount - resolvedPaid).clamp(0.0, double.infinity);
       if (quotation.customerId != null && dueAmt > 0) {
         await txn.rawUpdate(
           'UPDATE contacts SET balance = balance + ? WHERE id = ?',
@@ -617,7 +822,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           'contact_name': quotation.customerName,
           'payment_method': paymentMethod,
           'amount': resolvedPaid,
-          'account_name': methodKey == 'cash' ? 'Cash Register' : 'Main Bank Account',
+          'account_name':
+              methodKey == 'cash' ? 'Cash Register' : 'Main Bank Account',
           'transaction_date': nowStr,
           'ref_no': invoiceNo,
           'note': 'Payment from converted quotation ${quotation.invoiceNo}',
@@ -697,8 +903,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
       }
     }
 
-    final rows =
-        await db.query('sales', where: where, whereArgs: whereArgs, orderBy: 'id DESC');
+    final rows = await db.query('sales',
+        where: where, whereArgs: whereArgs, orderBy: 'id DESC');
     return rows.map((e) => Sale.fromMap(e)).toList();
   }
 
@@ -707,6 +913,9 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     String? status,
     String? search,
     String conversionFilter = 'all',
+    int? locationId,
+    int? customerId,
+    String? paymentStatus,
     int page = 1,
     int pageSize = 25,
     int? cursorId,
@@ -721,10 +930,26 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
       baseConditions.add('sale_status = ?');
       baseArgs.add(status);
     }
+    if (locationId != null) {
+      baseConditions.add('COALESCE(location_id, 1) = ?');
+      baseArgs.add(locationId);
+    }
+    if (customerId != null) {
+      baseConditions.add('customer_id = ?');
+      baseArgs.add(customerId);
+    }
+    if (paymentStatus != null &&
+        paymentStatus.isNotEmpty &&
+        paymentStatus != 'All') {
+      baseConditions.add('LOWER(payment_status) = ?');
+      baseArgs.add(paymentStatus.toLowerCase());
+    }
     if (conversionFilter == 'pending') {
-      baseConditions.add('(converted_to_sale_id IS NULL OR converted_to_sale_id = 0)');
+      baseConditions
+          .add('(converted_to_sale_id IS NULL OR converted_to_sale_id = 0)');
     } else if (conversionFilter == 'converted') {
-      baseConditions.add('(converted_to_sale_id IS NOT NULL AND converted_to_sale_id > 0)');
+      baseConditions.add(
+          '(converted_to_sale_id IS NOT NULL AND converted_to_sale_id > 0)');
     }
     final cleanSearch = search?.trim() ?? '';
     if (cleanSearch.isNotEmpty) {
@@ -754,8 +979,9 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
     int totalCount = 0;
     if (includeTotalCount) {
-      final baseWhere =
-          baseConditions.isNotEmpty ? 'WHERE ${baseConditions.join(' AND ')}' : '';
+      final baseWhere = baseConditions.isNotEmpty
+          ? 'WHERE ${baseConditions.join(' AND ')}'
+          : '';
       final countRows = await db.rawQuery(
         'SELECT COUNT(*) AS total FROM sales $baseWhere',
         baseArgs,
@@ -800,10 +1026,12 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     return 'SO-${maxId + 1}';
   }
 
-  Future<Map<String, dynamic>> getPendingSalesOrdersSummary({int limit = 5}) async {
+  Future<Map<String, dynamic>> getPendingSalesOrdersSummary(
+      {int limit = 5}) async {
     final rows = await db.query(
       'sales',
-      where: "sale_status = 'sales_order' AND COALESCE(NULLIF(order_status, ''), 'ordered') != 'completed'",
+      where:
+          "sale_status = 'sales_order' AND COALESCE(NULLIF(order_status, ''), 'ordered') != 'completed'",
       orderBy: 'id DESC',
     );
     final orders = rows.map((e) => Sale.fromMap(e)).toList();
@@ -870,9 +1098,12 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         if (fulfillQty <= 0) continue;
 
         final ratio = item.quantity > 0 ? (fulfillQty / item.quantity) : 0.0;
-        final lineSub = double.parse((item.unitPrice * fulfillQty).toStringAsFixed(2));
-        final lineDisc = double.parse((item.discount * ratio).toStringAsFixed(2));
-        final lineTax = double.parse((item.taxAmount * ratio).toStringAsFixed(2));
+        final lineSub =
+            double.parse((item.unitPrice * fulfillQty).toStringAsFixed(2));
+        final lineDisc =
+            double.parse((item.discount * ratio).toStringAsFixed(2));
+        final lineTax =
+            double.parse((item.taxAmount * ratio).toStringAsFixed(2));
 
         invoiceSubtotal += lineSub;
         invoiceTax += lineTax;
@@ -890,11 +1121,15 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         throw Exception('No remaining item quantity selected to convert.');
       }
 
-      final orderSubtotal = order.subtotal > 0 ? order.subtotal : invoiceSubtotal;
-      final orderScale = orderSubtotal > 0 ? (invoiceSubtotal / orderSubtotal).clamp(0.0, 1.0) : 1.0;
+      final orderSubtotal =
+          order.subtotal > 0 ? order.subtotal : invoiceSubtotal;
+      final orderScale = orderSubtotal > 0
+          ? (invoiceSubtotal / orderSubtotal).clamp(0.0, 1.0)
+          : 1.0;
       final invoiceOrderDiscount =
           double.parse((order.discount * orderScale).toStringAsFixed(2));
-      final invoiceShipping = order.orderStatus == 'ordered' ? order.shipping : 0.0;
+      final invoiceShipping =
+          order.orderStatus == 'ordered' ? order.shipping : 0.0;
       final finalTotal = double.parse(
         (invoiceSubtotal - invoiceOrderDiscount + invoiceTax + invoiceShipping)
             .clamp(0.0, double.infinity)
@@ -905,7 +1140,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           ? 'paid'
           : (resolvedPaid > 0 ? 'partial' : 'due');
       final commAmt = order.commissionPercent > 0
-          ? double.parse(((finalTotal * order.commissionPercent) / 100.0).toStringAsFixed(2))
+          ? double.parse(((finalTotal * order.commissionPercent) / 100.0)
+              .toStringAsFixed(2))
           : 0.0;
 
       final maxRows = await txn.rawQuery('SELECT MAX(id) as max_id FROM sales');
@@ -986,8 +1222,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
         // Deduct live stock
         if (item.productId != null) {
-          final deductQty =
-              fulfillQty * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+          final deductQty = fulfillQty *
+              (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
           await adjustProductAndVariationStock(
             txn,
             productId: item.productId!,
@@ -1053,7 +1289,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           'contact_name': order.customerName,
           'payment_method': paymentMethod,
           'amount': resolvedPaid,
-          'account_name': methodKey == 'cash' ? 'Cash Register' : 'Main Bank Account',
+          'account_name':
+              methodKey == 'cash' ? 'Cash Register' : 'Main Bank Account',
           'transaction_date': nowStr,
           'ref_no': invoiceNo,
           'note': 'Invoice from Sales Order ${order.invoiceNo}',
@@ -1112,8 +1349,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
   @override
   Future<List<SaleItem>> getSaleItems(int saleId) async {
-    final rows = await db.query('sale_items',
-        where: 'sale_id = ?', whereArgs: [saleId]);
+    final rows =
+        await db.query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
     return rows.map((e) => SaleItem.fromMap(e)).toList();
   }
 
@@ -1144,7 +1381,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     String createdBy = 'Cashier',
   }) async {
     await db.transaction((txn) async {
-      final saleRows = await txn.query('sales', where: 'id = ?', whereArgs: [saleId], limit: 1);
+      final saleRows = await txn.query('sales',
+          where: 'id = ?', whereArgs: [saleId], limit: 1);
       if (saleRows.isEmpty) throw Exception('Sale #$saleId not found');
       final sale = Sale.fromMap(saleRows.first);
 
@@ -1180,8 +1418,12 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         'amount': amountPaid,
         'account_name': accountName,
         'transaction_date': nowStr,
-        'ref_no': refNo.isNotEmpty ? refNo : 'REC-${DateTime.now().millisecondsSinceEpoch}',
-        'note': note.isNotEmpty ? note : 'Ledger due recovery for ${sale.invoiceNo}',
+        'ref_no': refNo.isNotEmpty
+            ? refNo
+            : 'REC-${DateTime.now().millisecondsSinceEpoch}',
+        'note': note.isNotEmpty
+            ? note
+            : 'Ledger due recovery for ${sale.invoiceNo}',
         'created_by': createdBy,
         'created_at': nowStr,
       });
@@ -1205,7 +1447,6 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
       }
     });
   }
-
 
   @override
   Future<int> parkSale(ParkedSale parked) async {
@@ -1231,7 +1472,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     final List<SaleReturn> list = [];
     for (final r in rows) {
       final retId = r['id'] as int;
-      final itemRows = await db.query('sale_return_items', where: 'return_id = ?', whereArgs: [retId]);
+      final itemRows = await db.query('sale_return_items',
+          where: 'return_id = ?', whereArgs: [retId]);
       final items = itemRows.map((ir) => SaleReturnItem.fromMap(ir)).toList();
       list.add(SaleReturn.fromMap(r, items: items));
     }
@@ -1242,6 +1484,23 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     final res = await db.rawQuery('SELECT COUNT(*) as c FROM sale_returns');
     final count = ((res.first['c'] as int?) ?? 0) + 1;
     return 'SR-${DateTime.now().year}-${count.toString().padLeft(4, '0')}';
+  }
+
+  /// Returns total already-returned quantities grouped by `product_id` for [saleId].
+  Future<Map<int, double>> getReturnedQuantitiesForSale(int saleId) async {
+    final rows = await db.rawQuery('''
+      SELECT sri.product_id, SUM(sri.quantity) as returned_qty
+      FROM sale_return_items sri
+      JOIN sale_returns sr ON sr.id = sri.return_id
+      WHERE sr.sale_id = ?
+      GROUP BY sri.product_id
+    ''', [saleId]);
+    return {
+      for (final r in rows)
+        if (r['product_id'] != null)
+          (r['product_id'] as int):
+              (r['returned_qty'] as num?)?.toDouble() ?? 0.0,
+    };
   }
 
   Future<int> addSaleReturn(SaleReturn sr) async {
@@ -1258,7 +1517,9 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         'refund_method': sr.paymentMethod,
         'status': sr.refundStatus,
         'date': sr.date,
+        'reason': sr.reason,
         'note': sr.note.isNotEmpty ? sr.note : sr.reason,
+        'created_by': sr.createdBy,
         'items_json': jsonEncode(sr.items.map((i) => i.toMap()).toList()),
       };
       final id = await txn.insert('sale_returns', map);
@@ -1267,17 +1528,27 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         itemMap['return_id'] = id;
         await txn.insert('sale_return_items', itemMap);
 
+        final mult = item.unitMultiplier > 0 ? item.unitMultiplier : 1.0;
+        final restockQty = item.quantity * mult;
         // Restock returned product (and specific variation if linked)
         await adjustProductAndVariationStock(
           txn,
           productId: item.productId,
           variationId: item.variationId,
-          delta: item.quantity,
+          delta: restockQty,
+        );
+        await txn.rawUpdate(
+          'UPDATE product_locations SET qty_available = qty_available + ?, updated_at = ? WHERE product_id = ? AND location_id = 1',
+          [restockQty, DateTime.now().toIso8601String(), item.productId],
         );
       }
 
-      // If customer balance adjustment
-      if (sr.customerId != null && sr.refundAmount > 0) {
+      // Reduce customer balance ONLY when refund is issued as credit note / receivable offset
+      // (avoid double-crediting when cash or bank refund is paid out immediately)
+      final method = sr.paymentMethod.toLowerCase();
+      if (sr.customerId != null &&
+          sr.refundAmount > 0 &&
+          (method == 'credit_note' || method == 'balance_adjustment')) {
         await txn.rawUpdate(
           'UPDATE contacts SET balance = balance - ? WHERE id = ?',
           [sr.refundAmount, sr.customerId],
@@ -1285,7 +1556,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
       }
 
       // If refund was paid out in cash, deduct from active cash register
-      if (sr.paymentMethod.toLowerCase() == 'cash' && sr.refundAmount > 0) {
+      if (method == 'cash' && sr.refundAmount > 0) {
         await txn.rawUpdate(
           'UPDATE cash_registers SET total_sales_cash = total_sales_cash - ? WHERE status = \'open\'',
           [sr.refundAmount],
@@ -1294,5 +1565,4 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
       return id;
     });
   }
-
 }

@@ -149,7 +149,8 @@ class CartNotifier extends Notifier<CartState> {
     }
     if (candidate.selectedTaxRate != null) {
       final r = candidate.selectedTaxRate!;
-      final amt = double.parse((taxable * (r.amount / 100.0)).toStringAsFixed(2));
+      final amt =
+          double.parse((taxable * (r.amount / 100.0)).toStringAsFixed(2));
       return candidate.copyWith(
         orderTax: amt,
         taxBreakdown: Map<String, double>.unmodifiable({
@@ -312,8 +313,9 @@ class CartNotifier extends Notifier<CartState> {
       updated[index].discount = discount < 0 ? 0.0 : discount;
       updated[index].packDiscount = packDiscount < 0 ? 0.0 : packDiscount;
       updated[index].discountType = packDiscount > 0 ? 'percentage' : 'fixed';
-      updated[index].discountValue =
-          packDiscount > 0 ? updated[index].packDiscount : updated[index].discount;
+      updated[index].discountValue = packDiscount > 0
+          ? updated[index].packDiscount
+          : updated[index].discount;
     }
     _commit(state.copyWith(items: updated));
   }
@@ -451,6 +453,7 @@ class CartNotifier extends Notifier<CartState> {
     double discountValue = 0.0,
     double orderTax = 0.0,
     double shippingCharge = 0.0,
+    bool? isWholesaleMode,
     CustomerGroup? activeCustomerGroup,
     TaxGroup? selectedTaxGroup,
     Map<String, double> taxBreakdown = const {},
@@ -462,7 +465,7 @@ class CartNotifier extends Notifier<CartState> {
         discountValue: discountValue,
         orderTax: orderTax,
         shippingCharge: shippingCharge,
-        isWholesaleMode: state.isWholesaleMode,
+        isWholesaleMode: isWholesaleMode ?? state.isWholesaleMode,
         wholesaleDiscountPercent: state.wholesaleDiscountPercent,
         activeCustomerGroup: activeCustomerGroup,
         selectedTaxGroup: selectedTaxGroup,
@@ -487,4 +490,5 @@ class CartNotifier extends Notifier<CartState> {
   }
 }
 
-final cartProvider = NotifierProvider<CartNotifier, CartState>(CartNotifier.new);
+final cartProvider =
+    NotifierProvider<CartNotifier, CartState>(CartNotifier.new);

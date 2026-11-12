@@ -46,7 +46,8 @@ import 'returns/sales_return_screen.dart';
 import 'returns/purchase_return_screen.dart';
 import 'financial/annual_closing_screen.dart';
 import 'business_modules/business_modules_hub_screen.dart' deferred as mod_hub;
-import 'business_modules/restaurant_cafe_screen.dart' deferred as mod_restaurant;
+import 'business_modules/restaurant_cafe_screen.dart'
+    deferred as mod_restaurant;
 import 'business_modules/repair_service_screen.dart' deferred as mod_repair;
 import 'business_modules/hotel_management_screen.dart' deferred as mod_hotel;
 import 'business_modules/gym_fitness_screen.dart' deferred as mod_gym;
@@ -248,7 +249,8 @@ class _MainShellState extends ConsumerState<MainShell> {
       case AppRoute.annualClosing:
         return user.hasPermission('fiscal.close');
       case AppRoute.userManagement:
-        return user.hasPermission('user.manage') || user.hasPermission('role.manage');
+        return user.hasPermission('user.manage') ||
+            user.hasPermission('role.manage');
       case AppRoute.settings:
       case AppRoute.moduleSettings:
       case AppRoute.cloudSync:
@@ -264,7 +266,8 @@ class _MainShellState extends ConsumerState<MainShell> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lock_person_rounded, size: 56, color: Color(0xFFDC2626)),
+            const Icon(Icons.lock_person_rounded,
+                size: 56, color: Color(0xFFDC2626)),
             const SizedBox(height: 14),
             const Text(
               'Access Restricted',
@@ -348,7 +351,7 @@ class _MainShellState extends ConsumerState<MainShell> {
           settings: _settings,
           onSettingsUpdated: (updated) => setState(() {
             _settings = updated;
-              ref.read(settingsProvider.notifier).setSettings(updated);
+            ref.read(settingsProvider.notifier).setSettings(updated);
             if (updated.branchName.isNotEmpty) {
               _activeLocationName = updated.branchName;
             }
@@ -416,7 +419,8 @@ class _MainShellState extends ConsumerState<MainShell> {
       case AppRoute.restaurantCafe:
         return _DeferredModuleView(
           loader: mod_restaurant.loadLibrary,
-          builder: () => mod_restaurant.RestaurantCafeScreen(settings: _settings),
+          builder: () =>
+              mod_restaurant.RestaurantCafeScreen(settings: _settings),
         );
       case AppRoute.repairService:
         return _DeferredModuleView(
@@ -473,7 +477,7 @@ class _MainShellState extends ConsumerState<MainShell> {
           settings: _settings,
           onSettingsUpdated: (updated) => setState(() {
             _settings = updated;
-              ref.read(settingsProvider.notifier).setSettings(updated);
+            ref.read(settingsProvider.notifier).setSettings(updated);
             if (updated.branchName.isNotEmpty) {
               _activeLocationName = updated.branchName;
             }
@@ -518,93 +522,93 @@ class _MainShellState extends ConsumerState<MainShell> {
           return KeyEventResult.ignored;
         },
         child: Scaffold(
-      body: Column(
-        children: [
-          // Top Smart POS Bar
-          SmartAppBar(
-            onOpenPos: _onOpenPos,
-            onOpenRegisterDetails: _onOpenRegister,
-            onToggleSidebar: () =>
-                setState(() => _sidebarCollapsed = !_sidebarCollapsed),
-            settings: _settings,
-            activeLocationName: _activeLocationName,
-            onLocationChanged: (loc) {
-              setState(() {
-                _activeLocationName = loc;
-                _settings = _settings.copyWith(branchName: loc);
-              });
-            },
-            onOpenSettings: () => _navigateTo(AppRoute.settings),
-          ),
+          body: Column(
+            children: [
+              // Top Smart POS Bar
+              SmartAppBar(
+                onOpenPos: _onOpenPos,
+                onOpenRegisterDetails: _onOpenRegister,
+                onToggleSidebar: () =>
+                    setState(() => _sidebarCollapsed = !_sidebarCollapsed),
+                settings: _settings,
+                activeLocationName: _activeLocationName,
+                onLocationChanged: (loc) {
+                  setState(() {
+                    _activeLocationName = loc;
+                    _settings = _settings.copyWith(branchName: loc);
+                  });
+                },
+                onOpenSettings: () => _navigateTo(AppRoute.settings),
+              ),
 
-          // Impending Qulop License Expiry Warning Banner
-          ValueListenableBuilder<QulopStatus?>(
-            valueListenable: QulopService.qulopNotifier,
-            builder: (context, qulopStatus, _) {
-              if (qulopStatus != null &&
-                  qulopStatus.isNearExpiry &&
-                  qulopStatus.isValid) {
-                return Container(
-                  width: double.infinity,
-                  color: const Color(0xFFFEF3C7),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          color: Color(0xFFD97706), size: 18),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Qulop License Warning: Your Smart POS ${qulopStatus.tierLabel} will expire in ${qulopStatus.remainingDays} days. Please contact vendor (+92 300 1234567) to renew.',
-                          style: const TextStyle(
-                              color: Color(0xFF92400E),
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold),
-                        ),
+              // Impending Qulop License Expiry Warning Banner
+              ValueListenableBuilder<QulopStatus?>(
+                valueListenable: QulopService.qulopNotifier,
+                builder: (context, qulopStatus, _) {
+                  if (qulopStatus != null &&
+                      qulopStatus.isNearExpiry &&
+                      qulopStatus.isValid) {
+                    return Container(
+                      width: double.infinity,
+                      color: const Color(0xFFFEF3C7),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded,
+                              color: Color(0xFFD97706), size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Qulop License Warning: Your Smart POS ${qulopStatus.tierLabel} will expire in ${qulopStatus.remainingDays} days. Please contact vendor (+92 300 1234567) to renew.',
+                              style: const TextStyle(
+                                  color: Color(0xFF92400E),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              backgroundColor: const Color(0xFFD97706),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            onPressed: () => _navigateTo(AppRoute.settings),
+                            child: const Text('Renew / Activate Key',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 11)),
+                          ),
+                        ],
                       ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          backgroundColor: const Color(0xFFD97706),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        onPressed: () => _navigateTo(AppRoute.importProducts),
-                        child: const Text('Renew / Activate Key',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 11)),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
 
-          // Main Workspace: Sidebar + Dynamic Body
-          Expanded(
-            child: Row(
-              children: [
-                SmartSidebar(
-                  selectedRoute: selectedRoute,
-                  onSelect: (route) => _navigateTo(
-                    route,
-                    collapseOnCompact: route == AppRoute.posTerminal,
-                  ),
-                  isCollapsed: _sidebarCollapsed,
-                  settings: _settings,
+              // Main Workspace: Sidebar + Dynamic Body
+              Expanded(
+                child: Row(
+                  children: [
+                    SmartSidebar(
+                      selectedRoute: selectedRoute,
+                      onSelect: (route) => _navigateTo(
+                        route,
+                        collapseOnCompact: route == AppRoute.posTerminal,
+                      ),
+                      isCollapsed: _sidebarCollapsed,
+                      settings: _settings,
+                    ),
+                    Expanded(
+                      child: _buildBody(selectedRoute),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: _buildBody(selectedRoute),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
         ),
       ),
     );

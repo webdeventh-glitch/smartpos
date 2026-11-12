@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/pdf_export_service.dart';
+import '../../widgets/universal_print_preview_dialog.dart';
 
 class RepairServiceScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -48,7 +50,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
     }
   }
 
-  Future<void> _updateJobStatus(Map<String, dynamic> job, String newStatus) async {
+  Future<void> _updateJobStatus(
+      Map<String, dynamic> job, String newStatus) async {
     final id = job['id'] as int?;
     if (id == null) return;
     final db = await DatabaseService.initialize();
@@ -85,38 +88,55 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                 children: [
                   TextField(
                     controller: custCtrl,
-                    style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
                       labelText: 'Customer Name & Mobile No.*',
-                      labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      labelStyle: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: deviceCtrl,
-                    style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
-                      labelText: 'Device Model / Item (e.g. iPhone 15, HP Laptop)*',
-                      labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      labelText:
+                          'Device Model / Item (e.g. iPhone 15, HP Laptop)*',
+                      labelStyle: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: imeiCtrl,
-                    style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
                       labelText: 'IMEI / Serial Number / Barcode',
-                      labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      labelStyle: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: faultCtrl,
                     maxLines: 2,
-                    style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
                       labelText: 'Reported Fault / Problem Description*',
-                      labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      labelStyle: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -126,10 +146,16 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                         child: TextField(
                           controller: costCtrl,
                           keyboardType: TextInputType.number,
-                          style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          style: TextStyle(
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
                           decoration: InputDecoration(
                             labelText: 'Estimated Cost',
-                            labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                            labelStyle: TextStyle(
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B)),
                           ),
                         ),
                       ),
@@ -138,10 +164,16 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                         child: TextField(
                           controller: advCtrl,
                           keyboardType: TextInputType.number,
-                          style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          style: TextStyle(
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
                           decoration: InputDecoration(
                             labelText: 'Advance Received',
-                            labelStyle: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                            labelStyle: TextStyle(
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B)),
                           ),
                         ),
                       ),
@@ -154,12 +186,19 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+              child: Text('Cancel',
+                  style: TextStyle(
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B))),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEAB308), foregroundColor: Colors.black),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEAB308),
+                  foregroundColor: Colors.black),
               onPressed: () async {
-                if (custCtrl.text.trim().isNotEmpty && deviceCtrl.text.trim().isNotEmpty) {
+                if (custCtrl.text.trim().isNotEmpty &&
+                    deviceCtrl.text.trim().isNotEmpty) {
                   final db = await DatabaseService.initialize();
                   await db.addRepairJob({
                     'job_no': 'JOB-${9021 + _jobSheets.length}',
@@ -191,13 +230,15 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
     final currency = widget.settings.currencySymbol;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         elevation: 1,
         title: Row(
           children: [
-            const Icon(Icons.build_circle_rounded, color: Color(0xFFEAB308), size: 22),
+            const Icon(Icons.build_circle_rounded,
+                color: Color(0xFFEAB308), size: 22),
             const SizedBox(width: 10),
             Text(
               'Service & Repair Job Management',
@@ -218,10 +259,13 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEAB308), foregroundColor: Colors.black),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEAB308),
+                  foregroundColor: Colors.black),
               onPressed: _showAddJobSheetModal,
               icon: const Icon(Icons.add_task_rounded, size: 16),
-              label: const Text('New Job Sheet', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text('New Job Sheet',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -236,7 +280,13 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                   // Filter Chips
                   Row(
                     children: [
-                      for (final filter in ['All', 'Diagnosing', 'Waiting for Parts', 'Ready for Delivery', 'Delivered'])
+                      for (final filter in [
+                        'All',
+                        'Diagnosing',
+                        'Waiting for Parts',
+                        'Ready for Delivery',
+                        'Delivered'
+                      ])
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ChoiceChip(
@@ -244,7 +294,11 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                             selected: _statusFilter == filter,
                             selectedColor: const Color(0xFFEAB308),
                             labelStyle: TextStyle(
-                              color: _statusFilter == filter ? Colors.black : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                              color: _statusFilter == filter
+                                  ? Colors.black
+                                  : (isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A)),
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -271,7 +325,10 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                       ),
                       child: Text(
                         'No repair jobs match filter: $_statusFilter',
-                        style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                        style: TextStyle(
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B)),
                       ),
                     )
                   else
@@ -282,66 +339,100 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                       separatorBuilder: (ctx, i) => const SizedBox(height: 12),
                       itemBuilder: (context, idx) {
                         final job = _jobSheets[idx];
-                        final status = job['status']?.toString() ?? 'Diagnosing';
+                        final status =
+                            job['status']?.toString() ?? 'Diagnosing';
                         Color statusColor = const Color(0xFF3B82F6);
-                        if (status == 'Diagnosing') statusColor = const Color(0xFFEAB308);
-                        if (status == 'Waiting for Parts') statusColor = const Color(0xFFF97316);
-                        if (status == 'Ready for Delivery') statusColor = const Color(0xFF10B981);
-                        if (status == 'Delivered') statusColor = const Color(0xFF64748B);
+                        if (status == 'Diagnosing')
+                          statusColor = const Color(0xFFEAB308);
+                        if (status == 'Waiting for Parts')
+                          statusColor = const Color(0xFFF97316);
+                        if (status == 'Ready for Delivery')
+                          statusColor = const Color(0xFF10B981);
+                        if (status == 'Delivered')
+                          statusColor = const Color(0xFF64748B);
 
                         final estCostVal = (job['est_cost'] is num)
                             ? (job['est_cost'] as num).toDouble()
                             : (job['estCost'] is num)
                                 ? (job['estCost'] as num).toDouble()
                                 : 0.0;
-                        final advanceVal = (job['advance'] is num) ? (job['advance'] as num).toDouble() : 0.0;
-                        final jobNoVal = job['job_no']?.toString() ?? job['jobNo']?.toString() ?? 'JOB';
+                        final advanceVal = (job['advance'] is num)
+                            ? (job['advance'] as num).toDouble()
+                            : 0.0;
+                        final jobNoVal = job['job_no']?.toString() ??
+                            job['jobNo']?.toString() ??
+                            'JOB';
 
                         return Container(
                           padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            color:
+                                isDark ? const Color(0xFF1E293B) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                            border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0)),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+                              BoxShadow(
+                                  color: Colors.black
+                                      .withValues(alpha: isDark ? 0.2 : 0.02),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2)),
                             ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFEAB308).withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(6),
+                                          color: const Color(0xFFEAB308)
+                                              .withValues(alpha: 0.15),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
                                         ),
                                         child: Text(
                                           jobNoVal,
-                                          style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFCA8A04), fontSize: 13),
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              color: Color(0xFFCA8A04),
+                                              fontSize: 13),
                                         ),
                                       ),
                                       const SizedBox(width: 12),
                                       Text(
                                         job['device']?.toString() ?? '',
-                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            color: isDark
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A)),
                                       ),
                                     ],
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: statusColor.withValues(alpha: 0.15),
+                                      color:
+                                          statusColor.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
                                       status,
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: statusColor),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                          color: statusColor),
                                     ),
                                   ),
                                 ],
@@ -349,69 +440,167 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                               const SizedBox(height: 8),
                               Text(
                                 'Customer: ${job['customer'] ?? ''} • IMEI/Serial: ${job['imei'] ?? 'N/A'}',
-                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B)),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 'Fault: ${job['fault'] ?? ''}',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? const Color(0xFFCBD5E1)
+                                        : const Color(0xFF334155)),
                               ),
                               const SizedBox(height: 12),
                               const Divider(height: 1),
                               const SizedBox(height: 12),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
                                       Text(
                                         'Estimate: $currency${estCostVal.toStringAsFixed(2)}',
-                                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12,
+                                            color: isDark
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A)),
                                       ),
                                       const SizedBox(width: 16),
                                       Text(
                                         'Advance: $currency${advanceVal.toStringAsFixed(2)}',
-                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF10B981)),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12,
+                                            color: Color(0xFF10B981)),
                                       ),
                                       const SizedBox(width: 16),
                                       Text(
                                         'Assigned: ${job['technician'] ?? 'General'}',
-                                        style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF64748B)),
                                       ),
                                     ],
                                   ),
                                   Row(
                                     children: [
                                       OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+                                        style: OutlinedButton.styleFrom(
+                                            visualDensity:
+                                                VisualDensity.compact),
                                         onPressed: () {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Delivery / Job slip printed for $jobNoVal')),
+                                          final html = '''
+                                            <h2>Service / Repair Job Slip ($jobNoVal)</h2>
+                                            <p><strong>Device:</strong> ${job['device'] ?? ''}<br>
+                                            <strong>Customer:</strong> ${job['customer'] ?? ''}<br>
+                                            <strong>IMEI/Serial:</strong> ${job['imei'] ?? 'N/A'}<br>
+                                            <strong>Fault:</strong> ${job['fault'] ?? ''}<br>
+                                            <strong>Status:</strong> $status<br>
+                                            <strong>Estimate:</strong> $currency${estCostVal.toStringAsFixed(2)} • <strong>Advance:</strong> $currency${advanceVal.toStringAsFixed(2)}</p>
+                                          ''';
+                                          showDialog(
+                                            context: context,
+                                            builder: (_) =>
+                                                UniversalPrintPreviewDialog(
+                                              title:
+                                                  'Repair Job Slip • $jobNoVal',
+                                              htmlContent: html,
+                                              defaultPaperSize: 'a4',
+                                              settings: widget.settings,
+                                              pdfGenerator: (_) =>
+                                                  PdfExportService
+                                                      .generateReportPdf(
+                                                title:
+                                                    'Repair Job Slip ($jobNoVal)',
+                                                subtitle:
+                                                    '${job['customer'] ?? ''} • ${job['device'] ?? ''}',
+                                                headers: const [
+                                                  'Field',
+                                                  'Value'
+                                                ],
+                                                rows: [
+                                                  ['Job #', jobNoVal],
+                                                  [
+                                                    'Device',
+                                                    '${job['device'] ?? ''}'
+                                                  ],
+                                                  [
+                                                    'Customer',
+                                                    '${job['customer'] ?? ''}'
+                                                  ],
+                                                  [
+                                                    'IMEI/Serial',
+                                                    '${job['imei'] ?? 'N/A'}'
+                                                  ],
+                                                  [
+                                                    'Fault',
+                                                    '${job['fault'] ?? ''}'
+                                                  ],
+                                                  [
+                                                    'Technician',
+                                                    '${job['technician'] ?? 'General'}'
+                                                  ],
+                                                  [
+                                                    'Estimate',
+                                                    '$currency${estCostVal.toStringAsFixed(2)}'
+                                                  ],
+                                                  [
+                                                    'Advance Paid',
+                                                    '$currency${advanceVal.toStringAsFixed(2)}'
+                                                  ],
+                                                  [
+                                                    'Balance Due',
+                                                    '$currency${(estCostVal - advanceVal).clamp(0, double.infinity).toStringAsFixed(2)}'
+                                                  ],
+                                                ],
+                                                settings: widget.settings,
+                                              ),
+                                            ),
                                           );
                                         },
                                         icon: const Icon(Icons.print, size: 14),
-                                        label: const Text('Print Slip', style: TextStyle(fontSize: 11)),
+                                        label: const Text('Print Slip',
+                                            style: TextStyle(fontSize: 11)),
                                       ),
                                       const SizedBox(width: 8),
                                       if (status != 'Delivered')
                                         ElevatedButton(
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF10B981),
+                                            backgroundColor:
+                                                const Color(0xFF10B981),
                                             foregroundColor: Colors.white,
-                                            visualDensity: VisualDensity.compact,
+                                            visualDensity:
+                                                VisualDensity.compact,
                                           ),
-                                          onPressed: () => _updateJobStatus(job, 'Delivered'),
-                                          child: const Text('Mark Done', style: TextStyle(fontSize: 11)),
+                                          onPressed: () => _updateJobStatus(
+                                              job, 'Delivered'),
+                                          child: const Text('Mark Done',
+                                              style: TextStyle(fontSize: 11)),
                                         )
                                       else
                                         ElevatedButton(
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF3B82F6),
+                                            backgroundColor:
+                                                const Color(0xFF3B82F6),
                                             foregroundColor: Colors.white,
-                                            visualDensity: VisualDensity.compact,
+                                            visualDensity:
+                                                VisualDensity.compact,
                                           ),
-                                          onPressed: () => _updateJobStatus(job, 'Diagnosing'),
-                                          child: const Text('Re-open', style: TextStyle(fontSize: 11)),
+                                          onPressed: () => _updateJobStatus(
+                                              job, 'Diagnosing'),
+                                          child: const Text('Re-open',
+                                              style: TextStyle(fontSize: 11)),
                                         ),
                                     ],
                                   ),

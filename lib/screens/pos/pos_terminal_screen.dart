@@ -29,6 +29,7 @@ import '../../services/currency_rate_service.dart';
 import '../../services/number_to_words_service.dart';
 import '../../services/thermal_printer_service.dart';
 import '../../widgets/product_thumbnail.dart';
+import '../returns/sales_return_dialog.dart';
 
 class PosTerminalScreen extends ConsumerStatefulWidget {
   final BusinessSettings settings;
@@ -41,6 +42,49 @@ class PosTerminalScreen extends ConsumerStatefulWidget {
     this.onBackToDashboard,
     this.initialSaleToResume,
   });
+
+  /// Parses POS quantity-prefix barcode syntax like `2*890123` or `0.5xAPPLE`.
+  static ({double quantity, String code}) parseBarcodeQuantityPrefix(
+    String input,
+  ) {
+    final trimmed = input.trim();
+    final match =
+        RegExp(r'^(\d+(?:\.\d+)?)\s*[*xX]\s*(.+)$').firstMatch(trimmed);
+    if (match == null) {
+      return (quantity: 1.0, code: trimmed);
+    }
+    final parsedQty = double.tryParse(match.group(1)!) ?? 1.0;
+    final cleanCode = match.group(2)!.trim();
+    if (parsedQty <= 0 || cleanCode.isEmpty) {
+      return (quantity: 1.0, code: trimmed);
+    }
+    return (quantity: parsedQty, code: cleanCode);
+  }
+
+  /// Parses EAN-13 scale barcodes: `20`/`02` = weight (grams/1000), `21`..`29` = price (cents/100).
+  static ({bool isPriceEmbedded, String itemCode, double value})?
+      parseScaleBarcode(String code) {
+    final trimmed = code.trim();
+    if (trimmed.length != 13 || int.tryParse(trimmed) == null) {
+      return null;
+    }
+    final prefix = int.tryParse(trimmed.substring(0, 2));
+    if (prefix == null) return null;
+    final itemCode = trimmed.substring(2, 7);
+    final rawVal = int.tryParse(trimmed.substring(7, 12)) ?? 0;
+    if (rawVal <= 0) return null;
+    if (prefix == 20 || prefix == 2) {
+      return (
+        isPriceEmbedded: false,
+        itemCode: itemCode,
+        value: rawVal / 1000.0
+      );
+    }
+    if (prefix >= 21 && prefix <= 29) {
+      return (isPriceEmbedded: true, itemCode: itemCode, value: rawVal / 100.0);
+    }
+    return null;
+  }
 
   @override
   ConsumerState<PosTerminalScreen> createState() => _PosTerminalScreenState();
@@ -60,7 +104,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   double get _orderTax => ref.read(cartProvider).orderTax;
   double get _shippingCharge => ref.read(cartProvider).shippingCharge;
   bool get _isWholesaleMode => ref.read(cartProvider).isWholesaleMode;
-  double get _wholesaleDiscountPercent => ref.read(cartProvider).wholesaleDiscountPercent;
+  double get _wholesaleDiscountPercent =>
+      ref.read(cartProvider).wholesaleDiscountPercent;
 
   Contact? _selectedCustomer;
   List<Contact> _customers = [];
@@ -92,8 +137,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   bool _loadingMoreCatalog = false;
   int _catalogQueryToken = 0;
   Timer? _catalogSearchDebounce;
-  bool _isGridView = false; // Switchable layout: Grid vs List view (Default List view)
-  int _mobileTabIndex = 1; // For <1050px tablet compact toggle: 0 = Cart, 1 = Catalog
+  bool _isGridView =
+      false; // Switchable layout: Grid vs List view (Default List view)
+  bool _isFullscreen = false;
+  int _mobileTabIndex =
+      1; // For <1050px tablet compact toggle: 0 = Cart, 1 = Catalog
 
   // Parked bills count
   int _parkedCount = 0;
@@ -116,7 +164,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         ? widget.settings.totalInWordsLanguage
         : 'ur';
     _shortcutsJson = widget.settings.keyboardShortcutsJson;
-    _shortcutBindings = KeyboardShortcutsService.resolveBindings(_shortcutsJson);
+    _shortcutBindings =
+        KeyboardShortcutsService.resolveBindings(_shortcutsJson);
     _dbFuture = DatabaseService.initialize();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -153,7 +202,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   @override
   void didUpdateWidget(covariant PosTerminalScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.settings.totalInWordsLanguage != widget.settings.totalInWordsLanguage) {
+    if (oldWidget.settings.totalInWordsLanguage !=
+        widget.settings.totalInWordsLanguage) {
       if (widget.settings.totalInWordsLanguage.isNotEmpty) {
         setState(() {
           _wordsLanguage = widget.settings.totalInWordsLanguage;
@@ -197,15 +247,20 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 currencyCode: widget.settings.currencyCode,
               );
               return ListTile(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
                 tileColor: isSelected
-                    ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
+                    ? (isDark
+                        ? const Color(0xFF064E3B)
+                        : const Color(0xFFDCFCE7))
                     : null,
                 title: Text(
                   '${lang.name} (${lang.nativeName})',
                   style: TextStyle(
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    color: isSelected ? const Color(0xFF16A34A) : (isDark ? Colors.white : Colors.black87),
+                    color: isSelected
+                        ? const Color(0xFF16A34A)
+                        : (isDark ? Colors.white : Colors.black87),
                   ),
                 ),
                 subtitle: Text(
@@ -215,22 +270,27 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     color: isSelected
-                        ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF15803D))
+                        ? (isDark
+                            ? const Color(0xFF6EE7B7)
+                            : const Color(0xFF15803D))
                         : (isDark ? Colors.white60 : Colors.black54),
                   ),
                 ),
                 trailing: isSelected
-                    ? const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20)
+                    ? const Icon(Icons.check_circle,
+                        color: Color(0xFF16A34A), size: 20)
                     : null,
                 onTap: () async {
                   setState(() => _wordsLanguage = lang.code);
                   Navigator.pop(ctx);
                   try {
                     final db = await _dbFuture;
-                    final updated = widget.settings.copyWith(totalInWordsLanguage: lang.code);
+                    final updated = widget.settings
+                        .copyWith(totalInWordsLanguage: lang.code);
                     await db.updateBusinessSettings(updated);
                   } catch (e, st) {
-                    AppLogger.warning('PosTerminal', 'Failed saving words language setting', e, st);
+                    AppLogger.warning('PosTerminal',
+                        'Failed saving words language setting', e, st);
                   }
                 },
               );
@@ -288,7 +348,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     if (!mounted) return;
 
     final Contact? defaultCust = customers.cast<Contact?>().firstWhere(
-          (c) => c!.name.toLowerCase().contains('walk-in') || c.name.toLowerCase().contains('walk in'),
+          (c) =>
+              c!.name.toLowerCase().contains('walk-in') ||
+              c.name.toLowerCase().contains('walk in'),
           orElse: () => customers.isNotEmpty ? customers.first : null,
         );
 
@@ -424,13 +486,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              _isGridView ? Icons.grid_view_rounded : Icons.format_list_bulleted_rounded,
+              _isGridView
+                  ? Icons.grid_view_rounded
+                  : Icons.format_list_bulleted_rounded,
               color: Colors.white,
               size: 18,
             ),
             const SizedBox(width: 10),
             Text(
-              _isGridView ? 'Switched to Grid View [F5]' : 'Switched to List View [F5]',
+              _isGridView
+                  ? 'Switched to Grid View [F5]'
+                  : 'Switched to List View [F5]',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
           ],
@@ -448,8 +514,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     showDialog(
       context: context,
@@ -460,10 +528,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Row(
           children: [
-            const Icon(Icons.grid_view_outlined, color: Color(0xFF4F46E5), size: 20),
+            const Icon(Icons.grid_view_outlined,
+                color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
-            Text('Filter by Category', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary)),
-                                   const SizedBox(width: 16),
+            Text('Filter by Category',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary)),
+            const SizedBox(width: 16),
             IconButton(
               icon: Icon(Icons.close, size: 18, color: textSecondary),
               onPressed: () => Navigator.pop(ctx),
@@ -477,9 +550,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.all_inclusive, color: Color(0xFF4F46E5)),
-                title: Text('All Categories', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
-                trailing: _selectedCategoryId == null ? const Icon(Icons.check_circle, color: Color(0xFF4F46E5), size: 20) : null,
+                leading:
+                    const Icon(Icons.all_inclusive, color: Color(0xFF4F46E5)),
+                title: Text('All Categories',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: textPrimary)),
+                trailing: _selectedCategoryId == null
+                    ? const Icon(Icons.check_circle,
+                        color: Color(0xFF4F46E5), size: 20)
+                    : null,
                 onTap: () {
                   setState(() => _selectedCategoryId = null);
                   _applyProductFilter();
@@ -492,13 +573,22 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: _categories.length,
-                  separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+                  separatorBuilder: (_, __) =>
+                      Divider(height: 1, color: borderColor),
                   itemBuilder: (_, i) {
                     final cat = _categories[i];
                     final isSel = _selectedCategoryId == cat.id;
                     return ListTile(
-                      title: Text(cat.name, style: TextStyle(fontSize: 13, fontWeight: isSel ? FontWeight.bold : FontWeight.w500, color: textPrimary)),
-                      trailing: isSel ? const Icon(Icons.check_circle, color: Color(0xFF4F46E5), size: 20) : null,
+                      title: Text(cat.name,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight:
+                                  isSel ? FontWeight.bold : FontWeight.w500,
+                              color: textPrimary)),
+                      trailing: isSel
+                          ? const Icon(Icons.check_circle,
+                              color: Color(0xFF4F46E5), size: 20)
+                          : null,
                       onTap: () {
                         setState(() => _selectedCategoryId = cat.id);
                         _applyProductFilter();
@@ -519,8 +609,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     showDialog(
       context: context,
@@ -531,10 +623,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Row(
           children: [
-            const Icon(Icons.branding_watermark_outlined, color: Color(0xFF4F46E5), size: 20),
+            const Icon(Icons.branding_watermark_outlined,
+                color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
-            Text('Filter by Brand', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary)),
-                                   const SizedBox(width: 16),
+            Text('Filter by Brand',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary)),
+            const SizedBox(width: 16),
             IconButton(
               icon: Icon(Icons.close, size: 18, color: textSecondary),
               onPressed: () => Navigator.pop(ctx),
@@ -548,9 +645,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.all_inclusive, color: Color(0xFF4F46E5)),
-                title: Text('All Brands', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
-                trailing: _selectedBrandId == null ? const Icon(Icons.check_circle, color: Color(0xFF4F46E5), size: 20) : null,
+                leading:
+                    const Icon(Icons.all_inclusive, color: Color(0xFF4F46E5)),
+                title: Text('All Brands',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: textPrimary)),
+                trailing: _selectedBrandId == null
+                    ? const Icon(Icons.check_circle,
+                        color: Color(0xFF4F46E5), size: 20)
+                    : null,
                 onTap: () {
                   setState(() => _selectedBrandId = null);
                   _applyProductFilter();
@@ -563,13 +668,22 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: _brands.length,
-                  separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+                  separatorBuilder: (_, __) =>
+                      Divider(height: 1, color: borderColor),
                   itemBuilder: (_, i) {
                     final b = _brands[i];
                     final isSel = _selectedBrandId == b.id;
                     return ListTile(
-                      title: Text(b.name, style: TextStyle(fontSize: 13, fontWeight: isSel ? FontWeight.bold : FontWeight.w500, color: textPrimary)),
-                      trailing: isSel ? const Icon(Icons.check_circle, color: Color(0xFF4F46E5), size: 20) : null,
+                      title: Text(b.name,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight:
+                                  isSel ? FontWeight.bold : FontWeight.w500,
+                              color: textPrimary)),
+                      trailing: isSel
+                          ? const Icon(Icons.check_circle,
+                              color: Color(0xFF4F46E5), size: 20)
+                          : null,
                       onTap: () {
                         setState(() => _selectedBrandId = b.id);
                         _applyProductFilter();
@@ -590,7 +704,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please add products to cart before applying discount.'),
+          content:
+              Text('Please add products to cart before applying discount.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -601,12 +716,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final canGiveDiscount = currentUser == null
         ? true
         : currentUser.hasPermission('pos.give_discount');
-    final maxDiscPercent = currentUser?.maxDiscountPercent ?? ((currentUser?.isAdmin == true) ? 100.0 : 5.0);
+    final maxDiscPercent = currentUser?.maxDiscountPercent ??
+        ((currentUser?.isAdmin == true) ? 100.0 : 5.0);
 
     if (!canGiveDiscount) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Permission Denied: Discounting is disabled for this salesman account by the Owner.'),
+          content: Text(
+              'Permission Denied: Discounting is disabled for this salesman account by the Owner.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -616,15 +733,22 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
-    final inputBorder = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final inputBorder =
+        isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
     final subtleBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
 
     String tempType = _discountType;
     final controller = TextEditingController(
-      text: _discountValue > 0 ? (_discountValue.truncateToDouble() == _discountValue ? _discountValue.toInt().toString() : _discountValue.toString()) : '',
+      text: _discountValue > 0
+          ? (_discountValue.truncateToDouble() == _discountValue
+              ? _discountValue.toInt().toString()
+              : _discountValue.toString())
+          : '',
     );
     final currency = widget.settings.currencySymbol;
 
@@ -635,31 +759,46 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           final inputVal = double.tryParse(controller.text.trim()) ?? 0.0;
           double calcDiscAmt = 0.0;
           if (tempType == 'percentage') {
-            calcDiscAmt = (_subtotal * (inputVal / 100.0)).clamp(0.0, _subtotal);
+            calcDiscAmt =
+                (_subtotal * (inputVal / 100.0)).clamp(0.0, _subtotal);
           } else {
             calcDiscAmt = inputVal.clamp(0.0, _subtotal);
           }
-          final newTotal = (_subtotal - calcDiscAmt + _orderTax + _shippingCharge).clamp(0.0, double.infinity);
+          final newTotal =
+              (_subtotal - calcDiscAmt + _orderTax + _shippingCharge)
+                  .clamp(0.0, double.infinity);
 
           return AlertDialog(
             backgroundColor: cardBg,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             actionsPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             title: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
+                    color: isDark
+                        ? const Color(0xFF312E81)
+                        : const Color(0xFFEEF2FF),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.discount_outlined, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 20),
+                  child: Icon(Icons.discount_outlined,
+                      color: isDark
+                          ? const Color(0xFFA5B4FC)
+                          : const Color(0xFF4F46E5),
+                      size: 20),
                 ),
                 const SizedBox(width: 10),
-                Text('Order Discount System', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary)),
-                                   const SizedBox(width: 16),
+                Text('Order Discount System',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimary)),
+                const SizedBox(width: 16),
                 IconButton(
                   icon: Icon(Icons.close, size: 18, color: textSecondary),
                   onPressed: () => Navigator.pop(ctx),
@@ -673,7 +812,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Discount Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                  Text('Discount Type',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: textSecondary)),
                   const SizedBox(height: 8),
 
                   // Segmented Switcher: [ % Percentage ] [ Fixed Amount ]
@@ -681,7 +824,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     height: 38,
                     padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: inputBorder),
                     ),
@@ -690,28 +835,43 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         // Percentage Button
                         Expanded(
                           child: InkWell(
-                            onTap: () => setDlgState(() => tempType = 'percentage'),
+                            onTap: () =>
+                                setDlgState(() => tempType = 'percentage'),
                             borderRadius: BorderRadius.circular(6),
                             child: Container(
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: tempType == 'percentage' ? const Color(0xFF4F46E5) : Colors.transparent,
+                                color: tempType == 'percentage'
+                                    ? const Color(0xFF4F46E5)
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(6),
                                 boxShadow: tempType == 'percentage'
-                                    ? [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.25), blurRadius: 4, offset: const Offset(0, 1))]
+                                    ? [
+                                        BoxShadow(
+                                            color: const Color(0xFF4F46E5)
+                                                .withValues(alpha: 0.25),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 1))
+                                      ]
                                     : null,
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.percent, size: 14, color: tempType == 'percentage' ? Colors.white : textSecondary),
+                                  Icon(Icons.percent,
+                                      size: 14,
+                                      color: tempType == 'percentage'
+                                          ? Colors.white
+                                          : textSecondary),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Percentage (%)',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: tempType == 'percentage' ? Colors.white : textSecondary,
+                                      color: tempType == 'percentage'
+                                          ? Colors.white
+                                          : textSecondary,
                                     ),
                                   ),
                                 ],
@@ -729,23 +889,37 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             child: Container(
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: tempType == 'fixed' ? const Color(0xFF4F46E5) : Colors.transparent,
+                                color: tempType == 'fixed'
+                                    ? const Color(0xFF4F46E5)
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(6),
                                 boxShadow: tempType == 'fixed'
-                                    ? [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.25), blurRadius: 4, offset: const Offset(0, 1))]
+                                    ? [
+                                        BoxShadow(
+                                            color: const Color(0xFF4F46E5)
+                                                .withValues(alpha: 0.25),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 1))
+                                      ]
                                     : null,
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.payments_outlined, size: 14, color: tempType == 'fixed' ? Colors.white : textSecondary),
+                                  Icon(Icons.payments_outlined,
+                                      size: 14,
+                                      color: tempType == 'fixed'
+                                          ? Colors.white
+                                          : textSecondary),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Fixed ($currency)',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: tempType == 'fixed' ? Colors.white : textSecondary,
+                                      color: tempType == 'fixed'
+                                          ? Colors.white
+                                          : textSecondary,
                                     ),
                                   ),
                                 ],
@@ -760,31 +934,49 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
                   // Discount Value Input Field
                   Text(
-                    tempType == 'percentage' ? 'Enter Percentage Rate (%)' : 'Enter Fixed Discount Amount ($currency)',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary),
+                    tempType == 'percentage'
+                        ? 'Enter Percentage Rate (%)'
+                        : 'Enter Fixed Discount Amount ($currency)',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: textSecondary),
                   ),
                   const SizedBox(height: 6),
                   TextField(
                     controller: controller,
                     autofocus: true,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     style: TextStyle(fontSize: 14, color: textPrimary),
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: inputBg,
                       prefixIcon: Icon(
-                        tempType == 'percentage' ? Icons.percent : Icons.attach_money,
+                        tempType == 'percentage'
+                            ? Icons.percent
+                            : Icons.attach_money,
                         size: 18,
                         color: const Color(0xFF4F46E5),
                       ),
                       suffixText: tempType == 'percentage' ? '%' : currency,
-                      suffixStyle: TextStyle(fontWeight: FontWeight.bold, color: textSecondary),
-                      hintText: tempType == 'percentage' ? 'e.g. 10' : 'e.g. 150',
+                      suffixStyle: TextStyle(
+                          fontWeight: FontWeight.bold, color: textSecondary),
+                      hintText:
+                          tempType == 'percentage' ? 'e.g. 10' : 'e.g. 150',
                       hintStyle: TextStyle(color: textSecondary),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: inputBorder)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: inputBorder)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF4F46E5), width: 1.5)),
                     ),
                     onChanged: (_) => setDlgState(() {}),
                   ),
@@ -796,21 +988,34 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     runSpacing: 6,
                     children: tempType == 'percentage'
                         ? [
-                            _presetChip('0%', 0, controller, setDlgState, isDark),
-                            _presetChip('5%', 5, controller, setDlgState, isDark),
-                            _presetChip('10%', 10, controller, setDlgState, isDark),
-                            _presetChip('15%', 15, controller, setDlgState, isDark),
-                            _presetChip('20%', 20, controller, setDlgState, isDark),
-                            _presetChip('25%', 25, controller, setDlgState, isDark),
-                            _presetChip('50%', 50, controller, setDlgState, isDark),
+                            _presetChip(
+                                '0%', 0, controller, setDlgState, isDark),
+                            _presetChip(
+                                '5%', 5, controller, setDlgState, isDark),
+                            _presetChip(
+                                '10%', 10, controller, setDlgState, isDark),
+                            _presetChip(
+                                '15%', 15, controller, setDlgState, isDark),
+                            _presetChip(
+                                '20%', 20, controller, setDlgState, isDark),
+                            _presetChip(
+                                '25%', 25, controller, setDlgState, isDark),
+                            _presetChip(
+                                '50%', 50, controller, setDlgState, isDark),
                           ]
                         : [
-                            _presetChip('Clear', 0, controller, setDlgState, isDark),
-                            _presetChip('50', 50, controller, setDlgState, isDark),
-                            _presetChip('100', 100, controller, setDlgState, isDark),
-                            _presetChip('200', 200, controller, setDlgState, isDark),
-                            _presetChip('500', 500, controller, setDlgState, isDark),
-                            _presetChip('1000', 1000, controller, setDlgState, isDark),
+                            _presetChip(
+                                'Clear', 0, controller, setDlgState, isDark),
+                            _presetChip(
+                                '50', 50, controller, setDlgState, isDark),
+                            _presetChip(
+                                '100', 100, controller, setDlgState, isDark),
+                            _presetChip(
+                                '200', 200, controller, setDlgState, isDark),
+                            _presetChip(
+                                '500', 500, controller, setDlgState, isDark),
+                            _presetChip(
+                                '1000', 1000, controller, setDlgState, isDark),
                           ],
                   ),
                   const SizedBox(height: 14),
@@ -828,8 +1033,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Subtotal:', style: TextStyle(fontSize: 12, color: textSecondary)),
-                            Text('$currency ${_subtotal.toStringAsFixed(2)}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textPrimary)),
+                            Text('Subtotal:',
+                                style: TextStyle(
+                                    fontSize: 12, color: textSecondary)),
+                            Text('$currency ${_subtotal.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: textPrimary)),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -838,17 +1049,33 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           children: [
                             Text(
                               'Discount (${tempType == 'percentage' ? '${inputVal.toStringAsFixed(0)}%' : 'Fixed'}):',
-                              style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444), fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFFEF4444),
+                                  fontWeight: FontWeight.bold),
                             ),
-                            Text('- $currency ${calcDiscAmt.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFFEF4444))),
+                            Text(
+                                '- $currency ${calcDiscAmt.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFFEF4444))),
                           ],
                         ),
                         Divider(height: 12, color: borderColor),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('New Total Payable:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
-                            Text('$currency ${newTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF16A34A))),
+                            const Text('New Total Payable:',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF16A34A))),
+                            Text('$currency ${newTotal.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF16A34A))),
                           ],
                         ),
                       ],
@@ -860,24 +1087,32 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             actions: [
               TextButton(
                 onPressed: () {
-                  ref.read(cartProvider.notifier).setOrderDiscount('fixed', 0.0);
+                  ref
+                      .read(cartProvider.notifier)
+                      .setOrderDiscount('fixed', 0.0);
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Discount removed.'),
-                      backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF475569),
+                      backgroundColor: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFF475569),
                       duration: const Duration(milliseconds: 900),
                     ),
                   );
                 },
-                child: const Text('Clear Discount', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
+                child: const Text('Clear Discount',
+                    style: TextStyle(
+                        color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4F46E5),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: () {
                   final parsed = double.tryParse(controller.text.trim()) ?? 0.0;
@@ -885,7 +1120,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   if (tempType == 'percentage' && parsed > maxDiscPercent) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Limit Exceeded: Maximum authorized discount for this salesman is ${maxDiscPercent.toStringAsFixed(0)}%!'),
+                        content: Text(
+                            'Limit Exceeded: Maximum authorized discount for this salesman is ${maxDiscPercent.toStringAsFixed(0)}%!'),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -897,7 +1133,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     if (effectivePct > maxDiscPercent) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Fixed discount exceeds your maximum authorized rate of ${maxDiscPercent.toStringAsFixed(0)}%!'),
+                          content: Text(
+                              'Fixed discount exceeds your maximum authorized rate of ${maxDiscPercent.toStringAsFixed(0)}%!'),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -905,7 +1142,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     }
                   }
 
-                  ref.read(cartProvider.notifier).setOrderDiscount(tempType, parsed);
+                  ref
+                      .read(cartProvider.notifier)
+                      .setOrderDiscount(tempType, parsed);
                   Navigator.pop(ctx);
 
                   final saved = _calculatedDiscount;
@@ -921,7 +1160,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     ),
                   );
                 },
-                child: const Text('Apply Discount', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text('Apply Discount',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           );
@@ -930,11 +1170,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     );
   }
 
-  Widget _presetChip(String label, double val, TextEditingController c, StateSetter setDlgState, [bool isDark = false]) {
+  Widget _presetChip(String label, double val, TextEditingController c,
+      StateSetter setDlgState,
+      [bool isDark = false]) {
     return InkWell(
       onTap: () {
         setDlgState(() {
-          c.text = val > 0 ? (val.truncateToDouble() == val ? val.toInt().toString() : val.toString()) : '';
+          c.text = val > 0
+              ? (val.truncateToDouble() == val
+                  ? val.toInt().toString()
+                  : val.toString())
+              : '';
         });
       },
       borderRadius: BorderRadius.circular(6),
@@ -943,9 +1189,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+          border: Border.all(
+              color:
+                  isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
         ),
-        child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5))),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isDark
+                    ? const Color(0xFFA5B4FC)
+                    : const Color(0xFF4F46E5))),
       ),
     );
   }
@@ -958,7 +1212,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         content: Row(
           children: [
             Icon(
-              _isWholesaleMode ? Icons.inventory_2_rounded : Icons.storefront_rounded,
+              _isWholesaleMode
+                  ? Icons.inventory_2_rounded
+                  : Icons.storefront_rounded,
               color: Colors.white,
               size: 20,
             ),
@@ -968,12 +1224,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 _isWholesaleMode
                     ? 'Wholesale Tier Mode: Activated (${_wholesaleDiscountPercent.toInt()}% Bulk Markdown)'
                     : 'Retail Mode: Activated',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ),
           ],
         ),
-        backgroundColor: _isWholesaleMode ? const Color(0xFF0891B2) : const Color(0xFF1E293B),
+        backgroundColor: _isWholesaleMode
+            ? const Color(0xFF0891B2)
+            : const Color(0xFF1E293B),
         duration: const Duration(milliseconds: 1400),
         behavior: SnackBarBehavior.floating,
       ),
@@ -984,10 +1243,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
-    final inputBorder = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final inputBorder =
+        isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
 
     final nameCtrl = TextEditingController();
     final priceCtrl = TextEditingController();
@@ -995,7 +1257,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     String selectedUnit = 'Pc';
     final currency = widget.settings.currencySymbol;
 
-    final commonUnits = ['Pc', 'Kg', 'Ltr', 'Mtr', 'Box', 'Ctn', 'Pkt', 'Bag', 'Dzn', 'Sq Ft', 'Roll'];
+    final commonUnits = [
+      'Pc',
+      'Kg',
+      'Ltr',
+      'Mtr',
+      'Box',
+      'Ctn',
+      'Pkt',
+      'Bag',
+      'Dzn',
+      'Sq Ft',
+      'Roll'
+    ];
 
     showDialog(
       context: context,
@@ -1003,7 +1277,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         builder: (context, setDlgState) {
           return AlertDialog(
             backgroundColor: cardBg,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Row(
               children: [
                 Container(
@@ -1012,7 +1287,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     color: const Color(0x1F4F46E5),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.flash_on_rounded, color: Color(0xFF4F46E5), size: 22),
+                  child: const Icon(Icons.flash_on_rounded,
+                      color: Color(0xFF4F46E5), size: 22),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -1021,7 +1297,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     children: [
                       Text(
                         'Add Custom Item',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary),
                       ),
                       Text(
                         'Sell uncataloged walk-in item, loose weight, cut or service directly',
@@ -1043,20 +1322,31 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Item Description / Name *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    Text('Item Description / Name *',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: textSecondary)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: nameCtrl,
                       autofocus: true,
                       style: TextStyle(fontSize: 14, color: textPrimary),
                       decoration: InputDecoration(
-                        hintText: 'e.g. Loose Sugar, Cut Iron 10m, Labor Charge, Custom Part',
-                        hintStyle: TextStyle(fontSize: 12, color: textSecondary),
+                        hintText:
+                            'e.g. Loose Sugar, Cut Iron 10m, Labor Charge, Custom Part',
+                        hintStyle:
+                            TextStyle(fontSize: 12, color: textSecondary),
                         filled: true,
                         fillColor: inputBg,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: inputBorder)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: inputBorder)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -1067,20 +1357,35 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Unit Price ($currency) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                              Text('Unit Price ($currency) *',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: textSecondary)),
                               const SizedBox(height: 6),
                               TextField(
                                 controller: priceCtrl,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                style: TextStyle(fontSize: 14, color: textPrimary),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                style:
+                                    TextStyle(fontSize: 14, color: textPrimary),
                                 decoration: InputDecoration(
                                   hintText: '0.00',
-                                  hintStyle: TextStyle(fontSize: 12, color: textSecondary),
+                                  hintStyle: TextStyle(
+                                      fontSize: 12, color: textSecondary),
                                   filled: true,
                                   fillColor: inputBg,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide:
+                                          BorderSide(color: inputBorder)),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide:
+                                          BorderSide(color: inputBorder)),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
                                 ),
                               ),
                             ],
@@ -1091,20 +1396,35 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Quantity (Decimals OK) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                              Text('Quantity (Decimals OK) *',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: textSecondary)),
                               const SizedBox(height: 6),
                               TextField(
                                 controller: qtyCtrl,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                style: TextStyle(fontSize: 14, color: textPrimary),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                style:
+                                    TextStyle(fontSize: 14, color: textPrimary),
                                 decoration: InputDecoration(
                                   hintText: '1.0',
-                                  hintStyle: TextStyle(fontSize: 12, color: textSecondary),
+                                  hintStyle: TextStyle(
+                                      fontSize: 12, color: textSecondary),
                                   filled: true,
                                   fillColor: inputBg,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide:
+                                          BorderSide(color: inputBorder)),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide:
+                                          BorderSide(color: inputBorder)),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
                                 ),
                               ),
                             ],
@@ -1117,26 +1437,39 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     // Quick decimal quantity presets
                     Row(
                       children: [
-                        Text('Quick Qty: ', style: TextStyle(fontSize: 11, color: textSecondary)),
+                        Text('Quick Qty: ',
+                            style:
+                                TextStyle(fontSize: 11, color: textSecondary)),
                         Wrap(
                           spacing: 5,
                           children: [0.25, 0.5, 1.0, 1.5, 2.5, 5.0].map((q) {
                             return InkWell(
                               onTap: () {
-                                qtyCtrl.text = q == q.toInt() ? q.toInt().toString() : q.toString();
+                                qtyCtrl.text = q == q.toInt()
+                                    ? q.toInt().toString()
+                                    : q.toString();
                                 setDlgState(() {});
                               },
                               borderRadius: BorderRadius.circular(4),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                                  color: isDark
+                                      ? const Color(0xFF334155)
+                                      : const Color(0xFFF1F5F9),
                                   borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: borderColor, width: 0.8),
+                                  border: Border.all(
+                                      color: borderColor, width: 0.8),
                                 ),
                                 child: Text(
-                                  q == q.toInt() ? q.toInt().toString() : q.toString(),
-                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: textPrimary),
+                                  q == q.toInt()
+                                      ? q.toInt().toString()
+                                      : q.toString(),
+                                  style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: textPrimary),
                                 ),
                               ),
                             );
@@ -1146,7 +1479,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    Text('Measurement Unit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    Text('Measurement Unit',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: textSecondary)),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 6,
@@ -1157,9 +1494,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           onTap: () => setDlgState(() => selectedUnit = u),
                           borderRadius: BorderRadius.circular(6),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 9, vertical: 4),
                             decoration: BoxDecoration(
-                              color: isSel ? const Color(0xFF4F46E5) : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                              color: isSel
+                                  ? const Color(0xFF4F46E5)
+                                  : (isDark
+                                      ? const Color(0xFF334155)
+                                      : const Color(0xFFF1F5F9)),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -1190,13 +1532,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   final qty = double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
                   if (name.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter an item description.')),
+                      const SnackBar(
+                          content: Text('Please enter an item description.')),
                     );
                     return;
                   }
                   if (price <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter a valid price.')),
+                      const SnackBar(
+                          content: Text('Please enter a valid price.')),
                     );
                     return;
                   }
@@ -1204,7 +1548,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   final customProduct = Product(
                     id: null,
                     name: name,
-                    sku: 'OPEN-${DateTime.now().millisecondsSinceEpoch % 100000}',
+                    sku:
+                        'OPEN-${DateTime.now().millisecondsSinceEpoch % 100000}',
                     barcode: '',
                     unit: selectedUnit,
                     purchasePrice: price,
@@ -1212,21 +1557,25 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     stockQuantity: 9999.0,
                   );
                   ref.read(cartProvider.notifier).addCustomItem(
-                    CartItem(
-                      product: customProduct,
-                      quantity: qty,
-                      unitPrice: price,
-                      packDiscount: _isWholesaleMode ? _wholesaleDiscountPercent : 0.0,
-                    ),
-                  );
+                        CartItem(
+                          product: customProduct,
+                          quantity: qty,
+                          unitPrice: price,
+                          packDiscount: _isWholesaleMode
+                              ? _wholesaleDiscountPercent
+                              : 0.0,
+                        ),
+                      );
                 },
                 icon: const Icon(Icons.add_shopping_cart, size: 18),
                 label: const Text('Add to Cart'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4F46E5),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],
@@ -1240,8 +1589,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
 
     final initialQty = item.quantity == item.quantity.toInt()
@@ -1302,17 +1653,27 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
     if (isWeight) {
       dlgTitle = enSec ? 'Adjust Weight (تولنے والا وزن)' : 'Adjust Weight';
-      dlgSubTitle = enSec ? 'ترازو وزن • ${item.product.name}' : 'Weight Scale • ${item.product.name}';
+      dlgSubTitle = enSec
+          ? 'ترازو وزن • ${item.product.name}'
+          : 'Weight Scale • ${item.product.name}';
       dlgIcon = Icons.scale_rounded;
       dlgColor = const Color(0xFFD97706);
       inputLabel = enSec
           ? 'Enter Weight in ${item.product.unit.isNotEmpty ? item.product.unit : "Kg"} (اعشاریہ وزن مثلاً 1.5, 0.50)'
           : 'Enter Weight in ${item.product.unit.isNotEmpty ? item.product.unit : "Kg"} (e.g. 1.5, 0.50)';
-      badgeLabel = enSec ? 'Weighed / Weight Scale (تولنے والا وزن)' : 'Weighed / Weight Scale';
+      badgeLabel = enSec
+          ? 'Weighed / Weight Scale (تولنے والا وزن)'
+          : 'Weighed / Weight Scale';
       presets = [
         {'label': enSec ? '0.25 (Pao / پاؤ)' : '0.25 (Pao)', 'val': 0.25},
-        {'label': enSec ? '0.50 (Aadha / آدھا کلو)' : '0.50 (Half Kg)', 'val': 0.50},
-        {'label': enSec ? '0.75 (3 Pao / تین پاؤ)' : '0.75 (3 Pao)', 'val': 0.75},
+        {
+          'label': enSec ? '0.50 (Aadha / آدھا کلو)' : '0.50 (Half Kg)',
+          'val': 0.50
+        },
+        {
+          'label': enSec ? '0.75 (3 Pao / تین پاؤ)' : '0.75 (3 Pao)',
+          'val': 0.75
+        },
         {'label': enSec ? '1.0 (1 Kg / کلو)' : '1.0 (1 Kg)', 'val': 1.0},
         {'label': enSec ? '1.5 (ڈیڑھ کلو)' : '1.5 (1.5 Kg)', 'val': 1.5},
         {'label': '2.0 (2 Kg)', 'val': 2.0},
@@ -1323,14 +1684,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         {'label': enSec ? '40.0 (Mann / من)' : '40.0 (Mann 40Kg)', 'val': 40.0},
       ];
     } else if (isMeasurement) {
-      dlgTitle = enSec ? 'Adjust Measurement (پیمائش / لمبائی)' : 'Adjust Measurement';
-      dlgSubTitle = enSec ? 'کپڑا / پائپ / تار کی لمبائی • ${item.product.name}' : 'Length / Fabric / Cable • ${item.product.name}';
+      dlgTitle =
+          enSec ? 'Adjust Measurement (پیمائش / لمبائی)' : 'Adjust Measurement';
+      dlgSubTitle = enSec
+          ? 'کپڑا / پائپ / تار کی لمبائی • ${item.product.name}'
+          : 'Length / Fabric / Cable • ${item.product.name}';
       dlgIcon = Icons.straighten_rounded;
       dlgColor = const Color(0xFF0D9488);
       inputLabel = enSec
           ? 'Enter Length in ${item.product.unit.isNotEmpty ? item.product.unit : "Meter"} (میٹر / گز / فٹ)'
           : 'Enter Length in ${item.product.unit.isNotEmpty ? item.product.unit : "Meter"} (Meter, Yard, Feet)';
-      badgeLabel = enSec ? 'Measurement / Fabric (پیمائش والے یونٹس)' : 'Measurement / Fabric';
+      badgeLabel = enSec
+          ? 'Measurement / Fabric (پیمائش والے یونٹس)'
+          : 'Measurement / Fabric';
       presets = [
         {'label': enSec ? '0.50 (آدھا میٹر)' : '0.50 (0.5 Meter)', 'val': 0.50},
         {'label': enSec ? '1.0 (1 میٹر)' : '1.0 (1 Meter)', 'val': 1.0},
@@ -1346,18 +1712,28 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         {'label': '25.0 (Roll / Thaan)', 'val': 25.0},
       ];
     } else if (isLiquid) {
-      dlgTitle = enSec ? 'Adjust Volume (مائع / لیٹر درج کریں)' : 'Adjust Volume';
-      dlgSubTitle = enSec ? 'دودھ / آئل / مائع حجم • ${item.product.name}' : 'Liquid Volume • ${item.product.name}';
+      dlgTitle =
+          enSec ? 'Adjust Volume (مائع / لیٹر درج کریں)' : 'Adjust Volume';
+      dlgSubTitle = enSec
+          ? 'دودھ / آئل / مائع حجم • ${item.product.name}'
+          : 'Liquid Volume • ${item.product.name}';
       dlgIcon = Icons.water_drop_outlined;
       dlgColor = const Color(0xFF0284C7);
       inputLabel = enSec
           ? 'Enter Volume in ${item.product.unit.isNotEmpty ? item.product.unit : "Liter"} (لیٹر / ملی لیٹر)'
           : 'Enter Volume in ${item.product.unit.isNotEmpty ? item.product.unit : "Liter"} (Liter / Milliliter)';
-      badgeLabel = enSec ? 'Liquid Volume (مائع حجم والے یونٹس)' : 'Liquid Volume';
+      badgeLabel =
+          enSec ? 'Liquid Volume (مائع حجم والے یونٹس)' : 'Liquid Volume';
       presets = [
         {'label': enSec ? '0.25 (پاؤ / 250ml)' : '0.25 (250ml)', 'val': 0.25},
-        {'label': enSec ? '0.50 (آدھا لیٹر / 500ml)' : '0.50 (500ml)', 'val': 0.50},
-        {'label': enSec ? '0.75 (تین پاؤ / 750ml)' : '0.75 (750ml)', 'val': 0.75},
+        {
+          'label': enSec ? '0.50 (آدھا لیٹر / 500ml)' : '0.50 (500ml)',
+          'val': 0.50
+        },
+        {
+          'label': enSec ? '0.75 (تین پاؤ / 750ml)' : '0.75 (750ml)',
+          'val': 0.75
+        },
         {'label': enSec ? '1.0 (1 لیٹر)' : '1.0 (1 Liter)', 'val': 1.0},
         {'label': enSec ? '1.5 (ڈیڑھ لیٹر)' : '1.5 (1.5 Liter)', 'val': 1.5},
         {'label': enSec ? '2.0 (2 لیٹر)' : '2.0 (2 Liters)', 'val': 2.0},
@@ -1368,14 +1744,20 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       ];
     } else {
       // Discrete / Count Units: Pieces, Boxes, Packs, Strips, Tablets, Cartons, Dozens, Bottles, etc.
-      dlgTitle = enSec ? 'Adjust Quantity (تعداد / مقدار درج کریں)' : 'Adjust Quantity';
-      dlgSubTitle = enSec ? 'گنتی / تعداد • ${item.product.name}' : 'Quantity / Count • ${item.product.name}';
+      dlgTitle = enSec
+          ? 'Adjust Quantity (تعداد / مقدار درج کریں)'
+          : 'Adjust Quantity';
+      dlgSubTitle = enSec
+          ? 'گنتی / تعداد • ${item.product.name}'
+          : 'Quantity / Count • ${item.product.name}';
       dlgIcon = Icons.inventory_2_outlined;
       dlgColor = const Color(0xFF4F46E5);
       inputLabel = enSec
           ? 'Enter Quantity in ${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"} (تعداد درج کریں)'
           : 'Enter Quantity in ${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"}';
-      badgeLabel = enSec ? 'Count / Discrete Item (گنتی و تعداد والے یونٹس)' : 'Count / Discrete Item';
+      badgeLabel = enSec
+          ? 'Count / Discrete Item (گنتی و تعداد والے یونٹس)'
+          : 'Count / Discrete Item';
       presets = [
         {'label': '1', 'val': 1.0},
         {'label': '2', 'val': 2.0},
@@ -1401,7 +1783,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
           return Dialog(
             backgroundColor: cardBg,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
               child: Padding(
@@ -1430,11 +1813,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               children: [
                                 Text(
                                   dlgTitle,
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: textPrimary),
                                 ),
                                 Text(
                                   dlgSubTitle,
-                                  style: TextStyle(fontSize: 11, color: textSecondary),
+                                  style: TextStyle(
+                                      fontSize: 11, color: textSecondary),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -1443,7 +1830,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           ],
                         ),
                         IconButton(
-                          icon: Icon(Icons.close, size: 20, color: textSecondary),
+                          icon:
+                              Icon(Icons.close, size: 20, color: textSecondary),
                           onPressed: () => Navigator.pop(ctx),
                         ),
                       ],
@@ -1454,7 +1842,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: borderColor),
                       ),
@@ -1465,27 +1855,50 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.settings.enableSecondaryLanguage ? 'Unit of Measure (یونٹ)' : 'Unit of Measure',
-                                style: TextStyle(fontSize: 10, color: textSecondary),
+                                widget.settings.enableSecondaryLanguage
+                                    ? 'Unit of Measure (یونٹ)'
+                                    : 'Unit of Measure',
+                                style: TextStyle(
+                                    fontSize: 10, color: textSecondary),
                               ),
-                              Text(item.selectedUnitName ?? (item.product.unit.isNotEmpty ? item.product.unit : 'Standard Unit'),
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary)),
+                              Text(
+                                  item.selectedUnitName ??
+                                      (item.product.unit.isNotEmpty
+                                          ? item.product.unit
+                                          : 'Standard Unit'),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: textPrimary)),
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: dlgColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: dlgColor.withValues(alpha: 0.3)),
+                              border: Border.all(
+                                  color: dlgColor.withValues(alpha: 0.3)),
                             ),
-                            child: Text(badgeLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: dlgColor)),
+                            child: Text(badgeLabel,
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: dlgColor)),
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text('Rate / Unit', style: TextStyle(fontSize: 10, color: textSecondary)),
-                              Text('${widget.settings.currencySymbol} ${item.unitPrice.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF10B981))),
+                              Text('Rate / Unit',
+                                  style: TextStyle(
+                                      fontSize: 10, color: textSecondary)),
+                              Text(
+                                  '${widget.settings.currencySymbol} ${item.unitPrice.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: Color(0xFF10B981))),
                             ],
                           ),
                         ],
@@ -1495,7 +1908,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
                     // Active Selling Sub-Unit Switcher Chips
                     FutureBuilder<List<Unit>>(
-                      future: DatabaseService.initialize().then((db) => db.getConversionUnitsForProduct(item.product)),
+                      future: DatabaseService.initialize().then((db) =>
+                          db.getConversionUnitsForProduct(item.product)),
                       builder: (ctx, snapshot) {
                         final uList = snapshot.data ?? [];
                         if (uList.length <= 1) return const SizedBox.shrink();
@@ -1508,32 +1922,49 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 widget.settings.enableSecondaryLanguage
                                     ? 'Change Active Selling Unit (یونٹ تبدیل کریں):'
                                     : 'Change Active Selling Unit:',
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary),
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: textSecondary),
                               ),
                               const SizedBox(height: 6),
                               Wrap(
                                 spacing: 6,
                                 runSpacing: 6,
                                 children: uList.map((u) {
-                                  final isCur = (item.selectedUnitName ?? item.product.unit).toLowerCase().trim() == u.actualName.toLowerCase().trim();
-                                  final rate = item.basePrice * u.baseUnitMultiplier;
+                                  final isCur = (item.selectedUnitName ??
+                                              item.product.unit)
+                                          .toLowerCase()
+                                          .trim() ==
+                                      u.actualName.toLowerCase().trim();
+                                  final rate =
+                                      item.basePrice * u.baseUnitMultiplier;
                                   return ChoiceChip(
                                     label: Text(
                                       '${u.actualName} (${widget.settings.currencySymbol} ${rate.toStringAsFixed(2)})',
-                                      style: TextStyle(fontSize: 11, fontWeight: isCur ? FontWeight.bold : FontWeight.normal),
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: isCur
+                                              ? FontWeight.bold
+                                              : FontWeight.normal),
                                     ),
                                     selected: isCur,
                                     selectedColor: dlgColor,
-                                    labelStyle: TextStyle(color: isCur ? Colors.white : textPrimary),
+                                    labelStyle: TextStyle(
+                                        color:
+                                            isCur ? Colors.white : textPrimary),
                                     onSelected: (selected) {
                                       if (selected) {
-                                        ref.read(cartProvider.notifier).changeItemUnit(
+                                        ref
+                                            .read(cartProvider.notifier)
+                                            .changeItemUnit(
                                               index,
                                               u.actualName,
                                               u.baseUnitMultiplier,
                                             );
                                         setDlgState(() {
-                                          item.changeUnit(u.actualName, u.baseUnitMultiplier);
+                                          item.changeUnit(u.actualName,
+                                              u.baseUnitMultiplier);
                                         });
                                       }
                                     },
@@ -1547,36 +1978,54 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     ),
 
                     // Direct input field with Step Buttons [-] and [+]
-                    Text(inputLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary)),
+                    Text(inputLabel,
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary)),
                     const SizedBox(height: 6),
                     Row(
                       children: [
                         IconButton(
                           tooltip: 'Decrease',
                           onPressed: () {
-                            double q = double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
-                            final step = (!isWeight && !isMeasurement && !isLiquid) ? 1.0 : (isWeight ? 0.25 : 0.5);
+                            double q =
+                                double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
+                            final step =
+                                (!isWeight && !isMeasurement && !isLiquid)
+                                    ? 1.0
+                                    : (isWeight ? 0.25 : 0.5);
                             q = (q - step).clamp(0.0, 99999.0);
-                            qtyCtrl.text = q == q.toInt() ? q.toInt().toString() : q.toString();
+                            qtyCtrl.text = q == q.toInt()
+                                ? q.toInt().toString()
+                                : q.toString();
                             setDlgState(() {});
                           },
-                          icon: const Icon(Icons.remove_circle_outline, size: 28, color: Colors.red),
+                          icon: const Icon(Icons.remove_circle_outline,
+                              size: 28, color: Colors.red),
                         ),
                         Expanded(
                           child: TextField(
                             controller: qtyCtrl,
                             autofocus: true,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary),
                             textAlign: TextAlign.center,
                             decoration: InputDecoration(
                               isDense: true,
                               filled: true,
                               fillColor: inputBg,
                               suffixText: item.product.unit,
-                              suffixStyle: TextStyle(fontWeight: FontWeight.bold, color: dlgColor),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              suffixStyle: TextStyle(
+                                  fontWeight: FontWeight.bold, color: dlgColor),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
                             onChanged: (_) => setDlgState(() {}),
                           ),
@@ -1584,13 +2033,20 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         IconButton(
                           tooltip: 'Increase',
                           onPressed: () {
-                            double q = double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
-                            final step = (!isWeight && !isMeasurement && !isLiquid) ? 1.0 : (isWeight ? 0.25 : 0.5);
+                            double q =
+                                double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
+                            final step =
+                                (!isWeight && !isMeasurement && !isLiquid)
+                                    ? 1.0
+                                    : (isWeight ? 0.25 : 0.5);
                             q = q + step;
-                            qtyCtrl.text = q == q.toInt() ? q.toInt().toString() : q.toString();
+                            qtyCtrl.text = q == q.toInt()
+                                ? q.toInt().toString()
+                                : q.toString();
                             setDlgState(() {});
                           },
-                          icon: const Icon(Icons.add_circle_outline, size: 28, color: Colors.green),
+                          icon: const Icon(Icons.add_circle_outline,
+                              size: 28, color: Colors.green),
                         ),
                       ],
                     ),
@@ -1604,20 +2060,28 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         return InkWell(
                           onTap: () {
                             final val = p['val'] as num;
-                            qtyCtrl.text = val == val.toInt() ? val.toInt().toString() : val.toString();
+                            qtyCtrl.text = val == val.toInt()
+                                ? val.toInt().toString()
+                                : val.toString();
                             setDlgState(() {});
                           },
                           borderRadius: BorderRadius.circular(6),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(color: borderColor),
                             ),
                             child: Text(
                               p['label'] as String,
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary),
                             ),
                           ),
                         );
@@ -1627,19 +2091,29 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
                     // Total Calculation Preview
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         color: const Color(0xFF10B981).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                        border: Border.all(
+                            color:
+                                const Color(0xFF10B981).withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Calculated Line Total:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: textPrimary)),
+                          Text('Calculated Line Total:',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                  color: textPrimary)),
                           Text(
                             '${widget.settings.currencySymbol} ${totalVal.toStringAsFixed(2)}',
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF059669)),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                                color: Color(0xFF059669)),
                           ),
                         ],
                       ),
@@ -1652,13 +2126,18 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: Text('Cancel', style: TextStyle(color: textSecondary)),
+                          child: Text('Cancel',
+                              style: TextStyle(color: textSecondary)),
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton.icon(
                           onPressed: () {
-                            final newQty = double.tryParse(qtyCtrl.text.trim()) ?? item.quantity;
-                            ref.read(cartProvider.notifier).setQuantity(index, newQty);
+                            final newQty =
+                                double.tryParse(qtyCtrl.text.trim()) ??
+                                    item.quantity;
+                            ref
+                                .read(cartProvider.notifier)
+                                .setQuantity(index, newQty);
                             Navigator.pop(ctx);
                           },
                           icon: const Icon(Icons.check, size: 16),
@@ -1666,8 +2145,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: dlgColor,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
                       ],
@@ -1691,7 +2172,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1704,26 +2186,45 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 Expanded(
                   child: Text(
                     'Select Unit: ${item.product.name}',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => Navigator.pop(ctx)),
+                IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () => Navigator.pop(ctx)),
               ],
             ),
             const Divider(),
             ...units.map((u) {
-              final isCur = (item.selectedUnitName ?? item.product.unit).toLowerCase().trim() == u.actualName.toLowerCase().trim();
+              final isCur = (item.selectedUnitName ?? item.product.unit)
+                      .toLowerCase()
+                      .trim() ==
+                  u.actualName.toLowerCase().trim();
               final rate = item.basePrice * u.baseUnitMultiplier;
               return ListTile(
                 dense: true,
-                leading: Icon(isCur ? Icons.check_circle_rounded : Icons.radio_button_unchecked, color: isCur ? const Color(0xFF10B981) : Colors.grey),
-                title: Text(u.actualName, style: TextStyle(fontWeight: isCur ? FontWeight.bold : FontWeight.normal)),
-                subtitle: Text('Multiplier: ${u.baseUnitMultiplier}x  •  Base: ${item.product.unit}'),
+                leading: Icon(
+                    isCur
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked,
+                    color: isCur ? const Color(0xFF10B981) : Colors.grey),
+                title: Text(u.actualName,
+                    style: TextStyle(
+                        fontWeight:
+                            isCur ? FontWeight.bold : FontWeight.normal)),
+                subtitle: Text(
+                    'Multiplier: ${u.baseUnitMultiplier}x  •  Base: ${item.product.unit}'),
                 trailing: Text(
                   '${widget.settings.currencySymbol} ${rate.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF059669), fontSize: 13),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF059669),
+                      fontSize: 13),
                 ),
                 onTap: () {
                   ref.read(cartProvider.notifier).changeItemUnit(
@@ -1746,10 +2247,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
-    final inputBorder = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final inputBorder =
+        isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
     final subtleBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
 
     final currentUser = AuthService.currentUser;
@@ -1759,14 +2263,18 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final canGiveDiscount = currentUser == null
         ? true
         : currentUser.hasPermission('pos.give_discount');
-    final maxDiscPercent = currentUser?.maxDiscountPercent ?? ((currentUser?.isAdmin == true) ? 100.0 : 5.0);
+    final maxDiscPercent = currentUser?.maxDiscountPercent ??
+        ((currentUser?.isAdmin == true) ? 100.0 : 5.0);
 
     String lineDiscType =
-        (item.discountType == 'percentage' || item.packDiscount > 0) ? 'percentage' : 'fixed';
+        (item.discountType == 'percentage' || item.packDiscount > 0)
+            ? 'percentage'
+            : 'fixed';
     final initialDisc = lineDiscType == 'percentage'
         ? (item.discountValue > 0 ? item.discountValue : item.packDiscount)
         : (item.discount > 0 ? item.discount : item.discountValue);
-    final priceCtrl = TextEditingController(text: item.unitPrice.toStringAsFixed(2));
+    final priceCtrl =
+        TextEditingController(text: item.unitPrice.toStringAsFixed(2));
     final discCtrl = TextEditingController(
       text: initialDisc > 0
           ? (initialDisc.truncateToDouble() == initialDisc
@@ -1780,7 +2288,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDlgState) {
-          final curUnitPrice = double.tryParse(priceCtrl.text.trim()) ?? item.unitPrice;
+          final curUnitPrice =
+              double.tryParse(priceCtrl.text.trim()) ?? item.unitPrice;
           final curDiscVal = double.tryParse(discCtrl.text.trim()) ?? 0.0;
           final packVal = curUnitPrice * item.quantity;
           double lineDiscAmt = 0.0;
@@ -1793,15 +2302,20 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
           return AlertDialog(
             backgroundColor: cardBg,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             title: Row(
               children: [
-                const Icon(Icons.edit_note_rounded, color: Color(0xFF4F46E5), size: 22),
+                const Icon(Icons.edit_note_rounded,
+                    color: Color(0xFF4F46E5), size: 22),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Item Pricing: ${item.product.name}',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1822,18 +2336,30 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   // Unit Price
                   Row(
                     children: [
-                      Text('Unit Price ($currency)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
-                                   const SizedBox(width: 16),
+                      Text('Unit Price ($currency)',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: textSecondary)),
+                      const SizedBox(width: 16),
                       if (!canEditPrice)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(4)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(4)),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.lock_rounded, size: 10, color: Color(0xFFD97706)),
+                              Icon(Icons.lock_rounded,
+                                  size: 10, color: Color(0xFFD97706)),
                               SizedBox(width: 3),
-                              Text('Locked by Owner', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
+                              Text('Locked by Owner',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFD97706))),
                             ],
                           ),
                         ),
@@ -1843,14 +2369,28 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   TextField(
                     controller: priceCtrl,
                     readOnly: !canEditPrice,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: TextStyle(fontSize: 14, color: !canEditPrice ? const Color(0xFF94A3B8) : textPrimary),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: !canEditPrice
+                            ? const Color(0xFF94A3B8)
+                            : textPrimary),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: !canEditPrice ? (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)) : inputBg,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                      fillColor: !canEditPrice
+                          ? (isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF1F5F9))
+                          : inputBg,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: inputBorder)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: inputBorder)),
                     ),
                     onChanged: (_) => setDlgState(() {}),
                   ),
@@ -1871,7 +2411,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           Expanded(
                             child: Text(
                               'Discounts are restricted for this account by the Business Owner.',
-                              style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
@@ -1881,9 +2424,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     // Discount Type
                     Row(
                       children: [
-                        Text('Discount Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
-                                   const SizedBox(width: 16),
-                        Text('Max Limit: ${maxDiscPercent.toStringAsFixed(0)}%', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
+                        Text('Discount Type',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: textSecondary)),
+                        const SizedBox(width: 16),
+                        Text('Max Limit: ${maxDiscPercent.toStringAsFixed(0)}%',
+                            style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4F46E5))),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -1891,7 +2442,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       height: 34,
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: inputBorder),
                       ),
@@ -1899,11 +2452,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         children: [
                           Expanded(
                             child: InkWell(
-                              onTap: () => setDlgState(() => lineDiscType = 'percentage'),
+                              onTap: () => setDlgState(
+                                  () => lineDiscType = 'percentage'),
                               child: Container(
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
-                                  color: lineDiscType == 'percentage' ? const Color(0xFF4F46E5) : Colors.transparent,
+                                  color: lineDiscType == 'percentage'
+                                      ? const Color(0xFF4F46E5)
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -1911,7 +2467,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: lineDiscType == 'percentage' ? Colors.white : textSecondary,
+                                    color: lineDiscType == 'percentage'
+                                        ? Colors.white
+                                        : textSecondary,
                                   ),
                                 ),
                               ),
@@ -1919,11 +2477,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           ),
                           Expanded(
                             child: InkWell(
-                              onTap: () => setDlgState(() => lineDiscType = 'fixed'),
+                              onTap: () =>
+                                  setDlgState(() => lineDiscType = 'fixed'),
                               child: Container(
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
-                                  color: lineDiscType == 'fixed' ? const Color(0xFF4F46E5) : Colors.transparent,
+                                  color: lineDiscType == 'fixed'
+                                      ? const Color(0xFF4F46E5)
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -1931,7 +2492,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: lineDiscType == 'fixed' ? Colors.white : textSecondary,
+                                    color: lineDiscType == 'fixed'
+                                        ? Colors.white
+                                        : textSecondary,
                                   ),
                                 ),
                               ),
@@ -1944,22 +2507,35 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
                     // Discount Value
                     Text(
-                      lineDiscType == 'percentage' ? 'Discount Rate (%)' : 'Discount Amount ($currency)',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary),
+                      lineDiscType == 'percentage'
+                          ? 'Discount Rate (%)'
+                          : 'Discount Amount ($currency)',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: textSecondary),
                     ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: discCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       style: TextStyle(fontSize: 14, color: textPrimary),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: inputBg,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                        suffixText: lineDiscType == 'percentage' ? '%' : currency,
-                        suffixStyle: TextStyle(fontWeight: FontWeight.bold, color: textSecondary),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: inputBorder)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: inputBorder)),
+                        suffixText:
+                            lineDiscType == 'percentage' ? '%' : currency,
+                        suffixStyle: TextStyle(
+                            fontWeight: FontWeight.bold, color: textSecondary),
                       ),
                       onChanged: (_) => setDlgState(() {}),
                     ),
@@ -1977,8 +2553,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Line Subtotal (${item.quantity.toInt()} ${item.product.unit}):', style: TextStyle(fontSize: 12, color: textSecondary)),
-                        Text('$currency ${lineSubtotal.toStringAsFixed(2)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimary)),
+                        Text(
+                            'Line Subtotal (${item.quantity.toInt()} ${item.product.unit}):',
+                            style:
+                                TextStyle(fontSize: 12, color: textSecondary)),
+                        Text('$currency ${lineSubtotal.toStringAsFixed(2)}',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary)),
                       ],
                     ),
                   ),
@@ -1998,40 +2581,58 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       );
                   Navigator.pop(ctx);
                 },
-                child: const Text('Clear Discount', style: TextStyle(color: Color(0xFFEF4444))),
+                child: const Text('Clear Discount',
+                    style: TextStyle(color: Color(0xFFEF4444))),
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white),
                 onPressed: () {
-                  final newPrice = double.tryParse(priceCtrl.text.trim()) ?? item.unitPrice;
+                  final newPrice =
+                      double.tryParse(priceCtrl.text.trim()) ?? item.unitPrice;
                   final newDisc = double.tryParse(discCtrl.text.trim()) ?? 0.0;
 
                   if (newPrice != item.unitPrice && !canEditPrice) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Permission Denied: Changing unit prices is not authorized for this salesman account.'), backgroundColor: Colors.red),
+                      const SnackBar(
+                          content: Text(
+                              'Permission Denied: Changing unit prices is not authorized for this salesman account.'),
+                          backgroundColor: Colors.red),
                     );
                     return;
                   }
 
                   if (newDisc > 0 && !canGiveDiscount) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Permission Denied: Discounts are disabled for this account.'), backgroundColor: Colors.red),
+                      const SnackBar(
+                          content: Text(
+                              'Permission Denied: Discounts are disabled for this account.'),
+                          backgroundColor: Colors.red),
                     );
                     return;
                   }
 
-                  if (lineDiscType == 'percentage' && newDisc > maxDiscPercent) {
+                  if (lineDiscType == 'percentage' &&
+                      newDisc > maxDiscPercent) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Limit Exceeded: Maximum authorized discount is ${maxDiscPercent.toStringAsFixed(0)}%!'), backgroundColor: Colors.red),
+                      SnackBar(
+                          content: Text(
+                              'Limit Exceeded: Maximum authorized discount is ${maxDiscPercent.toStringAsFixed(0)}%!'),
+                          backgroundColor: Colors.red),
                     );
                     return;
                   }
 
                   if (lineDiscType == 'fixed' && item.unitPrice > 0) {
-                    final effective = (newDisc / (item.unitPrice * item.quantity)) * 100.0;
+                    final effective =
+                        (newDisc / (item.unitPrice * item.quantity)) * 100.0;
                     if (effective > maxDiscPercent) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Fixed discount exceeds maximum allowed rate of ${maxDiscPercent.toStringAsFixed(0)}%!'), backgroundColor: Colors.red),
+                        SnackBar(
+                            content: Text(
+                                'Fixed discount exceeds maximum allowed rate of ${maxDiscPercent.toStringAsFixed(0)}%!'),
+                            backgroundColor: Colors.red),
                       );
                       return;
                     }
@@ -2041,7 +2642,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         index,
                         unitPrice: newPrice,
                         discount: lineDiscType == 'percentage' ? 0.0 : newDisc,
-                        packDiscount: lineDiscType == 'percentage' ? newDisc : 0.0,
+                        packDiscount:
+                            lineDiscType == 'percentage' ? newDisc : 0.0,
                         discountType: lineDiscType,
                         discountValue: newDisc,
                       );
@@ -2060,9 +2662,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
-    final inputBorder = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final inputBorder =
+        isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
 
     if (_taxRates.isEmpty || _taxGroups.isEmpty) {
       final db = await _dbFuture;
@@ -2079,19 +2683,26 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
     final cartSnap = ref.read(cartProvider);
     final taxableBase = cartSnap.taxableSubtotal;
-    final controller = TextEditingController(text: _orderTax > 0 ? _orderTax.toStringAsFixed(2) : '');
+    final controller = TextEditingController(
+        text: _orderTax > 0 ? _orderTax.toStringAsFixed(2) : '');
     final currency = widget.settings.currencySymbol;
     TaxGroup? chosenGroup = cartSnap.selectedTaxGroup;
     TaxRate? chosenRate = cartSnap.selectedTaxRate;
-    Map<String, double> previewBreakdown = Map<String, double>.from(cartSnap.taxBreakdown);
+    Map<String, double> previewBreakdown =
+        Map<String, double>.from(cartSnap.taxBreakdown);
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
           backgroundColor: cardBg,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('Order Tax & Compound Tax Groups', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('Order Tax & Compound Tax Groups',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: textPrimary)),
           content: SizedBox(
             width: 440,
             child: SingleChildScrollView(
@@ -2100,8 +2711,12 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_taxGroups.isNotEmpty) ...[
-                    Text('Compound / Group Taxes (Taxable: $currency${taxableBase.toStringAsFixed(2)}):',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    Text(
+                        'Compound / Group Taxes (Taxable: $currency${taxableBase.toStringAsFixed(2)}):',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: textSecondary)),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 6,
@@ -2116,8 +2731,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           ),
                           selected: selected,
                           onSelected: (_) {
-                            final bd = g.calculateBreakdown(taxableBase, _taxRates);
-                            final tot = g.calculateTotalTax(taxableBase, _taxRates);
+                            final bd =
+                                g.calculateBreakdown(taxableBase, _taxRates);
+                            final tot =
+                                g.calculateTotalTax(taxableBase, _taxRates);
                             setDlgState(() {
                               chosenGroup = g;
                               chosenRate = null;
@@ -2131,22 +2748,33 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     const SizedBox(height: 12),
                   ],
                   if (_taxRates.isNotEmpty) ...[
-                    Text('Single Tax Rates:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    Text('Single Tax Rates:',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: textSecondary)),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
                       children: _taxRates.map((r) {
-                        final selected = chosenRate?.id == r.id && chosenGroup == null;
+                        final selected =
+                            chosenRate?.id == r.id && chosenGroup == null;
                         return ChoiceChip(
-                          label: Text('${r.name} (${r.amount.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 11)),
+                          label: Text(
+                              '${r.name} (${r.amount.toStringAsFixed(1)}%)',
+                              style: const TextStyle(fontSize: 11)),
                           selected: selected,
                           onSelected: (_) {
-                            final amt = double.parse((taxableBase * (r.amount / 100.0)).toStringAsFixed(2));
+                            final amt = double.parse(
+                                (taxableBase * (r.amount / 100.0))
+                                    .toStringAsFixed(2));
                             setDlgState(() {
                               chosenGroup = null;
                               chosenRate = r;
-                              previewBreakdown = {'${r.name} (${r.amount}%)': amt};
+                              previewBreakdown = {
+                                '${r.name} (${r.amount}%)': amt
+                              };
                               controller.text = amt.toStringAsFixed(2);
                             });
                           },
@@ -2161,21 +2789,36 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       padding: const EdgeInsets.all(10),
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEEF2FF),
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFEEF2FF),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: isDark ? const Color(0xFF312E81) : const Color(0xFFC7D2FE)),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF312E81)
+                                : const Color(0xFFC7D2FE)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Tax Breakdown:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary)),
+                          Text('Tax Breakdown:',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary)),
                           const SizedBox(height: 4),
                           ...previewBreakdown.entries.map(
                             (e) => Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(e.key, style: TextStyle(fontSize: 11.5, color: textSecondary)),
-                                Text('$currency${e.value.toStringAsFixed(2)}', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: textPrimary)),
+                                Text(e.key,
+                                    style: TextStyle(
+                                        fontSize: 11.5, color: textSecondary)),
+                                Text('$currency${e.value.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: textPrimary)),
                               ],
                             ),
                           ),
@@ -2183,11 +2826,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       ),
                     ),
                   ],
-                  Text('Custom / Manual Tax Override ($currency):', style: TextStyle(fontSize: 12, color: textSecondary)),
+                  Text('Custom / Manual Tax Override ($currency):',
+                      style: TextStyle(fontSize: 12, color: textSecondary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: controller,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     style: TextStyle(fontSize: 14, color: textPrimary),
                     onChanged: (_) {
                       if (chosenGroup != null || chosenRate != null) {
@@ -2202,9 +2847,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       filled: true,
                       fillColor: inputBg,
                       prefixText: '$currency ',
-                      prefixStyle: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                      prefixStyle: TextStyle(
+                          color: textPrimary, fontWeight: FontWeight.bold),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: inputBorder)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: inputBorder)),
                     ),
                   ),
                 ],
@@ -2220,7 +2870,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               child: const Text('Clear'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white),
               onPressed: () {
                 final notifier = ref.read(cartProvider.notifier);
                 if (chosenGroup != null) {
@@ -2245,35 +2897,47 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
-    final inputBorder = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final inputBorder =
+        isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
 
-    final controller = TextEditingController(text: _shippingCharge > 0 ? _shippingCharge.toString() : '');
+    final controller = TextEditingController(
+        text: _shippingCharge > 0 ? _shippingCharge.toString() : '');
     final currency = widget.settings.currencySymbol;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Shipping & Delivery Charges', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary)),
+        title: Text('Shipping & Delivery Charges',
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 16, color: textPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Enter Delivery / Shipping Charge:', style: TextStyle(fontSize: 12, color: textSecondary)),
+            Text('Enter Delivery / Shipping Charge:',
+                style: TextStyle(fontSize: 12, color: textSecondary)),
             const SizedBox(height: 8),
             TextField(
               controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               style: TextStyle(fontSize: 14, color: textPrimary),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: inputBg,
                 prefixText: '$currency ',
-                prefixStyle: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
+                prefixStyle:
+                    TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: inputBorder)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: inputBorder)),
               ),
             ),
           ],
@@ -2287,10 +2951,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             child: const Text('Clear'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4F46E5),
+                foregroundColor: Colors.white),
             onPressed: () {
               final parsed = double.tryParse(controller.text.trim()) ?? 0.0;
-              ref.read(cartProvider.notifier).setShippingCharge(parsed < 0.0 ? 0.0 : parsed);
+              ref
+                  .read(cartProvider.notifier)
+                  .setShippingCharge(parsed < 0.0 ? 0.0 : parsed);
               Navigator.pop(ctx);
             },
             child: const Text('Save'),
@@ -2300,7 +2968,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     );
   }
 
-  int? _getDaysUntilExpiry(String? expiryDate) => calculateDaysUntilExpiry(expiryDate);
+  int? _getDaysUntilExpiry(String? expiryDate) =>
+      calculateDaysUntilExpiry(expiryDate);
 
   Future<ProductVariation?> _showVariationSelectorDialog(
     Product product,
@@ -2367,7 +3036,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     if (outOfStock) {
                       ScaffoldMessenger.of(ctx).showSnackBar(
                         SnackBar(
-                          content: Text('${product.name} (${v.name}) is OUT OF STOCK!'),
+                          content: Text(
+                              '${product.name} (${v.name}) is OUT OF STOCK!'),
                           backgroundColor: const Color(0xFFEF4444),
                           duration: const Duration(seconds: 1),
                         ),
@@ -2430,8 +3100,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF4F46E5)
-                                .withValues(alpha: 0.12),
+                            color:
+                                const Color(0xFF4F46E5).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -2479,12 +3149,18 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final effectiveStock = chosen?.stockQuantity ?? product.stockQuantity;
     final labelName =
         chosen != null ? '${product.name} (${chosen.name})' : product.name;
-    if (effectiveStock <= 0) {
+    final alreadyInCart = _cartBaseQtyFor(product, chosen);
+    if (!widget.settings.allowOverselling &&
+        (effectiveStock <= 0 || alreadyInCart + 1.0 > effectiveStock)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$labelName is OUT OF STOCK!'),
+          content: Text(
+            effectiveStock <= 0
+                ? '$labelName is OUT OF STOCK!'
+                : 'Insufficient stock for $labelName (Available: ${effectiveStock.toStringAsFixed(effectiveStock % 1 == 0 ? 0 : 2)}).',
+          ),
           backgroundColor: const Color(0xFFEF4444),
-          duration: const Duration(seconds: 1),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -2500,7 +3176,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 : 'NOTICE: ${product.name} nearing expiry ($expDays days left • ${product.expiryDate}).',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          backgroundColor: expDays < 0 ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+          backgroundColor:
+              expDays < 0 ? const Color(0xFFDC2626) : const Color(0xFFD97706),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -2508,6 +3185,40 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
     ref.read(cartProvider.notifier).addProduct(product, variation: chosen);
     _applyProductTaxIfConfigured(product);
+  }
+
+  double _cartBaseQtyFor(Product product, ProductVariation? variation) {
+    return _cart
+        .where((item) =>
+            item.product.id != null &&
+            item.product.id == product.id &&
+            item.variationId == variation?.id)
+        .fold<double>(
+            0.0, (sum, item) => sum + (item.quantity * item.unitMultiplier));
+  }
+
+  void _tryIncrementCartItem(int index) {
+    if (index < 0 || index >= _cart.length) return;
+    final item = _cart[index];
+    if (!widget.settings.allowOverselling) {
+      final step = (item.quantity < 1 && item.quantity >= 0.25) ? 0.25 : 1.0;
+      final addBase = step * item.unitMultiplier;
+      final maxStock = item.product.stockQuantity;
+      final existingBase = _cartBaseQtyFor(item.product, null);
+      if (existingBase + addBase > maxStock && item.variationId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Stock limit reached for ${item.product.name} (${maxStock.toStringAsFixed(maxStock % 1 == 0 ? 0 : 2)} available).',
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+    }
+    ref.read(cartProvider.notifier).incrementQuantity(index);
   }
 
   void _applyProductTaxIfConfigured(Product product) {
@@ -2538,13 +3249,25 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
   }
 
-  void _addToCartWithQuantity(Product product, double qty) {
-    if (product.isOutOfStock) {
+  void _addToCartWithQuantity(
+    Product product,
+    double qty, {
+    ProductVariation? preselectedVariation,
+  }) {
+    final effectiveStock =
+        preselectedVariation?.stockQuantity ?? product.stockQuantity;
+    final alreadyInCart = _cartBaseQtyFor(product, preselectedVariation);
+    if (!widget.settings.allowOverselling &&
+        (effectiveStock <= 0 || alreadyInCart + qty > effectiveStock)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${product.name} is OUT OF STOCK!'),
+          content: Text(
+            effectiveStock <= 0
+                ? '${product.name} is OUT OF STOCK!'
+                : 'Insufficient stock for ${product.name} (Available: ${effectiveStock.toStringAsFixed(effectiveStock % 1 == 0 ? 0 : 2)}).',
+          ),
           backgroundColor: const Color(0xFFEF4444),
-          duration: const Duration(seconds: 1),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -2560,7 +3283,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 : 'NOTICE: ${product.name} nearing expiry ($expDays days left • ${product.expiryDate}).',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          backgroundColor: expDays < 0 ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+          backgroundColor:
+              expDays < 0 ? const Color(0xFFDC2626) : const Color(0xFFD97706),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -2569,29 +3293,33 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     ref.read(cartProvider.notifier).addProduct(
           product,
           quantity: qty,
+          variation: preselectedVariation,
           mergeByUnitPrice: true,
         );
     _applyProductTaxIfConfigured(product);
   }
 
   void _onBarcodeSubmitted(String code) async {
-    final trimmed = code.trim().toLowerCase();
-    if (trimmed.isEmpty) return;
+    final raw = code.trim();
+    if (raw.isEmpty) return;
 
-    // 0. Electronic Weight-Scale Barcode Parsing (EAN-13 prefix '20' or '02')
-    if (trimmed.length == 13 && (trimmed.startsWith('20') || trimmed.startsWith('02'))) {
-      final itemCode = trimmed.substring(2, 7);
-      final weightGrams = int.tryParse(trimmed.substring(7, 12)) ?? 0;
-      final weightKg = weightGrams > 0 ? (weightGrams / 1000.0) : 1.0;
+    final parsedPrefix = PosTerminalScreen.parseBarcodeQuantityPrefix(raw);
+    final qtyMultiplier = parsedPrefix.quantity;
+    final cleanCode = parsedPrefix.code;
 
+    // 0. Electronic Weight/Price-Scale Barcode Parsing (EAN-13 20/02 weight or 21..29 price)
+    final scale = PosTerminalScreen.parseScaleBarcode(cleanCode);
+    if (scale != null) {
       final db = await _dbFuture;
       Product? scaleItem = _products.cast<Product?>().firstWhere(
-            (p) => p!.sku.toLowerCase().contains(itemCode) || p.barcode.toLowerCase().contains(itemCode),
+            (p) =>
+                p!.sku.toLowerCase().contains(scale.itemCode.toLowerCase()) ||
+                p.barcode.toLowerCase().contains(scale.itemCode.toLowerCase()),
             orElse: () => null,
           );
       if (scaleItem == null) {
         final fallback = await db.getProductsPaged(
-          search: itemCode,
+          search: scale.itemCode,
           pageSize: 5,
           includeTotalCount: false,
         );
@@ -2599,14 +3327,25 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       }
 
       if (scaleItem != null) {
-        _addToCartWithQuantity(scaleItem, weightKg);
+        final computedQty = scale.isPriceEmbedded
+            ? (scaleItem.sellingPrice > 0
+                ? double.parse(
+                    (scale.value / scaleItem.sellingPrice).toStringAsFixed(3),
+                  )
+                : 1.0)
+            : scale.value;
+        _addToCartWithQuantity(scaleItem, computedQty * qtyMultiplier);
         _searchController.clear();
         _applyProductFilter(immediate: true);
         _searchFocusNode.requestFocus();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Weight-Scale parsed: ${scaleItem.name} — ${weightKg.toStringAsFixed(3)} kg'),
+            content: Text(
+              scale.isPriceEmbedded
+                  ? 'Scale Price parsed: ${scaleItem.name} — ${computedQty.toStringAsFixed(3)} ${scaleItem.unit}'
+                  : 'Weight-Scale parsed: ${scaleItem.name} — ${computedQty.toStringAsFixed(3)} kg',
+            ),
             backgroundColor: const Color(0xFF059669),
             duration: const Duration(milliseconds: 1500),
           ),
@@ -2617,9 +3356,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
     // 1. Database exact SKU / Barcode / Variation Sub-SKU lookup
     final db = await _dbFuture;
-    final dbMatch = await db.getProductWithMatchedVariationByCode(code.trim());
+    final dbMatch = await db.getProductWithMatchedVariationByCode(cleanCode);
     if (dbMatch != null) {
-      await _addToCart(dbMatch.$1, preselectedVariation: dbMatch.$2);
+      if (qtyMultiplier != 1.0) {
+        _addToCartWithQuantity(
+          dbMatch.$1,
+          qtyMultiplier,
+          preselectedVariation: dbMatch.$2,
+        );
+      } else {
+        await _addToCart(dbMatch.$1, preselectedVariation: dbMatch.$2);
+      }
       _searchController.clear();
       _applyProductFilter(immediate: true);
       _searchFocusNode.requestFocus();
@@ -2632,7 +3379,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   void _openKotDialog() {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cart is empty! Add food items first.'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Cart is empty! Add food items first.'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -2673,18 +3422,22 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     showDialog(
       context: context,
       builder: (_) => ImeiPickerDialog(
-        product: _cart.isNotEmpty ? _cart.last.product : Product(
-          name: 'Mobile Phone Device',
-          sku: 'MOB-GEN',
-          barcode: 'MOB-GEN',
-          purchasePrice: 40000.0,
-          sellingPrice: 50000.0,
-          stockQuantity: 10.0,
-        ),
+        product: _cart.isNotEmpty
+            ? _cart.last.product
+            : Product(
+                name: 'Mobile Phone Device',
+                sku: 'MOB-GEN',
+                barcode: 'MOB-GEN',
+                purchasePrice: 40000.0,
+                sellingPrice: 50000.0,
+                stockQuantity: 10.0,
+              ),
         serials: const [],
         onSerialSelected: (imei) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Attached IMEI/Serial: $imei to sale invoice!'), backgroundColor: const Color(0xFF4F46E5)),
+            SnackBar(
+                content: Text('Attached IMEI/Serial: $imei to sale invoice!'),
+                backgroundColor: const Color(0xFF4F46E5)),
           );
         },
       ),
@@ -2708,7 +3461,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         notifier.setOrderDiscount('fixed', eval.discountAmount);
       }
       if (_appliedPromoRuleName != eval.appliedRuleNames.join(', ')) {
-        setState(() => _appliedPromoRuleName = eval.appliedRuleNames.join(', '));
+        setState(
+            () => _appliedPromoRuleName = eval.appliedRuleNames.join(', '));
       }
     } else if (_appliedPromoRuleName.isNotEmpty) {
       notifier.setOrderDiscount('fixed', 0.0);
@@ -2751,7 +3505,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add items to cart before checkout!'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Please add items to cart before checkout!'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -2759,7 +3515,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final db = await _dbFuture;
 
     // Ensure Cash Register is open before finalizing sale
-    if (saleStatus == 'final' && !Platform.environment.containsKey('FLUTTER_TEST')) {
+    if (saleStatus == 'final' &&
+        !Platform.environment.containsKey('FLUTTER_TEST')) {
       final activeReg = await db.getActiveRegister();
       if (activeReg == null) {
         if (!mounted) return;
@@ -2776,7 +3533,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('A cash register shift must be open before finalizing sales!'),
+                content: Text(
+                    'A cash register shift must be open before finalizing sales!'),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -2790,23 +3548,33 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final invoiceNo = _resumedInvoiceNo ?? await db.generateNextInvoiceNo();
 
     // Loyalty points rewards calculation (1 point per 100 Rs spent)
-    final earnedPoints = (paidAmount / 100).floorToDouble();
-    if (_selectedCustomer?.id != null && !_isCurrentCustomerWalkIn) {
+    final earnedPoints =
+        (!_isCurrentCustomerWalkIn && _selectedCustomer?.id != null)
+            ? (paidAmount / 100).floorToDouble()
+            : 0.0;
+    if (_resumedSaleId != null &&
+        saleStatus == 'final' &&
+        _selectedCustomer?.id != null &&
+        !_isCurrentCustomerWalkIn) {
       if (redeemedPoints > 0) {
-        await db.updateContactLoyaltyPoints(_selectedCustomer!.id!, -redeemedPoints);
+        await db.updateContactLoyaltyPoints(
+            _selectedCustomer!.id!, -redeemedPoints);
       }
       if (earnedPoints > 0) {
-        await db.updateContactLoyaltyPoints(_selectedCustomer!.id!, earnedPoints);
+        await db.updateContactLoyaltyPoints(
+            _selectedCustomer!.id!, earnedPoints);
       }
     }
 
     if (redeemedPoints > 0 || earnedPoints > 0) {
-      final loyaltySummary = 'Loyalty Rewards: ${redeemedPoints > 0 ? "Redeemed ${redeemedPoints.toInt()} pts (-${widget.settings.currencySymbol}${loyaltyDiscount.toStringAsFixed(2)}). " : ""}Earned +${earnedPoints.toInt()} pts';
+      final loyaltySummary =
+          'Loyalty Rewards: ${redeemedPoints > 0 ? "Redeemed ${redeemedPoints.toInt()} pts (-${widget.settings.currencySymbol}${loyaltyDiscount.toStringAsFixed(2)}). " : ""}Earned +${earnedPoints.toInt()} pts';
       note = note.isEmpty ? loyaltySummary : '$note • $loyaltySummary';
     }
 
     final totalDiscount = _calculatedDiscount + loyaltyDiscount;
-    final finalBillTotal = (_grandTotal - loyaltyDiscount).clamp(0.0, double.infinity);
+    final finalBillTotal =
+        (_grandTotal - loyaltyDiscount).clamp(0.0, double.infinity);
     final cartSnapshot = ref.read(cartProvider);
     final commAgent = _selectedCommissionAgent;
     final commPct = commAgent?.commissionPercent ?? 0.0;
@@ -2823,7 +3591,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       taxAmount: _orderTax,
       taxRate: cartSnapshot.selectedTaxGroup != null
           ? cartSnapshot.selectedTaxGroup!.computeEffectiveRate(_taxRates)
-          : (cartSnapshot.selectedTaxRate?.amount ?? widget.settings.defaultTaxRate),
+          : (cartSnapshot.selectedTaxRate?.amount ??
+              widget.settings.defaultTaxRate),
       shipping: _shippingCharge,
       totalAmount: finalBillTotal,
       paidAmount: paidAmount,
@@ -2858,6 +3627,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         chequeNumber: chequeNumber,
         bankName: bankName,
         chequeDueDate: chequeDueDate,
+        pointsRedeemed: redeemedPoints.round(),
+        pointsEarned: earnedPoints.round(),
+        enforceStock: !widget.settings.allowOverselling,
       );
     }
 
@@ -2876,9 +3648,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const Icon(Icons.check_circle_rounded,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 8),
-                Text('Draft #${completedSale.invoiceNo} saved! You can resume it anytime from Sales > Drafts.'),
+                Text(
+                    'Draft #${completedSale.invoiceNo} saved! You can resume it anytime from Sales > Drafts.'),
               ],
             ),
             backgroundColor: const Color(0xFF0284C7),
@@ -2921,8 +3695,12 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
   bool get _isCurrentCustomerWalkIn {
     if (_selectedCustomer == null || _selectedCustomer!.id == null) return true;
+    if (_selectedCustomer!.isDefaultWalkIn) return true;
     final name = _selectedCustomer!.name.toLowerCase().trim();
-    return name.contains('walk-in') || name.contains('walk in') || name == 'cash customer' || name.contains('walkin');
+    return name.contains('walk-in') ||
+        name.contains('walk in') ||
+        name == 'cash customer' ||
+        name.contains('walkin');
   }
 
   void _quickCashCheckout() {
@@ -2953,7 +3731,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   void _quickCardCheckout() {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cart is empty! Add products first.'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Cart is empty! Add products first.'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -2966,16 +3746,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Row(
             children: [
-              const Icon(Icons.credit_card_rounded, color: Color(0xFF4338CA), size: 24),
+              const Icon(Icons.credit_card_rounded,
+                  color: Color(0xFF4338CA), size: 24),
               const SizedBox(width: 8),
               Text(
                 widget.settings.enableSecondaryLanguage
                     ? 'کارڈ ادائیگی (Debit / Credit Card)'
                     : 'Card Payment (Debit / Credit Card)',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -2995,14 +3778,18 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.cloud_off_rounded, color: Color(0xFFB45309), size: 20),
+                        const Icon(Icons.cloud_off_rounded,
+                            color: Color(0xFFB45309), size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             widget.settings.enableSecondaryLanguage
                                 ? 'سسٹم آف لائن موڈ میں ہے۔ بیرونی بینک EDC مشین سے کارڈ سوائپ کریں اور تصدیقی سلپ نمبر / Auth Code درج کریں۔'
                                 : 'Offline Mode: Swipe or tap card on external bank EDC POS machine, then enter authorization slip number below.',
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF78350F), fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF78350F),
+                                fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
@@ -3010,12 +3797,18 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   ),
                 Text(
                   'Total Payable: ${widget.settings.currencySymbol} ${_grandTotal.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: Color(0xFF0F172A)),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  widget.settings.enableSecondaryLanguage ? 'بینک مشین سلپ نمبر / Auth Code:*' : 'Bank Slip # / Auth Code:*',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  widget.settings.enableSecondaryLanguage
+                      ? 'بینک مشین سلپ نمبر / Auth Code:*'
+                      : 'Bank Slip # / Auth Code:*',
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 TextField(
@@ -3023,30 +3816,44 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   autofocus: true,
                   decoration: InputDecoration(
                     hintText: 'e.g. HBL-98124, MCB-4321, Alfalah Slip #',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                   ),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  widget.settings.enableSecondaryLanguage ? 'کارڈ نیٹ ورک:' : 'Card Network:',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  widget.settings.enableSecondaryLanguage
+                      ? 'کارڈ نیٹ ورک:'
+                      : 'Card Network:',
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
                   value: selectedCardType,
                   decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'Visa / Mastercard', child: Text('Visa / Mastercard')),
-                    DropdownMenuItem(value: 'PayPak / 1Link', child: Text('PayPak / 1Link')),
-                    DropdownMenuItem(value: 'UnionPay', child: Text('UnionPay')),
-                    DropdownMenuItem(value: 'Other Bank EDC', child: Text('Other Bank EDC Terminal')),
+                    DropdownMenuItem(
+                        value: 'Visa / Mastercard',
+                        child: Text('Visa / Mastercard')),
+                    DropdownMenuItem(
+                        value: 'PayPak / 1Link', child: Text('PayPak / 1Link')),
+                    DropdownMenuItem(
+                        value: 'UnionPay', child: Text('UnionPay')),
+                    DropdownMenuItem(
+                        value: 'Other Bank EDC',
+                        child: Text('Other Bank EDC Terminal')),
                   ],
                   onChanged: (val) {
-                    if (val != null) setModalState(() => selectedCardType = val);
+                    if (val != null)
+                      setModalState(() => selectedCardType = val);
                   },
                 ),
               ],
@@ -3055,7 +3862,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(widget.settings.enableSecondaryLanguage ? 'کینسل (Cancel)' : 'Cancel'),
+              child: Text(widget.settings.enableSecondaryLanguage
+                  ? 'کینسل (Cancel)'
+                  : 'Cancel'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -3084,10 +3893,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   tendered: _grandTotal,
                   changeReturn: 0.0,
                   paymentStatus: 'paid',
-                  note: ref.isNotEmpty ? 'Card Payment ($selectedCardType) - Auth/Slip #$ref' : 'Card Payment ($selectedCardType)',
+                  note: ref.isNotEmpty
+                      ? 'Card Payment ($selectedCardType) - Auth/Slip #$ref'
+                      : 'Card Payment ($selectedCardType)',
                 );
               },
-              child: Text(widget.settings.enableSecondaryLanguage ? 'کارڈ ادائیگی مکمل کریں' : 'Complete Card Payment'),
+              child: Text(widget.settings.enableSecondaryLanguage
+                  ? 'کارڈ ادائیگی مکمل کریں'
+                  : 'Complete Card Payment'),
             ),
           ],
         ),
@@ -3098,7 +3911,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   void _quickCreditCheckout() {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cart is empty! Add products first.'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Cart is empty! Add products first.'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -3107,7 +3922,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Row(
             children: [
               const Icon(Icons.block_rounded, color: Colors.red, size: 24),
@@ -3116,7 +3932,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 widget.settings.enableSecondaryLanguage
                     ? 'واک اِن کسٹمر کو ادھار سیل ممنوع ہے'
                     : 'Credit Sale Not Allowed for Walk-in Customer',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -3129,7 +3946,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(widget.settings.enableSecondaryLanguage ? 'کینسل (Cancel)' : 'Cancel'),
+              child: Text(widget.settings.enableSecondaryLanguage
+                  ? 'کینسل (Cancel)'
+                  : 'Cancel'),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -3137,11 +3956,59 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.person_search, size: 16),
-              label: Text(widget.settings.enableSecondaryLanguage ? 'کسٹمر کھاتہ منتخب کریں (F3)' : 'Select Customer (F3)'),
+              label: Text(widget.settings.enableSecondaryLanguage
+                  ? 'کسٹمر کھاتہ منتخب کریں (F3)'
+                  : 'Select Customer (F3)'),
               onPressed: () {
                 Navigator.pop(ctx);
                 _openCustomerSearchModal();
               },
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final creditLimit = _selectedCustomer?.creditLimit ?? 0.0;
+    final currentBalance = _selectedCustomer?.balance ?? 0.0;
+    final projectedBalance = currentBalance + _grandTotal;
+    if (creditLimit > 0 && projectedBalance > creditLimit + 0.01) {
+      final currency = widget.settings.currencySymbol;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Row(
+            children: [
+              Icon(Icons.credit_score_rounded,
+                  color: Color(0xFFDC2626), size: 24),
+              SizedBox(width: 8),
+              Text('Credit Limit Exceeded',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            '${_selectedCustomer!.name} has a credit limit of $currency${creditLimit.toStringAsFixed(2)}.\n'
+            'Current balance: $currency${currentBalance.toStringAsFixed(2)}\n'
+            'Projected balance after this sale: $currency${projectedBalance.toStringAsFixed(2)}\n\n'
+            'Please receive partial payment via Multiple Pay or increase the customer credit limit.',
+            style: const TextStyle(fontSize: 13, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _openPaymentModal();
+              },
+              child: const Text('Open Payment Modal'),
             ),
           ],
         ),
@@ -3162,61 +4029,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   void _handleMultiplePayClick() {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cart is empty! Add products first.'), backgroundColor: Colors.orange),
-      );
-      return;
-    }
-
-    if (_isCurrentCustomerWalkIn) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Row(
-            children: [
-              const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 24),
-              const SizedBox(width: 8),
-              Text(
-                widget.settings.enableSecondaryLanguage
-                    ? 'واک اِن کسٹمر - ملٹیپل پیمنٹ پابندی'
-                    : 'Multiple Payment Restricted for Walk-in Customer',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          content: Text(
-            widget.settings.enableSecondaryLanguage
-                ? 'واک اِن کاؤنٹر کسٹمرز کے لیے اسپلٹ یا ملٹیپل پیمنٹ کی سہولت دستیاب نہیں ہے کیونکہ ان کا بقایا بیلنس کھاتے میں محفوظ نہیں کیا جا سکتا۔\n\nاگر کسٹمر ایک سے زائد ذرائع سے ادائیگی کرنا چاہتا ہے یا ادھار رکھنا چاہتا ہے تو اس کا باقاعدہ کسٹمر اکاؤنٹ منتخب کریں۔'
-                : 'Split and multiple payment mode is only available for registered customers with a ledger account.\n\nPlease select a registered customer (F3) or proceed with single Cash or Card payment.',
-            style: const TextStyle(fontSize: 13, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(widget.settings.enableSecondaryLanguage ? 'کینسل (Cancel)' : 'Cancel'),
-            ),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.person_search, size: 16),
-              label: Text(widget.settings.enableSecondaryLanguage ? 'کسٹمر منتخب کریں (F3)' : 'Select Customer (F3)'),
-              onPressed: () {
-                Navigator.pop(ctx);
-                _openCustomerSearchModal();
-              },
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF059669),
-                foregroundColor: Colors.white,
-              ),
-              icon: const Icon(Icons.payments, size: 16),
-              label: Text(widget.settings.enableSecondaryLanguage ? 'کیش وصول کریں (F2)' : 'Receive Cash (F2)'),
-              onPressed: () {
-                Navigator.pop(ctx);
-                _quickCashCheckout();
-              },
-            ),
-          ],
-        ),
+        const SnackBar(
+            content: Text('Cart is empty! Add products first.'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -3227,7 +4042,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   void _openPaymentModal() async {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cart is empty! Add products first.'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Cart is empty! Add products first.'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -3258,8 +4075,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
           [];
-      final loyaltyDiscount = (result['loyaltyDiscount'] as num?)?.toDouble() ?? 0.0;
-      final redeemedPoints = (result['redeemedLoyaltyPoints'] as num?)?.toDouble() ?? 0.0;
+      final loyaltyDiscount =
+          (result['loyaltyDiscount'] as num?)?.toDouble() ?? 0.0;
+      final redeemedPoints =
+          (result['redeemedLoyaltyPoints'] as num?)?.toDouble() ?? 0.0;
 
       _processCheckout(
         paymentMethod: result['method'] as String,
@@ -3282,14 +4101,23 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     if (_cart.isEmpty) return;
     final db = await _dbFuture;
     final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    final cartSnapshot = ref.read(cartProvider);
 
     final itemsMap = _cart.map((e) => e.toSavedStateMap()).toList();
     final parked = ParkedSale(
+      customerId: _selectedCustomer?.id,
       customerName: _selectedCustomer?.name ?? 'Walk-in Customer',
       note: 'Held at ${DateFormat('hh:mm a').format(DateTime.now())}',
       total: _grandTotal,
       createdAt: now,
       itemsJson: jsonEncode(itemsMap),
+      discountType: cartSnapshot.discountType,
+      discountValue: cartSnapshot.discountValue,
+      orderTax: cartSnapshot.orderTax,
+      shippingCharge: cartSnapshot.shippingCharge,
+      isWholesale: cartSnapshot.isWholesaleMode,
+      commissionAgentId: _selectedCommissionAgent?.id,
+      commissionAgentName: _selectedCommissionAgent?.name ?? '',
     );
 
     await db.parkSale(parked);
@@ -3303,7 +4131,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Sale suspended (${allParked.length} held). Next customer can be served.'),
+          content: Text(
+              'Sale suspended (${allParked.length} held). Next customer can be served.'),
           backgroundColor: const Color(0xFFF59E0B),
         ),
       );
@@ -3315,15 +4144,36 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       context: context,
       builder: (_) => ParkedSalesDialog(
         currencySymbol: widget.settings.currencySymbol,
-        onResumeSale: (parked) {
-          ref.read(cartProvider.notifier).loadFromSaved(items: parked.getItems());
-          setState(() {
-            final foundCust = _customers.where((c) => c.name == parked.customerName);
-            if (foundCust.isNotEmpty) _selectedCustomer = foundCust.first;
-          });
-          _dbFuture.then((db) => db.getParkedSales()).then((list) {
-            if (mounted) setState(() => _parkedCount = list.length);
-          });
+        onResumeSale: (parked) async {
+          ref.read(cartProvider.notifier).loadFromSaved(
+                items: parked.getItems(),
+                discountType: parked.discountType,
+                discountValue: parked.discountValue,
+                orderTax: parked.orderTax,
+                shippingCharge: parked.shippingCharge,
+                isWholesaleMode: parked.isWholesale,
+              );
+          final foundCust = parked.customerId != null
+              ? _customers.where((c) => c.id == parked.customerId)
+              : _customers.where((c) => c.name == parked.customerName);
+          if (foundCust.isNotEmpty) {
+            await _selectCustomer(foundCust.first);
+          }
+          if (parked.commissionAgentId != null &&
+              _commissionAgents.isNotEmpty) {
+            final agent = _commissionAgents
+                .where((a) => a.id == parked.commissionAgentId)
+                .cast<CommissionAgent?>()
+                .firstOrNull;
+            if (agent != null && mounted) {
+              setState(() => _selectedCommissionAgent = agent);
+            }
+          }
+          final db = await _dbFuture;
+          final list = await db.getParkedSales();
+          if (mounted) {
+            setState(() => _parkedCount = list.length);
+          }
         },
       ),
     );
@@ -3342,7 +4192,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
 
     final loadedTaxGroup = sale.taxGroupId != null
-        ? _taxGroups.where((g) => g.id == sale.taxGroupId).cast<TaxGroup?>().firstOrNull
+        ? _taxGroups
+            .where((g) => g.id == sale.taxGroupId)
+            .cast<TaxGroup?>()
+            .firstOrNull
         : null;
     Contact? matchedCustomer;
     if (_customers.isNotEmpty && sale.customerId != null) {
@@ -3384,7 +4237,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           children: [
             const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
             const SizedBox(width: 8),
-            Text('Loaded ${sale.saleStatus.toUpperCase()} #${sale.invoiceNo} into Cart!'),
+            Text(
+                'Loaded ${sale.saleStatus.toUpperCase()} #${sale.invoiceNo} into Cart!'),
           ],
         ),
         backgroundColor: const Color(0xFF4F46E5),
@@ -3425,7 +4279,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     if (!canDeleteSale) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Permission Denied: Discarding active carts requires Manager or Owner authorization.'),
+          content: Text(
+              'Permission Denied: Discarding active carts requires Manager or Owner authorization.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -3435,18 +4290,26 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: cardBg,
-        title: Text('Cancel & Clear Cart?', style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to discard all items in the current order?', style: TextStyle(color: textSecondary)),
+        title: Text('Cancel & Clear Cart?',
+            style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold)),
+        content: Text(
+            'Are you sure you want to discard all items in the current order?',
+            style: TextStyle(color: textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('No, Keep', style: TextStyle(color: textSecondary))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('No, Keep', style: TextStyle(color: textSecondary))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white),
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(cartProvider.notifier).clear();
@@ -3479,13 +4342,24 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         : null;
     setState(() => _selectedCustomer = cust);
     ref.read(cartProvider.notifier).applyCustomerGroup(group);
-    if (showBanner && group != null && mounted) {
+    if (cust.creditLimit > 0 && cust.balance >= cust.creditLimit && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Warning: ${cust.name} has reached credit limit (${widget.settings.currencySymbol}${cust.balance.toStringAsFixed(0)} / ${widget.settings.currencySymbol}${cust.creditLimit.toStringAsFixed(0)})',
+          ),
+          duration: const Duration(seconds: 3),
+          backgroundColor: const Color(0xFFD97706),
+        ),
+      );
+    } else if (showBanner && group != null && mounted) {
       final signLabel = group.amount >= 0
           ? '+${group.amount.toStringAsFixed(1)}%'
           : '${group.amount.toStringAsFixed(1)}%';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Applied ${group.name} ($signLabel) tiered pricing to cart'),
+          content:
+              Text('Applied ${group.name} ($signLabel) tiered pricing to cart'),
           duration: const Duration(seconds: 2),
           backgroundColor: const Color(0xFF4F46E5),
         ),
@@ -3531,7 +4405,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
   void _resetToWalkInCustomer() {
     final Contact? walkIn = _customers.cast<Contact?>().firstWhere(
-          (c) => c!.name.toLowerCase().contains('walk-in') || c.name.toLowerCase().contains('walk in'),
+          (c) =>
+              c!.name.toLowerCase().contains('walk-in') ||
+              c.name.toLowerCase().contains('walk in'),
           orElse: () => _customers.isNotEmpty ? _customers.first : null,
         );
     if (walkIn != null) {
@@ -3569,6 +4445,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
   }
 
+  bool get _isEditingText =>
+      FocusManager.instance.primaryFocus?.context?.widget is EditableText;
+
   Map<ShortcutActivator, VoidCallback> _buildDynamicShortcuts() {
     final map = <ShortcutActivator, VoidCallback>{
       const SingleActivator(LogicalKeyboardKey.f11): _openCustomProductDialog,
@@ -3577,6 +4456,31 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           ref.read(cartProvider.notifier).undo(),
       const SingleActivator(LogicalKeyboardKey.keyY, control: true): () =>
           ref.read(cartProvider.notifier).redo(),
+      const SingleActivator(LogicalKeyboardKey.numpadAdd): () {
+        if (_cart.isNotEmpty && !_isEditingText) {
+          _tryIncrementCartItem(_cart.length - 1);
+        }
+      },
+      const SingleActivator(LogicalKeyboardKey.equal): () {
+        if (_cart.isNotEmpty && !_isEditingText) {
+          _tryIncrementCartItem(_cart.length - 1);
+        }
+      },
+      const SingleActivator(LogicalKeyboardKey.numpadSubtract): () {
+        if (_cart.isNotEmpty && !_isEditingText) {
+          ref.read(cartProvider.notifier).decrementQuantity(_cart.length - 1);
+        }
+      },
+      const SingleActivator(LogicalKeyboardKey.minus): () {
+        if (_cart.isNotEmpty && !_isEditingText) {
+          ref.read(cartProvider.notifier).decrementQuantity(_cart.length - 1);
+        }
+      },
+      const SingleActivator(LogicalKeyboardKey.delete): () {
+        if (_cart.isNotEmpty && !_isEditingText) {
+          ref.read(cartProvider.notifier).removeAt(_cart.length - 1);
+        }
+      },
       const SingleActivator(LogicalKeyboardKey.escape): () {
         _searchFocusNode.requestFocus();
       },
@@ -3595,12 +4499,332 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     return map;
   }
 
+  void _openCustomerFacingDisplay() {
+    final currency = widget.settings.currencySymbol;
+    showDialog(
+      context: context,
+      builder: (ctx) => Consumer(
+        builder: (context, watchRef, _) {
+          final liveCart = watchRef.watch(cartProvider);
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return Dialog(
+            backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: SizedBox(
+              width: 560,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.desktop_windows_rounded,
+                                color: Color(0xFF4F46E5), size: 22),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(widget.settings.businessName,
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900)),
+                                Text(
+                                    'Customer Facing Display • ${_selectedCustomer?.name ?? 'Walk-in Customer'}',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.grey)),
+                              ],
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(ctx)),
+                      ],
+                    ),
+                    const Divider(height: 20),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 280),
+                      child: liveCart.items.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.all(32),
+                              child: Center(
+                                child: Text(
+                                    'Welcome! Ready for your next item...',
+                                    style: TextStyle(
+                                        fontSize: 15, color: Colors.grey)),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: liveCart.items.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (_, idx) {
+                                final item = liveCart.items[idx];
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity.toStringAsFixed(2)} x ${item.product.name}',
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      Text(
+                                        '$currency ${item.subtotal.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    const Divider(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Subtotal',
+                            style: TextStyle(fontSize: 13, color: Colors.grey)),
+                        Text(
+                            '$currency ${liveCart.subtotal.toStringAsFixed(2)}',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    if (liveCart.calculatedDiscount > 0) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Discount',
+                              style: TextStyle(
+                                  fontSize: 13, color: Color(0xFF059669))),
+                          Text(
+                              '-$currency ${liveCart.calculatedDiscount.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF059669))),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                              'TOTAL (${liveCart.totalQuantity % 1 == 0 ? liveCart.totalQuantity.toInt() : liveCart.totalQuantity.toStringAsFixed(2)} items)',
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w900)),
+                          Text(
+                              '$currency ${liveCart.grandTotal.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF4F46E5))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openPriceCheckerDialog() {
+    final codeCtrl = TextEditingController();
+    final currency = widget.settings.currencySymbol;
+    Product? found;
+    ProductVariation? foundVar;
+    String status = 'Scan barcode or enter SKU to check live price & stock.';
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          Future<void> lookup(String query) async {
+            final clean = query.trim();
+            if (clean.isEmpty) return;
+            final db = await _dbFuture;
+            final match = await db.getProductWithMatchedVariationByCode(clean);
+            if (!ctx.mounted) return;
+            if (match != null) {
+              setModalState(() {
+                found = match.$1;
+                foundVar = match.$2;
+                status = '';
+              });
+            } else {
+              final paged = await db.getProductsPaged(
+                  search: clean, pageSize: 1, includeTotalCount: false);
+              if (!ctx.mounted) return;
+              setModalState(() {
+                found = paged.items.isNotEmpty ? paged.items.first : null;
+                foundVar = null;
+                status = found == null ? 'No product found for "$clean".' : '';
+              });
+            }
+          }
+
+          final effectivePrice =
+              foundVar?.sellingPrice ?? found?.sellingPrice ?? 0.0;
+          final effectiveStock =
+              foundVar?.stockQuantity ?? found?.stockQuantity ?? 0.0;
+
+          return AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: const Row(
+              children: [
+                Icon(Icons.qr_code_2_rounded, color: Color(0xFF0D9488)),
+                SizedBox(width: 8),
+                Text('Fast Price & Stock Checker',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SizedBox(
+              width: 420,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: codeCtrl,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'Barcode / SKU / Name',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () => lookup(codeCtrl.text),
+                      ),
+                    ),
+                    onSubmitted: lookup,
+                  ),
+                  const SizedBox(height: 16),
+                  if (found != null) ...[
+                    Builder(
+                      builder: (_) {
+                        final prod = found!;
+                        return Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF0D9488).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: const Color(0xFF0D9488)
+                                    .withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                foundVar != null
+                                    ? '${prod.name} (${foundVar!.name})'
+                                    : prod.name,
+                                style: const TextStyle(
+                                    fontSize: 15, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                  'SKU: ${foundVar?.subSku ?? prod.sku} • Unit: ${prod.unit}',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.grey)),
+                              if ((prod.rackLocation ?? '').isNotEmpty)
+                                Text('Aisle / Rack: ${prod.rackLocation}',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF4F46E5))),
+                              const Divider(height: 16),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '$currency ${effectivePrice.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF059669)),
+                                  ),
+                                  Text(
+                                    'Stock: ${effectiveStock % 1 == 0 ? effectiveStock.toInt() : effectiveStock.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: effectiveStock > 0
+                                          ? const Color(0xFF0F172A)
+                                          : const Color(0xFFDC2626),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ] else
+                    Text(status,
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close')),
+              if (found != null)
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.add_shopping_cart, size: 16),
+                  label: const Text('Add to Cart'),
+                  onPressed: () {
+                    final item = found!;
+                    final itemVar = foundVar;
+                    Navigator.pop(ctx);
+                    _addToCart(item, preselectedVariation: itemVar);
+                  },
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   void _showShortcutsDialog() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     bool isCustomizing = false;
     final draftBindings = Map<String, String>.from(_shortcutBindings);
 
@@ -3608,7 +4832,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDlgState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 8,
           backgroundColor: cardBg,
           child: Container(
@@ -3627,10 +4852,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
+                            color: isDark
+                                ? const Color(0xFF312E81)
+                                : const Color(0xFFEEF2FF),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(Icons.keyboard_rounded, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 20),
+                          child: Icon(Icons.keyboard_rounded,
+                              color: isDark
+                                  ? const Color(0xFFA5B4FC)
+                                  : const Color(0xFF4F46E5),
+                              size: 20),
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -3638,13 +4869,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                           children: [
                             Text(
                               'POS Terminal Shortcuts [F1 / ?]',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: textPrimary),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 17,
+                                  color: textPrimary),
                             ),
                             Text(
                               isCustomizing
                                   ? 'Reassign F-keys for cashier operations and save'
                                   : 'Quick keyboard hotkeys for rapid cashier operation',
-                              style: TextStyle(fontSize: 12, color: textSecondary),
+                              style:
+                                  TextStyle(fontSize: 12, color: textSecondary),
                             ),
                           ],
                         ),
@@ -3654,12 +4889,21 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         TextButton.icon(
-                          onPressed: () => setDlgState(() => isCustomizing = !isCustomizing),
-                          icon: Icon(isCustomizing ? Icons.visibility_outlined : Icons.tune_rounded, size: 16),
-                          label: Text(isCustomizing ? 'Preview' : 'Customize F-Keys', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          onPressed: () =>
+                              setDlgState(() => isCustomizing = !isCustomizing),
+                          icon: Icon(
+                              isCustomizing
+                                  ? Icons.visibility_outlined
+                                  : Icons.tune_rounded,
+                              size: 16),
+                          label: Text(
+                              isCustomizing ? 'Preview' : 'Customize F-Keys',
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold)),
                         ),
                         IconButton(
-                          icon: Icon(Icons.close, size: 20, color: textSecondary),
+                          icon:
+                              Icon(Icons.close, size: 20, color: textSecondary),
                           onPressed: () => Navigator.pop(ctx),
                           splashRadius: 18,
                         ),
@@ -3673,7 +4917,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     child: Column(
                       children: [
                         ...KeyboardShortcutsService.actions.map((spec) {
-                          final currentKey = draftBindings[spec.id] ?? spec.defaultKeyLabel;
+                          final currentKey =
+                              draftBindings[spec.id] ?? spec.defaultKeyLabel;
                           if (!isCustomizing || spec.isGlobalOrForm) {
                             return _shortcutRow(currentKey, spec.label, isDark);
                           }
@@ -3684,20 +4929,30 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 SizedBox(
                                   width: 96,
                                   child: DropdownButtonFormField<String>(
-                                    initialValue: KeyboardShortcutsService.customizableFKeys.contains(currentKey)
+                                    initialValue: KeyboardShortcutsService
+                                            .customizableFKeys
+                                            .contains(currentKey)
                                         ? currentKey
                                         : spec.defaultKeyLabel,
                                     isDense: true,
                                     decoration: const InputDecoration(
                                       border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 6),
                                     ),
-                                    items: KeyboardShortcutsService.customizableFKeys
-                                        .map((k) => DropdownMenuItem(value: k, child: Text(k, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))))
+                                    items: KeyboardShortcutsService
+                                        .customizableFKeys
+                                        .map((k) => DropdownMenuItem(
+                                            value: k,
+                                            child: Text(k,
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12))))
                                         .toList(),
                                     onChanged: (newKey) {
                                       if (newKey != null) {
-                                        setDlgState(() => draftBindings[spec.id] = newKey);
+                                        setDlgState(() =>
+                                            draftBindings[spec.id] = newKey);
                                       }
                                     },
                                   ),
@@ -3706,15 +4961,20 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 Expanded(
                                   child: Text(
                                     spec.label,
-                                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textPrimary),
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                        color: textPrimary),
                                   ),
                                 ),
                               ],
                             ),
                           );
                         }),
-                        _shortcutRow('F11', 'Custom Product / Ad-hoc Item', isDark),
-                        _shortcutRow('F12', 'Toggle Wholesale Pricing Mode', isDark),
+                        _shortcutRow(
+                            'F11', 'Custom Product / Ad-hoc Item', isDark),
+                        _shortcutRow(
+                            'F12', 'Toggle Wholesale Pricing Mode', isDark),
                       ],
                     ),
                   ),
@@ -3745,21 +5005,32 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               backgroundColor: const Color(0xFF10B981),
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
                             icon: const Icon(Icons.save_rounded, size: 16),
-                            label: const Text('Save Bindings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            label: const Text('Save Bindings',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 13)),
                             onPressed: () async {
-                              final encoded = KeyboardShortcutsService.encodeBindings(draftBindings);
+                              final encoded =
+                                  KeyboardShortcutsService.encodeBindings(
+                                      draftBindings);
                               final db = await _dbFuture;
-                              final updated = widget.settings.copyWith(keyboardShortcutsJson: encoded);
+                              final updated = widget.settings
+                                  .copyWith(keyboardShortcutsJson: encoded);
                               await db.updateBusinessSettings(updated);
                               if (mounted) {
-                                ref.read(settingsProvider.notifier).setSettings(updated);
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .setSettings(updated);
                                 setState(() {
                                   _shortcutsJson = encoded;
-                                  _shortcutBindings = KeyboardShortcutsService.resolveBindings(encoded);
+                                  _shortcutBindings =
+                                      KeyboardShortcutsService.resolveBindings(
+                                          encoded);
                                 });
                               }
                               if (ctx.mounted) Navigator.pop(ctx);
@@ -3772,11 +5043,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             backgroundColor: const Color(0xFF4F46E5),
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 22, vertical: 11),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          child: const Text('Close',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13)),
                         ),
                       ],
                     ),
@@ -3801,19 +5076,40 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF4338CA)
+                      : const Color(0xFFC7D2FE)),
             ),
             alignment: Alignment.center,
-            child: Text(key, style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), fontSize: 12)),
+            child: Text(key,
+                style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: isDark
+                        ? const Color(0xFFA5B4FC)
+                        : const Color(0xFF4F46E5),
+                    fontSize: 12)),
           ),
           const SizedBox(width: 14),
-          Expanded(child: Text(description, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)))),
+          Expanded(
+              child: Text(description,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: isDark
+                          ? const Color(0xFFCBD5E1)
+                          : const Color(0xFF334155)))),
         ],
       ),
     );
   }
 
-  Widget _topIconBtn({required IconData icon, required VoidCallback onTap, Color? color, String? tooltip, bool isDark = false}) {
+  Widget _topIconBtn(
+      {required IconData icon,
+      required VoidCallback onTap,
+      Color? color,
+      String? tooltip,
+      bool isDark = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3),
       child: Tooltip(
@@ -3827,9 +5123,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1E293B) : Colors.white,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
             ),
-            child: Icon(icon, size: 16, color: color ?? (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569))),
+            child: Icon(icon,
+                size: 16,
+                color: color ??
+                    (isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF475569))),
           ),
         ),
       ),
@@ -3858,11 +5162,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final screenBg = isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9);
     final subtleBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
-    final inputBorder = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final inputBorder =
+        isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return CallbackShortcuts(
       bindings: _buildDynamicShortcuts(),
@@ -3874,7 +5181,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             children: [
               // ================= TOP POS BAR =================
               Container(
-                height: 52,
+                height: _isFullscreen ? 42 : 52,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: cardBg,
@@ -3882,52 +5189,69 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 ),
                 child: Row(
                   children: [
-                    // Location: Awesome Shop
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Location: ', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: textPrimary)),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 160),
-                          child: Text(
-                            widget.settings.businessName,
-                            style: TextStyle(fontSize: 12.5, color: textSecondary),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
-
-                    // Date & Time Pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF5B6DF0),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
+                    if (!_isFullscreen) ...[
+                      // Location
+                      Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(nowTime, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 6),
-                          const Icon(Icons.calculate_outlined, color: Colors.white, size: 14),
+                          Text('Location: ',
+                              style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary)),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 160),
+                            child: Text(
+                              widget.settings.businessName,
+                              style: TextStyle(
+                                  fontSize: 12.5, color: textSecondary),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
                         ],
                       ),
-                    ),
+                      const SizedBox(width: 14),
+
+                      // Date & Time Pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF5B6DF0),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(nowTime,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.schedule_outlined,
+                                color: Colors.white, size: 14),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     // Industry Presets Quick Action Bar
                     if (widget.settings.isRestaurantEnabled) ...[
                       const SizedBox(width: 8),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
                           side: const BorderSide(color: Color(0xFFEA580C)),
                           foregroundColor: const Color(0xFFEA580C),
                         ),
-                        icon: const Icon(Icons.restaurant_menu_rounded, size: 14),
-                        label: Text('$_diningMode: $_selectedTable', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        icon:
+                            const Icon(Icons.restaurant_menu_rounded, size: 14),
+                        label: Text('$_diningMode: $_selectedTable',
+                            style: const TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold)),
                         onPressed: () {
                           setState(() {
                             if (_diningMode == 'Dine-In') {
@@ -3945,10 +5269,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFEA580C),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
                         ),
                         icon: const Icon(Icons.print_rounded, size: 14),
-                        label: const Text('KOT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        label: const Text('KOT',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold)),
                         onPressed: _openKotDialog,
                       ),
                     ],
@@ -3959,10 +5286,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFF59E0B),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
                         ),
                         icon: const Icon(Icons.wb_sunny_rounded, size: 14),
-                        label: const Text('Solar BOM', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        label: const Text('Solar BOM',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold)),
                         onPressed: _openSolarBundleDialog,
                       ),
                     ],
@@ -3971,17 +5301,21 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       const SizedBox(width: 8),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
                           side: const BorderSide(color: Color(0xFF4F46E5)),
                           foregroundColor: const Color(0xFF4F46E5),
                         ),
-                        icon: const Icon(Icons.qr_code_scanner_rounded, size: 14),
-                        label: const Text('IMEI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        icon:
+                            const Icon(Icons.qr_code_scanner_rounded, size: 14),
+                        label: const Text('IMEI',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold)),
                         onPressed: _openImeiModal,
                       ),
                     ],
 
-                                   const SizedBox(width: 16),
+                    const SizedBox(width: 16),
 
                     // Header Action icons:
                     // Header Action icons:
@@ -4016,7 +5350,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
                             // [ || ] Pause / Suspend bills drawer with badge
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 3),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 3),
                               child: Tooltip(
                                 message: 'Suspended Bills ($_parkedCount held)',
                                 child: InkWell(
@@ -4024,16 +5359,23 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                   borderRadius: BorderRadius.circular(6),
                                   child: Container(
                                     height: 32,
-                                    padding: EdgeInsets.symmetric(horizontal: _parkedCount > 0 ? 8 : 6),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: _parkedCount > 0 ? 8 : 6),
                                     decoration: BoxDecoration(
                                       color: _parkedCount > 0
-                                          ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
-                                          : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                                          ? (isDark
+                                              ? const Color(0xFF451A03)
+                                              : const Color(0xFFFEF3C7))
+                                          : (isDark
+                                              ? const Color(0xFF1E293B)
+                                              : Colors.white),
                                       borderRadius: BorderRadius.circular(6),
                                       border: Border.all(
                                         color: _parkedCount > 0
                                             ? const Color(0xFFD97706)
-                                            : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                            : (isDark
+                                                ? const Color(0xFF334155)
+                                                : const Color(0xFFE2E8F0)),
                                       ),
                                     ),
                                     child: Row(
@@ -4044,15 +5386,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                           size: 16,
                                           color: _parkedCount > 0
                                               ? const Color(0xFFD97706)
-                                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                                              : (isDark
+                                                  ? const Color(0xFF94A3B8)
+                                                  : const Color(0xFF475569)),
                                         ),
                                         if (_parkedCount > 0) ...[
                                           const SizedBox(width: 4),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 5, vertical: 1),
                                             decoration: BoxDecoration(
                                               color: const Color(0xFFD97706),
-                                              borderRadius: BorderRadius.circular(10),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                             ),
                                             child: Text(
                                               '$_parkedCount',
@@ -4077,7 +5423,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               onTap: () {
                                 showDialog(
                                   context: context,
-                                  builder: (_) => RegisterDetailsDialog(settings: widget.settings),
+                                  builder: (_) => RegisterDetailsDialog(
+                                      settings: widget.settings),
                                 );
                               },
                               color: const Color(0xFF10B981),
@@ -4097,24 +5444,50 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             // [ ] Calculator
                             _topIconBtn(
                               icon: Icons.calculate_outlined,
-                              onTap: () => showDialog(context: context, builder: (_) => const CalculatorDialog()),
+                              onTap: () => showDialog(
+                                  context: context,
+                                  builder: (_) => const CalculatorDialog()),
                               color: const Color(0xFF4F46E5),
                               tooltip: 'Calculator',
                               isDark: isDark,
                             ),
 
+                            // [ ] Sales Return / Refund
+                            _topIconBtn(
+                              icon: Icons.assignment_return_outlined,
+                              onTap: () => showDialog(
+                                context: context,
+                                builder: (_) => SalesReturnDialog(
+                                  settings: widget.settings,
+                                  onReturnSuccess: _loadInitialData,
+                                ),
+                              ),
+                              color: const Color(0xFFEF4444),
+                              tooltip: 'Sales Return / Refund',
+                              isDark: isDark,
+                            ),
+
                             // [ ] Fullscreen
                             _topIconBtn(
-                              icon: Icons.fullscreen,
-                              onTap: () {},
-                              tooltip: 'Fullscreen Toggle',
+                              icon: _isFullscreen
+                                  ? Icons.fullscreen_exit
+                                  : Icons.fullscreen,
+                              onTap: () => setState(
+                                  () => _isFullscreen = !_isFullscreen),
+                              tooltip: _isFullscreen
+                                  ? 'Exit Compact Fullscreen'
+                                  : 'Fullscreen Toggle',
+                              color: _isFullscreen
+                                  ? const Color(0xFF4F46E5)
+                                  : null,
                               isDark: isDark,
                             ),
 
                             // [ ️ ] Screen
                             _topIconBtn(
                               icon: Icons.desktop_windows_outlined,
-                              onTap: () {},
+                              onTap: _openCustomerFacingDisplay,
+                              color: const Color(0xFF0D9488),
                               tooltip: 'Customer Facing Display',
                               isDark: isDark,
                             ),
@@ -4122,9 +5495,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
                             // [ ⊞ / ] Toggle Grid / List Layout
                             _topIconBtn(
-                              icon: _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+                              icon: _isGridView
+                                  ? Icons.view_list_rounded
+                                  : Icons.grid_view_rounded,
                               onTap: _toggleProductLayout,
-                              tooltip: _isGridView ? 'Switch to List View [F5]' : 'Switch to Grid View [F5]',
+                              tooltip: _isGridView
+                                  ? 'Switch to List View [F5]'
+                                  : 'Switch to Grid View [F5]',
                               color: const Color(0xFF4F46E5),
                               isDark: isDark,
                             ),
@@ -4135,11 +5512,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(color: borderColor),
                                 foregroundColor: textPrimary,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6)),
                               ),
                               icon: const Icon(Icons.add, size: 14),
-                              label: const Text('Add Expense', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              label: const Text('Add Expense',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold)),
                               onPressed: () {
                                 showDialog(
                                   context: context,
@@ -4156,11 +5538,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(color: borderColor),
                                 foregroundColor: textPrimary,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6)),
                               ),
-                              icon: const Icon(Icons.history_rounded, size: 15, color: Color(0xFF4F46E5)),
-                              label: const Text('Recent Sales [F9]', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              icon: const Icon(Icons.history_rounded,
+                                  size: 15, color: Color(0xFF4F46E5)),
+                              label: const Text('Recent Sales [F9]',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold)),
                               onPressed: _openRecentTransactionsModal,
                             ),
                             const SizedBox(width: 6),
@@ -4170,15 +5558,24 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(color: borderColor),
                                 foregroundColor: textPrimary,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6)),
                               ),
-                              icon: const Icon(Icons.account_balance_wallet_outlined, size: 15, color: Color(0xFF10B981)),
-                              label: const Text('Till [F10]', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              icon: const Icon(
+                                  Icons.account_balance_wallet_outlined,
+                                  size: 15,
+                                  color: Color(0xFF10B981)),
+                              label: const Text('Till [F10]',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold)),
                               onPressed: () {
                                 showDialog(
                                   context: context,
-                                  builder: (_) => RegisterDetailsDialog(settings: widget.settings),
+                                  builder: (_) => RegisterDetailsDialog(
+                                      settings: widget.settings),
                                 );
                               },
                             ),
@@ -4187,13 +5584,21 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             // [ ⌨ Shortcuts F1 ]
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1E293B),
+                                backgroundColor: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFF1E293B),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6)),
                               ),
-                              icon: const Icon(Icons.keyboard_outlined, size: 14),
-                              label: const Text('Shortcuts [F1]', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              icon:
+                                  const Icon(Icons.keyboard_outlined, size: 14),
+                              label: const Text('Shortcuts [F1]',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold)),
                               onPressed: _showShortcutsDialog,
                             ),
                           ],
@@ -4206,7 +5611,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
               if (isTabletCompact)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: cardBg,
                     border: Border(bottom: BorderSide(color: borderColor)),
@@ -4216,13 +5622,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       Expanded(
                         child: ChoiceChip(
                           selected: _mobileTabIndex == 1,
-                          onSelected: (_) => setState(() => _mobileTabIndex = 1),
+                          onSelected: (_) =>
+                              setState(() => _mobileTabIndex = 1),
                           label: SizedBox(
                             width: double.infinity,
                             child: Text(
                               'Catalog (${_products.length})',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 12.5),
                             ),
                           ),
                         ),
@@ -4231,13 +5639,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       Expanded(
                         child: ChoiceChip(
                           selected: _mobileTabIndex == 0,
-                          onSelected: (_) => setState(() => _mobileTabIndex = 0),
+                          onSelected: (_) =>
+                              setState(() => _mobileTabIndex = 0),
                           label: SizedBox(
                             width: double.infinity,
                             child: Text(
                               'Cart (${cartState.items.length}) • $currency${_grandTotal.toStringAsFixed(0)}',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 12.5),
                             ),
                           ),
                         ),
@@ -4252,1837 +5662,3166 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   children: [
                     // ================= LEFT: ORDER CART & CHECKOUT =================
                     if (!isTabletCompact || _mobileTabIndex == 0)
-                    Expanded(
-                      flex: isTabletCompact ? 1 : 6,
-                      child: Container(
-                        color: cardBg,
-                        child: Column(
-                          children: [
-                            // Row 1: Dedicated Full-Width Customer Selector & Live Search (F3)
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                border: Border(bottom: BorderSide(color: borderColor)),
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (_commissionAgents.isNotEmpty || _appliedPromoRuleName.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 8),
-                                      child: Row(
-                                        children: [
-                                          if (_commissionAgents.isNotEmpty) ...[
-                                            const Icon(Icons.badge_outlined, size: 15, color: Color(0xFF4F46E5)),
-                                            const SizedBox(width: 6),
-                                            Expanded(
-                                              child: DropdownButtonHideUnderline(
-                                                child: DropdownButton<CommissionAgent?>(
-                                                  isDense: true,
-                                                  isExpanded: true,
-                                                  value: _selectedCommissionAgent,
-                                                  hint: const Text('Assign Commission Agent (optional)', style: TextStyle(fontSize: 11.5)),
-                                                  items: [
-                                                    const DropdownMenuItem<CommissionAgent?>(
-                                                      value: null,
-                                                      child: Text('No Commission Agent', style: TextStyle(fontSize: 11.5)),
-                                                    ),
-                                                    ..._commissionAgents.map(
-                                                      (a) => DropdownMenuItem<CommissionAgent?>(
-                                                        value: a,
+                      Expanded(
+                        flex: isTabletCompact ? 1 : 6,
+                        child: Container(
+                          color: cardBg,
+                          child: Column(
+                            children: [
+                              // Row 1: Dedicated Full-Width Customer Selector & Live Search (F3)
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                      bottom: BorderSide(color: borderColor)),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_commissionAgents.isNotEmpty ||
+                                        _appliedPromoRuleName.isNotEmpty)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 8),
+                                        child: Row(
+                                          children: [
+                                            if (_commissionAgents
+                                                .isNotEmpty) ...[
+                                              const Icon(Icons.badge_outlined,
+                                                  size: 15,
+                                                  color: Color(0xFF4F46E5)),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child:
+                                                    DropdownButtonHideUnderline(
+                                                  child: DropdownButton<
+                                                      CommissionAgent?>(
+                                                    isDense: true,
+                                                    isExpanded: true,
+                                                    value:
+                                                        _selectedCommissionAgent,
+                                                    hint: const Text(
+                                                        'Assign Commission Agent (optional)',
+                                                        style: TextStyle(
+                                                            fontSize: 11.5)),
+                                                    items: [
+                                                      const DropdownMenuItem<
+                                                          CommissionAgent?>(
+                                                        value: null,
                                                         child: Text(
-                                                          'Agent: ${a.name} (${a.commissionPercent.toStringAsFixed(1)}%)',
-                                                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
-                                                          overflow: TextOverflow.ellipsis,
+                                                            'No Commission Agent',
+                                                            style: TextStyle(
+                                                                fontSize:
+                                                                    11.5)),
+                                                      ),
+                                                      ..._commissionAgents.map(
+                                                        (a) => DropdownMenuItem<
+                                                            CommissionAgent?>(
+                                                          value: a,
+                                                          child: Text(
+                                                            'Agent: ${a.name} (${a.commissionPercent.toStringAsFixed(1)}%)',
+                                                            style: const TextStyle(
+                                                                fontSize: 11.5,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  ],
-                                                  onChanged: (val) => setState(() => _selectedCommissionAgent = val),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                          if (_appliedPromoRuleName.isNotEmpty) ...[
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFF10B981).withValues(alpha: 0.14),
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: const Color(0xFF10B981)),
-                                              ),
-                                              child: Text(
-                                                'Promo Applied: $_appliedPromoRuleName',
-                                                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  Row(
-                                children: [
-                                  // Customer Selector with Live Search (F3) - Expanded
-                                  Expanded(
-                                    child: Container(
-                                      height: 38,
-                                      decoration: BoxDecoration(
-                                        color: inputBg,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: inputBorder),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: InkWell(
-                                              onTap: _openCustomerSearchModal,
-                                              borderRadius: BorderRadius.circular(6),
-                                              child: Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 10),
-                                                child: Row(
-                                                  children: [
-                                                    const Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF4F46E5)),
-                                                    const SizedBox(width: 8),
-                                                    Expanded(
-                                                      child: Text(
-                                                        _selectedCustomer?.name ?? 'Walk-in Customer',
-                                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary),
-                                                        overflow: TextOverflow.ellipsis,
-                                                      ),
-                                                    ),
-                                                    if (ref.watch(cartProvider).activeCustomerGroup != null) ...[
-                                                      const SizedBox(width: 6),
-                                                      Builder(
-                                                        builder: (_) {
-                                                          final grp = ref.watch(cartProvider).activeCustomerGroup!;
-                                                          final pctTag = grp.amount == 0
-                                                              ? ''
-                                                              : (grp.amount < 0
-                                                                  ? ' ${grp.amount.toStringAsFixed(0)}%'
-                                                                  : ' +${grp.amount.toStringAsFixed(0)}%');
-                                                          return Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                            decoration: BoxDecoration(
-                                                              color: const Color(0xFF4F46E5),
-                                                              borderRadius: BorderRadius.circular(4),
-                                                            ),
-                                                            child: Text(
-                                                              '${grp.name}$pctTag',
-                                                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                                                            ),
-                                                          );
-                                                        },
-                                                      ),
                                                     ],
-                                                    const SizedBox(width: 6),
-                                                    // Dedicated "Search (F3)" badge button
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                      decoration: BoxDecoration(
-                                                        color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                                                        borderRadius: BorderRadius.circular(4),
-                                                        border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
-                                                      ),
-                                                      child: Row(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          Icon(Icons.search, size: 12, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
-                                                          const SizedBox(width: 4),
-                                                          Text(
-                                                            'Search (F3)',
-                                                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Icon(Icons.arrow_drop_down, size: 18, color: textSecondary),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          if (_selectedCustomer != null && !_selectedCustomer!.name.toLowerCase().contains('walk-in'))
-                                            Padding(
-                                              padding: const EdgeInsets.only(right: 6),
-                                              child: Tooltip(
-                                                message: 'Reset to Walk-in Customer',
-                                                child: InkWell(
-                                                  onTap: _resetToWalkInCustomer,
-                                                  borderRadius: BorderRadius.circular(12),
-                                                  child: Container(
-                                                    padding: const EdgeInsets.all(2),
-                                                    decoration: BoxDecoration(
-                                                      color: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2),
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                    child: const Icon(Icons.close, size: 13, color: Color(0xFFDC2626)),
+                                                    onChanged: (val) =>
+                                                        setState(() =>
+                                                            _selectedCommissionAgent =
+                                                                val),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-
-                                  // [ + ] Quick Add Customer blue button
-                                  Tooltip(
-                                    message: 'Add New Customer (F6)',
-                                    child: InkWell(
-                                      onTap: _openQuickCustomerModal,
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: Container(
-                                        width: 38,
-                                        height: 38,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF4F46E5),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 18),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-
-                                  // Customer Balance Due & Loyalty Badges
-                                  if (_selectedCustomer != null && !_selectedCustomer!.name.toLowerCase().contains('walk-in')) ...[
-                                    if (_selectedCustomer!.balance != 0)
-                                      Container(
-                                        height: 38,
-                                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                                        decoration: BoxDecoration(
-                                          color: _selectedCustomer!.balance > 0
-                                              ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
-                                              : (isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7)),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(
-                                            color: _selectedCustomer!.balance > 0
-                                                ? (isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A))
-                                                : (isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0)),
-                                          ),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          'Due: ${widget.settings.currencySymbol}${_selectedCustomer!.balance.toStringAsFixed(0)}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: _selectedCustomer!.balance > 0
-                                                ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706))
-                                                : (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A)),
-                                          ),
-                                        ),
-                                      ),
-                                    if (_selectedCustomer!.loyaltyPoints > 0)
-                                      Container(
-                                        height: 38,
-                                        margin: const EdgeInsets.only(left: 6),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                                        decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF451A03) : const Color(0xFFFFFBEB),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A)),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(Icons.stars_rounded, color: Color(0xFFD97706), size: 14),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '${_selectedCustomer!.loyaltyPoints.toInt()} pts',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                                            ],
+                                            if (_appliedPromoRuleName
+                                                .isNotEmpty) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF10B981)
+                                                      .withValues(alpha: 0.14),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                      color: const Color(
+                                                          0xFF10B981)),
+                                                ),
+                                                child: Text(
+                                                  'Promo Applied: $_appliedPromoRuleName',
+                                                  style: const TextStyle(
+                                                      fontSize: 10.5,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Color(0xFF10B981)),
+                                                ),
                                               ),
-                                            ),
+                                            ],
                                           ],
                                         ),
                                       ),
-                                  ] else ...[
-                                    Tooltip(
-                                      message: 'Customer Outstanding Due & Ledger',
-                                      child: InkWell(
-                                        onTap: () {
-                                          if (_selectedCustomer != null) {
-                                            final due = _selectedCustomer!.balance;
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Customer: ${_selectedCustomer!.name} | Outstanding Due: ${widget.settings.currencySymbol} ${due.toStringAsFixed(2)}',
+                                    Row(
+                                      children: [
+                                        // Customer Selector with Live Search (F3) - Expanded
+                                        Expanded(
+                                          child: Container(
+                                            height: 38,
+                                            decoration: BoxDecoration(
+                                              color: inputBg,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              border: Border.all(
+                                                  color: inputBorder),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: InkWell(
+                                                    onTap:
+                                                        _openCustomerSearchModal,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6),
+                                                    child: Padding(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 10),
+                                                      child: Row(
+                                                        children: [
+                                                          const Icon(
+                                                              Icons
+                                                                  .person_outline_rounded,
+                                                              size: 18,
+                                                              color: Color(
+                                                                  0xFF4F46E5)),
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          Expanded(
+                                                            child: Text(
+                                                              _selectedCustomer
+                                                                      ?.name ??
+                                                                  'Walk-in Customer',
+                                                              style: TextStyle(
+                                                                  fontSize: 13,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color:
+                                                                      textPrimary),
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+                                                          ),
+                                                          if (ref
+                                                                  .watch(
+                                                                      cartProvider)
+                                                                  .activeCustomerGroup !=
+                                                              null) ...[
+                                                            const SizedBox(
+                                                                width: 6),
+                                                            Builder(
+                                                              builder: (_) {
+                                                                final grp = ref
+                                                                    .watch(
+                                                                        cartProvider)
+                                                                    .activeCustomerGroup!;
+                                                                final pctTag = grp
+                                                                            .amount ==
+                                                                        0
+                                                                    ? ''
+                                                                    : (grp.amount <
+                                                                            0
+                                                                        ? ' ${grp.amount.toStringAsFixed(0)}%'
+                                                                        : ' +${grp.amount.toStringAsFixed(0)}%');
+                                                                return Container(
+                                                                  padding: const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          6,
+                                                                      vertical:
+                                                                          2),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: const Color(
+                                                                        0xFF4F46E5),
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(4),
+                                                                  ),
+                                                                  child: Text(
+                                                                    '${grp.name}$pctTag',
+                                                                    style: const TextStyle(
+                                                                        fontSize:
+                                                                            10,
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .bold,
+                                                                        color: Colors
+                                                                            .white),
+                                                                  ),
+                                                                );
+                                                              },
+                                                            ),
+                                                          ],
+                                                          const SizedBox(
+                                                              width: 6),
+                                                          // Dedicated "Search (F3)" badge button
+                                                          Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        8,
+                                                                    vertical:
+                                                                        3),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: isDark
+                                                                  ? const Color(
+                                                                      0xFF312E81)
+                                                                  : const Color(
+                                                                      0xFFEEF2FF),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          4),
+                                                              border: Border.all(
+                                                                  color: isDark
+                                                                      ? const Color(
+                                                                          0xFF4338CA)
+                                                                      : const Color(
+                                                                          0xFFC7D2FE)),
+                                                            ),
+                                                            child: Row(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                Icon(
+                                                                    Icons
+                                                                        .search,
+                                                                    size: 12,
+                                                                    color: isDark
+                                                                        ? const Color(
+                                                                            0xFFA5B4FC)
+                                                                        : const Color(
+                                                                            0xFF4F46E5)),
+                                                                const SizedBox(
+                                                                    width: 4),
+                                                                Text(
+                                                                  'Search (F3)',
+                                                                  style: TextStyle(
+                                                                      fontSize:
+                                                                          10.5,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                      color: isDark
+                                                                          ? const Color(
+                                                                              0xFFA5B4FC)
+                                                                          : const Color(
+                                                                              0xFF4F46E5)),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              width: 4),
+                                                          Icon(
+                                                              Icons
+                                                                  .arrow_drop_down,
+                                                              size: 18,
+                                                              color:
+                                                                  textSecondary),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
-                                                backgroundColor: due > 0 ? const Color(0xFFD97706) : const Color(0xFF16A34A),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        child: Container(
-                                          width: 38,
-                                          height: 38,
-                                          decoration: BoxDecoration(
-                                            color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+                                                if (_selectedCustomer != null &&
+                                                    !_selectedCustomer!.name
+                                                        .toLowerCase()
+                                                        .contains('walk-in'))
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            right: 6),
+                                                    child: Tooltip(
+                                                      message:
+                                                          'Reset to Walk-in Customer',
+                                                      child: InkWell(
+                                                        onTap:
+                                                            _resetToWalkInCustomer,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(2),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: isDark
+                                                                ? const Color(
+                                                                    0xFF450A0A)
+                                                                : const Color(
+                                                                    0xFFFEE2E2),
+                                                            shape:
+                                                                BoxShape.circle,
+                                                          ),
+                                                          child: const Icon(
+                                                              Icons.close,
+                                                              size: 13,
+                                                              color: Color(
+                                                                  0xFFDC2626)),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
                                           ),
-                                          child: Icon(Icons.payments_outlined, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 18),
+                                        ),
+                                        const SizedBox(width: 6),
+
+                                        // [ + ] Quick Add Customer blue button
+                                        Tooltip(
+                                          message: 'Add New Customer (F6)',
+                                          child: InkWell(
+                                            onTap: _openQuickCustomerModal,
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                            child: Container(
+                                              width: 38,
+                                              height: 38,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF4F46E5),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: const Icon(
+                                                  Icons.person_add_rounded,
+                                                  color: Colors.white,
+                                                  size: 18),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+
+                                        // Customer Balance Due & Loyalty Badges
+                                        if (_selectedCustomer != null &&
+                                            !_selectedCustomer!.name
+                                                .toLowerCase()
+                                                .contains('walk-in')) ...[
+                                          if (_selectedCustomer!.balance != 0)
+                                            Container(
+                                              height: 38,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    _selectedCustomer!.balance >
+                                                            0
+                                                        ? (isDark
+                                                            ? const Color(
+                                                                0xFF451A03)
+                                                            : const Color(
+                                                                0xFFFEF3C7))
+                                                        : (isDark
+                                                            ? const Color(
+                                                                0xFF052E16)
+                                                            : const Color(
+                                                                0xFFDCFCE7)),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                                border: Border.all(
+                                                  color: _selectedCustomer!
+                                                              .balance >
+                                                          0
+                                                      ? (isDark
+                                                          ? const Color(
+                                                              0xFF78350F)
+                                                          : const Color(
+                                                              0xFFFDE68A))
+                                                      : (isDark
+                                                          ? const Color(
+                                                              0xFF065F46)
+                                                          : const Color(
+                                                              0xFFA7F3D0)),
+                                                ),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                'Due: ${widget.settings.currencySymbol}${_selectedCustomer!.balance.toStringAsFixed(0)}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _selectedCustomer!
+                                                              .balance >
+                                                          0
+                                                      ? (isDark
+                                                          ? const Color(
+                                                              0xFFFCD34D)
+                                                          : const Color(
+                                                              0xFFD97706))
+                                                      : (isDark
+                                                          ? const Color(
+                                                              0xFF6EE7B7)
+                                                          : const Color(
+                                                              0xFF16A34A)),
+                                                ),
+                                              ),
+                                            ),
+                                          if (_selectedCustomer!.loyaltyPoints >
+                                              0)
+                                            Container(
+                                              height: 38,
+                                              margin: const EdgeInsets.only(
+                                                  left: 6),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8),
+                                              decoration: BoxDecoration(
+                                                color: isDark
+                                                    ? const Color(0xFF451A03)
+                                                    : const Color(0xFFFFFBEB),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                                border: Border.all(
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFF78350F)
+                                                        : const Color(
+                                                            0xFFFDE68A)),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                      Icons.stars_rounded,
+                                                      color: Color(0xFFD97706),
+                                                      size: 14),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '${_selectedCustomer!.loyaltyPoints.toInt()} pts',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFFFDE68A)
+                                                          : const Color(
+                                                              0xFF92400E),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ] else ...[
+                                          Tooltip(
+                                            message:
+                                                'Customer Outstanding Due & Ledger',
+                                            child: InkWell(
+                                              onTap: () {
+                                                if (_selectedCustomer != null) {
+                                                  final due = _selectedCustomer!
+                                                      .balance;
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Customer: ${_selectedCustomer!.name} | Outstanding Due: ${widget.settings.currencySymbol} ${due.toStringAsFixed(2)}',
+                                                      ),
+                                                      backgroundColor: due > 0
+                                                          ? const Color(
+                                                              0xFFD97706)
+                                                          : const Color(
+                                                              0xFF16A34A),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                              child: Container(
+                                                width: 38,
+                                                height: 38,
+                                                decoration: BoxDecoration(
+                                                  color: isDark
+                                                      ? const Color(0xFF312E81)
+                                                      : const Color(0xFFEEF2FF),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF4338CA)
+                                                          : const Color(
+                                                              0xFFC7D2FE)),
+                                                ),
+                                                child: Icon(
+                                                    Icons.payments_outlined,
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFFA5B4FC)
+                                                        : const Color(
+                                                            0xFF4F46E5),
+                                                    size: 18),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Universal POS Bar: Wholesale/Retail Mode Toggle + Open Item Quick Button
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF0F172A)
+                                      : const Color(0xFFF1F5F9),
+                                  border: Border(
+                                    top: BorderSide(
+                                        color: borderColor, width: 0.8),
+                                    bottom: BorderSide(
+                                        color: borderColor, width: 0.8),
+                                  ),
+                                ),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Retail / Wholesale Pill Toggle
+                                      InkWell(
+                                        onTap: _toggleWholesaleMode,
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: _isWholesaleMode
+                                                ? const Color(0xFF0891B2)
+                                                : (isDark
+                                                    ? const Color(0xFF334155)
+                                                    : Colors.white),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: _isWholesaleMode
+                                                  ? const Color(0xFF0891B2)
+                                                  : (isDark
+                                                      ? const Color(0xFF475569)
+                                                      : const Color(
+                                                          0xFFCBD5E1)),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                _isWholesaleMode
+                                                    ? Icons.inventory_2_rounded
+                                                    : Icons.storefront_rounded,
+                                                size: 14,
+                                                color: _isWholesaleMode
+                                                    ? Colors.white
+                                                    : (isDark
+                                                        ? const Color(
+                                                            0xFFA5B4FC)
+                                                        : const Color(
+                                                            0xFF4F46E5)),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                _isWholesaleMode
+                                                    ? 'Wholesale Tier (Active)'
+                                                    : 'Retail Mode (F12)',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _isWholesaleMode
+                                                      ? Colors.white
+                                                      : textPrimary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+
+                                      // "+ Custom / Open Item" Pill
+                                      InkWell(
+                                        onTap: _openCustomProductDialog,
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? const Color(0xFF312E81)
+                                                : const Color(0xFFEEF2FF),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            border: Border.all(
+                                                color: isDark
+                                                    ? const Color(0xFF4338CA)
+                                                    : const Color(0xFFC7D2FE)),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                  Icons
+                                                      .add_circle_outline_rounded,
+                                                  size: 14,
+                                                  color: Color(0xFF4F46E5)),
+                                              const SizedBox(width: 5),
+                                              Text(
+                                                '+ Custom Item',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isDark
+                                                      ? const Color(0xFFA5B4FC)
+                                                      : const Color(0xFF4F46E5),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+
+                                      const SizedBox(width: 10),
+
+                                      // Undo / Redo Cart History Buttons
+                                      Tooltip(
+                                        message: 'Undo Cart Change (Ctrl+Z)',
+                                        child: InkWell(
+                                          onTap: cartState.canUndo
+                                              ? () => ref
+                                                  .read(cartProvider.notifier)
+                                                  .undo()
+                                              : null,
+                                          borderRadius:
+                                              BorderRadius.circular(18),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? const Color(0xFF1E293B)
+                                                  : Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(18),
+                                              border: Border.all(
+                                                color: cartState.canUndo
+                                                    ? const Color(0xFF6366F1)
+                                                    : borderColor,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.undo_rounded,
+                                                  size: 14,
+                                                  color: cartState.canUndo
+                                                      ? const Color(0xFF4F46E5)
+                                                      : textSecondary
+                                                          .withValues(
+                                                              alpha: 0.45),
+                                                ),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  'Undo',
+                                                  style: TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: cartState.canUndo
+                                                        ? textPrimary
+                                                        : textSecondary
+                                                            .withValues(
+                                                                alpha: 0.45),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Tooltip(
+                                        message: 'Redo Cart Change (Ctrl+Y)',
+                                        child: InkWell(
+                                          onTap: cartState.canRedo
+                                              ? () => ref
+                                                  .read(cartProvider.notifier)
+                                                  .redo()
+                                              : null,
+                                          borderRadius:
+                                              BorderRadius.circular(18),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? const Color(0xFF1E293B)
+                                                  : Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(18),
+                                              border: Border.all(
+                                                color: cartState.canRedo
+                                                    ? const Color(0xFF6366F1)
+                                                    : borderColor,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.redo_rounded,
+                                                  size: 14,
+                                                  color: cartState.canRedo
+                                                      ? const Color(0xFF4F46E5)
+                                                      : textSecondary
+                                                          .withValues(
+                                                              alpha: 0.45),
+                                                ),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  'Redo',
+                                                  style: TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: cartState.canRedo
+                                                        ? textPrimary
+                                                        : textSecondary
+                                                            .withValues(
+                                                                alpha: 0.45),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+                                      const SizedBox(width: 14),
+
+                                      // Universal Tag / Flexible Units Hint
+                                      Text(
+                                        'Multi-Unit & Decimal Scale Enabled',
+                                        style: TextStyle(
+                                            fontSize: 10, color: textSecondary),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              // Cart Table Header
+                              Container(
+                                color: subtleBg,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 10),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                        width: 20,
+                                        child: Text('#',
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: textSecondary))),
+                                    Expanded(
+                                        flex: 5,
+                                        child: Text('PRODUCT',
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark
+                                                    ? const Color(0xFFA5B4FC)
+                                                    : const Color(
+                                                        0xFF4F46E5)))),
+                                    Expanded(
+                                        flex: 3,
+                                        child: Text('QUANTITY',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: textSecondary))),
+                                    Expanded(
+                                        flex: 3,
+                                        child: Text('PRICE INC. TAX',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: textSecondary))),
+                                    Expanded(
+                                        flex: 2,
+                                        child: Text('SUBTOTAL',
+                                            textAlign: TextAlign.right,
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: textSecondary))),
+                                    const SizedBox(width: 36),
+                                  ],
+                                ),
+                              ),
+
+                              // Cart Rows List
+                              Expanded(
+                                child: _cart.isEmpty
+                                    ? Center(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.shopping_cart_outlined,
+                                                size: 54,
+                                                color: isDark
+                                                    ? const Color(0xFF334155)
+                                                    : const Color(0xFFCBD5E1)),
+                                            const SizedBox(height: 10),
+                                            Text('No products in cart',
+                                                style: TextStyle(
+                                                    color: textSecondary,
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                                'Scan barcode or select products on the right',
+                                                style: TextStyle(
+                                                    color: textSecondary,
+                                                    fontSize: 12)),
+                                          ],
+                                        ),
+                                      )
+                                    : ListView.separated(
+                                        itemCount: _cart.length,
+                                        separatorBuilder: (_, __) => Divider(
+                                            height: 1, color: borderColor),
+                                        itemBuilder: (context, index) {
+                                          final item = _cart[index];
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 14, vertical: 8),
+                                            child: Row(
+                                              children: [
+                                                // Index #
+                                                SizedBox(
+                                                    width: 20,
+                                                    child: Text('${index + 1}',
+                                                        style: TextStyle(
+                                                            fontSize: 12,
+                                                            color:
+                                                                textSecondary))),
+
+                                                // Thumbnail image
+                                                ProductThumbnail(
+                                                  imagePath: item.product
+                                                      .resolvedImagePath,
+                                                  imageColor:
+                                                      item.product.imageColor,
+                                                  size: 36,
+                                                  borderRadius: 6,
+                                                ),
+                                                const SizedBox(width: 10),
+
+                                                // Product Name (Dark) + SKU & Stock + Batch & Expiry
+                                                Expanded(
+                                                  flex: 5,
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        item.displayName,
+                                                        style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 13,
+                                                            color: textPrimary),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Wrap(
+                                                        spacing: 6,
+                                                        runSpacing: 2,
+                                                        children: [
+                                                          Text(
+                                                            '${item.product.sku} • ${item.product.stockQuantity.toInt()} left',
+                                                            style: TextStyle(
+                                                                fontSize: 11,
+                                                                color:
+                                                                    textSecondary),
+                                                          ),
+                                                          if (item.batchNumber !=
+                                                                  null &&
+                                                              item.batchNumber!
+                                                                  .isNotEmpty)
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          5,
+                                                                      vertical:
+                                                                          1),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: isDark
+                                                                    ? const Color(
+                                                                        0xFF312E81)
+                                                                    : const Color(
+                                                                        0xFFEEF2FF),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            3),
+                                                                border: Border.all(
+                                                                    color: isDark
+                                                                        ? const Color(
+                                                                            0xFF4338CA)
+                                                                        : const Color(
+                                                                            0xFFC7D2FE)),
+                                                              ),
+                                                              child: Text(
+                                                                'Batch: ${item.batchNumber}',
+                                                                style: TextStyle(
+                                                                    fontSize:
+                                                                        10,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: isDark
+                                                                        ? const Color(
+                                                                            0xFFA5B4FC)
+                                                                        : const Color(
+                                                                            0xFF4F46E5)),
+                                                              ),
+                                                            ),
+                                                          if (item.expiryDate !=
+                                                                  null &&
+                                                              item.expiryDate!
+                                                                  .isNotEmpty)
+                                                            Builder(
+                                                              builder: (_) {
+                                                                final expDays =
+                                                                    _getDaysUntilExpiry(
+                                                                        item.expiryDate);
+                                                                final isExp =
+                                                                    expDays !=
+                                                                            null &&
+                                                                        expDays <
+                                                                            0;
+                                                                final isNear =
+                                                                    expDays !=
+                                                                            null &&
+                                                                        expDays >=
+                                                                            0 &&
+                                                                        expDays <=
+                                                                            60;
+                                                                final bg = isExp
+                                                                    ? (isDark
+                                                                        ? const Color(
+                                                                            0xFF450A0A)
+                                                                        : const Color(
+                                                                            0xFFFEE2E2))
+                                                                    : (isNear
+                                                                        ? (isDark
+                                                                            ? const Color(
+                                                                                0xFF451A03)
+                                                                            : const Color(
+                                                                                0xFFFEF3C7))
+                                                                        : (isDark
+                                                                            ? const Color(0xFF1E293B)
+                                                                            : const Color(0xFFF1F5F9)));
+                                                                final border = isExp
+                                                                    ? (isDark
+                                                                        ? const Color(
+                                                                            0xFF7F1D1D)
+                                                                        : const Color(
+                                                                            0xFFFECACA))
+                                                                    : (isNear
+                                                                        ? (isDark
+                                                                            ? const Color(
+                                                                                0xFF78350F)
+                                                                            : const Color(
+                                                                                0xFFFDE68A))
+                                                                        : (isDark
+                                                                            ? const Color(0xFF334155)
+                                                                            : const Color(0xFFCBD5E1)));
+                                                                final textCol = isExp
+                                                                    ? (isDark
+                                                                        ? const Color(
+                                                                            0xFFF87171)
+                                                                        : const Color(
+                                                                            0xFFDC2626))
+                                                                    : (isNear
+                                                                        ? (isDark
+                                                                            ? const Color(0xFFFCD34D)
+                                                                            : const Color(0xFFD97706))
+                                                                        : textSecondary);
+                                                                final label = isExp
+                                                                    ? 'EXPIRED: ${item.expiryDate}'
+                                                                    : (isNear
+                                                                        ? 'Nearing Expiry: ${item.expiryDate} (${expDays}d left)'
+                                                                        : 'Exp: ${item.expiryDate}');
+                                                                return Container(
+                                                                  padding: const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          5,
+                                                                      vertical:
+                                                                          1),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: bg,
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(3),
+                                                                    border: Border.all(
+                                                                        color:
+                                                                            border),
+                                                                  ),
+                                                                  child: Row(
+                                                                    mainAxisSize:
+                                                                        MainAxisSize
+                                                                            .min,
+                                                                    children: [
+                                                                      if (isExp ||
+                                                                          isNear) ...[
+                                                                        Icon(
+                                                                          isExp
+                                                                              ? Icons.cancel_outlined
+                                                                              : Icons.warning_amber_rounded,
+                                                                          size:
+                                                                              11,
+                                                                          color:
+                                                                              textCol,
+                                                                        ),
+                                                                        const SizedBox(
+                                                                            width:
+                                                                                3),
+                                                                      ],
+                                                                      Text(
+                                                                        label,
+                                                                        style: TextStyle(
+                                                                            fontSize:
+                                                                                10,
+                                                                            fontWeight:
+                                                                                FontWeight.bold,
+                                                                            color: textCol),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                );
+                                                              },
+                                                            ),
+                                                          if (item.bonusQuantity >
+                                                              0)
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          5,
+                                                                      vertical:
+                                                                          1),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: isDark
+                                                                    ? const Color(
+                                                                        0xFF052E16)
+                                                                    : const Color(
+                                                                        0xFFECFDF5),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            3),
+                                                                border: Border.all(
+                                                                    color: isDark
+                                                                        ? const Color(
+                                                                            0xFF065F46)
+                                                                        : const Color(
+                                                                            0xFFA7F3D0)),
+                                                              ),
+                                                              child: Text(
+                                                                '+Bonus: ${item.bonusQuantity.toInt()}',
+                                                                style: TextStyle(
+                                                                    fontSize:
+                                                                        10,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: isDark
+                                                                        ? const Color(
+                                                                            0xFF6EE7B7)
+                                                                        : const Color(
+                                                                            0xFF059669)),
+                                                              ),
+                                                            ),
+                                                          if (item.calculatedDiscount >
+                                                              0)
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          5,
+                                                                      vertical:
+                                                                          1),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: isDark
+                                                                    ? const Color(
+                                                                        0xFF450A0A)
+                                                                    : const Color(
+                                                                        0xFFFEE2E2),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            3),
+                                                                border: Border.all(
+                                                                    color: isDark
+                                                                        ? const Color(
+                                                                            0xFF7F1D1D)
+                                                                        : const Color(
+                                                                            0xFFFECACA)),
+                                                              ),
+                                                              child: Text(
+                                                                item.packDiscount >
+                                                                        0
+                                                                    ? 'Disc: ${item.packDiscount.toStringAsFixed(0)}% (-$currency ${item.calculatedDiscount.toStringAsFixed(2)})'
+                                                                    : 'Disc: -$currency ${item.calculatedDiscount.toStringAsFixed(2)}',
+                                                                style: TextStyle(
+                                                                    fontSize:
+                                                                        10,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: isDark
+                                                                        ? const Color(
+                                                                            0xFFF87171)
+                                                                        : const Color(
+                                                                            0xFFDC2626)),
+                                                              ),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+
+                                                // Quantity Stepper: [-] 1.00 [+] Pieces
+                                                Expanded(
+                                                  flex: 3,
+                                                  child: Column(
+                                                    children: [
+                                                      FittedBox(
+                                                        fit: BoxFit.scaleDown,
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            // [-] Red button
+                                                            InkWell(
+                                                              onTap: () => ref
+                                                                  .read(cartProvider
+                                                                      .notifier)
+                                                                  .decrementQuantity(
+                                                                      index),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          4),
+                                                              child: Container(
+                                                                padding: const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        6,
+                                                                    vertical:
+                                                                        3),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: isDark
+                                                                      ? const Color(
+                                                                          0xFF450A0A)
+                                                                      : const Color(
+                                                                          0xFFFEE2E2),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              4),
+                                                                ),
+                                                                child: const Text(
+                                                                    '-',
+                                                                    style: TextStyle(
+                                                                        color: Color(
+                                                                            0xFFEF4444),
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .bold,
+                                                                        fontSize:
+                                                                            16)),
+                                                              ),
+                                                            ),
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          6),
+                                                              child: InkWell(
+                                                                onTap: () =>
+                                                                    _openQuantityDialog(
+                                                                        item,
+                                                                        index),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            4),
+                                                                child:
+                                                                    Container(
+                                                                  padding: const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          6,
+                                                                      vertical:
+                                                                          2),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: isDark
+                                                                        ? const Color(
+                                                                            0xFF334155)
+                                                                        : const Color(
+                                                                            0xFFF1F5F9),
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(4),
+                                                                    border: Border.all(
+                                                                        color: isDark
+                                                                            ? const Color(
+                                                                                0xFF475569)
+                                                                            : const Color(
+                                                                                0xFFCBD5E1),
+                                                                        width:
+                                                                            0.8),
+                                                                  ),
+                                                                  child: Row(
+                                                                    mainAxisSize:
+                                                                        MainAxisSize
+                                                                            .min,
+                                                                    children: [
+                                                                      Text(
+                                                                        item.quantity == item.quantity.toInt()
+                                                                            ? item.quantity
+                                                                                .toInt()
+                                                                                .toString()
+                                                                            : item.quantity.toStringAsFixed(widget.settings.quantityPrecision > 0
+                                                                                ? widget.settings.quantityPrecision
+                                                                                : 2),
+                                                                        style: TextStyle(
+                                                                            fontWeight: FontWeight
+                                                                                .bold,
+                                                                            fontSize:
+                                                                                13,
+                                                                            color:
+                                                                                textPrimary),
+                                                                      ),
+                                                                      const SizedBox(
+                                                                          width:
+                                                                              3),
+                                                                      Icon(
+                                                                          Icons
+                                                                              .edit_note_rounded,
+                                                                          size:
+                                                                              13,
+                                                                          color:
+                                                                              textSecondary),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            // [+] Green button
+                                                            InkWell(
+                                                              onTap: () =>
+                                                                  _tryIncrementCartItem(
+                                                                      index),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          4),
+                                                              child: Container(
+                                                                padding: const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        6,
+                                                                    vertical:
+                                                                        3),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: isDark
+                                                                      ? const Color(
+                                                                          0xFF052E16)
+                                                                      : const Color(
+                                                                          0xFFDCFCE7),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              4),
+                                                                ),
+                                                                child: const Text(
+                                                                    '+',
+                                                                    style: TextStyle(
+                                                                        color: Color(
+                                                                            0xFF16A34A),
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .bold,
+                                                                        fontSize:
+                                                                            16)),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 3),
+                                                      InkWell(
+                                                        onTap: () =>
+                                                            _openUnitSelectorForCartItem(
+                                                                item, index),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(4),
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal: 6,
+                                                                  vertical: 2),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: isDark
+                                                                ? const Color(
+                                                                    0xFF334155)
+                                                                : const Color(
+                                                                    0xFFEFF6FF),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        4),
+                                                            border: Border.all(
+                                                                color: const Color(
+                                                                        0xFF3B82F6)
+                                                                    .withValues(
+                                                                        alpha:
+                                                                            0.4),
+                                                                width: 0.8),
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              Text(
+                                                                item.selectedUnitName ??
+                                                                    item.product
+                                                                        .unit,
+                                                                style: const TextStyle(
+                                                                    fontSize:
+                                                                        10,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: Color(
+                                                                        0xFF2563EB)),
+                                                              ),
+                                                              const SizedBox(
+                                                                  width: 2),
+                                                              const Icon(
+                                                                  Icons
+                                                                      .keyboard_arrow_down_rounded,
+                                                                  size: 12,
+                                                                  color: Color(
+                                                                      0xFF2563EB)),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+
+                                                // Price Inc. Tax input field (Click to edit price / item discount)
+                                                Expanded(
+                                                  flex: 3,
+                                                  child: Center(
+                                                    child: Tooltip(
+                                                      message:
+                                                          'Click to edit item price or discount',
+                                                      child: InkWell(
+                                                        onTap: () =>
+                                                            _showItemDiscountDialog(
+                                                                item, index),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(4),
+                                                        child: Container(
+                                                          width: 86,
+                                                          height: 32,
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal:
+                                                                      6),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: inputBg,
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        4),
+                                                            border: Border.all(
+                                                                color: item.calculatedDiscount >
+                                                                        0
+                                                                    ? const Color(
+                                                                        0xFFEF4444)
+                                                                    : inputBorder),
+                                                          ),
+                                                          alignment:
+                                                              Alignment.center,
+                                                          child: FittedBox(
+                                                            fit: BoxFit
+                                                                .scaleDown,
+                                                            child: Column(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+                                                                  children: [
+                                                                    Text(
+                                                                      item.unitPrice
+                                                                          .toStringAsFixed(
+                                                                              2),
+                                                                      style:
+                                                                          TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        fontSize:
+                                                                            12,
+                                                                        color: item.calculatedDiscount >
+                                                                                0
+                                                                            ? const Color(0xFFEF4444)
+                                                                            : textPrimary,
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            3),
+                                                                    Icon(
+                                                                        Icons
+                                                                            .edit,
+                                                                        size:
+                                                                            10,
+                                                                        color:
+                                                                            textSecondary),
+                                                                  ],
+                                                                ),
+                                                                if (item.calculatedDiscount >
+                                                                    0)
+                                                                  Text(
+                                                                    item.discountType ==
+                                                                                'percentage' &&
+                                                                            item.discountValue >
+                                                                                0
+                                                                        ? '-${item.discountValue.toStringAsFixed(item.discountValue == item.discountValue.roundToDouble() ? 0 : 1)}%'
+                                                                        : '-$currency${item.calculatedDiscount.toStringAsFixed(0)}',
+                                                                    style: const TextStyle(
+                                                                        fontSize:
+                                                                            9,
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .bold,
+                                                                        color: Color(
+                                                                            0xFFEF4444)),
+                                                                  ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+
+                                                // Subtotal
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Text(
+                                                    '$currency ${item.subtotal.toStringAsFixed(2)}',
+                                                    textAlign: TextAlign.right,
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 13,
+                                                        color: textPrimary),
+                                                  ),
+                                                ),
+
+                                                // Trash Red button
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons.delete_outline,
+                                                      size: 18,
+                                                      color: Color(0xFFEF4444)),
+                                                  onPressed: () => ref
+                                                      .read(
+                                                          cartProvider.notifier)
+                                                      .removeAt(index),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                              ),
+
+                              // ================= CART BOTTOM SUMMARY BAR =================
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: isSmallScreen ? 10 : 16,
+                                    vertical: isSmallScreen ? 6 : 12),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF0F172A)
+                                      : const Color(0xFFF0FDF4),
+                                  border: Border(
+                                      top: BorderSide(
+                                          color: isDark
+                                              ? const Color(0xFF1E3A2F)
+                                              : const Color(0xFFBBF7D0))),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: [
+                                            _summaryBlock(
+                                                'ITEMS',
+                                                _totalQuantity
+                                                    .toStringAsFixed(2),
+                                                isDark: isDark,
+                                                isSmall: isSmallScreen),
+                                            SizedBox(
+                                                width: isSmallScreen ? 8 : 14),
+                                            _summaryBlock('SUBTOTAL',
+                                                '$currency ${_subtotal.toStringAsFixed(2)}',
+                                                isDark: isDark,
+                                                isSmall: isSmallScreen),
+                                            SizedBox(
+                                                width: isSmallScreen ? 8 : 14),
+                                            _summaryBlock(
+                                              'DISCOUNT(-)',
+                                              _discountValue <= 0
+                                                  ? '$currency 0.00'
+                                                  : (_discountType ==
+                                                          'percentage'
+                                                      ? '${_discountValue.toStringAsFixed(_discountValue.truncateToDouble() == _discountValue ? 0 : 2)}% ($currency ${_calculatedDiscount.toStringAsFixed(2)})'
+                                                      : '$currency ${_calculatedDiscount.toStringAsFixed(2)}'),
+                                              isEditable: true,
+                                              onEdit: _showOrderDiscountDialog,
+                                              isDark: isDark,
+                                              isSmall: isSmallScreen,
+                                            ),
+                                            SizedBox(
+                                                width: isSmallScreen ? 8 : 14),
+                                            _summaryBlock('ORDER TAX(+)',
+                                                '$currency ${_orderTax.toStringAsFixed(2)}',
+                                                isEditable: true,
+                                                onEdit: _showOrderTaxDialog,
+                                                isDark: isDark,
+                                                isSmall: isSmallScreen),
+                                            SizedBox(
+                                                width: isSmallScreen ? 8 : 14),
+                                            _summaryBlock('SHIPPING(+)',
+                                                '$currency ${_shippingCharge.toStringAsFixed(2)}',
+                                                isEditable: true,
+                                                onEdit: _showShippingDialog,
+                                                isDark: isDark,
+                                                isSmall: isSmallScreen),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: isSmallScreen ? 8 : 16),
+
+                                    // Big Green TOTAL PAYABLE Box with Words (Urdu & Multi-language)
+                                    InkWell(
+                                      onTap: _showWordsLanguageDialog,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Tooltip(
+                                        message: widget.settings
+                                                .enableSecondaryLanguage
+                                            ? 'Click to change words language (${_wordsLanguage.toUpperCase()}) / زبان تبدیل کریں'
+                                            : 'Click to change words language (${_wordsLanguage.toUpperCase()})',
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal:
+                                                  isSmallScreen ? 10 : 16,
+                                              vertical: isSmallScreen ? 4 : 6),
+                                          constraints: BoxConstraints(
+                                              minWidth:
+                                                  isSmallScreen ? 130 : 160),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? const Color(0xFF064E3B)
+                                                : Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                                color: isDark
+                                                    ? const Color(0xFF059669)
+                                                    : const Color(0xFF86EFAC)),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.translate,
+                                                    size:
+                                                        isSmallScreen ? 10 : 11,
+                                                    color: isDark
+                                                        ? const Color(
+                                                                0xFF6EE7B7)
+                                                            .withValues(
+                                                                alpha: 0.8)
+                                                        : const Color(
+                                                                0xFF16A34A)
+                                                            .withValues(
+                                                                alpha: 0.8),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'TOTAL PAYABLE',
+                                                    style: TextStyle(
+                                                      fontSize: isSmallScreen
+                                                          ? 10
+                                                          : 11,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF6EE7B7)
+                                                          : const Color(
+                                                              0xFF16A34A),
+                                                      letterSpacing:
+                                                          isSmallScreen
+                                                              ? 0.4
+                                                              : 0.8,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Text(
+                                                _grandTotal.toStringAsFixed(2),
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      isSmallScreen ? 20 : 26,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: isDark
+                                                      ? Colors.white
+                                                      : const Color(0xFF15803D),
+                                                  height: 1.1,
+                                                ),
+                                              ),
+                                              if (_grandTotal > 0)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 2),
+                                                  child: ConstrainedBox(
+                                                    constraints: BoxConstraints(
+                                                        maxWidth: isSmallScreen
+                                                            ? 180
+                                                            : 240),
+                                                    child: Text(
+                                                      NumberToWordsService
+                                                          .convert(
+                                                        _grandTotal,
+                                                        language:
+                                                            _wordsLanguage,
+                                                        currencySymbol: widget
+                                                            .settings
+                                                            .currencySymbol,
+                                                        currencyCode: widget
+                                                            .settings
+                                                            .currencyCode,
+                                                      ),
+                                                      textDirection:
+                                                          NumberToWordsService
+                                                                  .isRtl(
+                                                                      _wordsLanguage)
+                                                              ? ui.TextDirection
+                                                                  .rtl
+                                                              : ui.TextDirection
+                                                                  .ltr,
+                                                      textAlign:
+                                                          TextAlign.right,
+                                                      maxLines: 2,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontSize: isSmallScreen
+                                                            ? 9.5
+                                                            : 11,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        height: 1.2,
+                                                        color: isDark
+                                                            ? const Color(
+                                                                0xFFA7F3D0)
+                                                            : const Color(
+                                                                0xFF166534),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ],
-                                ],
+                                ),
+                              ),
+
+                              // ================= BOTTOM ACTIONS ROW =================
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: isSmallScreen ? 4 : 8),
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  border: Border(
+                                      top: BorderSide(color: borderColor)),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // 1. Secondary Quick Action Tools
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: [
+                                          // [ Cancel ]
+                                          OutlinedButton.icon(
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(
+                                                  color: Color(0xFFEF4444)),
+                                              foregroundColor:
+                                                  const Color(0xFFEF4444),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal:
+                                                      isSmallScreen ? 6 : 10,
+                                                  vertical:
+                                                      isSmallScreen ? 4 : 8),
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(6)),
+                                            ),
+                                            icon: const Icon(Icons.close,
+                                                size: 14),
+                                            label: Text('Cancel',
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: isSmallScreen
+                                                        ? 10
+                                                        : 11)),
+                                            onPressed: _clearCart,
+                                          ),
+                                          SizedBox(
+                                              width: isSmallScreen ? 4 : 6),
+
+                                          // [ Draft ]
+                                          _bottomOutlineBtn(
+                                              icon: Icons.edit_note,
+                                              label: 'Draft',
+                                              onTap: _saveDraft,
+                                              isDark: isDark,
+                                              isSmall: isSmallScreen),
+
+                                          // [ Quotation ]
+                                          _bottomOutlineBtn(
+                                              icon: Icons.assignment_outlined,
+                                              label: 'Quotation',
+                                              onTap: _saveQuotation,
+                                              isDark: isDark,
+                                              isSmall: isSmallScreen),
+
+                                          // [ Suspend ]
+                                          Tooltip(
+                                            message: 'Suspend / Hold Sale [F4]',
+                                            child: _bottomOutlineBtn(
+                                                icon: Icons.pause,
+                                                label: 'Suspend',
+                                                color: const Color(0xFFD97706),
+                                                onTap: _suspendSale,
+                                                isDark: isDark,
+                                                isSmall: isSmallScreen),
+                                          ),
+
+                                          // [ Credit Sale ]
+                                          _bottomOutlineBtn(
+                                              icon: Icons.check,
+                                              label: 'Credit Sale',
+                                              onTap: _quickCreditCheckout,
+                                              isDark: isDark,
+                                              isSmall: isSmallScreen),
+
+                                          // [ Recent Sales F9 ]
+                                          OutlinedButton.icon(
+                                            style: OutlinedButton.styleFrom(
+                                              side: BorderSide(
+                                                  color: isDark
+                                                      ? const Color(0xFF4338CA)
+                                                      : const Color(
+                                                          0xFFC7D2FE)),
+                                              backgroundColor: isDark
+                                                  ? const Color(0xFF312E81)
+                                                      .withValues(alpha: 0.3)
+                                                  : const Color(0xFFEEF2FF),
+                                              foregroundColor: isDark
+                                                  ? const Color(0xFFA5B4FC)
+                                                  : const Color(0xFF4F46E5),
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal:
+                                                      isSmallScreen ? 6 : 10,
+                                                  vertical:
+                                                      isSmallScreen ? 4 : 8),
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(6)),
+                                            ),
+                                            icon: const Icon(
+                                                Icons.access_time_rounded,
+                                                size: 14),
+                                            label: Text('Recent Sales [F9]',
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: isSmallScreen
+                                                        ? 10
+                                                        : 11)),
+                                            onPressed:
+                                                _openRecentTransactionsModal,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(height: isSmallScreen ? 4 : 8),
+
+                                    // 2. Primary Checkout Buttons (Card, Multiple Pay [F7], Cash [F2])
+                                    // Always fully visible across the entire bottom without any horizontal scroll
+                                    Row(
+                                      children: [
+                                        // [ Card ]
+                                        OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            side: const BorderSide(
+                                                color: Color(0xFFEC4899)),
+                                            foregroundColor:
+                                                const Color(0xFFEC4899),
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal:
+                                                    isSmallScreen ? 8 : 14,
+                                                vertical:
+                                                    isSmallScreen ? 7 : 11),
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(6)),
+                                          ),
+                                          icon: const Icon(Icons.credit_card,
+                                              size: 16),
+                                          label: Text('Card',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize:
+                                                      isSmallScreen ? 11 : 12)),
+                                          onPressed: _quickCardCheckout,
+                                        ),
+                                        SizedBox(width: isSmallScreen ? 6 : 8),
+
+                                        // [ Multiple Pay ]
+                                        Expanded(
+                                          flex: 1,
+                                          child: Tooltip(
+                                            message:
+                                                'Multiple / Split Payment [F7]',
+                                            child: ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: isDark
+                                                    ? const Color(0xFF334155)
+                                                    : const Color(0xFF1E293B),
+                                                foregroundColor: Colors.white,
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal:
+                                                        isSmallScreen ? 6 : 10,
+                                                    vertical:
+                                                        isSmallScreen ? 7 : 12),
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6)),
+                                              ),
+                                              icon: const Icon(
+                                                  Icons.payments_outlined,
+                                                  size: 16),
+                                              label: Text(
+                                                'Multiple Pay',
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: isSmallScreen
+                                                        ? 11
+                                                        : 12.5),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              onPressed:
+                                                  _handleMultiplePayClick,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: isSmallScreen ? 6 : 8),
+
+                                        // [ Cash ]
+                                        Expanded(
+                                          flex: 1,
+                                          child: Tooltip(
+                                            message: 'Quick Cash Checkout [F2]',
+                                            child: ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    const Color(0xFF10B981),
+                                                foregroundColor: Colors.white,
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal:
+                                                        isSmallScreen ? 8 : 12,
+                                                    vertical:
+                                                        isSmallScreen ? 7 : 12),
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6)),
+                                              ),
+                                              icon: const Icon(Icons.money,
+                                                  size: 16),
+                                              label: Text(
+                                                'Cash',
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: isSmallScreen
+                                                        ? 11.5
+                                                        : 13.5),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              onPressed: _quickCashCheckout,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
                         ),
+                      ),
 
-                            // Universal POS Bar: Wholesale/Retail Mode Toggle + Open Item Quick Button
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                                border: Border(
-                                  top: BorderSide(color: borderColor, width: 0.8),
-                                  bottom: BorderSide(color: borderColor, width: 0.8),
+                    // ================= RIGHT: PRODUCT CATALOG GRID =================
+                    if (!isTabletCompact || _mobileTabIndex == 1)
+                      Expanded(
+                        flex: isTabletCompact ? 1 : 5,
+                        child: Container(
+                          color: subtleBg,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Row 1: Dedicated Full-Width Product Search & Barcode Scanner (F1)
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                      bottom: BorderSide(color: borderColor)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    // Search product / barcode input (Expanded)
+                                    Expanded(
+                                      child: Container(
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          color: inputBg,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          border:
+                                              Border.all(color: inputBorder),
+                                        ),
+                                        child: TextField(
+                                          controller: _searchController,
+                                          focusNode: _searchFocusNode,
+                                          onSubmitted: _onBarcodeSubmitted,
+                                          onChanged: (val) =>
+                                              _applyProductFilter(),
+                                          style: TextStyle(
+                                              fontSize: 13, color: textPrimary),
+                                          decoration: InputDecoration(
+                                            hintText:
+                                                'Search product / barcode / 2*SKU [Esc]',
+                                            hintStyle: TextStyle(
+                                                fontSize: 12,
+                                                color: textSecondary),
+                                            prefixIcon: Icon(Icons.search,
+                                                size: 18, color: textSecondary),
+                                            suffixIcon: _searchController
+                                                    .text.isNotEmpty
+                                                ? IconButton(
+                                                    icon: const Icon(
+                                                        Icons.clear,
+                                                        size: 16),
+                                                    onPressed: () {
+                                                      _searchController.clear();
+                                                      _applyProductFilter();
+                                                    },
+                                                    tooltip: 'Clear',
+                                                  )
+                                                : null,
+                                            border: InputBorder.none,
+                                            enabledBorder: InputBorder.none,
+                                            focusedBorder: InputBorder.none,
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                    vertical: 10),
+                                            isDense: true,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+
+                                    // Teal [ Price Check ]
+                                    Tooltip(
+                                      message: 'Fast Price & Stock Checker',
+                                      child: InkWell(
+                                        onTap: _openPriceCheckerDialog,
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: Container(
+                                          width: 38,
+                                          height: 38,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF0D9488),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: const Icon(
+                                              Icons.qr_code_2_rounded,
+                                              color: Colors.white,
+                                              size: 20),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+
+                                    // Blue [ + ] -> Add Open / Custom Item on the fly
+                                    Tooltip(
+                                      message: 'Add Custom Item [F11]',
+                                      child: InkWell(
+                                        onTap: _openCustomProductDialog,
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: Container(
+                                          width: 38,
+                                          height: 38,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF4F46E5),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: const Icon(Icons.add,
+                                              color: Colors.white, size: 20),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
+
+                              // Row 2: Filter Pills & View Layout Switcher (Directly above products)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF0F172A)
+                                      : const Color(0xFFF1F5F9),
+                                  border: Border(
+                                    bottom: BorderSide(
+                                        color: borderColor, width: 0.8),
+                                  ),
+                                ),
                                 child: Row(
-                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                  // Retail / Wholesale Pill Toggle
-                                  InkWell(
-                                    onTap: _toggleWholesaleMode,
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: _isWholesaleMode
-                                            ? const Color(0xFF0891B2)
-                                            : (isDark ? const Color(0xFF334155) : Colors.white),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(
-                                          color: _isWholesaleMode
-                                              ? const Color(0xFF0891B2)
-                                              : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            _isWholesaleMode ? Icons.inventory_2_rounded : Icons.storefront_rounded,
-                                            size: 14,
-                                            color: _isWholesaleMode ? Colors.white : (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            _isWholesaleMode ? 'Wholesale Tier (Active)' : 'Retail Mode (F12)',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: _isWholesaleMode ? Colors.white : textPrimary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-
-                                  // "+ Custom / Open Item" Pill
-                                  InkWell(
-                                    onTap: _openCustomProductDialog,
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.add_circle_outline_rounded, size: 14, color: Color(0xFF4F46E5)),
-                                          const SizedBox(width: 5),
-                                          Text(
-                                            '+ Custom Item',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-
-                                   const SizedBox(width: 10),
-
-                                  // Undo / Redo Cart History Buttons
-                                  Tooltip(
-                                    message: 'Undo Cart Change (Ctrl+Z)',
-                                    child: InkWell(
-                                      onTap: cartState.canUndo
-                                          ? () => ref.read(cartProvider.notifier).undo()
-                                          : null,
-                                      borderRadius: BorderRadius.circular(18),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                          borderRadius: BorderRadius.circular(18),
-                                          border: Border.all(
-                                            color: cartState.canUndo
-                                                ? const Color(0xFF6366F1)
-                                                : borderColor,
-                                          ),
-                                        ),
+                                    Expanded(
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
                                         child: Row(
-                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(
-                                              Icons.undo_rounded,
-                                              size: 14,
-                                              color: cartState.canUndo
-                                                  ? const Color(0xFF4F46E5)
-                                                  : textSecondary.withValues(alpha: 0.45),
+                                            _filterBtn(
+                                              icon: Icons.grid_view_outlined,
+                                              label: _selectedCategoryId != null
+                                                  ? 'Category: ${_categories.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => Category(name: 'Category', code: '')).name}'
+                                                  : 'Category',
+                                              count: _selectedCategoryId != null
+                                                  ? null
+                                                  : _categories.length,
+                                              isSelected:
+                                                  _selectedCategoryId != null,
+                                              onTap: _showCategoryFilterDialog,
+                                              onClear:
+                                                  _selectedCategoryId != null
+                                                      ? () {
+                                                          setState(() =>
+                                                              _selectedCategoryId =
+                                                                  null);
+                                                          _applyProductFilter();
+                                                        }
+                                                      : null,
+                                              isDark: isDark,
                                             ),
-                                            const SizedBox(width: 3),
-                                            Text(
-                                              'Undo',
-                                              style: TextStyle(
-                                                fontSize: 10.5,
-                                                fontWeight: FontWeight.w600,
-                                                color: cartState.canUndo
-                                                    ? textPrimary
-                                                    : textSecondary.withValues(alpha: 0.45),
-                                              ),
+                                            const SizedBox(width: 8),
+                                            _filterBtn(
+                                              icon: Icons
+                                                  .branding_watermark_outlined,
+                                              label: _selectedBrandId != null
+                                                  ? 'Brand: ${_brands.firstWhere((b) => b.id == _selectedBrandId, orElse: () => Brand(name: 'Brand')).name}'
+                                                  : 'Brands',
+                                              count: _selectedBrandId != null
+                                                  ? null
+                                                  : _brands.length,
+                                              isSelected:
+                                                  _selectedBrandId != null,
+                                              onTap: _showBrandFilterDialog,
+                                              onClear: _selectedBrandId != null
+                                                  ? () {
+                                                      setState(() =>
+                                                          _selectedBrandId =
+                                                              null);
+                                                      _applyProductFilter();
+                                                    }
+                                                  : null,
+                                              isDark: isDark,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            _filterBtn(
+                                              icon: Icons.star_border,
+                                              label: 'Featured Products',
+                                              count: null,
+                                              isSelected: _filterFeatured,
+                                              onTap: () {
+                                                setState(() => _filterFeatured =
+                                                    !_filterFeatured);
+                                                _applyProductFilter();
+                                              },
+                                              isDark: isDark,
                                             ),
                                           ],
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Tooltip(
-                                    message: 'Redo Cart Change (Ctrl+Y)',
-                                    child: InkWell(
-                                      onTap: cartState.canRedo
-                                          ? () => ref.read(cartProvider.notifier).redo()
-                                          : null,
-                                      borderRadius: BorderRadius.circular(18),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                          borderRadius: BorderRadius.circular(18),
-                                          border: Border.all(
-                                            color: cartState.canRedo
-                                                ? const Color(0xFF6366F1)
-                                                : borderColor,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.redo_rounded,
-                                              size: 14,
-                                              color: cartState.canRedo
-                                                  ? const Color(0xFF4F46E5)
-                                                  : textSecondary.withValues(alpha: 0.45),
-                                            ),
-                                            const SizedBox(width: 3),
-                                            Text(
-                                              'Redo',
-                                              style: TextStyle(
-                                                fontSize: 10.5,
-                                                fontWeight: FontWeight.w600,
-                                                color: cartState.canRedo
-                                                    ? textPrimary
-                                                    : textSecondary.withValues(alpha: 0.45),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                    const SizedBox(width: 8),
+
+                                    // Segmented Layout Switcher: [ ⊞ Grid ] [ List ]
+                                    Container(
+                                      height: 30,
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? const Color(0xFF1E293B)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: inputBorder),
                                       ),
-                                    ),
-                                  ),
-
-                                  const SizedBox(width: 14),
-
-                                  // Universal Tag / Flexible Units Hint
-                                  Text(
-                                    'Multi-Unit & Decimal Scale Enabled',
-                                    style: TextStyle(fontSize: 10, color: textSecondary),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                            // Cart Table Header
-                            Container(
-                              color: subtleBg,
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              child: Row(
-                                children: [
-                                  SizedBox(width: 20, child: Text('#', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondary))),
-                                  Expanded(flex: 5, child: Text('PRODUCT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)))),
-                                  Expanded(flex: 3, child: Text('QUANTITY', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondary))),
-                                  Expanded(flex: 3, child: Text('PRICE INC. TAX', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondary))),
-                                  Expanded(flex: 2, child: Text('SUBTOTAL', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondary))),
-                                  const SizedBox(width: 36),
-                                ],
-                              ),
-                            ),
-
-                            // Cart Rows List
-                            Expanded(
-                              child: _cart.isEmpty
-                                  ? Center(
-                                      child: Column(
+                                      child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.shopping_cart_outlined, size: 54, color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                                          const SizedBox(height: 10),
-                                          Text('No products in cart', style: TextStyle(color: textSecondary, fontWeight: FontWeight.bold)),
-                                          const SizedBox(height: 4),
-                                          Text('Scan barcode or select products on the right', style: TextStyle(color: textSecondary, fontSize: 12)),
-                                        ],
-                                      ),
-                                    )
-                                  : ListView.separated(
-                                      itemCount: _cart.length,
-                                      separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
-                                      itemBuilder: (context, index) {
-                                        final item = _cart[index];
-                                        return Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                          child: Row(
-                                            children: [
-                                              // Index #
-                                              SizedBox(width: 20, child: Text('${index + 1}', style: TextStyle(fontSize: 12, color: textSecondary))),
-
-                                              // Thumbnail image
-                                              ProductThumbnail(
-                                                imagePath: item.product.resolvedImagePath,
-                                                imageColor: item.product.imageColor,
-                                                size: 36,
-                                                borderRadius: 6,
-                                              ),
-                                              const SizedBox(width: 10),
-
-                                              // Product Name (Dark) + SKU & Stock + Batch & Expiry
-                                              Expanded(
-                                                flex: 5,
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                          // Grid View Button
+                                          Tooltip(
+                                            message: 'Grid View [F5]',
+                                            child: InkWell(
+                                              onTap: () {
+                                                if (!_isGridView) {
+                                                  _toggleProductLayout();
+                                                }
+                                              },
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: _isGridView
+                                                      ? const Color(0xFF4F46E5)
+                                                      : Colors.transparent,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                                child: Row(
                                                   children: [
-                                                    Text(
-                                                      item.displayName,
-                                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
+                                                    Icon(
+                                                      Icons.grid_view_rounded,
+                                                      size: 13,
+                                                      color: _isGridView
+                                                          ? Colors.white
+                                                          : textSecondary,
                                                     ),
-                                                    const SizedBox(height: 2),
-                                                    Wrap(
-                                                      spacing: 6,
-                                                      runSpacing: 2,
-                                                      children: [
-                                                        Text(
-                                                          '${item.product.sku} • ${item.product.stockQuantity.toInt()} left',
-                                                          style: TextStyle(fontSize: 11, color: textSecondary),
-                                                        ),
-                                                        if (item.batchNumber != null && item.batchNumber!.isNotEmpty)
-                                                          Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                                            decoration: BoxDecoration(
-                                                              color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                                                              borderRadius: BorderRadius.circular(3),
-                                                              border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
-                                                            ),
-                                                            child: Text(
-                                                              'Batch: ${item.batchNumber}',
-                                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
-                                                            ),
-                                                          ),
-                                                        if (item.expiryDate != null && item.expiryDate!.isNotEmpty)
-                                                          Builder(
-                                                            builder: (_) {
-                                                              final expDays = _getDaysUntilExpiry(item.expiryDate);
-                                                              final isExp = expDays != null && expDays < 0;
-                                                              final isNear = expDays != null && expDays >= 0 && expDays <= 60;
-                                                              final bg = isExp
-                                                                  ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
-                                                                  : (isNear
-                                                                      ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
-                                                                      : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)));
-                                                              final border = isExp
-                                                                  ? (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA))
-                                                                  : (isNear
-                                                                      ? (isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A))
-                                                                      : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)));
-                                                              final textCol = isExp
-                                                                  ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                  : (isNear
-                                                                      ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706))
-                                                                      : textSecondary);
-                                                              final label = isExp
-                                                                  ? 'EXPIRED: ${item.expiryDate}'
-                                                                  : (isNear
-                                                                      ? 'Nearing Expiry: ${item.expiryDate} (${expDays}d left)'
-                                                                      : 'Exp: ${item.expiryDate}');
-                                                              return Container(
-                                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                                                decoration: BoxDecoration(
-                                                                  color: bg,
-                                                                  borderRadius: BorderRadius.circular(3),
-                                                                  border: Border.all(color: border),
-                                                                ),
-                                                                child: Row(
-                                                                  mainAxisSize: MainAxisSize.min,
-                                                                  children: [
-                                                                    if (isExp || isNear) ...[
-                                                                      Icon(
-                                                                        isExp ? Icons.cancel_outlined : Icons.warning_amber_rounded,
-                                                                        size: 11,
-                                                                        color: textCol,
-                                                                      ),
-                                                                      const SizedBox(width: 3),
-                                                                    ],
-                                                                    Text(
-                                                                      label,
-                                                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textCol),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              );
-                                                            },
-                                                          ),
-                                                        if (item.bonusQuantity > 0)
-                                                          Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                                            decoration: BoxDecoration(
-                                                              color: isDark ? const Color(0xFF052E16) : const Color(0xFFECFDF5),
-                                                              borderRadius: BorderRadius.circular(3),
-                                                              border: Border.all(color: isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0)),
-                                                            ),
-                                                            child: Text(
-                                                              '+Bonus: ${item.bonusQuantity.toInt()}',
-                                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF059669)),
-                                                            ),
-                                                          ),
-                                                        if (item.calculatedDiscount > 0)
-                                                          Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                                            decoration: BoxDecoration(
-                                                              color: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2),
-                                                              borderRadius: BorderRadius.circular(3),
-                                                              border: Border.all(color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA)),
-                                                            ),
-                                                            child: Text(
-                                                              item.packDiscount > 0
-                                                                  ? 'Disc: ${item.packDiscount.toStringAsFixed(0)}% (-$currency ${item.calculatedDiscount.toStringAsFixed(2)})'
-                                                                  : 'Disc: -$currency ${item.calculatedDiscount.toStringAsFixed(2)}',
-                                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
-                                                            ),
-                                                          ),
-                                                      ],
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      'Grid',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: _isGridView
+                                                            ? Colors.white
+                                                            : textSecondary,
+                                                      ),
                                                     ),
                                                   ],
                                                 ),
                                               ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 2),
 
-                                              // Quantity Stepper: [-] 1.00 [+] Pieces
-                                              Expanded(
-                                                flex: 3,
-                                                child: Column(
+                                          // List View Button
+                                          Tooltip(
+                                            message: 'List View [F5]',
+                                            child: InkWell(
+                                              onTap: () {
+                                                if (_isGridView) {
+                                                  _toggleProductLayout();
+                                                }
+                                              },
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: !_isGridView
+                                                      ? const Color(0xFF4F46E5)
+                                                      : Colors.transparent,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                                child: Row(
                                                   children: [
-                                                    FittedBox(
-                                                      fit: BoxFit.scaleDown,
-                                                      child: Row(
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                      children: [
-                                                        // [-] Red button
-                                                        InkWell(
-                                                          onTap: () => ref
-                                                              .read(cartProvider.notifier)
-                                                              .decrementQuantity(index),
-                                                          borderRadius: BorderRadius.circular(4),
+                                                    Icon(
+                                                      Icons
+                                                          .format_list_bulleted_rounded,
+                                                      size: 14,
+                                                      color: !_isGridView
+                                                          ? Colors.white
+                                                          : textSecondary,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      'List',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: !_isGridView
+                                                            ? Colors.white
+                                                            : textSecondary,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Switchable Product Layout: Grid OR List View
+                              Expanded(
+                                child: _loadingCatalog
+                                    ? const Center(
+                                        child: CircularProgressIndicator())
+                                    : _products.isEmpty
+                                        ? Center(
+                                            child: Container(
+                                              constraints: const BoxConstraints(
+                                                  maxWidth: 450),
+                                              padding: const EdgeInsets.all(28),
+                                              decoration: BoxDecoration(
+                                                color: cardBg,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                border: Border.all(
+                                                    color: borderColor),
+                                              ),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Container(
+                                                    width: 60,
+                                                    height: 60,
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                              0xFF4F46E5)
+                                                          .withValues(
+                                                              alpha: 0.12),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: const Icon(
+                                                        Icons
+                                                            .point_of_sale_rounded,
+                                                        color:
+                                                            Color(0xFF4F46E5),
+                                                        size: 30),
+                                                  ),
+                                                  const SizedBox(height: 14),
+                                                  Text(
+                                                    'No Products in Catalog Yet',
+                                                    style: TextStyle(
+                                                      fontSize: 18,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      color: textPrimary,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    widget.settings
+                                                            .enableSecondaryLanguage
+                                                        ? 'کیٹلاگ میں ابھی کوئی پروڈکٹ موجود نہیں ہے'
+                                                        : 'No products in catalog yet',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: textSecondary,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 10),
+                                                  Text(
+                                                    'Add products with selling price and initial stock to start billing immediately!',
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: textSecondary,
+                                                        height: 1.4),
+                                                  ),
+                                                  const SizedBox(height: 18),
+                                                  ElevatedButton.icon(
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          const Color(
+                                                              0xFF4F46E5),
+                                                      foregroundColor:
+                                                          Colors.white,
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 20,
+                                                          vertical: 12),
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8)),
+                                                    ),
+                                                    icon: const Icon(
+                                                        Icons.add_rounded,
+                                                        size: 18),
+                                                    label: const Text(
+                                                      '+ Add First Product',
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 13),
+                                                    ),
+                                                    onPressed: () {
+                                                      showDialog(
+                                                        context: context,
+                                                        builder: (_) =>
+                                                            AddProductDialog(
+                                                          onProductSaved:
+                                                              () async {
+                                                            await _reloadCatalogFromScratch();
+                                                          },
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          )
+                                        : _isGridView
+                                            ? LayoutBuilder(
+                                                builder:
+                                                    (context, constraints) {
+                                                  final width =
+                                                      constraints.maxWidth;
+                                                  // High-density responsive column count:
+                                                  final int crossAxisCount =
+                                                      width >= 1100
+                                                          ? 6
+                                                          : (width >= 880
+                                                              ? 5
+                                                              : (width >= 660
+                                                                  ? 4
+                                                                  : (width >=
+                                                                          440
+                                                                      ? 3
+                                                                      : 2)));
+                                                  // Fixed compact height so cards never stretch into giant blocks
+                                                  const double cardHeight =
+                                                      122.0;
+
+                                                  return GridView.builder(
+                                                    controller:
+                                                        _catalogScrollController,
+                                                    padding:
+                                                        const EdgeInsets.all(8),
+                                                    gridDelegate:
+                                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                                      crossAxisCount:
+                                                          crossAxisCount,
+                                                      mainAxisExtent:
+                                                          cardHeight,
+                                                      crossAxisSpacing: 6,
+                                                      mainAxisSpacing: 6,
+                                                    ),
+                                                    itemCount:
+                                                        _products.length +
+                                                            (_loadingMoreCatalog
+                                                                ? 1
+                                                                : 0),
+                                                    itemBuilder:
+                                                        (context, index) {
+                                                      if (index >=
+                                                          _products.length) {
+                                                        return const Center(
+                                                          child: Padding(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    12),
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                                    strokeWidth:
+                                                                        2),
+                                                          ),
+                                                        );
+                                                      }
+                                                      final p =
+                                                          _products[index];
+                                                      final currency = widget
+                                                          .settings
+                                                          .currencySymbol;
+                                                      final isOutOfStock =
+                                                          p.isOutOfStock;
+                                                      final isLowStock =
+                                                          !isOutOfStock &&
+                                                              p.stockQuantity <=
+                                                                  5;
+
+                                                      return Material(
+                                                        color: cardBg,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(6),
+                                                        elevation: 0,
+                                                        clipBehavior:
+                                                            Clip.antiAlias,
+                                                        child: InkWell(
+                                                          onTap: () =>
+                                                              _addToCart(p),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(6),
+                                                          hoverColor:
+                                                              const Color(
+                                                                      0xFF4F46E5)
+                                                                  .withValues(
+                                                                      alpha:
+                                                                          0.04),
                                                           child: Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                                            decoration: BoxDecoration(
-                                                              color: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2),
-                                                              borderRadius: BorderRadius.circular(4),
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        7,
+                                                                    vertical:
+                                                                        6),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          6),
+                                                              border: Border.all(
+                                                                  color:
+                                                                      borderColor),
                                                             ),
-                                                            child: const Text('-', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 16)),
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .stretch,
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceBetween,
+                                                              children: [
+                                                                // Top Row: Stock Badge & Unit
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  children: [
+                                                                    Container(
+                                                                      padding: const EdgeInsets
+                                                                          .symmetric(
+                                                                          horizontal:
+                                                                              4,
+                                                                          vertical:
+                                                                              1.5),
+                                                                      decoration:
+                                                                          BoxDecoration(
+                                                                        color: isOutOfStock
+                                                                            ? (isDark
+                                                                                ? const Color(0xFF450A0A)
+                                                                                : const Color(0xFFFEE2E2))
+                                                                            : (isLowStock ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7)) : (isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7))),
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(3),
+                                                                      ),
+                                                                      child:
+                                                                          Text(
+                                                                        isOutOfStock
+                                                                            ? 'Out of stock'
+                                                                            : '${p.stockQuantity % 1 == 0 ? p.stockQuantity.toInt() : p.stockQuantity.toStringAsFixed(1)} in stock',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          fontSize:
+                                                                              8.5,
+                                                                          fontWeight:
+                                                                              FontWeight.bold,
+                                                                          color: isOutOfStock
+                                                                              ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                                                              : (isLowStock ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)) : (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A))),
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                    if (p.unit
+                                                                        .isNotEmpty)
+                                                                      Flexible(
+                                                                        child:
+                                                                            Text(
+                                                                          p.unit,
+                                                                          style: TextStyle(
+                                                                              fontSize: 8.5,
+                                                                              fontWeight: FontWeight.w600,
+                                                                              color: textSecondary),
+                                                                          overflow:
+                                                                              TextOverflow.ellipsis,
+                                                                        ),
+                                                                      ),
+                                                                  ],
+                                                                ),
+
+                                                                // Product Thumbnail, Title & Details
+                                                                Expanded(
+                                                                  child:
+                                                                      Padding(
+                                                                    padding: const EdgeInsets
+                                                                        .symmetric(
+                                                                        vertical:
+                                                                            2),
+                                                                    child: Row(
+                                                                      crossAxisAlignment:
+                                                                          CrossAxisAlignment
+                                                                              .center,
+                                                                      children: [
+                                                                        ProductThumbnail(
+                                                                          imagePath:
+                                                                              p.resolvedImagePath,
+                                                                          imageColor:
+                                                                              p.imageColor,
+                                                                          size:
+                                                                              36,
+                                                                          borderRadius:
+                                                                              6,
+                                                                        ),
+                                                                        const SizedBox(
+                                                                            width:
+                                                                                7),
+                                                                        Expanded(
+                                                                          child:
+                                                                              Column(
+                                                                            crossAxisAlignment:
+                                                                                CrossAxisAlignment.start,
+                                                                            mainAxisAlignment:
+                                                                                MainAxisAlignment.center,
+                                                                            children: [
+                                                                              Text(
+                                                                                p.name,
+                                                                                style: TextStyle(
+                                                                                  fontWeight: FontWeight.bold,
+                                                                                  fontSize: 11,
+                                                                                  color: textPrimary,
+                                                                                  height: 1.15,
+                                                                                ),
+                                                                                maxLines: 2,
+                                                                                overflow: TextOverflow.ellipsis,
+                                                                              ),
+                                                                              const SizedBox(height: 1),
+                                                                              Row(
+                                                                                children: [
+                                                                                  if (p.isVariable) ...[
+                                                                                    Container(
+                                                                                      margin: const EdgeInsets.only(right: 4),
+                                                                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0.5),
+                                                                                      decoration: BoxDecoration(
+                                                                                        color: const Color(0xFF4F46E5).withValues(alpha: 0.14),
+                                                                                        borderRadius: BorderRadius.circular(3),
+                                                                                      ),
+                                                                                      child: const Text(
+                                                                                        'VAR',
+                                                                                        style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                                                                      ),
+                                                                                    ),
+                                                                                  ],
+                                                                                  Expanded(
+                                                                                    child: Text(
+                                                                                      p.sku,
+                                                                                      style: TextStyle(fontSize: 9, color: textSecondary),
+                                                                                      maxLines: 1,
+                                                                                      overflow: TextOverflow.ellipsis,
+                                                                                    ),
+                                                                                  ),
+                                                                                  if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
+                                                                                    Builder(
+                                                                                      builder: (_) {
+                                                                                        final pExp = _getDaysUntilExpiry(p.expiryDate);
+                                                                                        if (pExp == null || pExp > 60) return const SizedBox.shrink();
+                                                                                        final isExp = pExp < 0;
+                                                                                        return Container(
+                                                                                          margin: const EdgeInsets.only(left: 3),
+                                                                                          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                                                                                          decoration: BoxDecoration(
+                                                                                            color: isExp ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2)) : (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7)),
+                                                                                            borderRadius: BorderRadius.circular(3),
+                                                                                            border: Border.all(
+                                                                                              color: isExp ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+                                                                                              width: 0.5,
+                                                                                            ),
+                                                                                          ),
+                                                                                          child: Row(
+                                                                                            mainAxisSize: MainAxisSize.min,
+                                                                                            children: [
+                                                                                              Icon(
+                                                                                                isExp ? Icons.cancel_outlined : Icons.warning_amber_rounded,
+                                                                                                size: 8,
+                                                                                                color: isExp ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)) : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
+                                                                                              ),
+                                                                                              const SizedBox(width: 1.5),
+                                                                                              Text(
+                                                                                                isExp ? 'Expired' : '${pExp}d',
+                                                                                                style: TextStyle(
+                                                                                                  fontSize: 7.5,
+                                                                                                  fontWeight: FontWeight.bold,
+                                                                                                  color: isExp ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)) : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
+                                                                                                ),
+                                                                                              ),
+                                                                                            ],
+                                                                                          ),
+                                                                                        );
+                                                                                      },
+                                                                                    ),
+                                                                                  ],
+                                                                                ],
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                ),
+
+                                                                // Price & Add Button Row
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .center,
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child:
+                                                                          Text(
+                                                                        '$currency ${p.sellingPrice.toStringAsFixed(2)}',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          fontSize:
+                                                                              11.5,
+                                                                          fontWeight:
+                                                                              FontWeight.w900,
+                                                                          color: isDark
+                                                                              ? const Color(0xFFA5B4FC)
+                                                                              : const Color(0xFF4F46E5),
+                                                                        ),
+                                                                        maxLines:
+                                                                            1,
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                      ),
+                                                                    ),
+                                                                    Container(
+                                                                      width: 20,
+                                                                      height:
+                                                                          20,
+                                                                      decoration:
+                                                                          BoxDecoration(
+                                                                        color: const Color(
+                                                                            0xFF4F46E5),
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(4),
+                                                                      ),
+                                                                      child: const Icon(
+                                                                          Icons
+                                                                              .add,
+                                                                          color: Colors
+                                                                              .white,
+                                                                          size:
+                                                                              13),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ],
+                                                            ),
                                                           ),
                                                         ),
-                                                        Padding(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                                                          child: InkWell(
-                                                            onTap: () => _openQuantityDialog(item, index),
-                                                            borderRadius: BorderRadius.circular(4),
-                                                            child: Container(
-                                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                              decoration: BoxDecoration(
-                                                                color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                                                                borderRadius: BorderRadius.circular(4),
-                                                                border: Border.all(color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1), width: 0.8),
-                                                              ),
-                                                              child: Row(
-                                                                mainAxisSize: MainAxisSize.min,
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              )
+                                            : ListView.separated(
+                                                controller:
+                                                    _catalogScrollController,
+                                                padding: EdgeInsets.all(
+                                                    isSmallScreen ? 6 : 10),
+                                                itemCount: _products.length +
+                                                    (_loadingMoreCatalog
+                                                        ? 1
+                                                        : 0),
+                                                separatorBuilder: (_, __) =>
+                                                    SizedBox(
+                                                        height: isSmallScreen
+                                                            ? 4
+                                                            : 6),
+                                                itemBuilder: (context, index) {
+                                                  if (index >=
+                                                      _products.length) {
+                                                    return const Padding(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                              vertical: 12),
+                                                      child: Center(
+                                                        child: SizedBox(
+                                                          width: 22,
+                                                          height: 22,
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                                  strokeWidth:
+                                                                      2),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                  final p = _products[index];
+                                                  final currency = widget
+                                                      .settings.currencySymbol;
+                                                  final isOutOfStock =
+                                                      p.isOutOfStock;
+                                                  final isLowStock =
+                                                      !isOutOfStock &&
+                                                          p.stockQuantity <= 5;
+
+                                                  return Material(
+                                                    color: cardBg,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            isSmallScreen
+                                                                ? 6
+                                                                : 8),
+                                                    child: InkWell(
+                                                      onTap: () =>
+                                                          _addToCart(p),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              isSmallScreen
+                                                                  ? 6
+                                                                  : 8),
+                                                      child: Container(
+                                                        padding: EdgeInsets
+                                                            .symmetric(
+                                                          horizontal:
+                                                              isSmallScreen
+                                                                  ? 10
+                                                                  : 14,
+                                                          vertical:
+                                                              isSmallScreen
+                                                                  ? 6
+                                                                  : 10,
+                                                        ),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      isSmallScreen
+                                                                          ? 6
+                                                                          : 8),
+                                                          border: Border.all(
+                                                              color:
+                                                                  borderColor),
+                                                        ),
+                                                        child: Row(
+                                                          children: [
+                                                            ProductThumbnail(
+                                                              imagePath: p
+                                                                  .resolvedImagePath,
+                                                              imageColor:
+                                                                  p.imageColor,
+                                                              size:
+                                                                  isSmallScreen
+                                                                      ? 30
+                                                                      : 38,
+                                                              borderRadius:
+                                                                  isSmallScreen
+                                                                      ? 6
+                                                                      : 8,
+                                                              fallbackIcon: Icons
+                                                                  .inventory_2_outlined,
+                                                            ),
+                                                            SizedBox(
+                                                                width:
+                                                                    isSmallScreen
+                                                                        ? 8
+                                                                        : 12),
+                                                            Expanded(
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
                                                                 children: [
-                                                                  Text(
-                                                                    item.quantity == item.quantity.toInt()
-                                                                        ? item.quantity.toInt().toString()
-                                                                        : item.quantity.toStringAsFixed(widget.settings.quantityPrecision > 0 ? widget.settings.quantityPrecision : 2),
-                                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
+                                                                  Row(
+                                                                    children: [
+                                                                      if (p
+                                                                          .isVariable) ...[
+                                                                        Container(
+                                                                          margin: const EdgeInsets
+                                                                              .only(
+                                                                              right: 6),
+                                                                          padding: const EdgeInsets
+                                                                              .symmetric(
+                                                                              horizontal: 5,
+                                                                              vertical: 1),
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            color:
+                                                                                const Color(0xFF4F46E5).withValues(alpha: 0.14),
+                                                                            borderRadius:
+                                                                                BorderRadius.circular(4),
+                                                                          ),
+                                                                          child:
+                                                                              const Text(
+                                                                            'VAR',
+                                                                            style: TextStyle(
+                                                                                fontSize: 8.5,
+                                                                                fontWeight: FontWeight.bold,
+                                                                                color: Color(0xFF4F46E5)),
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                      Expanded(
+                                                                        child:
+                                                                            Text(
+                                                                          p.name,
+                                                                          style:
+                                                                              TextStyle(
+                                                                            fontWeight:
+                                                                                FontWeight.bold,
+                                                                            fontSize: isSmallScreen
+                                                                                ? 12
+                                                                                : 13,
+                                                                            color:
+                                                                                textPrimary,
+                                                                          ),
+                                                                          maxLines:
+                                                                              1,
+                                                                          overflow:
+                                                                              TextOverflow.ellipsis,
+                                                                        ),
+                                                                      ),
+                                                                    ],
                                                                   ),
-                                                                  const SizedBox(width: 3),
-                                                                  Icon(Icons.edit_note_rounded, size: 13, color: textSecondary),
+                                                                  const SizedBox(
+                                                                      height:
+                                                                          2),
+                                                                  Wrap(
+                                                                    spacing:
+                                                                        isSmallScreen
+                                                                            ? 6
+                                                                            : 8,
+                                                                    runSpacing:
+                                                                        2,
+                                                                    children: [
+                                                                      Text(
+                                                                          'SKU: ${p.sku}',
+                                                                          style: TextStyle(
+                                                                              fontSize: isSmallScreen ? 10 : 11,
+                                                                              color: textSecondary)),
+                                                                      if (p.unit
+                                                                          .isNotEmpty)
+                                                                        Text(
+                                                                            '• Unit: ${p.unit}',
+                                                                            style:
+                                                                                TextStyle(fontSize: isSmallScreen ? 10 : 11, color: textSecondary)),
+                                                                      if (p.batchNumber !=
+                                                                              null &&
+                                                                          p.batchNumber!
+                                                                              .isNotEmpty)
+                                                                        Text(
+                                                                            '• Batch: ${p.batchNumber}',
+                                                                            style:
+                                                                                TextStyle(fontSize: isSmallScreen ? 10 : 11, color: textSecondary)),
+                                                                      if (p.expiryDate !=
+                                                                              null &&
+                                                                          p.expiryDate!
+                                                                              .isNotEmpty)
+                                                                        Builder(
+                                                                          builder:
+                                                                              (_) {
+                                                                            final pExp =
+                                                                                _getDaysUntilExpiry(p.expiryDate);
+                                                                            if (pExp == null ||
+                                                                                pExp > 60)
+                                                                              return const SizedBox.shrink();
+                                                                            final isExp =
+                                                                                pExp < 0;
+                                                                            return Text(
+                                                                              isExp ? '• EXPIRED (${p.expiryDate})' : '• Exp: ${pExp}d (${p.expiryDate})',
+                                                                              style: TextStyle(
+                                                                                fontSize: isSmallScreen ? 10 : 11,
+                                                                                fontWeight: FontWeight.bold,
+                                                                                color: isExp ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+                                                                              ),
+                                                                            );
+                                                                          },
+                                                                        ),
+                                                                    ],
+                                                                  ),
                                                                 ],
                                                               ),
                                                             ),
-                                                          ),
-                                                        ),
-                                                        // [+] Green button
-                                                        InkWell(
-                                                          onTap: () => ref
-                                                              .read(cartProvider.notifier)
-                                                              .incrementQuantity(index),
-                                                          borderRadius: BorderRadius.circular(4),
-                                                          child: Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                                            decoration: BoxDecoration(
-                                                              color: isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7),
-                                                              borderRadius: BorderRadius.circular(4),
+                                                            // Stock Status Pill
+                                                            Container(
+                                                              padding: EdgeInsets
+                                                                  .symmetric(
+                                                                horizontal:
+                                                                    isSmallScreen
+                                                                        ? 6
+                                                                        : 8,
+                                                                vertical:
+                                                                    isSmallScreen
+                                                                        ? 2
+                                                                        : 3,
+                                                              ),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: isOutOfStock
+                                                                    ? (isDark
+                                                                        ? const Color(
+                                                                            0xFF450A0A)
+                                                                        : const Color(
+                                                                            0xFFFEE2E2))
+                                                                    : (isLowStock
+                                                                        ? (isDark
+                                                                            ? const Color(
+                                                                                0xFF451A03)
+                                                                            : const Color(
+                                                                                0xFFFEF3C7))
+                                                                        : (isDark
+                                                                            ? const Color(0xFF052E16)
+                                                                            : const Color(0xFFDCFCE7))),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            4),
+                                                              ),
+                                                              child: Text(
+                                                                isOutOfStock
+                                                                    ? 'Out of stock'
+                                                                    : '${p.stockQuantity.toInt()} in stock',
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize:
+                                                                      isSmallScreen
+                                                                          ? 9
+                                                                          : 10,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: isOutOfStock
+                                                                      ? (isDark
+                                                                          ? const Color(
+                                                                              0xFFF87171)
+                                                                          : const Color(
+                                                                              0xFFDC2626))
+                                                                      : (isLowStock
+                                                                          ? (isDark
+                                                                              ? const Color(
+                                                                                  0xFFFCD34D)
+                                                                              : const Color(
+                                                                                  0xFFD97706))
+                                                                          : (isDark
+                                                                              ? const Color(0xFF6EE7B7)
+                                                                              : const Color(0xFF16A34A))),
+                                                                ),
+                                                              ),
                                                             ),
-                                                            child: const Text('+', style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 16)),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    ),
-                                                    const SizedBox(height: 3),
-                                                    InkWell(
-                                                      onTap: () => _openUnitSelectorForCartItem(item, index),
-                                                      borderRadius: BorderRadius.circular(4),
-                                                      child: Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                        decoration: BoxDecoration(
-                                                          color: isDark ? const Color(0xFF334155) : const Color(0xFFEFF6FF),
-                                                          borderRadius: BorderRadius.circular(4),
-                                                          border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.4), width: 0.8),
-                                                        ),
-                                                        child: Row(
-                                                          mainAxisSize: MainAxisSize.min,
-                                                          children: [
+                                                            SizedBox(
+                                                                width:
+                                                                    isSmallScreen
+                                                                        ? 8
+                                                                        : 14),
+                                                            // Price
                                                             Text(
-                                                              item.selectedUnitName ?? item.product.unit,
-                                                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                                                              '$currency ${p.sellingPrice.toStringAsFixed(2)}',
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    isSmallScreen
+                                                                        ? 12
+                                                                        : 13,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w900,
+                                                                color:
+                                                                    textPrimary,
+                                                              ),
                                                             ),
-                                                            const SizedBox(width: 2),
-                                                            const Icon(Icons.keyboard_arrow_down_rounded, size: 12, color: Color(0xFF2563EB)),
+                                                            SizedBox(
+                                                                width:
+                                                                    isSmallScreen
+                                                                        ? 8
+                                                                        : 12),
+                                                            // Add Button
+                                                            Container(
+                                                              width:
+                                                                  isSmallScreen
+                                                                      ? 24
+                                                                      : 28,
+                                                              height:
+                                                                  isSmallScreen
+                                                                      ? 24
+                                                                      : 28,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: const Color(
+                                                                    0xFF4F46E5),
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                        isSmallScreen
+                                                                            ? 4
+                                                                            : 6),
+                                                              ),
+                                                              child: Icon(
+                                                                  Icons.add,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  size:
+                                                                      isSmallScreen
+                                                                          ? 14
+                                                                          : 16),
+                                                            ),
                                                           ],
                                                         ),
                                                       ),
                                                     ),
-                                                  ],
-                                                ),
-                                              ),
-
-                                              // Price Inc. Tax input field (Click to edit price / item discount)
-                                              Expanded(
-                                                flex: 3,
-                                                child: Center(
-                                                  child: Tooltip(
-                                                    message: 'Click to edit item price or discount',
-                                                    child: InkWell(
-                                                      onTap: () => _showItemDiscountDialog(item, index),
-                                                      borderRadius: BorderRadius.circular(4),
-                                                      child: Container(
-                                                        width: 86,
-                                                        height: 32,
-                                                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                                                        decoration: BoxDecoration(
-                                                          color: inputBg,
-                                                          borderRadius: BorderRadius.circular(4),
-                                                          border: Border.all(color: item.calculatedDiscount > 0 ? const Color(0xFFEF4444) : inputBorder),
-                                                        ),
-                                                        alignment: Alignment.center,
-                                                        child: FittedBox(
-                                                          fit: BoxFit.scaleDown,
-                                                          child: Column(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              Row(
-                                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                                children: [
-                                                                  Text(
-                                                                    item.unitPrice.toStringAsFixed(2),
-                                                                    style: TextStyle(
-                                                                      fontWeight: FontWeight.bold,
-                                                                      fontSize: 12,
-                                                                      color: item.calculatedDiscount > 0 ? const Color(0xFFEF4444) : textPrimary,
-                                                                    ),
-                                                                  ),
-                                                                  const SizedBox(width: 3),
-                                                                  Icon(Icons.edit, size: 10, color: textSecondary),
-                                                                ],
-                                                              ),
-                                                              if (item.calculatedDiscount > 0)
-                                                                Text(
-                                                                  item.discountType == 'percentage' && item.discountValue > 0
-                                                                      ? '-${item.discountValue.toStringAsFixed(item.discountValue == item.discountValue.roundToDouble() ? 0 : 1)}%'
-                                                                      : '-$currency${item.calculatedDiscount.toStringAsFixed(0)}',
-                                                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFEF4444)),
-                                                                ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-
-                                              // Subtotal
-                                              Expanded(
-                                                flex: 2,
-                                                child: Text(
-                                                  '$currency ${item.subtotal.toStringAsFixed(2)}',
-                                                  textAlign: TextAlign.right,
-                                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
-                                                ),
-                                              ),
-
-                                              // Trash Red button
-                                              IconButton(
-                                                icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF4444)),
-                                                onPressed: () => ref
-                                                    .read(cartProvider.notifier)
-                                                    .removeAt(index),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
-                            ),
-
-                            // ================= CART BOTTOM SUMMARY BAR =================
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 10 : 16, vertical: isSmallScreen ? 6 : 12),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4),
-                                border: Border(top: BorderSide(color: isDark ? const Color(0xFF1E3A2F) : const Color(0xFFBBF7D0))),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
-                                        children: [
-                                          _summaryBlock('ITEMS', _totalQuantity.toStringAsFixed(2), isDark: isDark, isSmall: isSmallScreen),
-                                          SizedBox(width: isSmallScreen ? 8 : 14),
-                                          _summaryBlock('SUBTOTAL', '$currency ${_subtotal.toStringAsFixed(2)}', isDark: isDark, isSmall: isSmallScreen),
-                                          SizedBox(width: isSmallScreen ? 8 : 14),
-                                          _summaryBlock(
-                                            'DISCOUNT(-)',
-                                            _discountValue <= 0
-                                                ? '$currency 0.00'
-                                                : (_discountType == 'percentage'
-                                                    ? '${_discountValue.toStringAsFixed(_discountValue.truncateToDouble() == _discountValue ? 0 : 2)}% ($currency ${_calculatedDiscount.toStringAsFixed(2)})'
-                                                    : '$currency ${_calculatedDiscount.toStringAsFixed(2)}'),
-                                            isEditable: true,
-                                            onEdit: _showOrderDiscountDialog,
-                                            isDark: isDark,
-                                            isSmall: isSmallScreen,
-                                          ),
-                                          SizedBox(width: isSmallScreen ? 8 : 14),
-                                          _summaryBlock('ORDER TAX(+)', '$currency ${_orderTax.toStringAsFixed(2)}', isEditable: true, onEdit: _showOrderTaxDialog, isDark: isDark, isSmall: isSmallScreen),
-                                          SizedBox(width: isSmallScreen ? 8 : 14),
-                                          _summaryBlock('SHIPPING(+)', '$currency ${_shippingCharge.toStringAsFixed(2)}', isEditable: true, onEdit: _showShippingDialog, isDark: isDark, isSmall: isSmallScreen),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: isSmallScreen ? 8 : 16),
-
-                                  // Big Green TOTAL PAYABLE Box with Words (Urdu & Multi-language)
-                                  InkWell(
-                                    onTap: _showWordsLanguageDialog,
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Tooltip(
-                                      message: widget.settings.enableSecondaryLanguage
-                                          ? 'Click to change words language (${_wordsLanguage.toUpperCase()}) / زبان تبدیل کریں'
-                                          : 'Click to change words language (${_wordsLanguage.toUpperCase()})',
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 10 : 16, vertical: isSmallScreen ? 4 : 6),
-                                        constraints: BoxConstraints(minWidth: isSmallScreen ? 130 : 160),
-                                        decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF064E3B) : Colors.white,
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: isDark ? const Color(0xFF059669) : const Color(0xFF86EFAC)),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.translate,
-                                                  size: isSmallScreen ? 10 : 11,
-                                                  color: isDark ? const Color(0xFF6EE7B7).withValues(alpha: 0.8) : const Color(0xFF16A34A).withValues(alpha: 0.8),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  'TOTAL PAYABLE',
-                                                  style: TextStyle(
-                                                    fontSize: isSmallScreen ? 10 : 11,
-                                                    fontWeight: FontWeight.w900,
-                                                    color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A),
-                                                    letterSpacing: isSmallScreen ? 0.4 : 0.8,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            Text(
-                                              _grandTotal.toStringAsFixed(2),
-                                              style: TextStyle(
-                                                fontSize: isSmallScreen ? 20 : 26,
-                                                fontWeight: FontWeight.w900,
-                                                color: isDark ? Colors.white : const Color(0xFF15803D),
-                                                height: 1.1,
-                                              ),
-                                            ),
-                                            if (_grandTotal > 0)
-                                              Padding(
-                                                padding: const EdgeInsets.only(top: 2),
-                                                child: ConstrainedBox(
-                                                  constraints: BoxConstraints(maxWidth: isSmallScreen ? 180 : 240),
-                                                  child: Text(
-                                                    NumberToWordsService.convert(
-                                                      _grandTotal,
-                                                      language: _wordsLanguage,
-                                                      currencySymbol: widget.settings.currencySymbol,
-                                                      currencyCode: widget.settings.currencyCode,
-                                                    ),
-                                                    textDirection: NumberToWordsService.isRtl(_wordsLanguage)
-                                                        ? ui.TextDirection.rtl
-                                                        : ui.TextDirection.ltr,
-                                                    textAlign: TextAlign.right,
-                                                    maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: isSmallScreen ? 9.5 : 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      height: 1.2,
-                                                      color: isDark ? const Color(0xFFA7F3D0) : const Color(0xFF166534),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // ================= BOTTOM ACTIONS ROW =================
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: isSmallScreen ? 4 : 8),
-                              decoration: BoxDecoration(
-                                color: cardBg,
-                                border: Border(top: BorderSide(color: borderColor)),
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // 1. Secondary Quick Action Tools
-                                  SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        // [ Cancel ]
-                                        OutlinedButton.icon(
-                                          style: OutlinedButton.styleFrom(
-                                            side: const BorderSide(color: Color(0xFFEF4444)),
-                                            foregroundColor: const Color(0xFFEF4444),
-                                            padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 6 : 10, vertical: isSmallScreen ? 4 : 8),
-                                            visualDensity: VisualDensity.compact,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                          ),
-                                          icon: const Icon(Icons.close, size: 14),
-                                          label: Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmallScreen ? 10 : 11)),
-                                          onPressed: _clearCart,
-                                        ),
-                                        SizedBox(width: isSmallScreen ? 4 : 6),
-
-                                        // [ Draft ]
-                                        _bottomOutlineBtn(icon: Icons.edit_note, label: 'Draft', onTap: _saveDraft, isDark: isDark, isSmall: isSmallScreen),
-
-                                        // [ Quotation ]
-                                        _bottomOutlineBtn(icon: Icons.assignment_outlined, label: 'Quotation', onTap: _saveQuotation, isDark: isDark, isSmall: isSmallScreen),
-
-                                        // [ Suspend ]
-                                        Tooltip(
-                                          message: 'Suspend / Hold Sale [F4]',
-                                          child: _bottomOutlineBtn(icon: Icons.pause, label: 'Suspend', color: const Color(0xFFD97706), onTap: _suspendSale, isDark: isDark, isSmall: isSmallScreen),
-                                        ),
-
-                                        // [ Credit Sale ]
-                                        _bottomOutlineBtn(icon: Icons.check, label: 'Credit Sale', onTap: _quickCreditCheckout, isDark: isDark, isSmall: isSmallScreen),
-
-                                        // [ Recent Sales F9 ]
-                                        OutlinedButton.icon(
-                                          style: OutlinedButton.styleFrom(
-                                            side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
-                                            backgroundColor: isDark ? const Color(0xFF312E81).withValues(alpha: 0.3) : const Color(0xFFEEF2FF),
-                                            foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
-                                            padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 6 : 10, vertical: isSmallScreen ? 4 : 8),
-                                            visualDensity: VisualDensity.compact,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                          ),
-                                          icon: const Icon(Icons.access_time_rounded, size: 14),
-                                          label: Text('Recent Sales [F9]', style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmallScreen ? 10 : 11)),
-                                          onPressed: _openRecentTransactionsModal,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(height: isSmallScreen ? 4 : 8),
-
-                                  // 2. Primary Checkout Buttons (Card, Multiple Pay [F7], Cash [F2])
-                                  // Always fully visible across the entire bottom without any horizontal scroll
-                                  Row(
-                                    children: [
-                                      // [ Card ]
-                                      OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(color: Color(0xFFEC4899)),
-                                          foregroundColor: const Color(0xFFEC4899),
-                                          padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 8 : 14, vertical: isSmallScreen ? 7 : 11),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                        ),
-                                        icon: const Icon(Icons.credit_card, size: 16),
-                                        label: Text('Card', style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmallScreen ? 11 : 12)),
-                                        onPressed: _quickCardCheckout,
-                                      ),
-                                      SizedBox(width: isSmallScreen ? 6 : 8),
-
-                                      // [ Multiple Pay ]
-                                      Expanded(
-                                        flex: 1,
-                                        child: Tooltip(
-                                          message: 'Multiple / Split Payment [F7]',
-                                          child: ElevatedButton.icon(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1E293B),
-                                              foregroundColor: Colors.white,
-                                              padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 6 : 10, vertical: isSmallScreen ? 7 : 12),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                            ),
-                                            icon: const Icon(Icons.payments_outlined, size: 16),
-                                            label: Text(
-                                              'Multiple Pay',
-                                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSmallScreen ? 11 : 12.5),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            onPressed: _handleMultiplePayClick,
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(width: isSmallScreen ? 6 : 8),
-
-                                      // [ Cash ]
-                                      Expanded(
-                                        flex: 1,
-                                        child: Tooltip(
-                                          message: 'Quick Cash Checkout [F2]',
-                                          child: ElevatedButton.icon(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF10B981),
-                                              foregroundColor: Colors.white,
-                                              padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 8 : 12, vertical: isSmallScreen ? 7 : 12),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                            ),
-                                            icon: const Icon(Icons.money, size: 16),
-                                            label: Text(
-                                              'Cash',
-                                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: isSmallScreen ? 11.5 : 13.5),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            onPressed: _quickCashCheckout,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // ================= RIGHT: PRODUCT CATALOG GRID =================
-                    if (!isTabletCompact || _mobileTabIndex == 1)
-                    Expanded(
-                      flex: isTabletCompact ? 1 : 5,
-                      child: Container(
-                        color: subtleBg,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Row 1: Dedicated Full-Width Product Search & Barcode Scanner (F1)
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                border: Border(bottom: BorderSide(color: borderColor)),
-                              ),
-                              child: Row(
-                                children: [
-                                  // Search product / barcode input (Expanded)
-                                  Expanded(
-                                    child: Container(
-                                      height: 38,
-                                      decoration: BoxDecoration(
-                                        color: inputBg,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: inputBorder),
-                                      ),
-                                      child: TextField(
-                                        controller: _searchController,
-                                        focusNode: _searchFocusNode,
-                                        onSubmitted: _onBarcodeSubmitted,
-                                        onChanged: (val) => _applyProductFilter(),
-                                        style: TextStyle(fontSize: 13, color: textPrimary),
-                                        decoration: InputDecoration(
-                                          hintText: 'Search product / barcode / SKU [F1]',
-                                          hintStyle: TextStyle(fontSize: 12, color: textSecondary),
-                                          prefixIcon: Icon(Icons.search, size: 18, color: textSecondary),
-                                          suffixIcon: _searchController.text.isNotEmpty
-                                              ? IconButton(
-                                                  icon: const Icon(Icons.clear, size: 16),
-                                                  onPressed: () {
-                                                    _searchController.clear();
-                                                    _applyProductFilter();
-                                                  },
-                                                  tooltip: 'Clear',
-                                                )
-                                              : null,
-                                          border: InputBorder.none,
-                                          enabledBorder: InputBorder.none,
-                                          focusedBorder: InputBorder.none,
-                                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                                          isDense: true,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-
-                                  // Blue [ + ] -> Add Open / Custom Item on the fly
-                                  Tooltip(
-                                    message: 'Add Custom Item [F11]',
-                                    child: InkWell(
-                                      onTap: _openCustomProductDialog,
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: Container(
-                                        width: 38,
-                                        height: 38,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF4F46E5),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: const Icon(Icons.add, color: Colors.white, size: 20),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Row 2: Filter Pills & View Layout Switcher (Directly above products)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                                border: Border(
-                                  bottom: BorderSide(color: borderColor, width: 0.8),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
-                                        children: [
-                                          _filterBtn(
-                                            icon: Icons.grid_view_outlined,
-                                            label: _selectedCategoryId != null
-                                                ? 'Category: ${_categories.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => Category(name: 'Category', code: '')).name}'
-                                                : 'Category',
-                                            count: _selectedCategoryId != null ? null : _categories.length,
-                                            isSelected: _selectedCategoryId != null,
-                                            onTap: _showCategoryFilterDialog,
-                                            onClear: _selectedCategoryId != null
-                                                ? () {
-                                                    setState(() => _selectedCategoryId = null);
-                                                    _applyProductFilter();
-                                                  }
-                                                : null,
-                                            isDark: isDark,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          _filterBtn(
-                                            icon: Icons.branding_watermark_outlined,
-                                            label: _selectedBrandId != null
-                                                ? 'Brand: ${_brands.firstWhere((b) => b.id == _selectedBrandId, orElse: () => Brand(name: 'Brand')).name}'
-                                                : 'Brands',
-                                            count: _selectedBrandId != null ? null : _brands.length,
-                                            isSelected: _selectedBrandId != null,
-                                            onTap: _showBrandFilterDialog,
-                                            onClear: _selectedBrandId != null
-                                                ? () {
-                                                    setState(() => _selectedBrandId = null);
-                                                    _applyProductFilter();
-                                                  }
-                                                : null,
-                                            isDark: isDark,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          _filterBtn(
-                                            icon: Icons.star_border,
-                                            label: 'Featured Products',
-                                            count: null,
-                                            isSelected: _filterFeatured,
-                                            onTap: () {
-                                              setState(() => _filterFeatured = !_filterFeatured);
-                                              _applyProductFilter();
-                                            },
-                                            isDark: isDark,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-
-                                  // Segmented Layout Switcher: [ ⊞ Grid ] [ List ]
-                                  Container(
-                                    height: 30,
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: inputBorder),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        // Grid View Button
-                                        Tooltip(
-                                          message: 'Grid View [F5]',
-                                          child: InkWell(
-                                            onTap: () {
-                                              if (!_isGridView) {
-                                                _toggleProductLayout();
-                                              }
-                                            },
-                                            borderRadius: BorderRadius.circular(4),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: _isGridView ? const Color(0xFF4F46E5) : Colors.transparent,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.grid_view_rounded,
-                                                    size: 13,
-                                                    color: _isGridView ? Colors.white : textSecondary,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    'Grid',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: _isGridView ? Colors.white : textSecondary,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 2),
-
-                                        // List View Button
-                                        Tooltip(
-                                          message: 'List View [F5]',
-                                          child: InkWell(
-                                            onTap: () {
-                                              if (_isGridView) {
-                                                _toggleProductLayout();
-                                              }
-                                            },
-                                            borderRadius: BorderRadius.circular(4),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: !_isGridView ? const Color(0xFF4F46E5) : Colors.transparent,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.format_list_bulleted_rounded,
-                                                    size: 14,
-                                                    color: !_isGridView ? Colors.white : textSecondary,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    'List',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: !_isGridView ? Colors.white : textSecondary,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Switchable Product Layout: Grid OR List View
-                            Expanded(
-                              child: _loadingCatalog
-                                  ? const Center(child: CircularProgressIndicator())
-                                  : _products.isEmpty
-                                      ? Center(
-                                          child: Container(
-                                            constraints: const BoxConstraints(maxWidth: 450),
-                                            padding: const EdgeInsets.all(28),
-                                            decoration: BoxDecoration(
-                                              color: cardBg,
-                                              borderRadius: BorderRadius.circular(16),
-                                              border: Border.all(color: borderColor),
-                                            ),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Container(
-                                                  width: 60,
-                                                  height: 60,
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                  child: const Icon(Icons.point_of_sale_rounded, color: Color(0xFF4F46E5), size: 30),
-                                                ),
-                                                const SizedBox(height: 14),
-                                                Text(
-                                                  'No Products in Catalog Yet',
-                                                  style: TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w900,
-                                                    color: textPrimary,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  widget.settings.enableSecondaryLanguage
-                                                      ? 'کیٹلاگ میں ابھی کوئی پروڈکٹ موجود نہیں ہے'
-                                                      : 'No products in catalog yet',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: textSecondary,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 10),
-                                                Text(
-                                                  'Add products with selling price and initial stock to start billing immediately!',
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(fontSize: 12, color: textSecondary, height: 1.4),
-                                                ),
-                                                const SizedBox(height: 18),
-                                                ElevatedButton.icon(
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: const Color(0xFF4F46E5),
-                                                    foregroundColor: Colors.white,
-                                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                                  ),
-                                                  icon: const Icon(Icons.add_rounded, size: 18),
-                                                  label: const Text(
-                                                    '+ Add First Product',
-                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                                  ),
-                                                  onPressed: () {
-                                                    showDialog(
-                                                      context: context,
-                                                      builder: (_) => AddProductDialog(
-                                                        onProductSaved: () async {
-                                                          await _reloadCatalogFromScratch();
-                                                        },
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        )
-                                      : _isGridView
-                                          ? LayoutBuilder(
-                                              builder: (context, constraints) {
-                                                final width = constraints.maxWidth;
-                                                // High-density responsive column count:
-                                                final int crossAxisCount = width >= 1100
-                                                    ? 6
-                                                    : (width >= 880
-                                                        ? 5
-                                                        : (width >= 660
-                                                            ? 4
-                                                            : (width >= 440 ? 3 : 2)));
-                                                // Fixed compact height so cards never stretch into giant blocks
-                                                const double cardHeight = 122.0;
-
-                                                return GridView.builder(
-                                                  controller: _catalogScrollController,
-                                                  padding: const EdgeInsets.all(8),
-                                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                                    crossAxisCount: crossAxisCount,
-                                                    mainAxisExtent: cardHeight,
-                                                    crossAxisSpacing: 6,
-                                                    mainAxisSpacing: 6,
-                                                  ),
-                                                  itemCount: _products.length + (_loadingMoreCatalog ? 1 : 0),
-                                                  itemBuilder: (context, index) {
-                                                    if (index >= _products.length) {
-                                                      return const Center(
-                                                        child: Padding(
-                                                          padding: EdgeInsets.all(12),
-                                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                                        ),
-                                                      );
-                                                    }
-                                                    final p = _products[index];
-                                                    final currency = widget.settings.currencySymbol;
-                                                    final isOutOfStock = p.isOutOfStock;
-                                                    final isLowStock = !isOutOfStock && p.stockQuantity <= 5;
-
-                                                    return Material(
-                                                      color: cardBg,
-                                                      borderRadius: BorderRadius.circular(6),
-                                                      elevation: 0,
-                                                      clipBehavior: Clip.antiAlias,
-                                                      child: InkWell(
-                                                        onTap: () => _addToCart(p),
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        hoverColor: const Color(0xFF4F46E5).withValues(alpha: 0.04),
-                                                        child: Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
-                                                          decoration: BoxDecoration(
-                                                            borderRadius: BorderRadius.circular(6),
-                                                            border: Border.all(color: borderColor),
-                                                          ),
-                                                          child: Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                            children: [
-                                                              // Top Row: Stock Badge & Unit
-                                                              Row(
-                                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                                children: [
-                                                                  Container(
-                                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
-                                                                    decoration: BoxDecoration(
-                                                                      color: isOutOfStock
-                                                                          ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
-                                                                          : (isLowStock
-                                                                              ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
-                                                                              : (isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7))),
-                                                                      borderRadius: BorderRadius.circular(3),
-                                                                    ),
-                                                                    child: Text(
-                                                                      isOutOfStock
-                                                                          ? 'Out of stock'
-                                                                          : '${p.stockQuantity % 1 == 0 ? p.stockQuantity.toInt() : p.stockQuantity.toStringAsFixed(1)} in stock',
-                                                                      style: TextStyle(
-                                                                        fontSize: 8.5,
-                                                                        fontWeight: FontWeight.bold,
-                                                                        color: isOutOfStock
-                                                                            ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                            : (isLowStock
-                                                                                ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706))
-                                                                                : (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A))),
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  if (p.unit.isNotEmpty)
-                                                                    Flexible(
-                                                                      child: Text(
-                                                                        p.unit,
-                                                                        style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w600, color: textSecondary),
-                                                                        overflow: TextOverflow.ellipsis,
-                                                                      ),
-                                                                    ),
-                                                                ],
-                                                              ),
-
-                                                              // Product Thumbnail, Title & Details
-                                                              Expanded(
-                                                                child: Padding(
-                                                                  padding: const EdgeInsets.symmetric(vertical: 2),
-                                                                  child: Row(
-                                                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                                                    children: [
-                                                                      ProductThumbnail(
-                                                                        imagePath: p.resolvedImagePath,
-                                                                        imageColor: p.imageColor,
-                                                                        size: 36,
-                                                                        borderRadius: 6,
-                                                                      ),
-                                                                      const SizedBox(width: 7),
-                                                                      Expanded(
-                                                                        child: Column(
-                                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                                          mainAxisAlignment: MainAxisAlignment.center,
-                                                                          children: [
-                                                                            Text(
-                                                                              p.name,
-                                                                              style: TextStyle(
-                                                                                fontWeight: FontWeight.bold,
-                                                                                fontSize: 11,
-                                                                                color: textPrimary,
-                                                                                height: 1.15,
-                                                                              ),
-                                                                              maxLines: 2,
-                                                                              overflow: TextOverflow.ellipsis,
-                                                                            ),
-                                                                            const SizedBox(height: 1),
-                                                                            Row(
-                                                                              children: [
-                                                                                if (p.isVariable) ...[
-                                                                                  Container(
-                                                                                    margin: const EdgeInsets.only(right: 4),
-                                                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0.5),
-                                                                                    decoration: BoxDecoration(
-                                                                                      color: const Color(0xFF4F46E5).withValues(alpha: 0.14),
-                                                                                      borderRadius: BorderRadius.circular(3),
-                                                                                    ),
-                                                                                    child: const Text(
-                                                                                      'VAR',
-                                                                                      style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
-                                                                                    ),
-                                                                                  ),
-                                                                                ],
-                                                                                Expanded(
-                                                                                  child: Text(
-                                                                                    p.sku,
-                                                                                    style: TextStyle(fontSize: 9, color: textSecondary),
-                                                                                    maxLines: 1,
-                                                                                    overflow: TextOverflow.ellipsis,
-                                                                                  ),
-                                                                                ),
-                                                                          if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
-                                                                            Builder(
-                                                                              builder: (_) {
-                                                                                final pExp = _getDaysUntilExpiry(p.expiryDate);
-                                                                                if (pExp == null || pExp > 60) return const SizedBox.shrink();
-                                                                                final isExp = pExp < 0;
-                                                                                return Container(
-                                                                                  margin: const EdgeInsets.only(left: 3),
-                                                                                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-                                                                                  decoration: BoxDecoration(
-                                                                                    color: isExp
-                                                                                        ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
-                                                                                        : (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7)),
-                                                                                    borderRadius: BorderRadius.circular(3),
-                                                                                    border: Border.all(
-                                                                                      color: isExp ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
-                                                                                      width: 0.5,
-                                                                                    ),
-                                                                                  ),
-                                                                                  child: Row(
-                                                                                    mainAxisSize: MainAxisSize.min,
-                                                                                    children: [
-                                                                                      Icon(
-                                                                                        isExp ? Icons.cancel_outlined : Icons.warning_amber_rounded,
-                                                                                        size: 8,
-                                                                                        color: isExp
-                                                                                            ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                                            : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
-                                                                                      ),
-                                                                                      const SizedBox(width: 1.5),
-                                                                                      Text(
-                                                                                        isExp ? 'Expired' : '${pExp}d',
-                                                                                        style: TextStyle(
-                                                                                          fontSize: 7.5,
-                                                                                          fontWeight: FontWeight.bold,
-                                                                                          color: isExp
-                                                                                              ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                                              : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706)),
-                                                                                        ),
-                                                                                      ),
-                                                                                    ],
-                                                                                  ),
-                                                                                );
-                                                                              },
-                                                                            ),
-                                                                          ],
-                                                                        ],
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
-
-                                                              // Price & Add Button Row
-                                                              Row(
-                                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                                crossAxisAlignment: CrossAxisAlignment.center,
-                                                                children: [
-                                                                  Expanded(
-                                                                    child: Text(
-                                                                      '$currency ${p.sellingPrice.toStringAsFixed(2)}',
-                                                                      style: TextStyle(
-                                                                        fontSize: 11.5,
-                                                                        fontWeight: FontWeight.w900,
-                                                                        color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
-                                                                      ),
-                                                                      maxLines: 1,
-                                                                      overflow: TextOverflow.ellipsis,
-                                                                    ),
-                                                                  ),
-                                                                  Container(
-                                                                    width: 20,
-                                                                    height: 20,
-                                                                    decoration: BoxDecoration(
-                                                                      color: const Color(0xFF4F46E5),
-                                                                      borderRadius: BorderRadius.circular(4),
-                                                                    ),
-                                                                    child: const Icon(Icons.add, color: Colors.white, size: 13),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                );
-                                              },
-                                            )
-                                          : ListView.separated(
-                                              controller: _catalogScrollController,
-                                              padding: EdgeInsets.all(isSmallScreen ? 6 : 10),
-                                              itemCount: _products.length + (_loadingMoreCatalog ? 1 : 0),
-                                              separatorBuilder: (_, __) => SizedBox(height: isSmallScreen ? 4 : 6),
-                                              itemBuilder: (context, index) {
-                                                if (index >= _products.length) {
-                                                  return const Padding(
-                                                    padding: EdgeInsets.symmetric(vertical: 12),
-                                                    child: Center(
-                                                      child: SizedBox(
-                                                        width: 22,
-                                                        height: 22,
-                                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                                      ),
-                                                    ),
                                                   );
-                                                }
-                                                final p = _products[index];
-                                                final currency = widget.settings.currencySymbol;
-                                                final isOutOfStock = p.isOutOfStock;
-                                                final isLowStock = !isOutOfStock && p.stockQuantity <= 5;
-
-                                                return Material(
-                                                  color: cardBg,
-                                                  borderRadius: BorderRadius.circular(isSmallScreen ? 6 : 8),
-                                                  child: InkWell(
-                                                    onTap: () => _addToCart(p),
-                                                    borderRadius: BorderRadius.circular(isSmallScreen ? 6 : 8),
-                                                    child: Container(
-                                                      padding: EdgeInsets.symmetric(
-                                                        horizontal: isSmallScreen ? 10 : 14,
-                                                        vertical: isSmallScreen ? 6 : 10,
-                                                      ),
-                                                      decoration: BoxDecoration(
-                                                        borderRadius: BorderRadius.circular(isSmallScreen ? 6 : 8),
-                                                        border: Border.all(color: borderColor),
-                                                      ),
-                                                      child: Row(
-                                                        children: [
-                                                          ProductThumbnail(
-                                                            imagePath: p.resolvedImagePath,
-                                                            imageColor: p.imageColor,
-                                                            size: isSmallScreen ? 30 : 38,
-                                                            borderRadius: isSmallScreen ? 6 : 8,
-                                                            fallbackIcon: Icons.inventory_2_outlined,
-                                                          ),
-                                                          SizedBox(width: isSmallScreen ? 8 : 12),
-                                                          Expanded(
-                                                            child: Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                Row(
-                                                                  children: [
-                                                                    if (p.isVariable) ...[
-                                                                      Container(
-                                                                        margin: const EdgeInsets.only(right: 6),
-                                                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                                                        decoration: BoxDecoration(
-                                                                          color: const Color(0xFF4F46E5).withValues(alpha: 0.14),
-                                                                          borderRadius: BorderRadius.circular(4),
-                                                                        ),
-                                                                        child: const Text(
-                                                                          'VAR',
-                                                                          style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                    Expanded(
-                                                                      child: Text(
-                                                                        p.name,
-                                                                        style: TextStyle(
-                                                                          fontWeight: FontWeight.bold,
-                                                                          fontSize: isSmallScreen ? 12 : 13,
-                                                                          color: textPrimary,
-                                                                        ),
-                                                                        maxLines: 1,
-                                                                        overflow: TextOverflow.ellipsis,
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                                const SizedBox(height: 2),
-                                                                Wrap(
-                                                                  spacing: isSmallScreen ? 6 : 8,
-                                                                  runSpacing: 2,
-                                                                  children: [
-                                                                    Text('SKU: ${p.sku}', style: TextStyle(fontSize: isSmallScreen ? 10 : 11, color: textSecondary)),
-                                                                    if (p.unit.isNotEmpty)
-                                                                      Text('• Unit: ${p.unit}', style: TextStyle(fontSize: isSmallScreen ? 10 : 11, color: textSecondary)),
-                                                                    if (p.batchNumber != null && p.batchNumber!.isNotEmpty)
-                                                                      Text('• Batch: ${p.batchNumber}', style: TextStyle(fontSize: isSmallScreen ? 10 : 11, color: textSecondary)),
-                                                                    if (p.expiryDate != null && p.expiryDate!.isNotEmpty)
-                                                                      Builder(
-                                                                        builder: (_) {
-                                                                          final pExp = _getDaysUntilExpiry(p.expiryDate);
-                                                                          if (pExp == null || pExp > 60) return const SizedBox.shrink();
-                                                                          final isExp = pExp < 0;
-                                                                          return Text(
-                                                                            isExp ? '• EXPIRED (${p.expiryDate})' : '• Exp: ${pExp}d (${p.expiryDate})',
-                                                                            style: TextStyle(
-                                                                              fontSize: isSmallScreen ? 10 : 11,
-                                                                              fontWeight: FontWeight.bold,
-                                                                              color: isExp ? const Color(0xFFDC2626) : const Color(0xFFD97706),
-                                                                            ),
-                                                                          );
-                                                                        },
-                                                                      ),
-                                                                  ],
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                          // Stock Status Pill
-                                                          Container(
-                                                            padding: EdgeInsets.symmetric(
-                                                              horizontal: isSmallScreen ? 6 : 8,
-                                                              vertical: isSmallScreen ? 2 : 3,
-                                                            ),
-                                                            decoration: BoxDecoration(
-                                                              color: isOutOfStock
-                                                                  ? (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2))
-                                                                  : (isLowStock
-                                                                      ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7))
-                                                                      : (isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7))),
-                                                              borderRadius: BorderRadius.circular(4),
-                                                            ),
-                                                            child: Text(
-                                                              isOutOfStock
-                                                                  ? 'Out of stock'
-                                                                  : '${p.stockQuantity.toInt()} in stock',
-                                                              style: TextStyle(
-                                                                fontSize: isSmallScreen ? 9 : 10,
-                                                                fontWeight: FontWeight.bold,
-                                                                color: isOutOfStock
-                                                                    ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
-                                                                    : (isLowStock
-                                                                        ? (isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706))
-                                                                        : (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF16A34A))),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          SizedBox(width: isSmallScreen ? 8 : 14),
-                                                          // Price
-                                                          Text(
-                                                            '$currency ${p.sellingPrice.toStringAsFixed(2)}',
-                                                            style: TextStyle(
-                                                              fontSize: isSmallScreen ? 12 : 13,
-                                                              fontWeight: FontWeight.w900,
-                                                              color: textPrimary,
-                                                            ),
-                                                          ),
-                                                          SizedBox(width: isSmallScreen ? 8 : 12),
-                                                          // Add Button
-                                                          Container(
-                                                            width: isSmallScreen ? 24 : 28,
-                                                            height: isSmallScreen ? 24 : 28,
-                                                            decoration: BoxDecoration(
-                                                              color: const Color(0xFF4F46E5),
-                                                              borderRadius: BorderRadius.circular(isSmallScreen ? 4 : 6),
-                                                            ),
-                                                            child: Icon(Icons.add, color: Colors.white, size: isSmallScreen ? 14 : 16),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                            ),
-                          ],
+                                                },
+                                              ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -6099,19 +8838,28 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _shortcutPill(_shortcutBindings['help'] ?? 'F1', 'Shortcuts Help (?)', isDark),
+                      _shortcutPill(_shortcutBindings['help'] ?? 'F1',
+                          'Shortcuts Help (?)', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['quickCash'] ?? 'F2', 'Cash Checkout', isDark),
+                      _shortcutPill(_shortcutBindings['quickCash'] ?? 'F2',
+                          'Cash Checkout', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['customerSearch'] ?? 'F3', 'Customer', isDark),
+                      _shortcutPill(_shortcutBindings['customerSearch'] ?? 'F3',
+                          'Customer', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['suspendSale'] ?? 'F4', 'Hold Bill', isDark),
+                      _shortcutPill(_shortcutBindings['suspendSale'] ?? 'F4',
+                          'Hold Bill', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['multiPay'] ?? 'F7', 'Partial / Split Pay', isDark),
+                      _shortcutPill(_shortcutBindings['multiPay'] ?? 'F7',
+                          'Partial / Split Pay', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['clearCart'] ?? 'F8', 'Reset Order', isDark),
+                      _shortcutPill(_shortcutBindings['clearCart'] ?? 'F8',
+                          'Reset Order', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['registerDetails'] ?? 'F10', 'Shift Reconciliation', isDark),
+                      _shortcutPill(
+                          _shortcutBindings['registerDetails'] ?? 'F10',
+                          'Shift Reconciliation',
+                          isDark),
                       const SizedBox(width: 10),
                       _shortcutPill('Ctrl+Z', 'Undo Cart', isDark),
                       const SizedBox(width: 10),
@@ -6121,7 +8869,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         isTouchFriendly
                             ? 'Smart POS • Touch Mode Active'
                             : 'Smart POS Engine • Multi-Industry',
-                        style: TextStyle(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: textSecondary,
+                            fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -6146,36 +8897,56 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           ),
           child: Text(
             keyLabel,
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : const Color(0xFF0F172A)),
           ),
         ),
         const SizedBox(width: 4),
         Text(
           actionLabel,
-          style: TextStyle(fontSize: 10, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w600),
+          style: TextStyle(
+              fontSize: 10,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              fontWeight: FontWeight.w600),
         ),
       ],
     );
   }
 
-  Widget _summaryBlock(String label, String value, {bool isEditable = false, VoidCallback? onEdit, bool isDark = false, bool isSmall = false}) {
+  Widget _summaryBlock(String label, String value,
+      {bool isEditable = false,
+      VoidCallback? onEdit,
+      bool isDark = false,
+      bool isSmall = false}) {
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(label, style: TextStyle(fontSize: isSmall ? 8.5 : 10, fontWeight: FontWeight.bold, color: textSecondary)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: isSmall ? 8.5 : 10,
+                    fontWeight: FontWeight.bold,
+                    color: textSecondary)),
             if (isEditable) ...[
               const SizedBox(width: 3),
-              Icon(Icons.edit, size: isSmall ? 8.5 : 10, color: const Color(0xFF4F46E5)),
+              Icon(Icons.edit,
+                  size: isSmall ? 8.5 : 10, color: const Color(0xFF4F46E5)),
             ],
           ],
         ),
         SizedBox(height: isSmall ? 1 : 2),
-        Text(value, style: TextStyle(fontSize: isSmall ? 11 : 13, fontWeight: FontWeight.bold, color: textPrimary)),
+        Text(value,
+            style: TextStyle(
+                fontSize: isSmall ? 11 : 13,
+                fontWeight: FontWeight.bold,
+                color: textPrimary)),
       ],
     );
 
@@ -6184,7 +8955,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         onTap: onEdit,
         borderRadius: BorderRadius.circular(4),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: isSmall ? 2 : 4, vertical: isSmall ? 1 : 2),
+          padding: EdgeInsets.symmetric(
+              horizontal: isSmall ? 2 : 4, vertical: isSmall ? 1 : 2),
           child: content,
         ),
       );
@@ -6201,9 +8973,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     bool isSmall = false,
     EdgeInsetsGeometry? padding,
   }) {
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
     final textPrimary = isDark ? Colors.white : const Color(0xFF1E293B);
-    final iconColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final iconColor =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return Padding(
       padding: EdgeInsets.only(right: isSmall ? 4 : 6),
@@ -6211,16 +8985,21 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: borderColor),
           foregroundColor: color ?? textPrimary,
-          padding: padding ?? EdgeInsets.symmetric(horizontal: isSmall ? 6 : 10, vertical: isSmall ? 4 : 8),
+          padding: padding ??
+              EdgeInsets.symmetric(
+                  horizontal: isSmall ? 6 : 10, vertical: isSmall ? 4 : 8),
           visualDensity: VisualDensity.compact,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
         icon: Icon(icon, size: isSmall ? 12 : 14, color: color ?? iconColor),
-        label: Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmall ? 10 : 11)),
+        label: Text(label,
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: isSmall ? 10 : 11)),
         onPressed: onTap,
       ),
     );
   }
+
   Widget _filterBtn({
     required IconData icon,
     required String label,
@@ -6231,9 +9010,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     bool isDark = false,
   }) {
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
     final textPrimary = isDark ? Colors.white : const Color(0xFF1E293B);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return InkWell(
       onTap: onTap,
@@ -6241,14 +9022,23 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? (isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF)) : cardBg,
+          color: isSelected
+              ? (isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF))
+              : cardBg,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: isSelected ? const Color(0xFF4F46E5) : borderColor),
+          border: Border.all(
+              color: isSelected ? const Color(0xFF4F46E5) : borderColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: isSelected ? (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)) : textSecondary),
+            Icon(icon,
+                size: 14,
+                color: isSelected
+                    ? (isDark
+                        ? const Color(0xFFA5B4FC)
+                        : const Color(0xFF4F46E5))
+                    : textSecondary),
             const SizedBox(width: 6),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 140),
@@ -6257,7 +9047,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)) : textPrimary,
+                  color: isSelected
+                      ? (isDark
+                          ? const Color(0xFFA5B4FC)
+                          : const Color(0xFF4F46E5))
+                      : textPrimary,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -6268,7 +9062,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF4F46E5) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
+                  color: isSelected
+                      ? const Color(0xFF4F46E5)
+                      : (isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF1F5F9)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -6288,7 +9086,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 borderRadius: BorderRadius.circular(10),
                 child: Padding(
                   padding: const EdgeInsets.all(2),
-                  child: Icon(Icons.close, size: 12, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
+                  child: Icon(Icons.close,
+                      size: 12,
+                      color: isDark
+                          ? const Color(0xFFA5B4FC)
+                          : const Color(0xFF4F46E5)),
                 ),
               ),
             ],

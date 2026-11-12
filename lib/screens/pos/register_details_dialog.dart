@@ -70,10 +70,13 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
     double exp = 0.0;
     double ret = 0.0;
     if (reg != null) {
+      final openDay = reg.openedAt.length >= 10
+          ? reg.openedAt.substring(0, 10)
+          : reg.openedAt;
       try {
         final expRes = await db.db.rawQuery(
-          "SELECT SUM(amount) as total FROM expenses WHERE LOWER(payment_method) = 'cash' AND datetime(date) >= datetime(?)",
-          [reg.openedAt],
+          "SELECT SUM(amount) as total FROM expenses WHERE LOWER(payment_method) = 'cash' AND (datetime(date) >= datetime(?) OR substr(date, 1, 10) >= ?)",
+          [reg.openedAt, openDay],
         );
         exp = (expRes.first['total'] as num?)?.toDouble() ?? 0.0;
       } catch (e, st) {
@@ -83,8 +86,8 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
 
       try {
         final retRes = await db.db.rawQuery(
-          "SELECT SUM(refund_amount) as total FROM sale_returns WHERE LOWER(refund_method) = 'cash' AND datetime(date) >= datetime(?)",
-          [reg.openedAt],
+          "SELECT SUM(refund_amount) as total FROM sale_returns WHERE LOWER(refund_method) = 'cash' AND (datetime(date) >= datetime(?) OR substr(date, 1, 10) >= ?)",
+          [reg.openedAt, openDay],
         );
         ret = (retRes.first['total'] as num?)?.toDouble() ?? 0.0;
       } catch (e, st) {
@@ -111,8 +114,20 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
     final closingAmount =
         double.tryParse(_closingCashController.text.trim()) ?? 0.0;
     final closeNote = _closeNoteController.text.trim();
+    final denomCounts = <int, int>{};
+    for (final entry in _denomControllers.entries) {
+      final count = int.tryParse(entry.value.text.trim()) ?? 0;
+      if (count > 0) denomCounts[entry.key] = count;
+    }
+    final coinsAmt = double.tryParse(_coinsController.text.trim()) ?? 0.0;
     final db = await DatabaseService.initialize();
-    await db.closeRegister(_register!.id!, closingAmount, closeNote);
+    await db.closeRegister(
+      _register!.id!,
+      closingAmount,
+      closeNote,
+      denominations: denomCounts,
+      coinsAmount: coinsAmt,
+    );
     if (mounted) {
       final reg = _register!;
       Navigator.of(context).pop(true);
@@ -223,10 +238,9 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
                   )
                 : Builder(
                     builder: (context) {
-                      final expectedCash = _register!.openingAmount +
-                          _register!.totalSalesCash -
-                          _cashRefunds -
-                          _cashExpenses;
+                      // ExpenseRepository, PurchaseRepository & SalesRepository already deduct cash payouts from totalSalesCash
+                      final expectedCash =
+                          _register!.openingAmount + _register!.totalSalesCash;
                       return SingleChildScrollView(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,

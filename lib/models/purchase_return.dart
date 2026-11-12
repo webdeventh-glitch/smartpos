@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 /// Purchase Return Model
 class PurchaseReturn {
   final int? id;
@@ -34,7 +36,6 @@ class PurchaseReturn {
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
-        'return_no': returnNo,
         'ref_no': returnNo,
         'purchase_id': purchaseId ?? 0,
         'purchase_ref': purchaseRef,
@@ -47,6 +48,7 @@ class PurchaseReturn {
         'status': status,
         'reason': reason,
         'note': note,
+        'items_json': jsonEncode(items.map((i) => i.toMap()).toList()),
       };
 
   factory PurchaseReturn.fromMap(Map<String, dynamic> map,

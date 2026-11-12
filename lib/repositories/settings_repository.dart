@@ -9,38 +9,52 @@ class SettingsRepository extends BaseRepository {
 
   // Settings (transparently encrypts/decrypts sensitive credentials)
   Future<BusinessSettings> getBusinessSettings() async {
-    final rows = await db.query('business_settings', orderBy: 'id DESC', limit: 1);
+    final rows =
+        await db.query('business_settings', orderBy: 'id DESC', limit: 1);
     if (rows.isEmpty) return BusinessSettings();
     final map = Map<String, dynamic>.from(rows.first);
-    if (map['db_password'] is String && (map['db_password'] as String).isNotEmpty) {
-      map['db_password'] = await DatabaseEncryptionService.decryptString(map['db_password'] as String);
+    if (map['db_password'] is String &&
+        (map['db_password'] as String).isNotEmpty) {
+      map['db_password'] = await DatabaseEncryptionService.decryptString(
+          map['db_password'] as String);
     }
-    if (map['sync_api_key'] is String && (map['sync_api_key'] as String).isNotEmpty) {
-      map['sync_api_key'] = await DatabaseEncryptionService.decryptString(map['sync_api_key'] as String);
+    if (map['sync_api_key'] is String &&
+        (map['sync_api_key'] as String).isNotEmpty) {
+      map['sync_api_key'] = await DatabaseEncryptionService.decryptString(
+          map['sync_api_key'] as String);
     }
     return BusinessSettings.fromMap(map);
   }
 
-  Future<void> updateBusinessSettings(BusinessSettings settings) async {
+  Future<void> updateBusinessSettings(
+    BusinessSettings settings, {
+    bool allowBusinessTypeChange = false,
+  }) async {
     final current = await getBusinessSettings();
     final map = settings.toMap();
-    if (current.isConfigured && current.businessType.isNotEmpty) {
-      // Lock business type permanently to the first-installation configuration
+    if (!allowBusinessTypeChange &&
+        current.isConfigured &&
+        current.businessType.isNotEmpty) {
+      // Protect against unintended type drift on routine saves unless explicitly switched
       map['business_type'] = current.businessType;
     }
     final rawDbPass = (map['db_password'] as String? ?? '');
     if (rawDbPass.isNotEmpty) {
-      map['db_password'] = await DatabaseEncryptionService.encryptString(rawDbPass);
+      map['db_password'] =
+          await DatabaseEncryptionService.encryptString(rawDbPass);
     }
     final rawSyncKey = (map['sync_api_key'] as String? ?? '');
     if (rawSyncKey.isNotEmpty) {
-      map['sync_api_key'] = await DatabaseEncryptionService.encryptString(rawSyncKey);
+      map['sync_api_key'] =
+          await DatabaseEncryptionService.encryptString(rawSyncKey);
     }
     final targetId = settings.id != 0 ? settings.id : current.id;
     map['id'] = targetId;
-    final count = await db.update('business_settings', map, where: 'id = ?', whereArgs: [targetId]);
+    final count = await db.update('business_settings', map,
+        where: 'id = ?', whereArgs: [targetId]);
     if (count == 0) {
-      await db.insert('business_settings', map, conflictAlgorithm: ConflictAlgorithm.replace);
+      await db.insert('business_settings', map,
+          conflictAlgorithm: ConflictAlgorithm.replace);
     }
     await recordActivity(
       action: 'updated',
@@ -203,8 +217,10 @@ class SettingsRepository extends BaseRepository {
   // ===================== SMS GATEWAYS =====================
   Future<Map<String, dynamic>> _decryptSmsRow(Map<String, dynamic> row) async {
     final m = Map<String, dynamic>.from(row);
-    m['api_key'] = await DatabaseEncryptionService.decryptString(m['api_key'] as String?);
-    m['api_secret'] = await DatabaseEncryptionService.decryptString(m['api_secret'] as String?);
+    m['api_key'] =
+        await DatabaseEncryptionService.decryptString(m['api_key'] as String?);
+    m['api_secret'] = await DatabaseEncryptionService.decryptString(
+        m['api_secret'] as String?);
     return m;
   }
 
@@ -212,8 +228,10 @@ class SettingsRepository extends BaseRepository {
     final m = Map<String, dynamic>.from(map);
     final k = m['api_key'] as String? ?? '';
     final s = m['api_secret'] as String? ?? '';
-    if (k.isNotEmpty) m['api_key'] = await DatabaseEncryptionService.encryptString(k);
-    if (s.isNotEmpty) m['api_secret'] = await DatabaseEncryptionService.encryptString(s);
+    if (k.isNotEmpty)
+      m['api_key'] = await DatabaseEncryptionService.encryptString(k);
+    if (s.isNotEmpty)
+      m['api_secret'] = await DatabaseEncryptionService.encryptString(s);
     return m;
   }
 
@@ -227,7 +245,8 @@ class SettingsRepository extends BaseRepository {
   }
 
   Future<SmsGateway?> getActiveSmsGateway() async {
-    final rows = await db.query('sms_gateways', where: 'is_active = 1', limit: 1);
+    final rows =
+        await db.query('sms_gateways', where: 'is_active = 1', limit: 1);
     if (rows.isNotEmpty) {
       return SmsGateway.fromMap(await _decryptSmsRow(rows.first));
     }
@@ -242,7 +261,8 @@ class SettingsRepository extends BaseRepository {
   Future<void> updateSmsGateway(SmsGateway gateway) async {
     if (gateway.id != null) {
       final map = await _encryptSmsMap(gateway.toMap());
-      await db.update('sms_gateways', map, where: 'id = ?', whereArgs: [gateway.id]);
+      await db.update('sms_gateways', map,
+          where: 'id = ?', whereArgs: [gateway.id]);
     }
   }
 
@@ -252,7 +272,8 @@ class SettingsRepository extends BaseRepository {
 
   // ===================== MESSAGE LOGS =====================
   Future<List<MessageLog>> getMessageLogs({int limit = 100}) async {
-    final rows = await db.query('message_logs', orderBy: 'id DESC', limit: limit);
+    final rows =
+        await db.query('message_logs', orderBy: 'id DESC', limit: limit);
     return rows.map((r) => MessageLog.fromMap(r)).toList();
   }
 
@@ -265,7 +286,8 @@ class SettingsRepository extends BaseRepository {
     final rows = await db.query('ai_settings', limit: 1);
     if (rows.isNotEmpty) {
       final m = Map<String, dynamic>.from(rows.first);
-      m['api_key'] = await DatabaseEncryptionService.decryptString(m['api_key'] as String?);
+      m['api_key'] = await DatabaseEncryptionService.decryptString(
+          m['api_key'] as String?);
       return AiSettings.fromMap(m);
     }
     return AiSettings();
@@ -310,9 +332,11 @@ class SettingsRepository extends BaseRepository {
   Future<String> generateNextInvoiceNumber({int? schemeId}) async {
     List<Map<String, dynamic>> schemes;
     if (schemeId != null) {
-      schemes = await db.query('invoice_schemes', where: 'id = ?', whereArgs: [schemeId], limit: 1);
+      schemes = await db.query('invoice_schemes',
+          where: 'id = ?', whereArgs: [schemeId], limit: 1);
     } else {
-      schemes = await db.query('invoice_schemes', where: 'is_default = 1', limit: 1);
+      schemes =
+          await db.query('invoice_schemes', where: 'is_default = 1', limit: 1);
     }
     if (schemes.isEmpty) {
       schemes = await db.query('invoice_schemes', limit: 1);
@@ -322,9 +346,13 @@ class SettingsRepository extends BaseRepository {
       final s = InvoiceScheme.fromMap(schemes.first);
       final nextNumber = s.startNumber + s.invoiceCount;
       final padded = nextNumber.toString().padLeft(s.totalDigits, '0');
-      final code = s.schemeType == 'year' ? '${s.prefix}${DateTime.now().year}-$padded' : '${s.prefix}$padded';
+      final code = s.schemeType == 'year'
+          ? '${s.prefix}${DateTime.now().year}-$padded'
+          : '${s.prefix}$padded';
       // Increment count
-      await db.rawUpdate('UPDATE invoice_schemes SET invoice_count = invoice_count + 1 WHERE id = ?', [s.id]);
+      await db.rawUpdate(
+          'UPDATE invoice_schemes SET invoice_count = invoice_count + 1 WHERE id = ?',
+          [s.id]);
       return code;
     }
     return 'INV-${DateTime.now().millisecondsSinceEpoch % 100000}';
@@ -333,7 +361,8 @@ class SettingsRepository extends BaseRepository {
   // ===================== THERMAL PRINTERS (ESC/POS) =====================
 
   Future<List<ThermalPrinterConfig>> getPrinters() async {
-    final rows = await db.query('receipt_printers', orderBy: 'is_default DESC, id ASC');
+    final rows =
+        await db.query('receipt_printers', orderBy: 'is_default DESC, id ASC');
     return rows.map((r) => ThermalPrinterConfig.fromMap(r)).toList();
   }
 
@@ -345,8 +374,11 @@ class SettingsRepository extends BaseRepository {
       limit: 1,
     );
     if (defRows.isNotEmpty) return ThermalPrinterConfig.fromMap(defRows.first);
-    final anyRows = await db.query('receipt_printers', orderBy: 'id ASC', limit: 1);
-    return anyRows.isNotEmpty ? ThermalPrinterConfig.fromMap(anyRows.first) : null;
+    final anyRows =
+        await db.query('receipt_printers', orderBy: 'id ASC', limit: 1);
+    return anyRows.isNotEmpty
+        ? ThermalPrinterConfig.fromMap(anyRows.first)
+        : null;
   }
 
   Future<ThermalPrinterConfig?> getKotPrinter() async {
@@ -420,7 +452,8 @@ class SettingsRepository extends BaseRepository {
   // ===================== INVOICE LAYOUTS (TEMPLATES) =====================
 
   Future<List<InvoiceLayout>> getInvoiceLayouts() async {
-    final rows = await db.query('invoice_layouts', orderBy: 'is_default DESC, id ASC');
+    final rows =
+        await db.query('invoice_layouts', orderBy: 'is_default DESC, id ASC');
     return rows.map((r) => InvoiceLayout.fromMap(r)).toList();
   }
 
@@ -432,7 +465,8 @@ class SettingsRepository extends BaseRepository {
       limit: 1,
     );
     if (defRows.isNotEmpty) return InvoiceLayout.fromMap(defRows.first);
-    final anyRows = await db.query('invoice_layouts', orderBy: 'id ASC', limit: 1);
+    final anyRows =
+        await db.query('invoice_layouts', orderBy: 'id ASC', limit: 1);
     return anyRows.isNotEmpty ? InvoiceLayout.fromMap(anyRows.first) : null;
   }
 
@@ -492,5 +526,4 @@ class SettingsRepository extends BaseRepository {
       entityId: id,
     );
   }
-
 }

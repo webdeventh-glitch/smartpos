@@ -22,7 +22,8 @@ class DatabaseSchema {
     return rows.isNotEmpty;
   }
 
-  static Future<bool> _columnExists(DatabaseExecutor db, String table, String column) async {
+  static Future<bool> _columnExists(
+      DatabaseExecutor db, String table, String column) async {
     final info = await db.rawQuery('PRAGMA table_info($table)');
     return info.any((col) => col['name'] == column);
   }
@@ -41,7 +42,8 @@ class DatabaseSchema {
       return;
     }
     if (!await _columnExists(db, table, column)) {
-      AppLogger.info('DatabaseMigration', 'Adding column $table.$column ($definition)');
+      AppLogger.info(
+          'DatabaseMigration', 'Adding column $table.$column ($definition)');
       await db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
     }
   }
@@ -53,7 +55,8 @@ class DatabaseSchema {
     String columns,
   ) async {
     if (!await _tableExists(db, table)) return;
-    await db.execute('CREATE INDEX IF NOT EXISTS $indexName ON $table($columns)');
+    await db
+        .execute('CREATE INDEX IF NOT EXISTS $indexName ON $table($columns)');
   }
 
   static Future<void> ensureMigrationTable(Database db) async {
@@ -66,7 +69,8 @@ class DatabaseSchema {
     ''');
   }
 
-  static Future<void> _recordMigration(Database db, int version, String name) async {
+  static Future<void> _recordMigration(
+      Database db, int version, String name) async {
     await ensureMigrationTable(db);
     await db.insert(
       'schema_migrations',
@@ -77,7 +81,8 @@ class DatabaseSchema {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    AppLogger.info('DatabaseMigration', 'Applied schema migration v$version: $name');
+    AppLogger.info(
+        'DatabaseMigration', 'Applied schema migration v$version: $name');
   }
 
   static Future<void> runMigrations(
@@ -137,48 +142,165 @@ class DatabaseSchema {
         'phase7_featured_products_shortcuts_touch_and_perf_indexes',
       );
     }
+    if (fromVersion < 9 && toVersion >= 9) {
+      await _applyV9AuditAndSuperstoreMigrations(db);
+      await _recordMigration(
+        db,
+        9,
+        'phase8_audit_multi_location_returns_overselling_and_modules',
+      );
+    }
+  }
+
+  static Future<void> _applyV9AuditAndSuperstoreMigrations(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS product_locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        location_id INTEGER NOT NULL DEFAULT 1,
+        qty_available REAL NOT NULL DEFAULT 0.0,
+        updated_at TEXT DEFAULT '',
+        UNIQUE(product_id, location_id)
+      )
+    ''');
+    await _ensureIndex(db, 'idx_prod_loc_prod', 'product_locations',
+        'product_id, location_id');
+
+    if (await _tableExists(db, 'products')) {
+      await db.execute('''
+        INSERT OR IGNORE INTO product_locations (product_id, location_id, qty_available, updated_at)
+        SELECT id, 1, stock_quantity, '' FROM products
+      ''');
+    }
+
+    await _addColumnIfMissing(db, 'sales', 'location_id', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'sale_returns', 'reason', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'sale_returns', 'created_by', "TEXT DEFAULT 'Admin'");
+    await _addColumnIfMissing(
+        db, 'sale_return_items', 'unit_multiplier', 'REAL DEFAULT 1.0');
+    await _addColumnIfMissing(
+        db, 'purchase_returns', 'reason', "TEXT DEFAULT ''");
+
+    await _addColumnIfMissing(db, 'parked_sales', 'customer_id', 'INTEGER');
+    await _addColumnIfMissing(
+        db, 'parked_sales', 'discount_type', "TEXT DEFAULT 'fixed'");
+    await _addColumnIfMissing(
+        db, 'parked_sales', 'discount_value', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'parked_sales', 'order_tax', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'parked_sales', 'shipping_charge', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'parked_sales', 'is_wholesale', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'parked_sales', 'commission_agent_id', 'INTEGER');
+    await _addColumnIfMissing(
+        db, 'parked_sales', 'commission_agent_name', "TEXT DEFAULT ''");
+
+    await _addColumnIfMissing(
+        db, 'business_settings', 'allow_overselling', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'login_banner_path', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'login_side_title', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'login_side_subtitle', "TEXT DEFAULT ''");
+
+    await _addColumnIfMissing(
+        db, 'financial_years', 'receivables', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'financial_years', 'payables', 'REAL DEFAULT 0.0');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS module_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        module_key TEXT NOT NULL,
+        record_type TEXT NOT NULL,
+        title TEXT DEFAULT '',
+        data_json TEXT NOT NULL,
+        status TEXT DEFAULT 'active',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    await _ensureIndex(db, 'idx_module_records_key', 'module_records',
+        'module_key, record_type, id');
+
+    if (await _tableExists(db, 'contacts')) {
+      await _addColumnIfMissing(db, 'contacts', 'tax_number', 'TEXT');
+      await _addColumnIfMissing(
+          db, 'contacts', 'is_default_walk_in', 'INTEGER DEFAULT 0');
+      await db.execute('''
+        UPDATE contacts
+        SET is_default_walk_in = 1
+        WHERE LOWER(TRIM(name)) IN ('walk-in customer', 'walk in customer')
+      ''');
+    }
   }
 
   static Future<void> _applyV8Phase7Migrations(Database db) async {
     // Step 7.2: Real boolean is_featured column replacing ID % 5 hack
-    await _addColumnIfMissing(db, 'products', 'is_featured', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'products', 'is_featured', 'INTEGER DEFAULT 0');
 
     // Step 7.3 & 7.4: Touch-friendly UI & custom keyboard shortcut JSON
-    await _addColumnIfMissing(db, 'business_settings', 'touch_friendly_mode', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'business_settings', 'keyboard_shortcuts_json', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'touch_friendly_mode', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'keyboard_shortcuts_json', "TEXT DEFAULT ''");
 
     // Step 7.6: Conflict resolution audit metadata on sync_queue
-    await _addColumnIfMissing(db, 'sync_queue', 'entity_updated_at', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'sync_queue', 'conflict_resolution', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'sync_queue', 'entity_updated_at', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'sync_queue', 'conflict_resolution', "TEXT DEFAULT ''");
 
     // Step 7.5: Hot query & report performance indexes
-    await _ensureIndex(db, 'idx_products_featured', 'products', 'is_featured, name COLLATE NOCASE, id');
-    await _ensureIndex(db, 'idx_sales_created_status', 'sales', 'sale_status, created_at');
-    await _ensureIndex(db, 'idx_purchases_status_created', 'purchases', 'status, created_at');
+    await _ensureIndex(db, 'idx_products_featured', 'products',
+        'is_featured, name COLLATE NOCASE, id');
+    await _ensureIndex(
+        db, 'idx_sales_created_status', 'sales', 'sale_status, created_at');
+    await _ensureIndex(
+        db, 'idx_purchases_status_created', 'purchases', 'status, created_at');
     await _ensureIndex(db, 'idx_sync_queue_status', 'sync_queue', 'status, id');
-    await _ensureIndex(db, 'idx_sale_items_prod', 'sale_items', 'product_id, sale_id');
+    await _ensureIndex(
+        db, 'idx_sale_items_prod', 'sale_items', 'product_id, sale_id');
   }
 
   static Future<void> _applyV7Phase6Migrations(Database db) async {
     // Step 6.1: Sales Orders workflow & partial fulfillment
     await _addColumnIfMissing(db, 'sales', 'order_status', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'sales', 'converted_from_order_id', 'INTEGER');
-    await _addColumnIfMissing(db, 'sale_items', 'fulfilled_quantity', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'sales', 'converted_from_order_id', 'INTEGER');
+    await _addColumnIfMissing(
+        db, 'sale_items', 'fulfilled_quantity', 'REAL DEFAULT 0.0');
 
     // Step 6.2: Purchase Orders workflow
-    await _addColumnIfMissing(db, 'purchases', 'is_purchase_order', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'purchases', 'converted_from_po_id', 'INTEGER');
+    await _addColumnIfMissing(
+        db, 'purchases', 'is_purchase_order', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'purchases', 'converted_from_po_id', 'INTEGER');
 
     // Step 6.3: Cheque management fields on payment records
-    await _addColumnIfMissing(db, 'payment_transactions', 'cheque_number', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'payment_transactions', 'bank_name', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'payment_transactions', 'cheque_due_date', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'payment_transactions', 'cheque_status', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'payment_transactions', 'cheque_cleared_at', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'contact_payments', 'cheque_number', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'contact_payments', 'bank_name', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'contact_payments', 'cheque_due_date', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'contact_payments', 'cheque_status', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'payment_transactions', 'cheque_number', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'payment_transactions', 'bank_name', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'payment_transactions', 'cheque_due_date', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'payment_transactions', 'cheque_status', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'payment_transactions', 'cheque_cleared_at', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'contact_payments', 'cheque_number', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'contact_payments', 'bank_name', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'contact_payments', 'cheque_due_date', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'contact_payments', 'cheque_status', "TEXT DEFAULT ''");
 
     // Backfill legacy cheque payments without cheque_status to 'pending'
     if (await _tableExists(db, 'payment_transactions')) {
@@ -205,9 +327,12 @@ class DatabaseSchema {
       )
     ''');
     await _addColumnIfMissing(db, 'sales', 'commission_agent_id', 'INTEGER');
-    await _addColumnIfMissing(db, 'sales', 'commission_agent_name', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'sales', 'commission_percent', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'sales', 'commission_amount', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'sales', 'commission_agent_name', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'sales', 'commission_percent', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'sales', 'commission_amount', 'REAL DEFAULT 0.0');
 
     // Step 6.5: Discount Schedules & Conditional Rules
     await db.execute('''
@@ -236,44 +361,64 @@ class DatabaseSchema {
         created_at TEXT
       )
     ''');
-    await _addColumnIfMissing(db, 'discounts', 'rule_type', "TEXT DEFAULT 'standard'");
+    await _addColumnIfMissing(
+        db, 'discounts', 'rule_type', "TEXT DEFAULT 'standard'");
     await _addColumnIfMissing(db, 'discounts', 'product_id', 'INTEGER');
-    await _addColumnIfMissing(db, 'discounts', 'days_of_week', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'discounts', 'days_of_week', "TEXT DEFAULT ''");
     await _addColumnIfMissing(db, 'discounts', 'start_time', "TEXT DEFAULT ''");
     await _addColumnIfMissing(db, 'discounts', 'end_time', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'discounts', 'min_quantity', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'discounts', 'buy_quantity', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'discounts', 'free_quantity', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'discounts', 'min_order_amount', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'discounts', 'applicable_in_pos', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'discounts', 'min_quantity', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'discounts', 'buy_quantity', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'discounts', 'free_quantity', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'discounts', 'min_order_amount', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'discounts', 'applicable_in_pos', 'INTEGER DEFAULT 1');
 
     // Step 6.6: Automated Backup Scheduler settings
-    await _addColumnIfMissing(db, 'business_settings', 'auto_backup_enabled', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'business_settings', 'backup_frequency', "TEXT DEFAULT 'daily'");
-    await _addColumnIfMissing(db, 'business_settings', 'backup_interval_hours', 'INTEGER DEFAULT 24');
-    await _addColumnIfMissing(db, 'business_settings', 'backup_retention_count', 'INTEGER DEFAULT 10');
-    await _addColumnIfMissing(db, 'business_settings', 'last_auto_backup_at', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'auto_backup_enabled', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'backup_frequency', "TEXT DEFAULT 'daily'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'backup_interval_hours', 'INTEGER DEFAULT 24');
+    await _addColumnIfMissing(db, 'business_settings', 'backup_retention_count',
+        'INTEGER DEFAULT 10');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'last_auto_backup_at', "TEXT DEFAULT ''");
 
     // Phase 6 Indexes
-    await _ensureIndex(db, 'idx_sales_order_status', 'sales', 'sale_status, order_status, id DESC');
-    await _ensureIndex(db, 'idx_sales_commission_agent', 'sales', 'commission_agent_id, created_at');
-    await _ensureIndex(db, 'idx_purchases_po', 'purchases', 'is_purchase_order, status, id DESC');
-    await _ensureIndex(db, 'idx_pay_txn_cheque', 'payment_transactions', 'payment_method, cheque_status, cheque_due_date');
-    await _ensureIndex(db, 'idx_discounts_active', 'discounts', 'is_active, priority');
+    await _ensureIndex(db, 'idx_sales_order_status', 'sales',
+        'sale_status, order_status, id DESC');
+    await _ensureIndex(db, 'idx_sales_commission_agent', 'sales',
+        'commission_agent_id, created_at');
+    await _ensureIndex(db, 'idx_purchases_po', 'purchases',
+        'is_purchase_order, status, id DESC');
+    await _ensureIndex(db, 'idx_pay_txn_cheque', 'payment_transactions',
+        'payment_method, cheque_status, cheque_due_date');
+    await _ensureIndex(
+        db, 'idx_discounts_active', 'discounts', 'is_active, priority');
   }
 
   static Future<void> _applyV6Phase5Migrations(Database db) async {
     await _addColumnIfMissing(db, 'products', 'category_id', 'INTEGER');
     await _addColumnIfMissing(db, 'products', 'brand_id', 'INTEGER');
-    await _addColumnIfMissing(db, 'products', 'stock_quantity', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'products', 'stock_quantity', 'REAL DEFAULT 0.0');
     await _addColumnIfMissing(db, 'products', 'image_color', 'TEXT');
     await _addColumnIfMissing(db, 'products', 'image_path', 'TEXT');
     await _addColumnIfMissing(db, 'variations', 'product_id', 'INTEGER');
     await _addColumnIfMissing(db, 'variations', 'sub_sku', 'TEXT');
     await _addColumnIfMissing(db, 'sale_items', 'variation_id', 'INTEGER');
     await _addColumnIfMissing(db, 'sale_items', 'variation_name', 'TEXT');
-    await _addColumnIfMissing(db, 'sale_return_items', 'variation_id', 'INTEGER');
-    await _addColumnIfMissing(db, 'sale_return_items', 'variation_name', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'sale_return_items', 'variation_id', 'INTEGER');
+    await _addColumnIfMissing(
+        db, 'sale_return_items', 'variation_name', 'TEXT');
 
     // Move legacy filesystem paths previously saved into image_color into image_path.
     if (await _tableExists(db, 'products') &&
@@ -290,22 +435,31 @@ class DatabaseSchema {
     }
 
     // Indexes for 50k+ cursor/paged catalog queries and fast variation lookups.
-    await _ensureIndex(db, 'idx_products_name_id', 'products', 'name COLLATE NOCASE, id');
-    await _ensureIndex(db, 'idx_products_cat_name', 'products', 'category_id, name COLLATE NOCASE, id');
-    await _ensureIndex(db, 'idx_products_brand_name', 'products', 'brand_id, name COLLATE NOCASE, id');
+    await _ensureIndex(
+        db, 'idx_products_name_id', 'products', 'name COLLATE NOCASE, id');
+    await _ensureIndex(db, 'idx_products_cat_name', 'products',
+        'category_id, name COLLATE NOCASE, id');
+    await _ensureIndex(db, 'idx_products_brand_name', 'products',
+        'brand_id, name COLLATE NOCASE, id');
     await _ensureIndex(db, 'idx_products_stock', 'products', 'stock_quantity');
-    await _ensureIndex(db, 'idx_variations_prod', 'variations', 'product_id, id');
+    await _ensureIndex(
+        db, 'idx_variations_prod', 'variations', 'product_id, id');
     await _ensureIndex(db, 'idx_variations_subsku', 'variations', 'sub_sku');
-    await _ensureIndex(db, 'idx_sales_status_id', 'sales', 'sale_status, id DESC');
+    await _ensureIndex(
+        db, 'idx_sales_status_id', 'sales', 'sale_status, id DESC');
     await _ensureIndex(db, 'idx_purchases_id', 'purchases', 'id DESC');
-    await _ensureIndex(db, 'idx_contacts_type_name', 'contacts', 'type, name COLLATE NOCASE, id');
+    await _ensureIndex(db, 'idx_contacts_type_name', 'contacts',
+        'type, name COLLATE NOCASE, id');
   }
 
   static Future<void> _applyV4Phase3Migrations(Database db) async {
     // 1. Step 3.1: Explicit item-level discount & tax fields on sale_items
-    await _addColumnIfMissing(db, 'sale_items', 'discount_type', "TEXT DEFAULT 'fixed'");
-    await _addColumnIfMissing(db, 'sale_items', 'discount_value', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'sale_items', 'tax_amount', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'sale_items', 'discount_type', "TEXT DEFAULT 'fixed'");
+    await _addColumnIfMissing(
+        db, 'sale_items', 'discount_value', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'sale_items', 'tax_amount', 'REAL DEFAULT 0.0');
     await _addColumnIfMissing(db, 'sale_items', 'tax_name', 'TEXT');
 
     // 2. Step 3.2: Tax Groups table & product/sale tax links
@@ -323,7 +477,8 @@ class DatabaseSchema {
     await _addColumnIfMissing(db, 'products', 'tax_rate_id', 'INTEGER');
     await _addColumnIfMissing(db, 'products', 'tax_group_id', 'INTEGER');
     await _addColumnIfMissing(db, 'sales', 'tax_group_id', 'INTEGER');
-    await _addColumnIfMissing(db, 'sales', 'tax_breakdown_json', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'sales', 'tax_breakdown_json', "TEXT DEFAULT ''");
 
     // 3. Step 3.3: Customer Groups & contact group link
     await db.execute('''
@@ -339,7 +494,8 @@ class DatabaseSchema {
     await _addColumnIfMissing(db, 'contacts', 'customer_group_id', 'INTEGER');
 
     // 4. Step 3.4: Quotation -> Invoice tracking columns
-    await _addColumnIfMissing(db, 'sales', 'converted_from_quotation_id', 'INTEGER');
+    await _addColumnIfMissing(
+        db, 'sales', 'converted_from_quotation_id', 'INTEGER');
     await _addColumnIfMissing(db, 'sales', 'converted_to_sale_id', 'INTEGER');
 
     // 5. Step 3.5: Normalized RBAC roles & role_permissions
@@ -379,7 +535,8 @@ class DatabaseSchema {
         created_at TEXT NOT NULL
       )
     ''');
-    await _ensureIndex(db, 'idx_act_entity', 'activity_log', 'entity_type, entity_id');
+    await _ensureIndex(
+        db, 'idx_act_entity', 'activity_log', 'entity_type, entity_id');
     await _ensureIndex(db, 'idx_act_date', 'activity_log', 'created_at');
 
     await _seedPhase3BaselineData(db);
@@ -395,7 +552,8 @@ class DatabaseSchema {
       await db.rawUpdate(
         "UPDATE customer_groups SET amount = -5.0 WHERE name = 'VIP Club Members (5% Tier)' AND amount = 5.0",
       );
-      final cgCountRes = await db.rawQuery('SELECT COUNT(*) as c FROM customer_groups');
+      final cgCountRes =
+          await db.rawQuery('SELECT COUNT(*) as c FROM customer_groups');
       if (((cgCountRes.first['c'] as int?) ?? 0) == 0) {
         await db.insert('customer_groups', {
           'name': 'Retail Customer',
@@ -417,17 +575,30 @@ class DatabaseSchema {
         });
       }
     } catch (e, st) {
-      AppLogger.warning('DatabaseSchema', 'Skipped default customer_groups seed', e, st);
+      AppLogger.warning(
+          'DatabaseSchema', 'Skipped default customer_groups seed', e, st);
     }
 
     try {
       final roleCountRes = await db.rawQuery('SELECT COUNT(*) as c FROM roles');
       if (((roleCountRes.first['c'] as int?) ?? 0) == 0) {
         const roleMeta = [
-          ('superadmin', 'Super Admin / Owner', 'Unrestricted system owner privileges'),
+          (
+            'superadmin',
+            'Super Admin / Owner',
+            'Unrestricted system owner privileges'
+          ),
           ('admin', 'Administrator', 'Full store & accounting management'),
-          ('manager', 'Store Manager', 'Daily operations, inventory, reports & shift control'),
-          ('salesman', 'Salesman', 'POS billing, quotations, customers & limited discounts'),
+          (
+            'manager',
+            'Store Manager',
+            'Daily operations, inventory, reports & shift control'
+          ),
+          (
+            'salesman',
+            'Salesman',
+            'POS billing, quotations, customers & limited discounts'
+          ),
           ('cashier', 'Cashier', 'Counter checkout & register shift control'),
         ];
         for (final entry in roleMeta) {
@@ -438,7 +609,8 @@ class DatabaseSchema {
             'is_system': 1,
             'created_at': nowIso,
           });
-          for (final permKey in PermissionCatalog.defaultPermissionsForRole(entry.$1)) {
+          for (final permKey
+              in PermissionCatalog.defaultPermissionsForRole(entry.$1)) {
             await db.insert(
               'role_permissions',
               {'role_id': roleId, 'permission_key': permKey},
@@ -448,7 +620,8 @@ class DatabaseSchema {
         }
       }
     } catch (e, st) {
-      AppLogger.warning('DatabaseSchema', 'Skipped default RBAC roles seed', e, st);
+      AppLogger.warning(
+          'DatabaseSchema', 'Skipped default RBAC roles seed', e, st);
     }
   }
 
@@ -512,48 +685,85 @@ class DatabaseSchema {
       )
     ''');
 
-    await _addColumnIfMissing(db, 'invoice_layouts', 'design', "TEXT DEFAULT 'detailed'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'paper_size', "TEXT DEFAULT 'a4'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'paper_orientation', "TEXT DEFAULT 'portrait'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'font_size', 'REAL DEFAULT 10.0');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'highlight_color', "TEXT DEFAULT '#0F172A'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'invoice_heading', "TEXT DEFAULT 'TAX INVOICE'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'header_text', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'sub_total_label', "TEXT DEFAULT 'Subtotal'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'discount_label', "TEXT DEFAULT 'Discount'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'tax_label', "TEXT DEFAULT 'Tax'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'total_label', "TEXT DEFAULT 'Grand Total'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'footer_text', "TEXT DEFAULT 'Thank you for shopping with us!'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'terms_text', "TEXT DEFAULT 'Goods once sold can only be exchanged within 7 days with original receipt.'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'signature_label', "TEXT DEFAULT 'Authorized Signature'");
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_logo', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_business_name', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_address', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_phone', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_email', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_tax_number', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_sku', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_brand', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_image', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_expiry', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_batch', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_warranty', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_barcode', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_qr_code', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_customer_balance', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_signature', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'show_total_in_words', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'invoice_layouts', 'is_default', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'design', "TEXT DEFAULT 'detailed'");
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'paper_size', "TEXT DEFAULT 'a4'");
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'paper_orientation', "TEXT DEFAULT 'portrait'");
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'font_size', 'REAL DEFAULT 10.0');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'highlight_color', "TEXT DEFAULT '#0F172A'");
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'invoice_heading', "TEXT DEFAULT 'TAX INVOICE'");
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'header_text', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'sub_total_label', "TEXT DEFAULT 'Subtotal'");
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'discount_label', "TEXT DEFAULT 'Discount'");
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'tax_label', "TEXT DEFAULT 'Tax'");
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'total_label', "TEXT DEFAULT 'Grand Total'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'footer_text',
+        "TEXT DEFAULT 'Thank you for shopping with us!'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'terms_text',
+        "TEXT DEFAULT 'Goods once sold can only be exchanged within 7 days with original receipt.'");
+    await _addColumnIfMissing(db, 'invoice_layouts', 'signature_label',
+        "TEXT DEFAULT 'Authorized Signature'");
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_logo', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_business_name', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_address', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_phone', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_email', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_tax_number', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_sku', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_brand', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_image', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_expiry', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_batch', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_warranty', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_barcode', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_qr_code', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_customer_balance', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_signature', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'show_total_in_words', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'invoice_layouts', 'is_default', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'invoice_layouts', 'created_at', 'TEXT');
 
-    await _addColumnIfMissing(db, 'business_settings', 'auto_print_receipt', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'business_settings', 'auto_print_kot', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'business_settings', 'default_printer_id', 'INTEGER');
-    await _addColumnIfMissing(db, 'business_settings', 'default_invoice_layout_id', 'INTEGER');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'auto_print_receipt', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'auto_print_kot', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'default_printer_id', 'INTEGER');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'default_invoice_layout_id', 'INTEGER');
 
     try {
       final nowIso = DateTime.now().toIso8601String();
-      final hasDefaultRows = await db.query('invoice_layouts', where: 'is_default = 1', limit: 1);
+      final hasDefaultRows =
+          await db.query('invoice_layouts', where: 'is_default = 1', limit: 1);
       final starterTemplates = [
         InvoiceLayout(
           name: 'Detailed A4 Agency',
@@ -599,13 +809,16 @@ class DatabaseSchema {
         }
       }
     } catch (e, st) {
-      AppLogger.warning('DatabaseSchema', 'Skipped default invoice_layouts seed', e, st);
+      AppLogger.warning(
+          'DatabaseSchema', 'Skipped default invoice_layouts seed', e, st);
     }
   }
 
   static Future<void> _applyV3SecurityMigrations(Database db) async {
-    await _addColumnIfMissing(db, 'users', 'must_change_password', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'users', 'failed_login_attempts', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'must_change_password', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'failed_login_attempts', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'users', 'locked_until', 'TEXT');
     await _addColumnIfMissing(db, 'users', 'password_changed_at', 'TEXT');
     await _addColumnIfMissing(
@@ -662,7 +875,8 @@ class DatabaseSchema {
     final legacyFile = File(p.join(base, 'SimpleStock', 'stock.db'));
     if (!legacyFile.existsSync()) return;
 
-    final prodCountRes = await db.rawQuery('SELECT COUNT(*) as c FROM products');
+    final prodCountRes =
+        await db.rawQuery('SELECT COUNT(*) as c FROM products');
     final prodCount = (prodCountRes.first['c'] as int?) ?? 0;
     if (prodCount > 0) return;
 
@@ -761,7 +975,8 @@ class DatabaseSchema {
     ''');
 
     // Ensure default location if empty
-    final locRes = await db.rawQuery('SELECT COUNT(*) as c FROM business_locations');
+    final locRes =
+        await db.rawQuery('SELECT COUNT(*) as c FROM business_locations');
     final locCount = (locRes.first['c'] as int?) ?? 0;
     if (locCount == 0) {
       await db.insert('business_locations', {
@@ -796,13 +1011,17 @@ class DatabaseSchema {
     final taxRes = await db.rawQuery('SELECT COUNT(*) as c FROM tax_rates');
     final taxCount = (taxRes.first['c'] as int?) ?? 0;
     if (taxCount == 0) {
-      await db.insert('tax_rates', {'name': 'No Tax (0%)', 'amount': 0.0, 'is_tax_group': 0});
-      await db.insert('tax_rates', {'name': 'Standard VAT (5%)', 'amount': 5.0, 'is_tax_group': 0});
-      await db.insert('tax_rates', {'name': 'GST / Sales Tax (15%)', 'amount': 15.0, 'is_tax_group': 0});
+      await db.insert('tax_rates',
+          {'name': 'No Tax (0%)', 'amount': 0.0, 'is_tax_group': 0});
+      await db.insert('tax_rates',
+          {'name': 'Standard VAT (5%)', 'amount': 5.0, 'is_tax_group': 0});
+      await db.insert('tax_rates',
+          {'name': 'GST / Sales Tax (15%)', 'amount': 15.0, 'is_tax_group': 0});
     }
 
     // Ensure default invoice schemes if empty
-    final schemeRes = await db.rawQuery('SELECT COUNT(*) as c FROM invoice_schemes');
+    final schemeRes =
+        await db.rawQuery('SELECT COUNT(*) as c FROM invoice_schemes');
     final schemeCount = (schemeRes.first['c'] as int?) ?? 0;
     if (schemeCount == 0) {
       await db.insert('invoice_schemes', {
@@ -937,7 +1156,8 @@ class DatabaseSchema {
       await db.insert('sms_gateways', {
         'name': 'Generic Pakistan REST SMS API',
         'provider': 'generic_http',
-        'api_url': 'https://sendpk.com/api/sms.php?username={key}&password={secret}&sender={mask}&mobile={to}&message={message}',
+        'api_url':
+            'https://sendpk.com/api/sms.php?username={key}&password={secret}&sender={mask}&mobile={to}&message={message}',
         'api_key': '',
         'api_secret': '',
         'sender_id': 'SMARTPOS',
@@ -957,20 +1177,24 @@ class DatabaseSchema {
         'model_name': 'gemini-1.5-flash',
         'is_enabled': 1,
         'preferred_language': 'roman_urdu',
-        'system_prompt': 'Aap Smart POS ke AI Business Advisor hain. Shop owner ko unke store ke sales, profit, stock aur products ka behtareen mashwara Roman Urdu me dein.',
+        'system_prompt':
+            'Aap Smart POS ke AI Business Advisor hain. Shop owner ko unke store ke sales, profit, stock aur products ka behtareen mashwara Roman Urdu me dein.',
       });
     }
 
     // Add optional columns to products, categories, and sale_items tables if missing
     await _addColumnIfMissing(db, 'products', 'type', "TEXT DEFAULT 'single'");
-    await _addColumnIfMissing(db, 'products', 'barcode_type', "TEXT DEFAULT 'Code 128'");
+    await _addColumnIfMissing(
+        db, 'products', 'barcode_type', "TEXT DEFAULT 'Code 128'");
     await _addColumnIfMissing(db, 'products', 'warranty', 'TEXT');
     await _addColumnIfMissing(db, 'categories', 'parent_id', 'INTEGER');
     await _addColumnIfMissing(db, 'sale_items', 'unit_name', 'TEXT');
-    await _addColumnIfMissing(db, 'sale_items', 'unit_multiplier', 'REAL DEFAULT 1.0');
+    await _addColumnIfMissing(
+        db, 'sale_items', 'unit_multiplier', 'REAL DEFAULT 1.0');
 
     // Seed default variation templates if empty
-    final varTempRes = await db.rawQuery('SELECT COUNT(*) as c FROM variation_templates');
+    final varTempRes =
+        await db.rawQuery('SELECT COUNT(*) as c FROM variation_templates');
     if (((varTempRes.first['c'] as int?) ?? 0) == 0) {
       await db.insert('variation_templates', {
         'name': 'Size',
@@ -978,7 +1202,8 @@ class DatabaseSchema {
       });
       await db.insert('variation_templates', {
         'name': 'Color',
-        'values_json': jsonEncode(['Black', 'White', 'Navy Blue', 'Crimson Red', 'Olive Green']),
+        'values_json': jsonEncode(
+            ['Black', 'White', 'Navy Blue', 'Crimson Red', 'Olive Green']),
       });
       await db.insert('variation_templates', {
         'name': 'Storage Capacity',
@@ -989,46 +1214,96 @@ class DatabaseSchema {
     // Seed units if empty
     final unitRes = await db.rawQuery('SELECT COUNT(*) as c FROM units');
     if (((unitRes.first['c'] as int?) ?? 0) == 0) {
-      await db.insert('units', {'actual_name': 'Pieces', 'short_name': 'Pc', 'allow_decimal': 0});
-      await db.insert('units', {'actual_name': 'Box (12 Pcs)', 'short_name': 'Box', 'allow_decimal': 0, 'base_unit_multiplier': 12.0});
-      await db.insert('units', {'actual_name': 'Kilograms', 'short_name': 'Kg', 'allow_decimal': 1});
-      await db.insert('units', {'actual_name': 'Liters', 'short_name': 'Ltr', 'allow_decimal': 1});
+      await db.insert('units',
+          {'actual_name': 'Pieces', 'short_name': 'Pc', 'allow_decimal': 0});
+      await db.insert('units', {
+        'actual_name': 'Box (12 Pcs)',
+        'short_name': 'Box',
+        'allow_decimal': 0,
+        'base_unit_multiplier': 12.0
+      });
+      await db.insert('units',
+          {'actual_name': 'Kilograms', 'short_name': 'Kg', 'allow_decimal': 1});
+      await db.insert('units',
+          {'actual_name': 'Liters', 'short_name': 'Ltr', 'allow_decimal': 1});
     }
 
     // Seed price groups if empty
-    final pgRes = await db.rawQuery('SELECT COUNT(*) as c FROM selling_price_groups');
+    final pgRes =
+        await db.rawQuery('SELECT COUNT(*) as c FROM selling_price_groups');
     if (((pgRes.first['c'] as int?) ?? 0) == 0) {
-      await db.insert('selling_price_groups', {'name': 'Retail Price', 'description': 'Standard Walk-in customer price', 'is_active': 1});
-      await db.insert('selling_price_groups', {'name': 'Wholesale Price', 'description': 'Bulk purchase price with 15% margin', 'is_active': 1});
-      await db.insert('selling_price_groups', {'name': 'Special VIP Price', 'description': 'Preferred loyal customer price', 'is_active': 1});
+      await db.insert('selling_price_groups', {
+        'name': 'Retail Price',
+        'description': 'Standard Walk-in customer price',
+        'is_active': 1
+      });
+      await db.insert('selling_price_groups', {
+        'name': 'Wholesale Price',
+        'description': 'Bulk purchase price with 15% margin',
+        'is_active': 1
+      });
+      await db.insert('selling_price_groups', {
+        'name': 'Special VIP Price',
+        'description': 'Preferred loyal customer price',
+        'is_active': 1
+      });
     }
 
     // Seed warranties if empty
     final warRes = await db.rawQuery('SELECT COUNT(*) as c FROM warranties');
     if (((warRes.first['c'] as int?) ?? 0) == 0) {
-      await db.insert('warranties', {'name': '1 Year Standard Warranty', 'description': 'Full replacement & parts warranty', 'duration': 12, 'duration_type': 'months'});
-      await db.insert('warranties', {'name': '6 Months Limited Warranty', 'description': 'Hardware warranty only', 'duration': 6, 'duration_type': 'months'});
-      await db.insert('warranties', {'name': 'No Warranty', 'description': 'Consumables & fresh food', 'duration': 0, 'duration_type': 'days'});
+      await db.insert('warranties', {
+        'name': '1 Year Standard Warranty',
+        'description': 'Full replacement & parts warranty',
+        'duration': 12,
+        'duration_type': 'months'
+      });
+      await db.insert('warranties', {
+        'name': '6 Months Limited Warranty',
+        'description': 'Hardware warranty only',
+        'duration': 6,
+        'duration_type': 'months'
+      });
+      await db.insert('warranties', {
+        'name': 'No Warranty',
+        'description': 'Consumables & fresh food',
+        'duration': 0,
+        'duration_type': 'days'
+      });
     }
 
     // Phase 4: Stock Transfers & Adjustments
-    await _addColumnIfMissing(db, 'purchases', 'location_id', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'purchases', 'location_name', "TEXT DEFAULT 'Main Branch HQ'");
-    await _addColumnIfMissing(db, 'purchases', 'items_json', "TEXT DEFAULT '[]'");
-    await _addColumnIfMissing(db, 'purchases', 'discount_type', "TEXT DEFAULT 'none'");
-    await _addColumnIfMissing(db, 'purchases', 'discount_amount', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'purchases', 'location_id', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'purchases', 'location_name', "TEXT DEFAULT 'Main Branch HQ'");
+    await _addColumnIfMissing(
+        db, 'purchases', 'items_json', "TEXT DEFAULT '[]'");
+    await _addColumnIfMissing(
+        db, 'purchases', 'discount_type', "TEXT DEFAULT 'none'");
+    await _addColumnIfMissing(
+        db, 'purchases', 'discount_amount', 'REAL DEFAULT 0.0');
     await _addColumnIfMissing(db, 'purchases', 'tax_rate', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'purchases', 'tax_amount', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'purchases', 'shipping_charges', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'purchases', 'shipping_details', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'purchases', 'additional_expenses', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'purchases', 'payment_method', "TEXT DEFAULT 'cash'");
+    await _addColumnIfMissing(
+        db, 'purchases', 'tax_amount', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'purchases', 'shipping_charges', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'purchases', 'shipping_details', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'purchases', 'additional_expenses', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'purchases', 'payment_method', "TEXT DEFAULT 'cash'");
     await _addColumnIfMissing(db, 'purchases', 'payment_account_id', 'INTEGER');
-    await _addColumnIfMissing(db, 'purchases', 'payment_note', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'purchases', 'payment_note', "TEXT DEFAULT ''");
     await _addColumnIfMissing(db, 'purchases', 'pay_term_number', 'INTEGER');
-    await _addColumnIfMissing(db, 'purchases', 'pay_term_type', "TEXT DEFAULT 'days'");
-    await _addColumnIfMissing(db, 'purchases', 'document_path', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'purchases', 'purchase_date', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'purchases', 'pay_term_type', "TEXT DEFAULT 'days'");
+    await _addColumnIfMissing(
+        db, 'purchases', 'document_path', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'purchases', 'purchase_date', "TEXT DEFAULT ''");
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS stock_transfers (
@@ -1086,7 +1361,8 @@ class DatabaseSchema {
     await _addColumnIfMissing(db, 'contact_payments', 'document_path', 'TEXT');
 
     // Phase 1: Expenses Payment Method column
-    await _addColumnIfMissing(db, 'expenses', 'payment_method', "TEXT DEFAULT 'cash'");
+    await _addColumnIfMissing(
+        db, 'expenses', 'payment_method', "TEXT DEFAULT 'cash'");
 
     // Phase 6: Payment Accounts & Double-entry Transfers
     await db.execute('''
@@ -1116,7 +1392,8 @@ class DatabaseSchema {
     ''');
 
     // Seed default cash drawer and primary bank account with 0 balance if empty
-    final accRes = await db.rawQuery('SELECT COUNT(*) as c FROM payment_accounts');
+    final accRes =
+        await db.rawQuery('SELECT COUNT(*) as c FROM payment_accounts');
     if (((accRes.first['c'] as int?) ?? 0) == 0) {
       await db.insert('payment_accounts', {
         'name': 'Main Store Cash Drawer',
@@ -1154,7 +1431,8 @@ class DatabaseSchema {
     ''');
 
     // Seed default open cash register if empty
-    final regCountRes = await db.rawQuery('SELECT COUNT(*) as c FROM cash_registers');
+    final regCountRes =
+        await db.rawQuery('SELECT COUNT(*) as c FROM cash_registers');
     if (((regCountRes.first['c'] as int?) ?? 0) == 0) {
       await db.insert('cash_registers', {
         'cashier_name': 'Super Administrator',
@@ -1168,7 +1446,7 @@ class DatabaseSchema {
         'closed_at': null,
         'note': 'Initial till register',
       });
-    }    // Phase: Users, Returns, Sync, Financial Years & Industry Tables
+    } // Phase: Users, Returns, Sync, Financial Years & Industry Tables
     await db.execute('''
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1235,6 +1513,8 @@ class DatabaseSchema {
         total_expenses REAL DEFAULT 0.0,
         net_profit REAL DEFAULT 0.0,
         closing_stock_value REAL DEFAULT 0.0,
+        receivables REAL DEFAULT 0.0,
+        payables REAL DEFAULT 0.0,
         carried_forward_balance REAL DEFAULT 0.0,
         status TEXT DEFAULT 'closed',
         notes TEXT
@@ -1379,19 +1659,31 @@ class DatabaseSchema {
     ''');
 
     // Structured schema column checks (replaces silent try-catch ALTER TABLE blocks)
-    await _addColumnIfMissing(db, 'business_settings', 'is_configured', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'business_settings', 'business_type', "TEXT DEFAULT 'general'");
-    await _addColumnIfMissing(db, 'business_settings', 'enabled_modules', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'trial_start_date', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'sync_enabled', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'business_settings', 'sync_mode', "TEXT DEFAULT 'offline'");
-    await _addColumnIfMissing(db, 'business_settings', 'sync_server_url', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'is_configured', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'business_type', "TEXT DEFAULT 'general'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'enabled_modules', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'trial_start_date', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'sync_enabled', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'sync_mode', "TEXT DEFAULT 'offline'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'sync_server_url', 'TEXT');
     await _addColumnIfMissing(db, 'business_settings', 'sync_api_key', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'sync_branch_id', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'login_banner_url', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'login_headline', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'login_subheadline', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'login_primary_color', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'sync_branch_id', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'login_banner_url', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'login_headline', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'login_subheadline', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'login_primary_color', 'TEXT');
 
     await _addColumnIfMissing(db, 'products', 'batch_number', 'TEXT');
     await _addColumnIfMissing(db, 'products', 'expiry_date', 'TEXT');
@@ -1402,70 +1694,99 @@ class DatabaseSchema {
     await _addColumnIfMissing(db, 'sale_items', 'batch_number', 'TEXT');
     await _addColumnIfMissing(db, 'sale_items', 'expiry_date', 'TEXT');
     await _addColumnIfMissing(db, 'sync_queue', 'payload_json', 'TEXT');
-    await _addColumnIfMissing(db, 'sync_queue', 'retry_count', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'sync_queue', 'retry_count', 'INTEGER DEFAULT 0');
 
-    await _addColumnIfMissing(db, 'restaurant_tables', 'order_total', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'restaurant_tables', 'order_total', 'REAL DEFAULT 0.0');
     await _addColumnIfMissing(db, 'restaurant_tables', 'kot_time', 'TEXT');
-    await _addColumnIfMissing(db, 'restaurant_tables', 'guests', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'restaurant_tables', 'guests', 'INTEGER DEFAULT 0');
 
-    await _addColumnIfMissing(db, 'restaurant_kot_orders', 'order_type', "TEXT DEFAULT 'Dine-In'");
+    await _addColumnIfMissing(
+        db, 'restaurant_kot_orders', 'order_type', "TEXT DEFAULT 'Dine-In'");
     await _addColumnIfMissing(db, 'restaurant_kot_orders', 'items', 'TEXT');
     await _addColumnIfMissing(db, 'restaurant_kot_orders', 'time', 'TEXT');
-    await _addColumnIfMissing(db, 'restaurant_kot_orders', 'server_name', "TEXT DEFAULT 'Captain'");
-    await _addColumnIfMissing(db, 'restaurant_kot_orders', 'items_json', 'TEXT');
-    await _addColumnIfMissing(db, 'restaurant_kot_orders', 'special_notes', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'restaurant_kot_orders', 'server_name', "TEXT DEFAULT 'Captain'");
+    await _addColumnIfMissing(
+        db, 'restaurant_kot_orders', 'items_json', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'restaurant_kot_orders', 'special_notes', 'TEXT');
 
     await _addColumnIfMissing(db, 'gym_members', 'member_id', 'TEXT');
-    await _addColumnIfMissing(db, 'gym_members', 'status', "TEXT DEFAULT 'Active'");
+    await _addColumnIfMissing(
+        db, 'gym_members', 'status', "TEXT DEFAULT 'Active'");
     await _addColumnIfMissing(db, 'gym_members', 'phone', 'TEXT');
     await _addColumnIfMissing(db, 'gym_members', 'plan', 'TEXT');
     await _addColumnIfMissing(db, 'gym_members', 'fee', 'REAL DEFAULT 0.0');
     await _addColumnIfMissing(db, 'gym_members', 'locker', 'TEXT');
     await _addColumnIfMissing(db, 'gym_members', 'trainer', 'TEXT');
     await _addColumnIfMissing(db, 'gym_members', 'expiry_date', 'TEXT');
-    await _addColumnIfMissing(db, 'gym_members', 'days_left', 'INTEGER DEFAULT 30');
+    await _addColumnIfMissing(
+        db, 'gym_members', 'days_left', 'INTEGER DEFAULT 30');
     await _addColumnIfMissing(db, 'gym_members', 'created_at', 'TEXT');
 
     await _addColumnIfMissing(db, 'hotel_rooms', 'floor', 'TEXT');
     await _addColumnIfMissing(db, 'hotel_rooms', 'nights', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'hotel_rooms', 'check_in', 'TEXT');
-    await _addColumnIfMissing(db, 'hotel_rooms', 'room_service', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'hotel_rooms', 'room_service', 'REAL DEFAULT 0.0');
     await _addColumnIfMissing(db, 'hotel_rooms', 'guest', 'TEXT');
     await _addColumnIfMissing(db, 'hotel_rooms', 'rate', 'REAL DEFAULT 0.0');
 
     await _addColumnIfMissing(db, 'repair_jobs', 'imei', 'TEXT');
     await _addColumnIfMissing(db, 'repair_jobs', 'fault', 'TEXT');
     await _addColumnIfMissing(db, 'repair_jobs', 'technician', 'TEXT');
-    await _addColumnIfMissing(db, 'repair_jobs', 'est_cost', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'repair_jobs', 'est_cost', 'REAL DEFAULT 0.0');
     await _addColumnIfMissing(db, 'repair_jobs', 'advance', 'REAL DEFAULT 0.0');
     await _addColumnIfMissing(db, 'repair_jobs', 'date', 'TEXT');
 
     await _addColumnIfMissing(db, 'users', 'branch_id', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'users', 'branch_name', "TEXT DEFAULT 'Main Branch HQ'");
+    await _addColumnIfMissing(
+        db, 'users', 'branch_name', "TEXT DEFAULT 'Main Branch HQ'");
     await _addColumnIfMissing(db, 'users', 'phone', 'TEXT');
-    await _addColumnIfMissing(db, 'users', 'can_edit_price', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'users', 'can_give_discount', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'users', 'max_discount_percent', 'REAL DEFAULT 5.0');
-    await _addColumnIfMissing(db, 'users', 'can_view_cost_price', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'users', 'can_delete_sale', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'users', 'can_process_return', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'users', 'can_access_khata', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'users', 'can_access_inventory', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'users', 'can_access_reports', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'users', 'can_access_settings', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'users', 'can_manage_users', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'can_edit_price', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'can_give_discount', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'users', 'max_discount_percent', 'REAL DEFAULT 5.0');
+    await _addColumnIfMissing(
+        db, 'users', 'can_view_cost_price', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'can_delete_sale', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'can_process_return', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'can_access_khata', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'users', 'can_access_inventory', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'can_access_reports', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'can_access_settings', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'can_manage_users', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'users', 'permissions', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'users', 'must_change_password', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'users', 'failed_login_attempts', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'must_change_password', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'users', 'failed_login_attempts', 'INTEGER DEFAULT 0');
     await _addColumnIfMissing(db, 'users', 'locked_until', 'TEXT');
     await _addColumnIfMissing(db, 'users', 'password_changed_at', 'TEXT');
 
-    await _addColumnIfMissing(db, 'sales', 'discount_amount', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'sales', 'discount_amount', 'REAL DEFAULT 0.0');
     await _addColumnIfMissing(db, 'sales', 'due_amount', 'REAL DEFAULT 0.0');
     await _addColumnIfMissing(db, 'sales', 'cash_register_id', 'INTEGER');
-    await _addColumnIfMissing(db, 'sale_items', 'bonus_quantity', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'sale_items', 'pack_discount', 'REAL DEFAULT 0.0');
-    await _addColumnIfMissing(db, 'business_settings', 'primary_db_type', "TEXT DEFAULT 'mysql'");
+    await _addColumnIfMissing(
+        db, 'sale_items', 'bonus_quantity', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'sale_items', 'pack_discount', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'primary_db_type', "TEXT DEFAULT 'mysql'");
 
     // Phase: Payment Transactions (Split Payments & Ledger Recoveries)
     await db.execute('''
@@ -1553,58 +1874,104 @@ class DatabaseSchema {
     // Extra Column Migrations for Smart POS Enterprise Ecosystem
     await _addColumnIfMissing(db, 'business_settings', 'tax_number', 'TEXT');
     await _addColumnIfMissing(db, 'business_settings', 'hardware_id', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'deployment_mode', "TEXT DEFAULT 'offline_server'");
-    await _addColumnIfMissing(db, 'business_settings', 'server_host', "TEXT DEFAULT '127.0.0.1'");
-    await _addColumnIfMissing(db, 'business_settings', 'server_port', 'INTEGER DEFAULT 8080');
-    await _addColumnIfMissing(db, 'business_settings', 'primary_db_type', "TEXT DEFAULT 'mysql'");
-    await _addColumnIfMissing(db, 'business_settings', 'db_host', "TEXT DEFAULT 'localhost'");
-    await _addColumnIfMissing(db, 'business_settings', 'db_port', 'INTEGER DEFAULT 3306');
-    await _addColumnIfMissing(db, 'business_settings', 'db_name', "TEXT DEFAULT 'smartpos'");
-    await _addColumnIfMissing(db, 'business_settings', 'db_user', "TEXT DEFAULT 'root'");
+    await _addColumnIfMissing(db, 'business_settings', 'deployment_mode',
+        "TEXT DEFAULT 'offline_server'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'server_host', "TEXT DEFAULT '127.0.0.1'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'server_port', 'INTEGER DEFAULT 8080');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'primary_db_type', "TEXT DEFAULT 'mysql'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'db_host', "TEXT DEFAULT 'localhost'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'db_port', 'INTEGER DEFAULT 3306');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'db_name', "TEXT DEFAULT 'smartpos'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'db_user', "TEXT DEFAULT 'root'");
     await _addColumnIfMissing(db, 'business_settings', 'db_password', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'industry_presets', "TEXT DEFAULT 'retail_supermarket'");
-    await _addColumnIfMissing(db, 'business_settings', 'sync_mode', "TEXT DEFAULT 'offline'");
-    await _addColumnIfMissing(db, 'business_settings', 'sync_server_url', 'TEXT');
+    await _addColumnIfMissing(db, 'business_settings', 'industry_presets',
+        "TEXT DEFAULT 'retail_supermarket'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'sync_mode', "TEXT DEFAULT 'offline'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'sync_server_url', 'TEXT');
     await _addColumnIfMissing(db, 'business_settings', 'sync_api_key', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'sync_branch_id', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'sync_auto_interval_minutes', 'INTEGER DEFAULT 5');
-    await _addColumnIfMissing(db, 'business_settings', 'last_sync_timestamp', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'login_banner_path', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'login_side_title', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'login_side_subtitle', 'TEXT');
-    await _addColumnIfMissing(db, 'business_settings', 'receipt_paper_size', "TEXT DEFAULT '80mm'");
-    await _addColumnIfMissing(db, 'business_settings', 'receipt_header_tagline', "TEXT DEFAULT 'Wholesale & Retail Distributor'");
-    await _addColumnIfMissing(db, 'business_settings', 'receipt_header_note', "TEXT DEFAULT 'Welcome to our store!'");
-    await _addColumnIfMissing(db, 'business_settings', 'receipt_return_policy', "TEXT DEFAULT 'Goods once sold can only be exchanged within 7 days with original receipt.'");
-    await _addColumnIfMissing(db, 'business_settings', 'show_logo_on_receipt', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'show_barcode_on_receipt', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'show_qr_on_receipt', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'show_customer_balance_on_receipt', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'show_tax_breakdown_on_receipt', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'show_cashier_name_on_receipt', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'invoice_print_copies', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'multi_currency_enabled', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'exchange_rates_json', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'business_settings', 'custom_rates_json', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'business_settings', 'last_rates_sync', "TEXT DEFAULT ''");
-    await _addColumnIfMissing(db, 'business_settings', 'invoice_layout_design', "TEXT DEFAULT 'detailed'");
-    await _addColumnIfMissing(db, 'business_settings', 'show_batch_on_invoice', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'show_expiry_on_invoice', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'show_brand_on_invoice', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'show_sku_on_invoice', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'show_warranty_on_invoice', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'show_total_in_words', 'INTEGER DEFAULT 1');
-    await _addColumnIfMissing(db, 'business_settings', 'total_in_words_language', "TEXT DEFAULT 'ur'");
-    await _addColumnIfMissing(db, 'business_settings', 'enable_secondary_language', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'business_settings', 'secondary_language', "TEXT DEFAULT 'ur'");
-    await _addColumnIfMissing(db, 'business_settings', 'invoice_heading', "TEXT DEFAULT 'TAX INVOICE'");
-    await _addColumnIfMissing(db, 'business_settings', 'session_timeout_minutes', 'INTEGER DEFAULT 480');
-    await db.execute("UPDATE business_settings SET sync_branch_id = 1 WHERE sync_branch_id IS NULL OR sync_branch_id = ''");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'sync_branch_id', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'sync_auto_interval_minutes', 'INTEGER DEFAULT 5');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'last_sync_timestamp', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'login_banner_path', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'login_side_title', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'login_side_subtitle', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'receipt_paper_size', "TEXT DEFAULT '80mm'");
+    await _addColumnIfMissing(db, 'business_settings', 'receipt_header_tagline',
+        "TEXT DEFAULT 'Wholesale & Retail Distributor'");
+    await _addColumnIfMissing(db, 'business_settings', 'receipt_header_note',
+        "TEXT DEFAULT 'Welcome to our store!'");
+    await _addColumnIfMissing(db, 'business_settings', 'receipt_return_policy',
+        "TEXT DEFAULT 'Goods once sold can only be exchanged within 7 days with original receipt.'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'show_logo_on_receipt', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'show_barcode_on_receipt', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'show_qr_on_receipt', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'show_customer_balance_on_receipt', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'show_tax_breakdown_on_receipt', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'show_cashier_name_on_receipt', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'invoice_print_copies', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'multi_currency_enabled', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'exchange_rates_json', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'custom_rates_json', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'last_rates_sync', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'business_settings', 'invoice_layout_design',
+        "TEXT DEFAULT 'detailed'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'show_batch_on_invoice', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'show_expiry_on_invoice', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'show_brand_on_invoice', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'show_sku_on_invoice', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'show_warranty_on_invoice', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'show_total_in_words', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'total_in_words_language', "TEXT DEFAULT 'ur'");
+    await _addColumnIfMissing(db, 'business_settings',
+        'enable_secondary_language', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'secondary_language', "TEXT DEFAULT 'ur'");
+    await _addColumnIfMissing(db, 'business_settings', 'invoice_heading',
+        "TEXT DEFAULT 'TAX INVOICE'");
+    await _addColumnIfMissing(db, 'business_settings',
+        'session_timeout_minutes', 'INTEGER DEFAULT 480');
+    await db.execute(
+        "UPDATE business_settings SET sync_branch_id = 1 WHERE sync_branch_id IS NULL OR sync_branch_id = ''");
 
     await _addColumnIfMissing(db, 'sales', 'sale_type', "TEXT DEFAULT 'final'");
     await _addColumnIfMissing(db, 'sales', 'project_name', 'TEXT');
     await _addColumnIfMissing(db, 'sales', 'project_address', 'TEXT');
-    await _addColumnIfMissing(db, 'sales', 'delivery_mode', "TEXT DEFAULT 'counter'");
+    await _addColumnIfMissing(
+        db, 'sales', 'delivery_mode', "TEXT DEFAULT 'counter'");
     await _addColumnIfMissing(db, 'sales', 'table_id', 'INTEGER');
     await _addColumnIfMissing(db, 'sales', 'table_name', 'TEXT');
     await _addColumnIfMissing(db, 'sales', 'waiter_id', 'INTEGER');
@@ -1613,17 +1980,23 @@ class DatabaseSchema {
     await _addColumnIfMissing(db, 'sales', 'user_name', 'TEXT');
 
     await _addColumnIfMissing(db, 'contacts', 'tax_number', 'TEXT');
-    await _addColumnIfMissing(db, 'contacts', 'is_default_walk_in', 'INTEGER DEFAULT 0');
-    await _addColumnIfMissing(db, 'contacts', 'loyalty_points', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(
+        db, 'contacts', 'is_default_walk_in', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'contacts', 'loyalty_points', 'REAL DEFAULT 0.0');
 
     await _addColumnIfMissing(db, 'restaurant_tables', 'waiter_name', 'TEXT');
     await _addColumnIfMissing(db, 'restaurant_tables', 'waiter_id', 'INTEGER');
-    await _addColumnIfMissing(db, 'restaurant_tables', 'current_sale_id', 'INTEGER');
+    await _addColumnIfMissing(
+        db, 'restaurant_tables', 'current_sale_id', 'INTEGER');
 
     // Ledger & Accounting Performance Indexes for smooth and fast queries
-    await _ensureIndex(db, 'idx_pt_contact', 'payment_transactions', 'contact_id');
-    await _ensureIndex(db, 'idx_pt_date', 'payment_transactions', 'transaction_date');
-    await _ensureIndex(db, 'idx_pt_account', 'payment_transactions', 'account_id');
+    await _ensureIndex(
+        db, 'idx_pt_contact', 'payment_transactions', 'contact_id');
+    await _ensureIndex(
+        db, 'idx_pt_date', 'payment_transactions', 'transaction_date');
+    await _ensureIndex(
+        db, 'idx_pt_account', 'payment_transactions', 'account_id');
     await _ensureIndex(db, 'idx_sales_cust', 'sales', 'customer_id');
     await _ensureIndex(db, 'idx_sales_date', 'sales', 'created_at');
     await _ensureIndex(db, 'idx_pur_supp', 'purchases', 'supplier_id');
@@ -1631,17 +2004,82 @@ class DatabaseSchema {
 
     // Seed Restaurant Tables if empty
 
-    final tableCountRes = await db.rawQuery('SELECT COUNT(*) as c FROM restaurant_tables');
+    final tableCountRes =
+        await db.rawQuery('SELECT COUNT(*) as c FROM restaurant_tables');
     if (((tableCountRes.first['c'] as int?) ?? 0) == 0) {
       final initialTables = [
-        {'name': 'Table 1', 'section': 'Main Dining', 'capacity': 4, 'status': 'occupied', 'order_total': 2450.0, 'kot_time': '15 mins ago', 'guests': 3},
-        {'name': 'Table 2', 'section': 'Main Dining', 'capacity': 2, 'status': 'vacant', 'order_total': 0.0, 'kot_time': '', 'guests': 0},
-        {'name': 'Table 3', 'section': 'Main Dining', 'capacity': 4, 'status': 'billed', 'order_total': 4100.0, 'kot_time': '35 mins ago', 'guests': 4},
-        {'name': 'Table 4', 'section': 'Main Dining', 'capacity': 6, 'status': 'occupied', 'order_total': 6850.0, 'kot_time': '8 mins ago', 'guests': 5},
-        {'name': 'Lounge VIP 1', 'section': 'VIP Family Hall', 'capacity': 8, 'status': 'occupied', 'order_total': 12400.0, 'kot_time': '22 mins ago', 'guests': 7},
-        {'name': 'Lounge VIP 2', 'section': 'VIP Family Hall', 'capacity': 10, 'status': 'vacant', 'order_total': 0.0, 'kot_time': '', 'guests': 0},
-        {'name': 'Terrace T-1', 'section': 'Rooftop Terrace', 'capacity': 4, 'status': 'vacant', 'order_total': 0.0, 'kot_time': '', 'guests': 0},
-        {'name': 'Terrace T-2', 'section': 'Rooftop Terrace', 'capacity': 4, 'status': 'occupied', 'order_total': 3200.0, 'kot_time': '5 mins ago', 'guests': 2},
+        {
+          'name': 'Table 1',
+          'section': 'Main Dining',
+          'capacity': 4,
+          'status': 'occupied',
+          'order_total': 2450.0,
+          'kot_time': '15 mins ago',
+          'guests': 3
+        },
+        {
+          'name': 'Table 2',
+          'section': 'Main Dining',
+          'capacity': 2,
+          'status': 'vacant',
+          'order_total': 0.0,
+          'kot_time': '',
+          'guests': 0
+        },
+        {
+          'name': 'Table 3',
+          'section': 'Main Dining',
+          'capacity': 4,
+          'status': 'billed',
+          'order_total': 4100.0,
+          'kot_time': '35 mins ago',
+          'guests': 4
+        },
+        {
+          'name': 'Table 4',
+          'section': 'Main Dining',
+          'capacity': 6,
+          'status': 'occupied',
+          'order_total': 6850.0,
+          'kot_time': '8 mins ago',
+          'guests': 5
+        },
+        {
+          'name': 'Lounge VIP 1',
+          'section': 'VIP Family Hall',
+          'capacity': 8,
+          'status': 'occupied',
+          'order_total': 12400.0,
+          'kot_time': '22 mins ago',
+          'guests': 7
+        },
+        {
+          'name': 'Lounge VIP 2',
+          'section': 'VIP Family Hall',
+          'capacity': 10,
+          'status': 'vacant',
+          'order_total': 0.0,
+          'kot_time': '',
+          'guests': 0
+        },
+        {
+          'name': 'Terrace T-1',
+          'section': 'Rooftop Terrace',
+          'capacity': 4,
+          'status': 'vacant',
+          'order_total': 0.0,
+          'kot_time': '',
+          'guests': 0
+        },
+        {
+          'name': 'Terrace T-2',
+          'section': 'Rooftop Terrace',
+          'capacity': 4,
+          'status': 'occupied',
+          'order_total': 3200.0,
+          'kot_time': '5 mins ago',
+          'guests': 2
+        },
       ];
       for (final t in initialTables) {
         await db.insert('restaurant_tables', t);
@@ -1650,25 +2088,60 @@ class DatabaseSchema {
 
     // Seed Restaurant KOT Orders if empty
     try {
-      final kotCountRes = await db.rawQuery('SELECT COUNT(*) as c FROM restaurant_kot_orders');
+      final kotCountRes =
+          await db.rawQuery('SELECT COUNT(*) as c FROM restaurant_kot_orders');
       if (((kotCountRes.first['c'] as int?) ?? 0) == 0) {
         final initialKot = [
-          {'kot_no': 'KOT-1048', 'table_name': 'Table 1', 'order_type': 'Dine-In', 'items': '1x Chicken Karahi, 4x Naan, 2x Mint Margarita', 'status': 'Cooking', 'time': '7:42 PM', 'server_name': 'Captain Ali'},
-          {'kot_no': 'KOT-1049', 'table_name': 'Lounge VIP 1', 'order_type': 'Dine-In', 'items': '2x Mutton Handi, 1x Biryani Special, 8x Roti, 1x Salad', 'status': 'Ready to Serve', 'time': '7:48 PM', 'server_name': 'Waiter Bilal'},
-          {'kot_no': 'KOT-1050', 'table_name': 'Counter 2', 'order_type': 'Takeaway', 'items': '3x Zinger Burgers, 2x Jumbo Fries, 3x Drinks', 'status': 'Preparing', 'time': '7:55 PM', 'server_name': 'Cashier 1'},
-          {'kot_no': 'KOT-1051', 'table_name': 'Online Rider', 'order_type': 'Delivery', 'items': '1x Large Pizza, 10x Wings, 1x Garlic Dip', 'status': 'Dispatched', 'time': '7:30 PM', 'server_name': 'Delivery Dispatcher'},
+          {
+            'kot_no': 'KOT-1048',
+            'table_name': 'Table 1',
+            'order_type': 'Dine-In',
+            'items': '1x Chicken Karahi, 4x Naan, 2x Mint Margarita',
+            'status': 'Cooking',
+            'time': '7:42 PM',
+            'server_name': 'Captain Ali'
+          },
+          {
+            'kot_no': 'KOT-1049',
+            'table_name': 'Lounge VIP 1',
+            'order_type': 'Dine-In',
+            'items': '2x Mutton Handi, 1x Biryani Special, 8x Roti, 1x Salad',
+            'status': 'Ready to Serve',
+            'time': '7:48 PM',
+            'server_name': 'Waiter Bilal'
+          },
+          {
+            'kot_no': 'KOT-1050',
+            'table_name': 'Counter 2',
+            'order_type': 'Takeaway',
+            'items': '3x Zinger Burgers, 2x Jumbo Fries, 3x Drinks',
+            'status': 'Preparing',
+            'time': '7:55 PM',
+            'server_name': 'Cashier 1'
+          },
+          {
+            'kot_no': 'KOT-1051',
+            'table_name': 'Online Rider',
+            'order_type': 'Delivery',
+            'items': '1x Large Pizza, 10x Wings, 1x Garlic Dip',
+            'status': 'Dispatched',
+            'time': '7:30 PM',
+            'server_name': 'Delivery Dispatcher'
+          },
         ];
         for (final k in initialKot) {
           await db.insert('restaurant_kot_orders', k);
         }
       }
     } catch (e, st) {
-      AppLogger.warning('DatabaseMigration', 'Failed seeding restaurant_kot_orders', e, st);
+      AppLogger.warning(
+          'DatabaseMigration', 'Failed seeding restaurant_kot_orders', e, st);
     }
 
     // Seed Gym Members if empty
     try {
-      final gymCountRes = await db.rawQuery('SELECT COUNT(*) as c FROM gym_members');
+      final gymCountRes =
+          await db.rawQuery('SELECT COUNT(*) as c FROM gym_members');
       if (((gymCountRes.first['c'] as int?) ?? 0) == 0) {
         final gymMembersList = [
           {
@@ -1729,34 +2202,118 @@ class DatabaseSchema {
         }
       }
     } catch (e, st) {
-      AppLogger.warning('DatabaseMigration', 'Failed seeding gym_members', e, st);
+      AppLogger.warning(
+          'DatabaseMigration', 'Failed seeding gym_members', e, st);
     }
 
     // Seed Hotel Rooms if empty
     try {
-      final hotelCountRes = await db.rawQuery('SELECT COUNT(*) as c FROM hotel_rooms');
+      final hotelCountRes =
+          await db.rawQuery('SELECT COUNT(*) as c FROM hotel_rooms');
       if (((hotelCountRes.first['c'] as int?) ?? 0) == 0) {
         final initialRooms = [
-          {'room': '101', 'type': 'Standard Single', 'floor': '1st Floor', 'rate': 4500.0, 'status': 'occupied', 'guest': 'Hamza Ali (CNIC: 35201-1234567-1)', 'nights': 2, 'check_in': '20 Oct', 'room_service': 1200.0},
-          {'room': '102', 'type': 'Standard Double', 'floor': '1st Floor', 'rate': 6500.0, 'status': 'available', 'guest': '', 'nights': 0, 'check_in': '', 'room_service': 0.0},
-          {'room': '103', 'type': 'Executive Deluxe', 'floor': '1st Floor', 'rate': 9500.0, 'status': 'occupied', 'guest': 'Dr. Sajjad Malik', 'nights': 3, 'check_in': '19 Oct', 'room_service': 3450.0},
-          {'room': '104', 'type': 'Executive Deluxe', 'floor': '1st Floor', 'rate': 9500.0, 'status': 'cleaning', 'guest': '', 'nights': 0, 'check_in': '', 'room_service': 0.0},
-          {'room': '201', 'type': 'Presidential Suite', 'floor': '2nd Floor', 'rate': 18000.0, 'status': 'occupied', 'guest': 'Mr. & Mrs. Mansoor', 'nights': 1, 'check_in': '21 Oct', 'room_service': 2800.0},
-          {'room': '202', 'type': 'Standard Double', 'floor': '2nd Floor', 'rate': 6500.0, 'status': 'available', 'guest': '', 'nights': 0, 'check_in': '', 'room_service': 0.0},
-          {'room': '203', 'type': 'Family 2-Bedroom', 'floor': '2nd Floor', 'rate': 12000.0, 'status': 'available', 'guest': '', 'nights': 0, 'check_in': '', 'room_service': 0.0},
-          {'room': '204', 'type': 'Standard Single', 'floor': '2nd Floor', 'rate': 4500.0, 'status': 'occupied', 'guest': 'Tariq Jameel', 'nights': 2, 'check_in': '20 Oct', 'room_service': 450.0},
+          {
+            'room': '101',
+            'type': 'Standard Single',
+            'floor': '1st Floor',
+            'rate': 4500.0,
+            'status': 'occupied',
+            'guest': 'Hamza Ali (CNIC: 35201-1234567-1)',
+            'nights': 2,
+            'check_in': '20 Oct',
+            'room_service': 1200.0
+          },
+          {
+            'room': '102',
+            'type': 'Standard Double',
+            'floor': '1st Floor',
+            'rate': 6500.0,
+            'status': 'available',
+            'guest': '',
+            'nights': 0,
+            'check_in': '',
+            'room_service': 0.0
+          },
+          {
+            'room': '103',
+            'type': 'Executive Deluxe',
+            'floor': '1st Floor',
+            'rate': 9500.0,
+            'status': 'occupied',
+            'guest': 'Dr. Sajjad Malik',
+            'nights': 3,
+            'check_in': '19 Oct',
+            'room_service': 3450.0
+          },
+          {
+            'room': '104',
+            'type': 'Executive Deluxe',
+            'floor': '1st Floor',
+            'rate': 9500.0,
+            'status': 'cleaning',
+            'guest': '',
+            'nights': 0,
+            'check_in': '',
+            'room_service': 0.0
+          },
+          {
+            'room': '201',
+            'type': 'Presidential Suite',
+            'floor': '2nd Floor',
+            'rate': 18000.0,
+            'status': 'occupied',
+            'guest': 'Mr. & Mrs. Mansoor',
+            'nights': 1,
+            'check_in': '21 Oct',
+            'room_service': 2800.0
+          },
+          {
+            'room': '202',
+            'type': 'Standard Double',
+            'floor': '2nd Floor',
+            'rate': 6500.0,
+            'status': 'available',
+            'guest': '',
+            'nights': 0,
+            'check_in': '',
+            'room_service': 0.0
+          },
+          {
+            'room': '203',
+            'type': 'Family 2-Bedroom',
+            'floor': '2nd Floor',
+            'rate': 12000.0,
+            'status': 'available',
+            'guest': '',
+            'nights': 0,
+            'check_in': '',
+            'room_service': 0.0
+          },
+          {
+            'room': '204',
+            'type': 'Standard Single',
+            'floor': '2nd Floor',
+            'rate': 4500.0,
+            'status': 'occupied',
+            'guest': 'Tariq Jameel',
+            'nights': 2,
+            'check_in': '20 Oct',
+            'room_service': 450.0
+          },
         ];
         for (final r in initialRooms) {
           await db.insert('hotel_rooms', r);
         }
       }
     } catch (e, st) {
-      AppLogger.warning('DatabaseMigration', 'Failed seeding hotel_rooms', e, st);
+      AppLogger.warning(
+          'DatabaseMigration', 'Failed seeding hotel_rooms', e, st);
     }
 
     // Seed Repair Jobs if empty
     try {
-      final repairCountRes = await db.rawQuery('SELECT COUNT(*) as c FROM repair_jobs');
+      final repairCountRes =
+          await db.rawQuery('SELECT COUNT(*) as c FROM repair_jobs');
       if (((repairCountRes.first['c'] as int?) ?? 0) == 0) {
         final initialJobs = [
           {
@@ -1789,7 +2346,8 @@ class DatabaseSchema {
         }
       }
     } catch (e, st) {
-      AppLogger.warning('DatabaseMigration', 'Failed seeding repair_jobs', e, st);
+      AppLogger.warning(
+          'DatabaseMigration', 'Failed seeding repair_jobs', e, st);
     }
 
     // Phase 12: Advanced Enterprise Feature Parity Enhancements
@@ -1897,14 +2455,28 @@ class DatabaseSchema {
 
     // Seed types of services if empty
     try {
-      final tosCount = await db.rawQuery('SELECT COUNT(*) as c FROM types_of_services');
+      final tosCount =
+          await db.rawQuery('SELECT COUNT(*) as c FROM types_of_services');
       if (((tosCount.first['c'] as int?) ?? 0) == 0) {
-        await db.insert('types_of_services', {'name': 'Dine-In', 'description': 'In-store counter / dining table service', 'packing_charge': 0.0});
-        await db.insert('types_of_services', {'name': 'Takeaway / Parcel', 'description': 'Customer parcel pickup', 'packing_charge': 20.0});
-        await db.insert('types_of_services', {'name': 'Home Delivery', 'description': 'Rider / Courier home delivery', 'packing_charge': 150.0});
+        await db.insert('types_of_services', {
+          'name': 'Dine-In',
+          'description': 'In-store counter / dining table service',
+          'packing_charge': 0.0
+        });
+        await db.insert('types_of_services', {
+          'name': 'Takeaway / Parcel',
+          'description': 'Customer parcel pickup',
+          'packing_charge': 20.0
+        });
+        await db.insert('types_of_services', {
+          'name': 'Home Delivery',
+          'description': 'Rider / Courier home delivery',
+          'packing_charge': 150.0
+        });
       }
     } catch (e, st) {
-      AppLogger.warning('DatabaseMigration', 'Failed seeding types_of_services', e, st);
+      AppLogger.warning(
+          'DatabaseMigration', 'Failed seeding types_of_services', e, st);
     }
 
     // Canonical starter invoice layouts are seeded in _applyV5Phase4Migrations.
@@ -2002,7 +2574,8 @@ class DatabaseSchema {
         backup_retention_count INTEGER DEFAULT 10,
         last_auto_backup_at TEXT DEFAULT '',
         touch_friendly_mode INTEGER DEFAULT 0,
-        keyboard_shortcuts_json TEXT DEFAULT ''
+        keyboard_shortcuts_json TEXT DEFAULT '',
+        allow_overselling INTEGER DEFAULT 0
       )
     ''');
 
@@ -2071,7 +2644,9 @@ class DatabaseSchema {
         balance REAL DEFAULT 0.0,
         credit_limit REAL DEFAULT 1000.0,
         loyalty_points REAL DEFAULT 0.0,
-        customer_group_id INTEGER
+        customer_group_id INTEGER,
+        tax_number TEXT,
+        is_default_walk_in INTEGER DEFAULT 0
       )
     ''');
 
@@ -2098,6 +2673,7 @@ class DatabaseSchema {
         note TEXT,
         created_at TEXT NOT NULL,
         cash_register_id INTEGER,
+        location_id INTEGER DEFAULT 1,
         user_name TEXT,
         converted_from_quotation_id INTEGER,
         converted_to_sale_id INTEGER,
@@ -2209,9 +2785,17 @@ class DatabaseSchema {
     await db.execute('''
       CREATE TABLE parked_sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER,
         customer_name TEXT NOT NULL,
         note TEXT,
         total REAL NOT NULL,
+        discount_type TEXT DEFAULT 'fixed',
+        discount_value REAL DEFAULT 0.0,
+        order_tax REAL DEFAULT 0.0,
+        shipping_charge REAL DEFAULT 0.0,
+        is_wholesale INTEGER DEFAULT 0,
+        commission_agent_id INTEGER,
+        commission_agent_name TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         items_json TEXT NOT NULL
       )
@@ -2443,7 +3027,9 @@ class DatabaseSchema {
         refund_method TEXT DEFAULT 'cash',
         status TEXT DEFAULT 'completed',
         date TEXT NOT NULL,
+        reason TEXT DEFAULT '',
         note TEXT,
+        created_by TEXT DEFAULT 'Admin',
         items_json TEXT NOT NULL
       )
     ''');
@@ -2460,6 +3046,7 @@ class DatabaseSchema {
         sku TEXT,
         batch_number TEXT,
         quantity REAL NOT NULL,
+        unit_multiplier REAL DEFAULT 1.0,
         unit_price REAL NOT NULL,
         subtotal REAL NOT NULL,
         FOREIGN KEY(return_id) REFERENCES sale_returns(id) ON DELETE CASCADE
@@ -2480,6 +3067,7 @@ class DatabaseSchema {
         refund_method TEXT DEFAULT 'cash',
         status TEXT DEFAULT 'completed',
         date TEXT NOT NULL,
+        reason TEXT DEFAULT '',
         note TEXT,
         items_json TEXT NOT NULL
       )
@@ -2515,6 +3103,8 @@ class DatabaseSchema {
         total_expenses REAL DEFAULT 0.0,
         net_profit REAL DEFAULT 0.0,
         closing_stock_value REAL DEFAULT 0.0,
+        receivables REAL DEFAULT 0.0,
+        payables REAL DEFAULT 0.0,
         carried_forward_balance REAL DEFAULT 0.0,
         status TEXT DEFAULT 'closed',
         notes TEXT
@@ -2777,10 +3367,33 @@ class DatabaseSchema {
         created_at TEXT NOT NULL
       )
     ''');
+
+    // 45. Per-Location Product Stock & Persistent Vertical Module Records
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS product_locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER NOT NULL,
+        location_id INTEGER NOT NULL DEFAULT 1,
+        qty_available REAL NOT NULL DEFAULT 0.0,
+        updated_at TEXT DEFAULT '',
+        UNIQUE(product_id, location_id)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS module_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        module_key TEXT NOT NULL,
+        record_type TEXT NOT NULL,
+        title TEXT DEFAULT '',
+        data_json TEXT NOT NULL,
+        status TEXT DEFAULT 'active',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
   }
 
-
-    static Future<void> seedInitialData(Database db) async {
+  static Future<void> seedInitialData(Database db) async {
     // 1. Settings (Pure Lazimi Foundation with isConfigured: false so Setup Wizard launches)
     final settings = BusinessSettings(
       businessName: 'Smart POS System',
@@ -2808,9 +3421,12 @@ class DatabaseSchema {
     });
 
     // 4. Default Tax Rates
-    await db.insert('tax_rates', {'name': 'No Tax (0%)', 'amount': 0.0, 'is_tax_group': 0});
-    await db.insert('tax_rates', {'name': 'Standard VAT (5%)', 'amount': 5.0, 'is_tax_group': 0});
-    await db.insert('tax_rates', {'name': 'GST / Sales Tax (15%)', 'amount': 15.0, 'is_tax_group': 0});
+    await db.insert(
+        'tax_rates', {'name': 'No Tax (0%)', 'amount': 0.0, 'is_tax_group': 0});
+    await db.insert('tax_rates',
+        {'name': 'Standard VAT (5%)', 'amount': 5.0, 'is_tax_group': 0});
+    await db.insert('tax_rates',
+        {'name': 'GST / Sales Tax (15%)', 'amount': 15.0, 'is_tax_group': 0});
 
     // 5. Default Invoice Scheme
     await db.insert('invoice_schemes', {
@@ -2824,15 +3440,35 @@ class DatabaseSchema {
     });
 
     // 6. Standard Units
-    await db.insert('units', {'actual_name': 'Pieces', 'short_name': 'Pc', 'allow_decimal': 0});
-    await db.insert('units', {'actual_name': 'Box (12 Pcs)', 'short_name': 'Box', 'allow_decimal': 0, 'base_unit_multiplier': 12.0});
-    await db.insert('units', {'actual_name': 'Kilograms', 'short_name': 'Kg', 'allow_decimal': 1});
-    await db.insert('units', {'actual_name': 'Liters', 'short_name': 'Ltr', 'allow_decimal': 1});
+    await db.insert('units',
+        {'actual_name': 'Pieces', 'short_name': 'Pc', 'allow_decimal': 0});
+    await db.insert('units', {
+      'actual_name': 'Box (12 Pcs)',
+      'short_name': 'Box',
+      'allow_decimal': 0,
+      'base_unit_multiplier': 12.0
+    });
+    await db.insert('units',
+        {'actual_name': 'Kilograms', 'short_name': 'Kg', 'allow_decimal': 1});
+    await db.insert('units',
+        {'actual_name': 'Liters', 'short_name': 'Ltr', 'allow_decimal': 1});
 
     // 7. Standard Selling Price Groups
-    await db.insert('selling_price_groups', {'name': 'Retail Price', 'description': 'Standard Walk-in customer price', 'is_active': 1});
-    await db.insert('selling_price_groups', {'name': 'Wholesale Price', 'description': 'Bulk purchase price', 'is_active': 1});
-    await db.insert('selling_price_groups', {'name': 'Special VIP Price', 'description': 'Preferred loyal customer price', 'is_active': 1});
+    await db.insert('selling_price_groups', {
+      'name': 'Retail Price',
+      'description': 'Standard Walk-in customer price',
+      'is_active': 1
+    });
+    await db.insert('selling_price_groups', {
+      'name': 'Wholesale Price',
+      'description': 'Bulk purchase price',
+      'is_active': 1
+    });
+    await db.insert('selling_price_groups', {
+      'name': 'Special VIP Price',
+      'description': 'Preferred loyal customer price',
+      'is_active': 1
+    });
 
     // 8. Standard Payment Accounts with 0 balance
     await db.insert('payment_accounts', {
@@ -2876,6 +3512,7 @@ class DatabaseSchema {
       'address': 'Local counter',
       'balance': 0.0,
       'credit_limit': 0.0,
+      'is_default_walk_in': 1,
     });
 
     // Zero demo products, zero demo sales, zero demo purchases, zero demo expenses!

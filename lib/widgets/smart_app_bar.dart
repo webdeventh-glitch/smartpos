@@ -76,7 +76,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
         }
         _alertProducts = lowStock;
         _expiringProducts = expiring;
-        if (_locations.isNotEmpty && !_locations.any((l) => l.name == _currentLocation)) {
+        if (_locations.isNotEmpty &&
+            !_locations.any((l) => l.name == _currentLocation)) {
           _currentLocation = _locations.first.name;
         }
       });
@@ -102,10 +103,12 @@ class _SmartAppBarState extends State<SmartAppBar> {
                 color: const Color(0xFFFEF2F2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.notifications_active_rounded, color: Color(0xFFDC2626), size: 20),
+              child: const Icon(Icons.notifications_active_rounded,
+                  color: Color(0xFFDC2626), size: 20),
             ),
             const SizedBox(width: 10),
-            const Text('Inventory Critical Alerts', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+            const Text('Inventory Critical Alerts',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
           ],
         ),
         content: SizedBox(
@@ -117,11 +120,15 @@ class _SmartAppBarState extends State<SmartAppBar> {
               if (_alertProducts.isNotEmpty) ...[
                 Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFD97706)),
+                    const Icon(Icons.warning_amber_rounded,
+                        size: 16, color: Color(0xFFD97706)),
                     const SizedBox(width: 6),
                     Text(
                       'Low Stock / Shortage Items (${_alertProducts.length})',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFB45309)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: Color(0xFFB45309)),
                     ),
                   ],
                 ),
@@ -136,18 +143,25 @@ class _SmartAppBarState extends State<SmartAppBar> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: _alertProducts.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFFDE68A)),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, color: Color(0xFFFDE68A)),
                     itemBuilder: (context, idx) {
                       final p = _alertProducts[idx];
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                            Text(p.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 12)),
                             Text(
                               '${p.stockQuantity.toInt()} left (Alert: ${p.alertQuantity.toInt()})',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFDC2626)),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Color(0xFFDC2626)),
                             ),
                           ],
                         ),
@@ -160,11 +174,15 @@ class _SmartAppBarState extends State<SmartAppBar> {
               if (_expiringProducts.isNotEmpty) ...[
                 Row(
                   children: [
-                    const Icon(Icons.event_busy_rounded, size: 16, color: Color(0xFFDC2626)),
+                    const Icon(Icons.event_busy_rounded,
+                        size: 16, color: Color(0xFFDC2626)),
                     const SizedBox(width: 6),
                     Text(
                       'Impending Expiry Items (Within 6 Months) (${_expiringProducts.length})',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF991B1B)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: Color(0xFF991B1B)),
                     ),
                   ],
                 ),
@@ -179,32 +197,45 @@ class _SmartAppBarState extends State<SmartAppBar> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: _expiringProducts.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFFECACA)),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, color: Color(0xFFFECACA)),
                     itemBuilder: (context, idx) {
                       final p = _expiringProducts[idx];
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                                Text(p.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12)),
                                 if (p.batchNumber != null)
-                                  Text('Batch: ${p.batchNumber}', style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                  Text('Batch: ${p.batchNumber}',
+                                      style: const TextStyle(
+                                          fontSize: 10,
+                                          color: Color(0xFF64748B))),
                               ],
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0xFFFCA5A5)),
+                                border:
+                                    Border.all(color: const Color(0xFFFCA5A5)),
                               ),
                               child: Text(
                                 'Exp: ${p.expiryDate}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFFDC2626)),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    color: Color(0xFFDC2626)),
                               ),
                             ),
                           ],
@@ -218,7 +249,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
                 const Padding(
                   padding: EdgeInsets.all(20),
                   child: Center(
-                    child: Text('All inventory is optimal! No items low on stock or expiring soon.'),
+                    child: Text(
+                        'All inventory is optimal! No items low on stock or expiring soon.'),
                   ),
                 ),
             ],
@@ -238,7 +270,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
     );
   }
 
-  Widget _squareBtn({required Widget icon, required VoidCallback onTap, String? tooltip}) {
+  Widget _squareBtn(
+      {required Widget icon, required VoidCallback onTap, String? tooltip}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -253,9 +286,13 @@ class _SmartAppBarState extends State<SmartAppBar> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                color:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               child: Center(child: icon),
             ),
@@ -278,7 +315,11 @@ class _SmartAppBarState extends State<SmartAppBar> {
       height: 62,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), width: 1)),
+        border: Border(
+            bottom: BorderSide(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                width: 1)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
@@ -298,7 +339,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
             children: [
               // Sidebar Toggle Button [ ◫ ]
               _squareBtn(
-                icon: const Icon(Icons.menu_open_rounded, color: Color(0xFF475569), size: 19),
+                icon: const Icon(Icons.menu_open_rounded,
+                    color: Color(0xFF475569), size: 19),
                 onTap: widget.onToggleSidebar,
                 tooltip: 'Toggle Navigation',
               ),
@@ -323,7 +365,9 @@ class _SmartAppBarState extends State<SmartAppBar> {
                             offset: Offset(0, 2),
                           ),
                         ],
-                        border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.25)),
+                        border: Border.all(
+                            color: const Color(0xFF4F46E5)
+                                .withValues(alpha: 0.25)),
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(6),
@@ -349,77 +393,108 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                   widget.settings.businessName,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF0F172A),
                                     fontWeight: FontWeight.w800,
                                     fontSize: 15,
                                     letterSpacing: -0.2,
                                   ),
                                 ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: isDark ? const Color(0xFF059669) : const Color(0xFFA7F3D0)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const CircleAvatar(radius: 3, backgroundColor: Color(0xFF10B981)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Live',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF064E3B)
+                                            .withValues(alpha: 0.4)
+                                        : const Color(0xFFECFDF5),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                        color: isDark
+                                            ? const Color(0xFF059669)
+                                            : const Color(0xFFA7F3D0)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const CircleAvatar(
+                                          radius: 3,
+                                          backgroundColor: Color(0xFF10B981)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Live',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: isDark
+                                              ? const Color(0xFF34D399)
+                                              : const Color(0xFF059669),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: widget.settings.isMySql
-                                      ? (isDark ? const Color(0xFF0369A1).withValues(alpha: 0.3) : const Color(0xFFE0F2FE))
-                                      : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: widget.settings.isMySql ? const Color(0xFF0284C7) : const Color(0xFF94A3B8),
+                                    ],
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      widget.settings.isMySql ? Icons.dns_rounded : Icons.sd_storage_rounded,
-                                      size: 10,
-                                      color: widget.settings.isMySql ? const Color(0xFF0284C7) : const Color(0xFF64748B),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: widget.settings.isMySql
+                                        ? (isDark
+                                            ? const Color(0xFF0369A1)
+                                                .withValues(alpha: 0.3)
+                                            : const Color(0xFFE0F2FE))
+                                        : (isDark
+                                            ? const Color(0xFF334155)
+                                            : const Color(0xFFF1F5F9)),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: widget.settings.isMySql
+                                          ? const Color(0xFF0284C7)
+                                          : const Color(0xFF94A3B8),
                                     ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      widget.settings.isMySql ? 'MySQL: ${widget.settings.dbName}' : 'SQLite',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: widget.settings.isMySql ? const Color(0xFF0284C7) : const Color(0xFF64748B),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        widget.settings.isMySql
+                                            ? Icons.dns_rounded
+                                            : Icons.sd_storage_rounded,
+                                        size: 10,
+                                        color: widget.settings.isMySql
+                                            ? const Color(0xFF0284C7)
+                                            : const Color(0xFF64748B),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        widget.settings.isMySql
+                                            ? 'MySQL: ${widget.settings.dbName}'
+                                            : 'SQLite',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: widget.settings.isMySql
+                                              ? const Color(0xFF0284C7)
+                                              : const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
                           Text(
                             widget.settings.branchName,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 11,
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -439,7 +514,10 @@ class _SmartAppBarState extends State<SmartAppBar> {
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    side: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0)),
                   ),
                   onSelected: (locName) {
                     setState(() => _currentLocation = locName);
@@ -462,19 +540,29 @@ class _SmartAppBarState extends State<SmartAppBar> {
                           child: Row(
                             children: [
                               Icon(
-                                loc.name == _currentLocation ? Icons.check_circle_rounded : Icons.store_outlined,
+                                loc.name == _currentLocation
+                                    ? Icons.check_circle_rounded
+                                    : Icons.store_outlined,
                                 size: 16,
-                                color: loc.name == _currentLocation ? const Color(0xFF4F46E5) : const Color(0xFF94A3B8),
+                                color: loc.name == _currentLocation
+                                    ? const Color(0xFF4F46E5)
+                                    : const Color(0xFF94A3B8),
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 loc.name,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight: loc.name == _currentLocation ? FontWeight.bold : FontWeight.w500,
+                                  fontWeight: loc.name == _currentLocation
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
                                   color: loc.name == _currentLocation
-                                      ? (isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5))
-                                      : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+                                      ? (isDark
+                                          ? const Color(0xFFA5B4FC)
+                                          : const Color(0xFF4F46E5))
+                                      : (isDark
+                                          ? const Color(0xFFCBD5E1)
+                                          : const Color(0xFF334155)),
                                 ),
                               ),
                             ],
@@ -486,25 +574,36 @@ class _SmartAppBarState extends State<SmartAppBar> {
                     height: 34,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.location_on_outlined, color: Color(0xFF4F46E5), size: 14),
+                        const Icon(Icons.location_on_outlined,
+                            color: Color(0xFF4F46E5), size: 14),
                         const SizedBox(width: 6),
                         Text(
                           _currentLocation,
                           style: TextStyle(
-                            color: isDark ? Colors.white : const Color(0xFF1E293B),
+                            color:
+                                isDark ? Colors.white : const Color(0xFF1E293B),
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(Icons.keyboard_arrow_down, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), size: 16),
+                        Icon(Icons.keyboard_arrow_down,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
+                            size: 16),
                       ],
                     ),
                   ),
@@ -525,21 +624,33 @@ class _SmartAppBarState extends State<SmartAppBar> {
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     color: isRegisterOpen
-                        ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.35) : const Color(0xFFF0FDF4))
-                        : (isDark ? const Color(0xFF78350F).withValues(alpha: 0.35) : const Color(0xFFFEF3C7)),
+                        ? (isDark
+                            ? const Color(0xFF064E3B).withValues(alpha: 0.35)
+                            : const Color(0xFFF0FDF4))
+                        : (isDark
+                            ? const Color(0xFF78350F).withValues(alpha: 0.35)
+                            : const Color(0xFFFEF3C7)),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isRegisterOpen
-                          ? (isDark ? const Color(0xFF059669) : const Color(0xFFBBF7D0))
-                          : (isDark ? const Color(0xFFD97706) : const Color(0xFFFDE68A)),
+                          ? (isDark
+                              ? const Color(0xFF059669)
+                              : const Color(0xFFBBF7D0))
+                          : (isDark
+                              ? const Color(0xFFD97706)
+                              : const Color(0xFFFDE68A)),
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isRegisterOpen ? Icons.savings_outlined : Icons.lock_clock_outlined,
-                        color: isRegisterOpen ? const Color(0xFF10B981) : const Color(0xFFD97706),
+                        isRegisterOpen
+                            ? Icons.savings_outlined
+                            : Icons.lock_clock_outlined,
+                        color: isRegisterOpen
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFD97706),
                         size: 15,
                       ),
                       const SizedBox(width: 5),
@@ -549,8 +660,12 @@ class _SmartAppBarState extends State<SmartAppBar> {
                             : 'Register Closed',
                         style: TextStyle(
                           color: isRegisterOpen
-                              ? (isDark ? const Color(0xFF34D399) : const Color(0xFF15803D))
-                              : (isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309)),
+                              ? (isDark
+                                  ? const Color(0xFF34D399)
+                                  : const Color(0xFF15803D))
+                              : (isDark
+                                  ? const Color(0xFFFBBF24)
+                                  : const Color(0xFFB45309)),
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
                         ),
@@ -567,19 +682,32 @@ class _SmartAppBarState extends State<SmartAppBar> {
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    color: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.schedule_rounded, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), size: 14),
+                      Icon(Icons.schedule_rounded,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
+                          size: 14),
                       const SizedBox(width: 6),
                       Text(
-                        constraints.maxWidth > 1460 ? '$dateStr • $timeStr' : timeStr,
+                        constraints.maxWidth > 1460
+                            ? '$dateStr • $timeStr'
+                            : timeStr,
                         style: TextStyle(
-                          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                          color: isDark
+                              ? const Color(0xFFCBD5E1)
+                              : const Color(0xFF334155),
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                         ),
@@ -591,7 +719,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
               // Calculator Shortcut
               if (!isNarrow)
                 _squareBtn(
-                  icon: const Icon(Icons.calculate_outlined, color: Color(0xFF475569), size: 18),
+                  icon: const Icon(Icons.calculate_outlined,
+                      color: Color(0xFF475569), size: 18),
                   onTap: () {
                     showDialog(
                       context: context,
@@ -603,11 +732,13 @@ class _SmartAppBarState extends State<SmartAppBar> {
 
               // Smart AI Business Assistant Shortcut
               _squareBtn(
-                icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF7C3AED), size: 18),
+                icon: const Icon(Icons.auto_awesome_rounded,
+                    color: Color(0xFF7C3AED), size: 18),
                 onTap: () {
                   showDialog(
                     context: context,
-                    builder: (_) => AiAssistantChatDialog(settings: widget.settings),
+                    builder: (_) =>
+                        AiAssistantChatDialog(settings: widget.settings),
                   );
                 },
                 tooltip: 'Smart AI Business Assistant',
@@ -620,7 +751,9 @@ class _SmartAppBarState extends State<SmartAppBar> {
                   return _squareBtn(
                     icon: Icon(
                       Icons.touch_app_rounded,
-                      color: touchOn ? const Color(0xFF4F46E5) : const Color(0xFF64748B),
+                      color: touchOn
+                          ? const Color(0xFF4F46E5)
+                          : const Color(0xFF64748B),
                       size: 18,
                     ),
                     onTap: () => ThemeService.toggleTouchFriendly(),
@@ -638,12 +771,16 @@ class _SmartAppBarState extends State<SmartAppBar> {
                   final isDark = mode == ThemeMode.dark;
                   return _squareBtn(
                     icon: Icon(
-                      isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                      color: isDark ? Colors.amberAccent : const Color(0xFF4F46E5),
+                      isDark
+                          ? Icons.light_mode_rounded
+                          : Icons.dark_mode_rounded,
+                      color:
+                          isDark ? Colors.amberAccent : const Color(0xFF4F46E5),
                       size: 18,
                     ),
                     onTap: () => ThemeService.toggleTheme(),
-                    tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+                    tooltip:
+                        isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
                   );
                 },
               ),
@@ -665,7 +802,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
                     iconData = Icons.cloud_off_rounded;
                     statusColor = const Color(0xFF64748B);
                     statusLabel = 'Offline';
-                    tooltipText = 'Offline-First Mode: Local SQLite database active';
+                    tooltipText =
+                        'Offline-First Mode: Local SQLite database active';
                   } else if (isSyncing) {
                     iconData = Icons.sync_rounded;
                     statusColor = const Color(0xFF6366F1);
@@ -694,7 +832,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
                           if (isOffline) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Offline SQLite Database active. All sales & stock changes are safely queued locally.'),
+                                content: Text(
+                                    'Offline SQLite Database active. All sales & stock changes are safely queued locally.'),
                                 duration: Duration(seconds: 2),
                                 behavior: SnackBarBehavior.floating,
                               ),
@@ -702,7 +841,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Starting synchronization with Cloud/MySQL...'),
+                                content: Text(
+                                    'Starting synchronization with Cloud/MySQL...'),
                                 duration: Duration(seconds: 1),
                                 behavior: SnackBarBehavior.floating,
                               ),
@@ -713,11 +853,13 @@ class _SmartAppBarState extends State<SmartAppBar> {
                         borderRadius: BorderRadius.circular(8),
                         child: Container(
                           height: 36,
-                          padding: EdgeInsets.symmetric(horizontal: showSyncLabel ? 10 : 8),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: showSyncLabel ? 10 : 8),
                           decoration: BoxDecoration(
                             color: statusColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: statusColor.withValues(alpha: 0.45)),
+                            border: Border.all(
+                                color: statusColor.withValues(alpha: 0.45)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -757,7 +899,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: Tooltip(
-                  message: 'Inventory Alerts: ${_alertProducts.length} low stock, ${_expiringProducts.length} expiring',
+                  message:
+                      'Inventory Alerts: ${_alertProducts.length} low stock, ${_expiringProducts.length} expiring',
                   child: InkWell(
                     onTap: _showInventoryAlertsDialog,
                     borderRadius: BorderRadius.circular(8),
@@ -765,12 +908,14 @@ class _SmartAppBarState extends State<SmartAppBar> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: (_alertProducts.isNotEmpty || _expiringProducts.isNotEmpty)
+                        color: (_alertProducts.isNotEmpty ||
+                                _expiringProducts.isNotEmpty)
                             ? const Color(0xFFFEF2F2)
                             : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: (_alertProducts.isNotEmpty || _expiringProducts.isNotEmpty)
+                          color: (_alertProducts.isNotEmpty ||
+                                  _expiringProducts.isNotEmpty)
                               ? const Color(0xFFFECACA)
                               : const Color(0xFFE2E8F0),
                         ),
@@ -781,11 +926,13 @@ class _SmartAppBarState extends State<SmartAppBar> {
                           Icon(
                             Icons.notifications_active_outlined,
                             size: 19,
-                            color: (_alertProducts.isNotEmpty || _expiringProducts.isNotEmpty)
+                            color: (_alertProducts.isNotEmpty ||
+                                    _expiringProducts.isNotEmpty)
                                 ? const Color(0xFFDC2626)
                                 : const Color(0xFF475569),
                           ),
-                          if (_alertProducts.isNotEmpty || _expiringProducts.isNotEmpty)
+                          if (_alertProducts.isNotEmpty ||
+                              _expiringProducts.isNotEmpty)
                             Positioned(
                               top: 5,
                               right: 5,
@@ -806,231 +953,371 @@ class _SmartAppBarState extends State<SmartAppBar> {
               ),
 
               // Prominent POS Button
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: widget.onOpenPos,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  height: 38,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF4F46E5), Color(0xFF4338CA)],
-                    ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: widget.onOpenPos,
                     borderRadius: BorderRadius.circular(8),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x334F46E5),
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        widget.settings.isRestaurant
-                            ? Icons.table_restaurant_rounded
-                            : widget.settings.isRepair
-                                ? Icons.build_circle_outlined
-                                : widget.settings.isHotel
-                                    ? Icons.hotel_rounded
-                                    : widget.settings.isGym
-                                        ? Icons.fitness_center_rounded
-                                        : Icons.bolt_rounded,
-                        color: Colors.amber,
-                        size: 17,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        widget.settings.isRestaurant
-                            ? 'Tables (POS)'
-                            : widget.settings.isRepair
-                                ? 'Jobs (POS)'
-                                : widget.settings.isHotel
-                                    ? 'Rooms (POS)'
-                                    : widget.settings.isGym
-                                        ? 'Gym (POS)'
-                                        : 'POS',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                          letterSpacing: 0.2,
+                    child: Container(
+                      height: 38,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4F46E5), Color(0xFF4338CA)],
                         ),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x334F46E5),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'F1',
-                        style: TextStyle(
-                          color: Colors.white60,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.settings.isRestaurant
+                                ? Icons.table_restaurant_rounded
+                                : widget.settings.isRepair
+                                    ? Icons.build_circle_outlined
+                                    : widget.settings.isHotel
+                                        ? Icons.hotel_rounded
+                                        : widget.settings.isGym
+                                            ? Icons.fitness_center_rounded
+                                            : Icons.bolt_rounded,
+                            color: Colors.amber,
+                            size: 17,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            widget.settings.isRestaurant
+                                ? 'Tables (POS)'
+                                : widget.settings.isRepair
+                                    ? 'Jobs (POS)'
+                                    : widget.settings.isHotel
+                                        ? 'Rooms (POS)'
+                                        : widget.settings.isGym
+                                            ? 'Gym (POS)'
+                                            : 'POS',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'F1',
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
 
-          // Dynamic Profile Pill & Logout Menu
-          ValueListenableBuilder<User?>(
-            valueListenable: AuthService.currentUserNotifier,
-            builder: (context, user, _) {
-              final displayName = (user != null && user.name.isNotEmpty) ? user.name : 'System Operator';
-              final roleName = (user?.role ?? 'operator').toUpperCase();
-              final initials = displayName.split(' ').map((w) => w.isNotEmpty ? w[0] : '').take(2).join();
+              // Dynamic Profile Pill & Logout Menu
+              ValueListenableBuilder<User?>(
+                valueListenable: AuthService.currentUserNotifier,
+                builder: (context, user, _) {
+                  final displayName = (user != null && user.name.isNotEmpty)
+                      ? user.name
+                      : 'System Operator';
+                  final roleName = (user?.role ?? 'operator').toUpperCase();
+                  final initials = displayName
+                      .split(' ')
+                      .map((w) => w.isNotEmpty ? w[0] : '')
+                      .take(2)
+                      .join();
 
-              return PopupMenuButton<String>(
-                tooltip: 'Account & Session Options',
-                offset: const Offset(0, 46),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                onSelected: (val) async {
-                  if (val == 'business_settings') {
-                    widget.onOpenSettings?.call();
-                    return;
-                  }
-                  if (val == 'logout') {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Row(
+                  return PopupMenuButton<String>(
+                    tooltip: 'Account & Session Options',
+                    offset: const Offset(0, 46),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    onSelected: (val) async {
+                      if (val == 'business_settings') {
+                        widget.onOpenSettings?.call();
+                        return;
+                      }
+                      if (val == 'profile') {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                            title: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: const Color(0xFF4F46E5),
+                                  child: Text(
+                                    initials.isNotEmpty ? initials : 'OP',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(displayName,
+                                          style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold)),
+                                      Text('Role: $roleName',
+                                          style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF64748B))),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            content: SizedBox(
+                              width: 420,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                      'Username: @${user?.username ?? 'operator'}',
+                                      style: const TextStyle(fontSize: 13)),
+                                  if (user != null && user.email.isNotEmpty)
+                                    Text('Email: ${user.email}',
+                                        style: const TextStyle(fontSize: 13)),
+                                  const SizedBox(height: 12),
+                                  const Text('Active Role Capabilities:',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12)),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: [
+                                      'sale.create',
+                                      'sale.delete',
+                                      'quotation.manage',
+                                      'quotation.convert',
+                                      'purchase.manage',
+                                      'settings.manage',
+                                    ]
+                                        .where((perm) =>
+                                            user?.hasPermission(perm) ?? true)
+                                        .map((perm) => Chip(
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              label: Text(perm,
+                                                  style: const TextStyle(
+                                                      fontSize: 11)),
+                                            ))
+                                        .toList(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  widget.onOpenSettings?.call();
+                                },
+                                child: const Text('Business Settings'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text('Close'),
+                              ),
+                            ],
+                          ),
+                        );
+                        return;
+                      }
+                      if (val == 'logout') {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Row(
+                              children: [
+                                Icon(Icons.logout_rounded, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Confirm Logout'),
+                              ],
+                            ),
+                            content: const Text(
+                                'Are you sure you want to end your current terminal session?'),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Cancel')),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Logout'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          await AuthService.logout();
+                        }
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      PopupMenuItem<String>(
+                        enabled: false,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.logout_rounded, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Confirm Logout'),
+                            Text(
+                              displayName,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A)),
+                            ),
+                            Text(
+                              '${(user != null && user.email.isNotEmpty) ? user.email : '@${user?.username ?? 'operator'}'} • $roleName',
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFF94A3B8)),
+                            ),
                           ],
                         ),
-                        content: const Text('Are you sure you want to end your current terminal session?'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('Logout'),
-                          ),
-                        ],
                       ),
-                    );
-                    if (confirm == true) {
-                      await AuthService.logout();
-                    }
-                  }
-                },
-                itemBuilder: (ctx) => [
-                  PopupMenuItem<String>(
-                    enabled: false,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          displayName,
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                        ),
-                        Text(
-                          '${(user != null && user.email.isNotEmpty) ? user.email : '@${user?.username ?? 'operator'}'} • $roleName',
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem<String>(
-                    value: 'business_settings',
-                    child: Row(
-                      children: [
-                        Icon(Icons.storefront_outlined, size: 18, color: isDark ? Colors.white70 : const Color(0xFF475569)),
-                        const SizedBox(width: 10),
-                        Text('Business: ${widget.settings.businessTypeDisplayName.split("/").first.trim()}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem<String>(
-                    value: 'profile',
-                    child: Row(
-                      children: [
-                        Icon(Icons.person_outline, size: 18, color: isDark ? Colors.white70 : const Color(0xFF475569)),
-                        const SizedBox(width: 10),
-                        const Text('My Profile & Roles', style: TextStyle(fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout_rounded, size: 18, color: Colors.red),
-                        SizedBox(width: 10),
-                        Text('Log Out / Exit Session', style: TextStyle(fontSize: 13, color: Colors.red, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ],
-                child: Container(
-                  height: 38,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: const Color(0xFFEEF2FF),
-                        child: Text(
-                          initials.isNotEmpty ? initials : 'AD',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF4F46E5),
-                          ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem<String>(
+                        value: 'business_settings',
+                        child: Row(
+                          children: [
+                            Icon(Icons.storefront_outlined,
+                                size: 18,
+                                color: isDark
+                                    ? Colors.white70
+                                    : const Color(0xFF475569)),
+                            const SizedBox(width: 10),
+                            Text(
+                                'Business: ${widget.settings.businessTypeDisplayName.split("/").first.trim()}',
+                                style: const TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w600)),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            displayName,
-                            style: TextStyle(
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                          Text(
-                            roleName,
-                            style: const TextStyle(
-                              color: Color(0xFF94A3B8),
-                              fontWeight: FontWeight.w500,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
+                      PopupMenuItem<String>(
+                        value: 'profile',
+                        child: Row(
+                          children: [
+                            Icon(Icons.person_outline,
+                                size: 18,
+                                color: isDark
+                                    ? Colors.white70
+                                    : const Color(0xFF475569)),
+                            const SizedBox(width: 10),
+                            const Text('My Profile & Roles',
+                                style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF94A3B8), size: 16),
+                      const PopupMenuItem<String>(
+                        value: 'logout',
+                        child: Row(
+                          children: [
+                            Icon(Icons.logout_rounded,
+                                size: 18, color: Colors.red),
+                            SizedBox(width: 10),
+                            Text('Log Out / Exit Session',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
                     ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      );
-    },
-  ),
-);
+                    child: Container(
+                      height: 38,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 12,
+                            backgroundColor: const Color(0xFFEEF2FF),
+                            child: Text(
+                              initials.isNotEmpty ? initials : 'AD',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4F46E5),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                displayName,
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                roleName,
+                                style: const TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.keyboard_arrow_down_rounded,
+                              color: Color(0xFF94A3B8), size: 16),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }
