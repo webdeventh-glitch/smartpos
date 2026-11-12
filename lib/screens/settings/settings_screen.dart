@@ -66,6 +66,14 @@ class _SettingsScreenState extends State<SettingsScreen>
   String _timeFormat = '12 Hour';
   int _sessionTimeoutMinutes = 480;
   bool _touchFriendlyMode = false;
+  bool _showPosProductPanel = true;
+  bool _compactPosProductList = true;
+  bool _autoFocusBarcodeSearch = true;
+  bool _confirmBeforeCancelSale = true;
+  bool _enableCounterTokenQueue = true;
+  bool _allowOverselling = false;
+  bool _autoPrintReceipt = false;
+  bool _autoPrintKot = false;
   final TextEditingController _encPassphraseCtrl = TextEditingController();
   bool _isUpdatingEncryptionKey = false;
 
@@ -200,6 +208,14 @@ class _SettingsScreenState extends State<SettingsScreen>
     _timeFormat = s.timeFormat;
     _sessionTimeoutMinutes = s.sessionTimeoutMinutes;
     _touchFriendlyMode = s.touchFriendlyMode;
+    _showPosProductPanel = s.showPosProductPanel;
+    _compactPosProductList = s.compactPosProductList;
+    _autoFocusBarcodeSearch = s.autoFocusBarcodeSearch;
+    _confirmBeforeCancelSale = s.confirmBeforeCancelSale;
+    _enableCounterTokenQueue = s.enableCounterTokenQueue;
+    _allowOverselling = s.allowOverselling;
+    _autoPrintReceipt = s.autoPrintReceipt;
+    _autoPrintKot = s.autoPrintKot;
 
     _primaryDbType = s.primaryDbType.isNotEmpty ? s.primaryDbType : 'mysql';
     _dbHostCtrl = TextEditingController(
@@ -339,6 +355,15 @@ class _SettingsScreenState extends State<SettingsScreen>
       _showCustomerBalanceOnReceipt = s.showCustomerBalanceOnReceipt;
       _showTaxBreakdownOnReceipt = s.showTaxBreakdownOnReceipt;
       _showCashierNameOnReceipt = s.showCashierNameOnReceipt;
+      _touchFriendlyMode = s.touchFriendlyMode;
+      _showPosProductPanel = s.showPosProductPanel;
+      _compactPosProductList = s.compactPosProductList;
+      _autoFocusBarcodeSearch = s.autoFocusBarcodeSearch;
+      _confirmBeforeCancelSale = s.confirmBeforeCancelSale;
+      _enableCounterTokenQueue = s.enableCounterTokenQueue;
+      _allowOverselling = s.allowOverselling;
+      _autoPrintReceipt = s.autoPrintReceipt;
+      _autoPrintKot = s.autoPrintKot;
 
       _initLicenseInfo();
       _loadDbStats();
@@ -1243,6 +1268,14 @@ class _SettingsScreenState extends State<SettingsScreen>
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
         sessionTimeoutMinutes: _sessionTimeoutMinutes,
         touchFriendlyMode: _touchFriendlyMode,
+        showPosProductPanel: _showPosProductPanel,
+        compactPosProductList: _compactPosProductList,
+        autoFocusBarcodeSearch: _autoFocusBarcodeSearch,
+        confirmBeforeCancelSale: _confirmBeforeCancelSale,
+        enableCounterTokenQueue: _enableCounterTokenQueue,
+        allowOverselling: _allowOverselling,
+        autoPrintReceipt: _autoPrintReceipt,
+        autoPrintKot: _autoPrintKot,
       );
 
       ThemeService.setTouchFriendly(_touchFriendlyMode);
@@ -4344,6 +4377,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                           isDense: true,
                         ),
                       ),
+                      const SizedBox(height: 22),
+
+                      _buildPosTerminalTogglesCard(isDark),
                       const SizedBox(height: 24),
 
                       Align(
@@ -8122,6 +8158,14 @@ class _SettingsScreenState extends State<SettingsScreen>
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
         sessionTimeoutMinutes: _sessionTimeoutMinutes,
         touchFriendlyMode: _touchFriendlyMode,
+        showPosProductPanel: _showPosProductPanel,
+        compactPosProductList: _compactPosProductList,
+        autoFocusBarcodeSearch: _autoFocusBarcodeSearch,
+        confirmBeforeCancelSale: _confirmBeforeCancelSale,
+        enableCounterTokenQueue: _enableCounterTokenQueue,
+        allowOverselling: _allowOverselling,
+        autoPrintReceipt: _autoPrintReceipt,
+        autoPrintKot: _autoPrintKot,
       );
 
       ThemeService.setTouchFriendly(_touchFriendlyMode);
@@ -10017,6 +10061,188 @@ class _SettingsScreenState extends State<SettingsScreen>
                         color: Color(0xFF059669))),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _applyPosToggle(
+      BusinessSettings Function(BusinessSettings) updater) async {
+    final updated = updater(widget.settings);
+    try {
+      final db = await DatabaseService.initialize();
+      await db.updateBusinessSettings(updated);
+      widget.onSettingsUpdated(updated);
+    } catch (e, st) {
+      AppLogger.warning(
+          'SettingsScreen', 'Failed updating POS toggle setting', e, st);
+    }
+  }
+
+  Widget _posToggleRow({
+    required bool isDark,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      secondary: Icon(icon, size: 20, color: const Color(0xFF4F46E5)),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: isDark ? Colors.white : const Color(0xFF0F172A),
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: 11.5,
+          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+        ),
+      ),
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildPosTerminalTogglesCard(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.tune_rounded,
+                  size: 18, color: Color(0xFF4F46E5)),
+              const SizedBox(width: 8),
+              Text(
+                'POS Terminal & Super Store Toggles',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Turn product grid/list panel ON/OFF for barcode-first superstores, and control billing behavior.',
+            style: TextStyle(
+              fontSize: 11.5,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _posToggleRow(
+            isDark: isDark,
+            icon: Icons.view_sidebar_rounded,
+            title: 'Show Product Grid / Catalog Panel on POS',
+            subtitle:
+                'Turn OFF for barcode-only superstores so Cart gets 100% full width (can also toggle quickly from POS top bar).',
+            value: _showPosProductPanel,
+            onChanged: (val) {
+              setState(() => _showPosProductPanel = val);
+              _applyPosToggle((s) => s.copyWith(showPosProductPanel: val));
+            },
+          ),
+          _posToggleRow(
+            isDark: isDark,
+            icon: Icons.compress_rounded,
+            title: 'Compact Product List Rows',
+            subtitle:
+                'Shrinks right-side catalog width & row padding so more cart & product items fit cleanly on screen.',
+            value: _compactPosProductList,
+            onChanged: (val) {
+              setState(() => _compactPosProductList = val);
+              _applyPosToggle((s) => s.copyWith(compactPosProductList: val));
+            },
+          ),
+          _posToggleRow(
+            isDark: isDark,
+            icon: Icons.qr_code_scanner_rounded,
+            title: 'Auto-Focus Barcode Scanner Input',
+            subtitle:
+                'Automatically keeps cursor inside barcode search box after scanning items or completing bills.',
+            value: _autoFocusBarcodeSearch,
+            onChanged: (val) {
+              setState(() => _autoFocusBarcodeSearch = val);
+              _applyPosToggle((s) => s.copyWith(autoFocusBarcodeSearch: val));
+            },
+          ),
+          _posToggleRow(
+            isDark: isDark,
+            icon: Icons.confirmation_number_outlined,
+            title: 'Enable Salesman Counter Token Queue (LAN)',
+            subtitle:
+                'Allows salesman counters to send bills/tokens directly to Main Cash Counter in real time.',
+            value: _enableCounterTokenQueue,
+            onChanged: (val) {
+              setState(() => _enableCounterTokenQueue = val);
+              _applyPosToggle((s) => s.copyWith(enableCounterTokenQueue: val));
+            },
+          ),
+          _posToggleRow(
+            isDark: isDark,
+            icon: Icons.warning_amber_rounded,
+            title: 'Confirm Before Cancel / Clear Cart',
+            subtitle:
+                'Shows a confirmation dialog before clearing active items from POS cart.',
+            value: _confirmBeforeCancelSale,
+            onChanged: (val) {
+              setState(() => _confirmBeforeCancelSale = val);
+              _applyPosToggle((s) => s.copyWith(confirmBeforeCancelSale: val));
+            },
+          ),
+          _posToggleRow(
+            isDark: isDark,
+            icon: Icons.inventory_2_outlined,
+            title: 'Allow Overselling (Sell Zero / Negative Stock)',
+            subtitle:
+                'When OFF (recommended), prevents adding or selling quantities above available stock.',
+            value: _allowOverselling,
+            onChanged: (val) {
+              setState(() => _allowOverselling = val);
+              _applyPosToggle((s) => s.copyWith(allowOverselling: val));
+            },
+          ),
+          _posToggleRow(
+            isDark: isDark,
+            icon: Icons.print_rounded,
+            title: 'Auto-Print Thermal Receipt After Checkout',
+            subtitle:
+                'Automatically dispatches bill to default thermal printer immediately when Cash/Card sale finishes.',
+            value: _autoPrintReceipt,
+            onChanged: (val) {
+              setState(() => _autoPrintReceipt = val);
+              _applyPosToggle((s) => s.copyWith(autoPrintReceipt: val));
+            },
+          ),
+          _posToggleRow(
+            isDark: isDark,
+            icon: Icons.soup_kitchen_outlined,
+            title: 'Auto-Print KOT Ticket (Restaurant / Cafe)',
+            subtitle:
+                'Automatically sends kitchen order tickets on checkout when Restaurant/Cafe mode is active.',
+            value: _autoPrintKot,
+            onChanged: (val) {
+              setState(() => _autoPrintKot = val);
+              _applyPosToggle((s) => s.copyWith(autoPrintKot: val));
+            },
           ),
         ],
       ),

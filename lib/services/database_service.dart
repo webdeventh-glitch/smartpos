@@ -18,7 +18,7 @@ class DatabaseService {
   final String? dbFilePath;
   DatabaseService(this.db, {this.dbFilePath});
 
-  static const int currentSchemaVersion = 9;
+  static const int currentSchemaVersion = 10;
   static DatabaseService? _instance;
   static DatabaseService? get instanceOrNull => _instance;
   static DatabaseService get instance =>
@@ -27,6 +27,7 @@ class DatabaseService {
           'DatabaseService not initialized. Call initialize() first.'));
 
   static VoidCallback? onSyncQueueUpdated;
+  static void Function(String type, Map<String, dynamic> data)? onRealtimeEvent;
   static bool suppressSync = false;
 
   // Domain repositories bound to this database coordinator

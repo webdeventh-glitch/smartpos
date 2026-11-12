@@ -12,6 +12,8 @@ import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/keyboard_shortcuts_service.dart';
+import '../../services/lan_realtime_service.dart';
+import '../../services/local_api_service.dart';
 import '../../services/theme_service.dart';
 import 'quick_customer_dialog.dart';
 import 'customer_search_dialog.dart';
@@ -141,12 +143,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   Timer? _catalogSearchDebounce;
   bool _isGridView =
       false; // Switchable layout: Grid vs List view (Default List view)
+  bool _showProductPanel = true;
   bool _isFullscreen = false;
   int _mobileTabIndex =
       1; // For <1050px tablet compact toggle: 0 = Cart, 1 = Catalog
 
-  // Parked bills count
+  // Parked bills & LAN real-time counter queue
   int _parkedCount = 0;
+  StreamSubscription<Map<String, dynamic>>? _lanEventSub;
+  bool _lanWsConnected = false;
 
   // Phase 6: Commission Agents & Scheduled Promo Discounts
   List<CommissionAgent> _commissionAgents = [];
@@ -165,6 +170,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     _wordsLanguage = widget.settings.totalInWordsLanguage.isNotEmpty
         ? widget.settings.totalInWordsLanguage
         : 'ur';
+    _showProductPanel = widget.settings.showPosProductPanel;
     _shortcutsJson = widget.settings.keyboardShortcutsJson;
     _shortcutBindings =
         KeyboardShortcutsService.resolveBindings(_shortcutsJson);
@@ -175,11 +181,38 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       }
     });
     _catalogScrollController.addListener(_onCatalogScroll);
+    _initLanRealtimeSync();
     _loadInitialData();
+  }
+
+  void _initLanRealtimeSync() {
+    _lanWsConnected = LanRealtimeService.instance.wsConnected.value;
+    LanRealtimeService.instance.wsConnected
+        .addListener(_onLanConnectionStateChanged);
+    _lanEventSub = LanRealtimeService.instance.events.listen((event) {
+      if (!mounted) return;
+      final type = event['type'] as String? ?? '';
+      if (type == 'drafts_updated') {
+        _refreshParkedCounterQueue();
+      } else if (type == 'stock_changed') {
+        _reloadCatalogFromScratch();
+      }
+    });
+    unawaited(LanRealtimeService.instance.configure(widget.settings));
+  }
+
+  void _onLanConnectionStateChanged() {
+    if (!mounted) return;
+    setState(() {
+      _lanWsConnected = LanRealtimeService.instance.wsConnected.value;
+    });
   }
 
   @override
   void dispose() {
+    LanRealtimeService.instance.wsConnected
+        .removeListener(_onLanConnectionStateChanged);
+    _lanEventSub?.cancel();
     _catalogSearchDebounce?.cancel();
     _catalogScrollController.removeListener(_onCatalogScroll);
     _catalogScrollController.dispose();
@@ -204,6 +237,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   @override
   void didUpdateWidget(covariant PosTerminalScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.settings.showPosProductPanel !=
+        widget.settings.showPosProductPanel) {
+      setState(() {
+        _showProductPanel = widget.settings.showPosProductPanel;
+      });
+    }
+    if (oldWidget.settings.deploymentMode != widget.settings.deploymentMode ||
+        oldWidget.settings.serverHost != widget.settings.serverHost ||
+        oldWidget.settings.serverPort != widget.settings.serverPort) {
+      unawaited(LanRealtimeService.instance.configure(widget.settings));
+    }
     if (oldWidget.settings.totalInWordsLanguage !=
         widget.settings.totalInWordsLanguage) {
       if (widget.settings.totalInWordsLanguage.isNotEmpty) {
@@ -340,7 +384,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     if (!mounted) return;
     final taxGroups = await db.getTaxGroups();
     if (!mounted) return;
-    final parked = await db.getParkedSales();
+    final List<ParkedSale> parked = (widget.settings.isLanSecondaryTerminal &&
+            widget.settings.serverHost.trim().isNotEmpty &&
+            !Platform.environment.containsKey('FLUTTER_TEST'))
+        ? await LanRealtimeService.instance.fetchCounterDrafts()
+        : await db.getParkedSales();
     if (!mounted) return;
     final activeReg = await ref.read(activeRegisterProvider.future);
     if (!mounted) return;
@@ -3197,6 +3245,20 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
     ref.read(cartProvider.notifier).addProduct(product, variation: chosen);
     _applyProductTaxIfConfigured(product);
+    _refocusBarcodeIfEnabled();
+  }
+
+  void _refocusBarcodeIfEnabled() {
+    if (widget.settings.autoFocusBarcodeSearch && mounted) {
+      _searchFocusNode.requestFocus();
+    }
+  }
+
+  void _toggleProductPanelVisibility() {
+    setState(() {
+      _showProductPanel = !_showProductPanel;
+    });
+    _refocusBarcodeIfEnabled();
   }
 
   double _cartBaseQtyFor(Product product, ProductVariation? variation) {
@@ -3366,9 +3428,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       }
     }
 
-    // 1. Database exact SKU / Barcode / Variation Sub-SKU lookup
+    // 1. Live Primary Server check first for Secondary LAN Terminals, then local DB lookup
     final db = await _dbFuture;
-    final dbMatch = await db.getProductWithMatchedVariationByCode(cleanCode);
+    (Product, ProductVariation?)? dbMatch;
+    if (widget.settings.isLanSecondaryTerminal &&
+        widget.settings.serverHost.trim().isNotEmpty &&
+        !Platform.environment.containsKey('FLUTTER_TEST')) {
+      final remote =
+          await LanRealtimeService.instance.fetchLiveProductByCode(cleanCode);
+      if (remote.reachable && remote.product != null) {
+        dbMatch = (remote.product!, remote.variation);
+      }
+    }
+    dbMatch ??= await db.getProductWithMatchedVariationByCode(cleanCode);
     if (dbMatch != null) {
       if (qtyMultiplier != 1.0) {
         _addToCartWithQuantity(
@@ -3381,7 +3453,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       }
       _searchController.clear();
       _applyProductFilter(immediate: true);
-      _searchFocusNode.requestFocus();
+      _refocusBarcodeIfEnabled();
     } else {
       _applyProductFilter(immediate: true);
     }
@@ -3632,6 +3704,79 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         items: List.from(_cart),
         splitTenders: splitTenders,
       );
+    } else if (widget.settings.isLanSecondaryTerminal &&
+        widget.settings.serverHost.trim().isNotEmpty &&
+        saleStatus == 'final' &&
+        !Platform.environment.containsKey('FLUTTER_TEST')) {
+      final remoteRes = await LanRealtimeService.instance.pushOrderToPrimary(
+        sale: sale,
+        items: List.from(_cart),
+        splitTenders: splitTenders,
+      );
+      if (remoteRes.success && remoteRes.invoiceNo != null) {
+        final primarySale = Sale(
+          invoiceNo: remoteRes.invoiceNo!,
+          customerId: sale.customerId,
+          customerName: sale.customerName,
+          locationId: sale.locationId,
+          subtotal: sale.subtotal,
+          discount: sale.discount,
+          taxAmount: sale.taxAmount,
+          taxRate: sale.taxRate,
+          shipping: sale.shipping,
+          totalAmount: sale.totalAmount,
+          paidAmount: sale.paidAmount,
+          paymentMethod: sale.paymentMethod,
+          paymentStatus: sale.paymentStatus,
+          saleStatus: sale.saleStatus,
+          note: sale.note,
+          createdAt: sale.createdAt,
+        );
+        completedSale = await db.createSale(
+          sale: primarySale,
+          items: List.from(_cart),
+          splitTenders: splitTenders,
+          chequeNumber: chequeNumber,
+          bankName: bankName,
+          chequeDueDate: chequeDueDate,
+          pointsRedeemed: redeemedPoints.round(),
+          pointsEarned: earnedPoints.round(),
+          enforceStock: false,
+        );
+      } else if ((remoteRes.error ?? '')
+          .toLowerCase()
+          .contains('insufficient stock')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(remoteRes.error!),
+              backgroundColor: const Color(0xFFEF4444),
+            ),
+          );
+        }
+        return;
+      } else {
+        completedSale = await db.createSale(
+          sale: sale,
+          items: List.from(_cart),
+          splitTenders: splitTenders,
+          chequeNumber: chequeNumber,
+          bankName: bankName,
+          chequeDueDate: chequeDueDate,
+          pointsRedeemed: redeemedPoints.round(),
+          pointsEarned: earnedPoints.round(),
+          enforceStock: !widget.settings.allowOverselling,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'LAN Main Server offline: bill saved to local counter queue.'),
+              backgroundColor: Color(0xFFD97706),
+            ),
+          );
+        }
+      }
     } else {
       completedSale = await db.createSale(
         sale: sale,
@@ -3655,6 +3800,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         _manualOrderDiscountOverride = false;
       });
       _loadInitialData();
+      _refocusBarcodeIfEnabled();
 
       if (saleStatus == 'draft') {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -4110,6 +4256,96 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
   }
 
+  Future<void> _refreshParkedCounterQueue() async {
+    try {
+      final List<ParkedSale> list;
+      if (widget.settings.isLanSecondaryTerminal &&
+          widget.settings.serverHost.trim().isNotEmpty &&
+          !Platform.environment.containsKey('FLUTTER_TEST')) {
+        list = await LanRealtimeService.instance.fetchCounterDrafts();
+      } else {
+        final db = await _dbFuture;
+        list = await db.getParkedSales();
+      }
+      if (mounted) {
+        setState(() => _parkedCount = list.length);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _sendToCashCounterToken() async {
+    if (_cart.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cart is empty! Add items before sending token.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    final tokenNum =
+        'TKN-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+    final counterTag = widget.settings.branchName.trim().isNotEmpty
+        ? widget.settings.branchName.trim()
+        : 'Counter';
+    final cartSnapshot = ref.read(cartProvider);
+    final itemsMap = _cart.map((e) => e.toSavedStateMap()).toList();
+    final parked = ParkedSale(
+      customerId: _selectedCustomer?.id,
+      customerName: _selectedCustomer?.name ?? 'Walk-in Customer',
+      note: '$tokenNum • $counterTag',
+      total: _grandTotal,
+      createdAt: now,
+      itemsJson: jsonEncode(itemsMap),
+      discountType: cartSnapshot.discountType,
+      discountValue: cartSnapshot.discountValue,
+      orderTax: cartSnapshot.orderTax,
+      shippingCharge: cartSnapshot.shippingCharge,
+      isWholesale: cartSnapshot.isWholesaleMode,
+      commissionAgentId: _selectedCommissionAgent?.id,
+      commissionAgentName: _selectedCommissionAgent?.name ?? '',
+    );
+
+    if (widget.settings.isLanSecondaryTerminal &&
+        widget.settings.serverHost.trim().isNotEmpty &&
+        !Platform.environment.containsKey('FLUTTER_TEST')) {
+      final res = await LanRealtimeService.instance.pushCounterDraft(
+        parked,
+        counterName: counterTag,
+      );
+      if (!mounted) return;
+      if (!res.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Main Payment Counter unreachable (${res.error ?? "network error"}). Bill kept in cart.'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+        return;
+      }
+    } else {
+      final db = await _dbFuture;
+      await db.parkSale(parked);
+    }
+
+    ref.read(cartProvider.notifier).clear();
+    await _refreshParkedCounterQueue();
+    _refocusBarcodeIfEnabled();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Sent to Cash Counter ($tokenNum) — Customer can pay at Main Counter!',
+        ),
+        backgroundColor: const Color(0xFF0D9488),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   Future<void> _suspendSale() async {
     if (_cart.isEmpty) return;
     final db = await _dbFuture;
@@ -4133,23 +4369,30 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       commissionAgentName: _selectedCommissionAgent?.name ?? '',
     );
 
-    await db.parkSale(parked);
-    final allParked = await db.getParkedSales();
+    if (widget.settings.isLanSecondaryTerminal &&
+        widget.settings.serverHost.trim().isNotEmpty &&
+        !Platform.environment.containsKey('FLUTTER_TEST')) {
+      final res = await LanRealtimeService.instance.pushCounterDraft(parked);
+      if (!res.success) {
+        await db.parkSale(parked);
+      }
+    } else {
+      await db.parkSale(parked);
+    }
+    await _refreshParkedCounterQueue();
 
     ref.read(cartProvider.notifier).clear();
-    setState(() {
-      _parkedCount = allParked.length;
-    });
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Sale suspended (${allParked.length} held). Next customer can be served.'),
+              'Sale suspended ($_parkedCount held). Next customer can be served.'),
           backgroundColor: const Color(0xFFF59E0B),
         ),
       );
     }
+    _refocusBarcodeIfEnabled();
   }
 
   void _openParkedSales() {
@@ -4157,6 +4400,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       context: context,
       builder: (_) => ParkedSalesDialog(
         currencySymbol: widget.settings.currencySymbol,
+        settings: widget.settings,
         onResumeSale: (parked) async {
           ref.read(cartProvider.notifier).loadFromSaved(
                 items: parked.getItems(),
@@ -4182,11 +4426,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               setState(() => _selectedCommissionAgent = agent);
             }
           }
-          final db = await _dbFuture;
-          final list = await db.getParkedSales();
-          if (mounted) {
-            setState(() => _parkedCount = list.length);
-          }
+          await _refreshParkedCounterQueue();
         },
       ),
     );
@@ -4297,6 +4537,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           backgroundColor: Colors.red,
         ),
       );
+      return;
+    }
+
+    if (!widget.settings.confirmBeforeCancelSale) {
+      ref.read(cartProvider.notifier).clear();
+      setState(() {
+        _resumedSaleId = null;
+        _resumedInvoiceNo = null;
+      });
+      _refocusBarcodeIfEnabled();
       return;
     }
 
@@ -5540,17 +5790,103 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             const SizedBox(width: 6),
 
                             // [ ⊞ / ] Toggle Grid / List Layout
+                            if (_showProductPanel) ...[
+                              _topIconBtn(
+                                icon: _isGridView
+                                    ? Icons.view_list_rounded
+                                    : Icons.grid_view_rounded,
+                                onTap: _toggleProductLayout,
+                                tooltip: _isGridView
+                                    ? 'Switch to List View [F5]'
+                                    : 'Switch to Grid View [F5]',
+                                color: const Color(0xFF4F46E5),
+                                isDark: isDark,
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+
+                            // Show / Hide Product Catalog Panel (Barcode Superstore Mode)
                             _topIconBtn(
-                              icon: _isGridView
-                                  ? Icons.view_list_rounded
-                                  : Icons.grid_view_rounded,
-                              onTap: _toggleProductLayout,
-                              tooltip: _isGridView
-                                  ? 'Switch to List View [F5]'
-                                  : 'Switch to Grid View [F5]',
-                              color: const Color(0xFF4F46E5),
+                              icon: _showProductPanel
+                                  ? Icons.view_sidebar_rounded
+                                  : Icons.view_sidebar_outlined,
+                              onTap: _toggleProductPanelVisibility,
+                              tooltip: _showProductPanel
+                                  ? 'Hide Product Panel (Full-Width Cart + Barcode)'
+                                  : 'Show Product Grid / List Panel',
+                              color: _showProductPanel
+                                  ? const Color(0xFF0D9488)
+                                  : const Color(0xFF4F46E5),
                               isDark: isDark,
                             ),
+                            if (widget.settings.isLanSecondaryTerminal ||
+                                LocalApiService.instance.isRunning) ...[
+                              const SizedBox(width: 4),
+                              Tooltip(
+                                message: widget.settings.isLanSecondaryTerminal
+                                    ? (_lanWsConnected
+                                        ? 'LAN Live Sync Connected (${widget.settings.serverHost}:${widget.settings.serverPort})'
+                                        : 'LAN Offline / Reconnecting to ${widget.settings.serverHost}')
+                                    : 'LAN Multi-Counter Hub Active (${LocalApiService.instance.connectedClientCount} counters live)',
+                                child: Container(
+                                  height: 30,
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        (widget.settings.isLanSecondaryTerminal
+                                                ? _lanWsConnected
+                                                : true)
+                                            ? const Color(0xFF10B981)
+                                                .withValues(alpha: 0.14)
+                                            : const Color(0xFFF59E0B)
+                                                .withValues(alpha: 0.16),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: (widget.settings
+                                                  .isLanSecondaryTerminal
+                                              ? _lanWsConnected
+                                              : true)
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFFF59E0B),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.hub_rounded,
+                                        size: 13,
+                                        color: (widget.settings
+                                                    .isLanSecondaryTerminal
+                                                ? _lanWsConnected
+                                                : true)
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFFD97706),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        widget.settings.isLanSecondaryTerminal
+                                            ? (_lanWsConnected
+                                                ? 'LAN LIVE'
+                                                : 'LAN SYNC')
+                                            : 'HUB',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          color: (widget.settings
+                                                      .isLanSecondaryTerminal
+                                                  ? _lanWsConnected
+                                                  : true)
+                                              ? const Color(0xFF10B981)
+                                              : const Color(0xFFD97706),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                             const SizedBox(width: 6),
 
                             // [ + Add Expense ]
@@ -5709,7 +6045,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     // ================= LEFT: ORDER CART & CHECKOUT =================
                     if (!isTabletCompact || _mobileTabIndex == 0)
                       Expanded(
-                        flex: isTabletCompact ? 1 : 6,
+                        flex: isTabletCompact ? 1 : (_showProductPanel ? 7 : 1),
                         child: Container(
                           color: cardBg,
                           child: Column(
@@ -6234,6 +6570,26 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                   ],
                                 ),
                               ),
+
+                              // Inline Barcode Search Bar when right Product Panel is hidden (Superstore Mode)
+                              if (!_showProductPanel && !isTabletCompact)
+                                Container(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                                  decoration: BoxDecoration(
+                                    color: subtleBg,
+                                    border: Border(
+                                      bottom: BorderSide(color: borderColor),
+                                    ),
+                                  ),
+                                  child: _buildBarcodeSearchRow(
+                                    isDark: isDark,
+                                    inputBg: inputBg,
+                                    inputBorder: inputBorder,
+                                    textPrimary: textPrimary,
+                                    textSecondary: textSecondary,
+                                  ),
+                                ),
 
                               // Universal POS Bar: Wholesale/Retail Mode Toggle + Open Item Quick Button
                               Container(
@@ -7557,6 +7913,23 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                 isSmall: isSmallScreen),
                                           ),
 
+                                          if (widget
+                                              .settings.enableCounterTokenQueue)
+                                            Tooltip(
+                                              message:
+                                                  'Send bill token to Main Payment Counter queue',
+                                              child: _bottomOutlineBtn(
+                                                  icon: Icons
+                                                      .confirmation_number_outlined,
+                                                  label: 'Send Token',
+                                                  color:
+                                                      const Color(0xFF0D9488),
+                                                  onTap:
+                                                      _sendToCashCounterToken,
+                                                  isDark: isDark,
+                                                  isSmall: isSmallScreen),
+                                            ),
+
                                           // [ Credit Sale ]
                                           _bottomOutlineBtn(
                                               icon: Icons.check,
@@ -7725,120 +8098,29 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         ),
                       ),
 
-                    // ================= RIGHT: PRODUCT CATALOG GRID =================
-                    if (!isTabletCompact || _mobileTabIndex == 1)
+                    // ================= RIGHT: COMPACT PRODUCT CATALOG =================
+                    if ((!isTabletCompact && _showProductPanel) ||
+                        (isTabletCompact && _mobileTabIndex == 1))
                       Expanded(
-                        flex: isTabletCompact ? 1 : 5,
+                        flex: isTabletCompact ? 1 : 3,
                         child: Container(
                           color: subtleBg,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Row 1: Dedicated Full-Width Product Search & Barcode Scanner (F1)
+                              // Row 1: Dedicated Product Search & Barcode Scanner
                               Container(
-                                padding: const EdgeInsets.all(10),
+                                padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   border: Border(
                                       bottom: BorderSide(color: borderColor)),
                                 ),
-                                child: Row(
-                                  children: [
-                                    // Search product / barcode input (Expanded)
-                                    Expanded(
-                                      child: Container(
-                                        height: 38,
-                                        decoration: BoxDecoration(
-                                          color: inputBg,
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                          border:
-                                              Border.all(color: inputBorder),
-                                        ),
-                                        child: TextField(
-                                          controller: _searchController,
-                                          focusNode: _searchFocusNode,
-                                          onSubmitted: _onBarcodeSubmitted,
-                                          onChanged: (val) =>
-                                              _applyProductFilter(),
-                                          style: TextStyle(
-                                              fontSize: 13, color: textPrimary),
-                                          decoration: InputDecoration(
-                                            hintText:
-                                                'Search product / barcode / 2*SKU [Esc]',
-                                            hintStyle: TextStyle(
-                                                fontSize: 12,
-                                                color: textSecondary),
-                                            prefixIcon: Icon(Icons.search,
-                                                size: 18, color: textSecondary),
-                                            suffixIcon: _searchController
-                                                    .text.isNotEmpty
-                                                ? IconButton(
-                                                    icon: const Icon(
-                                                        Icons.clear,
-                                                        size: 16),
-                                                    onPressed: () {
-                                                      _searchController.clear();
-                                                      _applyProductFilter();
-                                                    },
-                                                    tooltip: 'Clear',
-                                                  )
-                                                : null,
-                                            border: InputBorder.none,
-                                            enabledBorder: InputBorder.none,
-                                            focusedBorder: InputBorder.none,
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                    vertical: 10),
-                                            isDense: true,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-
-                                    // Teal [ Price Check ]
-                                    Tooltip(
-                                      message: 'Fast Price & Stock Checker',
-                                      child: InkWell(
-                                        onTap: _openPriceCheckerDialog,
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: Container(
-                                          width: 38,
-                                          height: 38,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF0D9488),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: const Icon(
-                                              Icons.qr_code_2_rounded,
-                                              color: Colors.white,
-                                              size: 20),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-
-                                    // Blue [ + ] -> Add Open / Custom Item on the fly
-                                    Tooltip(
-                                      message: 'Add Custom Item [F11]',
-                                      child: InkWell(
-                                        onTap: _openCustomProductDialog,
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: Container(
-                                          width: 38,
-                                          height: 38,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF4F46E5),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: const Icon(Icons.add,
-                                              color: Colors.white, size: 20),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                child: _buildBarcodeSearchRow(
+                                  isDark: isDark,
+                                  inputBg: inputBg,
+                                  inputBorder: inputBorder,
+                                  textPrimary: textPrimary,
+                                  textSecondary: textSecondary,
                                 ),
                               ),
 
@@ -8557,12 +8839,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                   final isLowStock =
                                                       !isOutOfStock &&
                                                           p.stockQuantity <= 5;
+                                                  final isDenseCatalog =
+                                                      isSmallScreen ||
+                                                          widget.settings
+                                                              .compactPosProductList;
 
                                                   return Material(
                                                     color: cardBg,
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                            isSmallScreen
+                                                            isDenseCatalog
                                                                 ? 6
                                                                 : 8),
                                                     child: InkWell(
@@ -8570,29 +8856,28 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                           _addToCart(p),
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                              isSmallScreen
+                                                              isDenseCatalog
                                                                   ? 6
                                                                   : 8),
                                                       child: Container(
                                                         padding: EdgeInsets
                                                             .symmetric(
                                                           horizontal:
-                                                              isSmallScreen
-                                                                  ? 10
+                                                              isDenseCatalog
+                                                                  ? 8
                                                                   : 14,
                                                           vertical:
-                                                              isSmallScreen
-                                                                  ? 6
+                                                              isDenseCatalog
+                                                                  ? 5
                                                                   : 10,
                                                         ),
                                                         decoration:
                                                             BoxDecoration(
                                                           borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      isSmallScreen
-                                                                          ? 6
-                                                                          : 8),
+                                                              BorderRadius.circular(
+                                                                  isDenseCatalog
+                                                                      ? 6
+                                                                      : 8),
                                                           border: Border.all(
                                                               color:
                                                                   borderColor),
@@ -8605,11 +8890,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                               imageColor:
                                                                   p.imageColor,
                                                               size:
-                                                                  isSmallScreen
-                                                                      ? 30
+                                                                  isDenseCatalog
+                                                                      ? 28
                                                                       : 38,
                                                               borderRadius:
-                                                                  isSmallScreen
+                                                                  isDenseCatalog
                                                                       ? 6
                                                                       : 8,
                                                               fallbackIcon: Icons
@@ -8617,8 +8902,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                             ),
                                                             SizedBox(
                                                                 width:
-                                                                    isSmallScreen
-                                                                        ? 8
+                                                                    isDenseCatalog
+                                                                        ? 7
                                                                         : 12),
                                                             Expanded(
                                                               child: Column(
@@ -8773,12 +9058,12 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                               ),
                                                               child: Text(
                                                                 isOutOfStock
-                                                                    ? 'Out of stock'
-                                                                    : '${p.stockQuantity.toInt()} in stock',
+                                                                    ? 'Out'
+                                                                    : '${p.stockQuantity.toInt()} stk',
                                                                 style:
                                                                     TextStyle(
                                                                   fontSize:
-                                                                      isSmallScreen
+                                                                      isDenseCatalog
                                                                           ? 9
                                                                           : 10,
                                                                   fontWeight:
@@ -8804,16 +9089,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                             ),
                                                             SizedBox(
                                                                 width:
-                                                                    isSmallScreen
-                                                                        ? 8
+                                                                    isDenseCatalog
+                                                                        ? 6
                                                                         : 14),
                                                             // Price
                                                             Text(
-                                                              '$currency ${p.sellingPrice.toStringAsFixed(2)}',
+                                                              '$currency ${p.sellingPrice.toStringAsFixed(0)}',
                                                               style: TextStyle(
                                                                 fontSize:
-                                                                    isSmallScreen
-                                                                        ? 12
+                                                                    isDenseCatalog
+                                                                        ? 11.5
                                                                         : 13,
                                                                 fontWeight:
                                                                     FontWeight
@@ -8824,18 +9109,18 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                             ),
                                                             SizedBox(
                                                                 width:
-                                                                    isSmallScreen
-                                                                        ? 8
+                                                                    isDenseCatalog
+                                                                        ? 6
                                                                         : 12),
                                                             // Add Button
                                                             Container(
                                                               width:
-                                                                  isSmallScreen
-                                                                      ? 24
+                                                                  isDenseCatalog
+                                                                      ? 22
                                                                       : 28,
                                                               height:
-                                                                  isSmallScreen
-                                                                      ? 24
+                                                                  isDenseCatalog
+                                                                      ? 22
                                                                       : 28,
                                                               decoration:
                                                                   BoxDecoration(
@@ -8843,7 +9128,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                     0xFF4F46E5),
                                                                 borderRadius:
                                                                     BorderRadius.circular(
-                                                                        isSmallScreen
+                                                                        isDenseCatalog
                                                                             ? 4
                                                                             : 6),
                                                               ),
@@ -8852,7 +9137,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                   color: Colors
                                                                       .white,
                                                                   size:
-                                                                      isSmallScreen
+                                                                      isDenseCatalog
                                                                           ? 14
                                                                           : 16),
                                                             ),
@@ -9143,6 +9428,92 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBarcodeSearchRow({
+    required bool isDark,
+    required Color inputBg,
+    required Color inputBorder,
+    required Color textPrimary,
+    required Color textSecondary,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 36,
+            decoration: BoxDecoration(
+              color: inputBg,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: inputBorder),
+            ),
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              onSubmitted: _onBarcodeSubmitted,
+              onChanged: (val) => _applyProductFilter(),
+              style: TextStyle(fontSize: 12.5, color: textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Scan barcode / search item / 2*SKU [Esc]',
+                hintStyle: TextStyle(fontSize: 11.5, color: textSecondary),
+                prefixIcon: Icon(Icons.qr_code_scanner_rounded,
+                    size: 17, color: textSecondary),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 15),
+                        onPressed: () {
+                          _searchController.clear();
+                          _applyProductFilter();
+                        },
+                        tooltip: 'Clear',
+                      )
+                    : null,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 9),
+                isDense: true,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Tooltip(
+          message: 'Fast Price & Stock Checker',
+          child: InkWell(
+            onTap: _openPriceCheckerDialog,
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D9488),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(Icons.qr_code_2_rounded,
+                  color: Colors.white, size: 19),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Tooltip(
+          message: 'Add Custom Item [F11]',
+          child: InkWell(
+            onTap: _openCustomProductDialog,
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4F46E5),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(Icons.add, color: Colors.white, size: 19),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

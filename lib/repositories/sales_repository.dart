@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../models/models.dart';
 import '../services/auth_service.dart';
+import '../services/database_service.dart';
 import 'base_repository.dart';
 
 abstract class ISalesRepository {
@@ -363,6 +364,13 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         'sale_status': createdSale.saleStatus,
       },
     );
+    if (createdSale.saleStatus == 'final') {
+      DatabaseService.onRealtimeEvent?.call('stock_changed', {
+        'invoice_no': createdSale.invoiceNo,
+        'location_id': sale.locationId,
+        'product_ids': items.map((i) => i.product.id).whereType<int>().toList(),
+      });
+    }
     return createdSale;
   }
 
@@ -1450,7 +1458,15 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
   @override
   Future<int> parkSale(ParkedSale parked) async {
-    return await db.insert('parked_sales', parked.toMap());
+    final id = await db.insert('parked_sales', parked.toMap());
+    DatabaseService.onRealtimeEvent?.call('drafts_updated', {
+      'action': 'created',
+      'id': id,
+      'note': parked.note,
+      'customer_name': parked.customerName,
+      'total': parked.total,
+    });
+    return id;
   }
 
   @override
@@ -1461,7 +1477,15 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
   @override
   Future<int> deleteParkedSale(int id) async {
-    return await db.delete('parked_sales', where: 'id = ?', whereArgs: [id]);
+    final count =
+        await db.delete('parked_sales', where: 'id = ?', whereArgs: [id]);
+    if (count > 0) {
+      DatabaseService.onRealtimeEvent?.call('drafts_updated', {
+        'action': 'deleted',
+        'id': id,
+      });
+    }
+    return count;
   }
 
   // Purchases
@@ -1504,7 +1528,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
   }
 
   Future<int> addSaleReturn(SaleReturn sr, {int locationId = 1}) async {
-    return await db.transaction((txn) async {
+    final returnId = await db.transaction((txn) async {
       final map = {
         if (sr.id != null) 'id': sr.id,
         'ref_no': sr.returnNo,
@@ -1590,5 +1614,11 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
       }
       return id;
     });
+    DatabaseService.onRealtimeEvent?.call('stock_changed', {
+      'action': 'sale_return',
+      'location_id': locationId,
+      'product_ids': sr.items.map((i) => i.productId).toList(),
+    });
+    return returnId;
   }
 }

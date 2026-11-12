@@ -95,6 +95,11 @@ class BusinessSettings {
   final bool touchFriendlyMode;
   final String keyboardShortcutsJson;
   final bool allowOverselling;
+  final bool showPosProductPanel;
+  final bool compactPosProductList;
+  final bool autoFocusBarcodeSearch;
+  final bool confirmBeforeCancelSale;
+  final bool enableCounterTokenQueue;
 
   BusinessSettings({
     this.id = 1,
@@ -188,6 +193,11 @@ class BusinessSettings {
     this.touchFriendlyMode = false,
     this.keyboardShortcutsJson = '',
     this.allowOverselling = false,
+    this.showPosProductPanel = true,
+    this.compactPosProductList = true,
+    this.autoFocusBarcodeSearch = true,
+    this.confirmBeforeCancelSale = true,
+    this.enableCounterTokenQueue = true,
   });
 
   String get effectiveLoginBanner {
@@ -633,6 +643,11 @@ class BusinessSettings {
     bool? touchFriendlyMode,
     String? keyboardShortcutsJson,
     bool? allowOverselling,
+    bool? showPosProductPanel,
+    bool? compactPosProductList,
+    bool? autoFocusBarcodeSearch,
+    bool? confirmBeforeCancelSale,
+    bool? enableCounterTokenQueue,
   }) {
     return BusinessSettings(
       id: id ?? this.id,
@@ -736,6 +751,15 @@ class BusinessSettings {
       keyboardShortcutsJson:
           keyboardShortcutsJson ?? this.keyboardShortcutsJson,
       allowOverselling: allowOverselling ?? this.allowOverselling,
+      showPosProductPanel: showPosProductPanel ?? this.showPosProductPanel,
+      compactPosProductList:
+          compactPosProductList ?? this.compactPosProductList,
+      autoFocusBarcodeSearch:
+          autoFocusBarcodeSearch ?? this.autoFocusBarcodeSearch,
+      confirmBeforeCancelSale:
+          confirmBeforeCancelSale ?? this.confirmBeforeCancelSale,
+      enableCounterTokenQueue:
+          enableCounterTokenQueue ?? this.enableCounterTokenQueue,
     );
   }
 
@@ -831,6 +855,11 @@ class BusinessSettings {
         'touch_friendly_mode': touchFriendlyMode ? 1 : 0,
         'keyboard_shortcuts_json': keyboardShortcutsJson,
         'allow_overselling': allowOverselling ? 1 : 0,
+        'show_pos_product_panel': showPosProductPanel ? 1 : 0,
+        'compact_pos_product_list': compactPosProductList ? 1 : 0,
+        'auto_focus_barcode_search': autoFocusBarcodeSearch ? 1 : 0,
+        'confirm_before_cancel_sale': confirmBeforeCancelSale ? 1 : 0,
+        'enable_counter_token_queue': enableCounterTokenQueue ? 1 : 0,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
@@ -940,5 +969,14 @@ class BusinessSettings {
         touchFriendlyMode: modelAsBool(map['touch_friendly_mode'], false),
         keyboardShortcutsJson: modelAsString(map['keyboard_shortcuts_json']),
         allowOverselling: modelAsBool(map['allow_overselling'], false),
+        showPosProductPanel: modelAsBool(map['show_pos_product_panel'], true),
+        compactPosProductList:
+            modelAsBool(map['compact_pos_product_list'], true),
+        autoFocusBarcodeSearch:
+            modelAsBool(map['auto_focus_barcode_search'], true),
+        confirmBeforeCancelSale:
+            modelAsBool(map['confirm_before_cancel_sale'], true),
+        enableCounterTokenQueue:
+            modelAsBool(map['enable_counter_token_queue'], true),
       );
 }

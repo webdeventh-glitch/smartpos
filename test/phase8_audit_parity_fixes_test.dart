@@ -52,7 +52,7 @@ void main() {
     'Schema v9 tables, FinancialYear receivables/payables & ParkedSale mappings persist losslessly',
     () async {
       final db = await openFreshDb('schema_v9_parity.db');
-      expect(DatabaseService.currentSchemaVersion, 9);
+      expect(DatabaseService.currentSchemaVersion, greaterThanOrEqualTo(9));
 
       final prodId = await db.addProduct(
         Product(

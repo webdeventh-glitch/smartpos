@@ -150,6 +150,27 @@ class DatabaseSchema {
         'phase8_audit_multi_location_returns_overselling_and_modules',
       );
     }
+    if (fromVersion < 10 && toVersion >= 10) {
+      await _applyV10PosTerminalAndLanToggles(db);
+      await _recordMigration(
+        db,
+        10,
+        'pos_terminal_toggles_and_lan_token_queue',
+      );
+    }
+  }
+
+  static Future<void> _applyV10PosTerminalAndLanToggles(Database db) async {
+    await _addColumnIfMissing(
+        db, 'business_settings', 'show_pos_product_panel', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'compact_pos_product_list', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'auto_focus_barcode_search', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'confirm_before_cancel_sale', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(db, 'business_settings',
+        'enable_counter_token_queue', 'INTEGER DEFAULT 1');
   }
 
   static Future<void> _applyV9AuditAndSuperstoreMigrations(Database db) async {
@@ -2575,7 +2596,12 @@ class DatabaseSchema {
         last_auto_backup_at TEXT DEFAULT '',
         touch_friendly_mode INTEGER DEFAULT 0,
         keyboard_shortcuts_json TEXT DEFAULT '',
-        allow_overselling INTEGER DEFAULT 0
+        allow_overselling INTEGER DEFAULT 0,
+        show_pos_product_panel INTEGER DEFAULT 1,
+        compact_pos_product_list INTEGER DEFAULT 1,
+        auto_focus_barcode_search INTEGER DEFAULT 1,
+        confirm_before_cancel_sale INTEGER DEFAULT 1,
+        enable_counter_token_queue INTEGER DEFAULT 1
       )
     ''');
 

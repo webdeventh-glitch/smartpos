@@ -8,6 +8,7 @@ import 'services/theme_service.dart';
 import 'services/auth_service.dart';
 import 'services/qulop_service.dart';
 import 'services/cloud_sync_service.dart';
+import 'services/lan_realtime_service.dart';
 import 'services/local_api_service.dart';
 import 'services/mysql_service.dart';
 import 'screens/auth/force_password_change_screen.dart';
@@ -30,7 +31,8 @@ void main() {
   };
 
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-    AppLogger.critical('PlatformDispatcher', 'Uncaught async error', error, stack);
+    AppLogger.critical(
+        'PlatformDispatcher', 'Uncaught async error', error, stack);
     return true;
   };
 
@@ -152,6 +154,7 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
       if (settings.isPrimaryServer && !LocalApiService.instance.isRunning) {
         await LocalApiService.instance.startServer(port: settings.serverPort);
       }
+      await LanRealtimeService.instance.configure(settings);
     } catch (e, st) {
       AppLogger.warning(
         'Bootstrap',
@@ -249,11 +252,13 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const Icon(Icons.error_outline,
+                        color: Colors.red, size: 48),
                     const SizedBox(height: 16),
                     const Text(
                       'Failed to Initialize Database',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
                     Text(
@@ -267,7 +272,8 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
                         backgroundColor: const Color(0xFF0038B8),
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: () => setState(() => _initFuture = _bootstrap()),
+                      onPressed: () =>
+                          setState(() => _initFuture = _bootstrap()),
                       child: const Text('Retry Connection'),
                     ),
                   ],
