@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/models.dart';
 import '../services/app_logger.dart';
+import '../services/product_image_service.dart';
 import 'base_repository.dart';
 
 /// Manages products, variations, units & conversions, selling price groups, warranties, categories, and brands.
@@ -242,6 +243,210 @@ class ProductRepository extends BaseRepository {
     final rows = await db.query('products',
         where: where, whereArgs: whereArgs.isNotEmpty ? whereArgs : null, orderBy: 'name ASC');
     return rows.map((e) => Product.fromMap(e)).toList();
+  }
+
+  /// Builds shared SQLite filter predicates for product list & cursor queries.
+  ({List<String> conditions, List<dynamic> args}) _buildProductFilterPredicates({
+    int? categoryId,
+    int? brandId,
+    String? search,
+    String stockFilter = 'all',
+    String productType = 'all',
+  }) {
+    final conditions = <String>[];
+    final args = <dynamic>[];
+
+    if (categoryId != null) {
+      conditions.add('category_id = ?');
+      args.add(categoryId);
+    }
+    if (brandId != null) {
+      conditions.add('brand_id = ?');
+      args.add(brandId);
+    }
+    if (productType != 'all' && productType.isNotEmpty) {
+      conditions.add('type = ?');
+      args.add(productType);
+    }
+    if (stockFilter == 'in_stock') {
+      conditions.add('stock_quantity > 0');
+    } else if (stockFilter == 'low' || stockFilter == 'low_stock') {
+      conditions.add('(stock_quantity > 0 AND stock_quantity <= alert_quantity)');
+    } else if (stockFilter == 'out' || stockFilter == 'out_of_stock') {
+      conditions.add('stock_quantity <= 0');
+    }
+    final cleanSearch = search?.trim() ?? '';
+    if (cleanSearch.isNotEmpty) {
+      final q = '%$cleanSearch%';
+      conditions.add(
+        '(name LIKE ? OR sku LIKE ? OR barcode LIKE ? OR EXISTS (SELECT 1 FROM variations v WHERE v.product_id = products.id AND v.sub_sku LIKE ?))',
+      );
+      args.addAll([q, q, q, q]);
+    }
+    return (conditions: conditions, args: args);
+  }
+
+  /// Fetches a page of products using either keyset cursor ([cursorName] + [cursorId])
+  /// for fast infinite scrolling or SQL OFFSET pagination for page bars.
+  Future<PagedResult<Product>> getProductsPaged({
+    int? categoryId,
+    int? brandId,
+    String? search,
+    String stockFilter = 'all',
+    String productType = 'all',
+    int page = 1,
+    int pageSize = 25,
+    String? cursorName,
+    int? cursorId,
+    bool includeTotalCount = true,
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final safePageSize = pageSize < 1 ? 25 : pageSize;
+    final baseFilter = _buildProductFilterPredicates(
+      categoryId: categoryId,
+      brandId: brandId,
+      search: search,
+      stockFilter: stockFilter,
+      productType: productType,
+    );
+
+    final queryConditions = List<String>.from(baseFilter.conditions);
+    final queryArgs = List<dynamic>.from(baseFilter.args);
+    final useCursor = cursorName != null && cursorId != null;
+
+    if (useCursor) {
+      queryConditions.add(
+        '(name COLLATE NOCASE > ? COLLATE NOCASE OR (name COLLATE NOCASE = ? COLLATE NOCASE AND id > ?))',
+      );
+      queryArgs.addAll([cursorName, cursorName, cursorId]);
+    }
+
+    final whereClause =
+        queryConditions.isNotEmpty ? queryConditions.join(' AND ') : null;
+    final rows = await db.query(
+      'products',
+      where: whereClause,
+      whereArgs: queryArgs.isNotEmpty ? queryArgs : null,
+      orderBy: 'name COLLATE NOCASE ASC, id ASC',
+      limit: safePageSize + 1,
+      offset: useCursor ? null : (safePage - 1) * safePageSize,
+    );
+
+    final hasMore = rows.length > safePageSize;
+    final items = rows
+        .take(safePageSize)
+        .map((e) => Product.fromMap(e))
+        .toList();
+
+    int totalCount = 0;
+    if (includeTotalCount) {
+      final baseWhere = baseFilter.conditions.isNotEmpty
+          ? 'WHERE ${baseFilter.conditions.join(' AND ')}'
+          : '';
+      final countRows = await db.rawQuery(
+        'SELECT COUNT(*) AS total FROM products $baseWhere',
+        baseFilter.args,
+      );
+      totalCount = (countRows.first['total'] as int?) ?? 0;
+    }
+
+    return PagedResult<Product>(
+      items: items,
+      totalCount: totalCount,
+      currentPage: safePage,
+      pageSize: safePageSize,
+      nextCursorId: items.isNotEmpty ? items.last.id : cursorId,
+      nextCursorSortValue: items.isNotEmpty ? items.last.name : cursorName,
+      hasMore: hasMore,
+    );
+  }
+
+  /// Fast single-pass aggregate metrics for the Products screen header cards.
+  Future<Map<String, num>> getProductCatalogStats() async {
+    final rows = await db.rawQuery('''
+      SELECT
+        COUNT(*) AS total_count,
+        COALESCE(SUM(CASE WHEN stock_quantity > 0 AND stock_quantity <= alert_quantity THEN 1 ELSE 0 END), 0) AS low_stock_count,
+        COALESCE(SUM(CASE WHEN stock_quantity <= 0 THEN 1 ELSE 0 END), 0) AS out_of_stock_count,
+        COALESCE(SUM(stock_quantity * purchase_price), 0.0) AS stock_value,
+        COALESCE(SUM(stock_quantity), 0.0) AS total_units,
+        COALESCE(SUM(stock_quantity * selling_price), 0.0) AS selling_value
+      FROM products
+    ''');
+    final row = rows.first;
+    return {
+      'totalCount': (row['total_count'] as num?)?.toInt() ?? 0,
+      'lowStockCount': (row['low_stock_count'] as num?)?.toInt() ?? 0,
+      'outOfStockCount': (row['out_of_stock_count'] as num?)?.toInt() ?? 0,
+      'stockValue': (row['stock_value'] as num?)?.toDouble() ?? 0.0,
+      'totalUnits': (row['total_units'] as num?)?.toDouble() ?? 0.0,
+      'sellingValue': (row['selling_value'] as num?)?.toDouble() ?? 0.0,
+    };
+  }
+
+  /// Resolves a map of `productId -> imagePath` only for the requested product IDs.
+  Future<Map<int, String>> getProductImagePathsByIds(
+    Iterable<int> productIds,
+  ) async {
+    final ids = productIds.where((id) => id > 0).toSet().toList();
+    if (ids.isEmpty) return const {};
+    final placeholders = List.filled(ids.length, '?').join(',');
+    final rows = await db.rawQuery(
+      'SELECT id, image_path, image_color FROM products WHERE id IN ($placeholders)',
+      ids,
+    );
+    final result = <int, String>{};
+    for (final row in rows) {
+      final id = row['id'] as int?;
+      if (id == null) continue;
+      final resolved = ProductImageService.resolveImagePath(
+        imagePath: row['image_path'] as String?,
+        imageColor: row['image_color'] as String?,
+      );
+      if (resolved != null) {
+        result[id] = resolved;
+      }
+    }
+    return result;
+  }
+
+  /// Looks up a product by SKU, barcode, or variation `sub_sku`, returning both
+  /// the parent [Product] and the matched [ProductVariation] when scanned by sub-SKU.
+  Future<(Product, ProductVariation?)?> getProductWithMatchedVariationByCode(
+    String code,
+  ) async {
+    final clean = code.trim();
+    if (clean.isEmpty) return null;
+
+    final rows = await db.query(
+      'products',
+      where: 'sku = ? COLLATE NOCASE OR barcode = ? COLLATE NOCASE',
+      whereArgs: [clean, clean],
+      limit: 1,
+    );
+    if (rows.isNotEmpty) {
+      return (Product.fromMap(rows.first), null);
+    }
+
+    final varRows = await db.query(
+      'variations',
+      where: 'sub_sku = ? COLLATE NOCASE',
+      whereArgs: [clean],
+      limit: 1,
+    );
+    if (varRows.isNotEmpty) {
+      final v = ProductVariation.fromMap(varRows.first);
+      final prodRows = await db.query(
+        'products',
+        where: 'id = ?',
+        whereArgs: [v.productId],
+        limit: 1,
+      );
+      if (prodRows.isNotEmpty) {
+        return (Product.fromMap(prodRows.first), v);
+      }
+    }
+    return null;
   }
 
   Future<Product?> getProductByCode(String code) async {

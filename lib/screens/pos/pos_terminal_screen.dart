@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -25,6 +26,7 @@ import '../products/add_product_dialog.dart';
 import '../../services/currency_rate_service.dart';
 import '../../services/number_to_words_service.dart';
 import '../../services/thermal_printer_service.dart';
+import '../../widgets/product_thumbnail.dart';
 
 class PosTerminalScreen extends ConsumerStatefulWidget {
   final BusinessSettings settings;
@@ -70,17 +72,24 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   String _assignedWaiter = 'Waiter 1';
   bool _isQuotationMode = false;
 
-  // Search & Catalog
+  // Search & Catalog (Cursor-Paged for 50,000+ SKU scale)
+  static const int _posPageSize = 50;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _catalogScrollController = ScrollController();
   List<Category> _categories = [];
   List<Brand> _brands = [];
   int? _selectedCategoryId;
   int? _selectedBrandId;
   bool _filterFeatured = false;
-  List<Product> _allProducts = [];
   List<Product> _products = [];
+  String? _catalogCursorName;
+  int? _catalogCursorId;
+  bool _catalogHasMore = true;
   bool _loadingCatalog = true;
+  bool _loadingMoreCatalog = false;
+  int _catalogQueryToken = 0;
+  Timer? _catalogSearchDebounce;
   bool _isGridView = false; // Switchable layout: Grid vs List view (Default List view)
 
   // Parked bills count
@@ -100,7 +109,31 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         ref.read(settingsProvider.notifier).setSettings(widget.settings);
       }
     });
+    _catalogScrollController.addListener(_onCatalogScroll);
     _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    _catalogSearchDebounce?.cancel();
+    _catalogScrollController.removeListener(_onCatalogScroll);
+    _catalogScrollController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onCatalogScroll() {
+    if (!_catalogScrollController.hasClients ||
+        _loadingCatalog ||
+        _loadingMoreCatalog ||
+        !_catalogHasMore) {
+      return;
+    }
+    final pos = _catalogScrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 220) {
+      _loadMoreCatalogProducts();
+    }
   }
 
   @override
@@ -198,7 +231,18 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final db = await _dbFuture;
     if (!mounted) return;
     // Await sequentially so sqflite never hits lock-contention watchdog timers in tests.
-    final catalog = await ref.read(productListProvider.future);
+    final categories = await db.getCategories();
+    if (!mounted) return;
+    final brands = await db.getBrands();
+    if (!mounted) return;
+    final firstPage = await db.getProductsPaged(
+      categoryId: _selectedCategoryId,
+      brandId: _selectedBrandId,
+      search: _searchController.text.trim(),
+      page: 1,
+      pageSize: _posPageSize,
+      includeTotalCount: false,
+    );
     if (!mounted) return;
     final customers = await db.getContacts(type: 'customer');
     if (!mounted) return;
@@ -218,20 +262,26 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           orElse: () => customers.isNotEmpty ? customers.first : null,
         );
 
+    final initialItems = _filterFeatured
+        ? firstPage.items.where((p) => (p.id ?? 0) % 5 == 0).toList()
+        : firstPage.items;
+
     setState(() {
       _customers = customers;
       _customerGroups = customerGroups;
       _taxRates = taxRates;
       _taxGroups = taxGroups;
       _selectedCustomer = defaultCust;
-      _categories = catalog.categories;
-      _brands = catalog.brands;
-      _allProducts = catalog.products;
-      _products = catalog.products;
+      _categories = categories;
+      _brands = brands;
+      _products = initialItems;
+      _catalogCursorName = firstPage.nextCursorSortValue;
+      _catalogCursorId = firstPage.nextCursorId;
+      _catalogHasMore = firstPage.hasMore;
+      _loadingMoreCatalog = false;
       _parkedCount = parked.length;
       _loadingCatalog = false;
     });
-    _applyProductFilter();
 
     if (widget.initialSaleToResume != null && _resumedSaleId == null) {
       _loadResumedSale(widget.initialSaleToResume!);
@@ -270,30 +320,79 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     );
   }
 
-  /// Blazing Fast In-Memory Product Filter (0ms delay across 2,500+ items)
-  void _applyProductFilter() {
-    final q = _searchController.text.trim().toLowerCase();
+  /// Server-side cursor-paged catalog query (keeps UI fast across 50,000+ SKUs).
+  Future<void> _reloadCatalogFromScratch() async {
+    final token = ++_catalogQueryToken;
+    final db = await _dbFuture;
+    final page = await db.getProductsPaged(
+      categoryId: _selectedCategoryId,
+      brandId: _selectedBrandId,
+      search: _searchController.text.trim(),
+      page: 1,
+      pageSize: _posPageSize,
+      includeTotalCount: false,
+    );
+    if (!mounted || token != _catalogQueryToken) return;
+    final filteredItems = _filterFeatured
+        ? page.items.where((p) => (p.id ?? 0) % 5 == 0).toList()
+        : page.items;
     setState(() {
-      _products = _allProducts.where((p) {
-        if (_selectedCategoryId != null && p.categoryId != _selectedCategoryId) return false;
-        if (_selectedBrandId != null && p.brandId != _selectedBrandId) return false;
-        if (_filterFeatured && ((p.id ?? 0) % 5 != 0)) return false;
-        if (q.isNotEmpty) {
-          final nameMatch = p.name.toLowerCase().contains(q);
-          final skuMatch = p.sku.toLowerCase().contains(q);
-          final barcodeMatch = p.barcode.toLowerCase().contains(q);
-          final batchMatch = p.batchNumber != null && p.batchNumber!.toLowerCase().contains(q);
-          if (!nameMatch && !skuMatch && !barcodeMatch && !batchMatch) return false;
-        }
-        return true;
-      }).toList();
+      _products = filteredItems;
+      _catalogCursorName = page.nextCursorSortValue;
+      _catalogCursorId = page.nextCursorId;
+      _catalogHasMore = page.hasMore;
+      _loadingMoreCatalog = false;
+      _loadingCatalog = false;
+    });
+    if (_catalogScrollController.hasClients &&
+        _catalogScrollController.position.pixels > 0) {
+      _catalogScrollController.jumpTo(0);
+    }
+  }
+
+  Future<void> _loadMoreCatalogProducts() async {
+    if (_loadingMoreCatalog || !_catalogHasMore || _catalogCursorId == null) {
+      return;
+    }
+    final token = _catalogQueryToken;
+    setState(() => _loadingMoreCatalog = true);
+    final db = await _dbFuture;
+    final page = await db.getProductsPaged(
+      categoryId: _selectedCategoryId,
+      brandId: _selectedBrandId,
+      search: _searchController.text.trim(),
+      page: 1,
+      pageSize: _posPageSize,
+      cursorName: _catalogCursorName,
+      cursorId: _catalogCursorId,
+      includeTotalCount: false,
+    );
+    if (!mounted || token != _catalogQueryToken) return;
+    final existingIds = _products.map((p) => p.id).whereType<int>().toSet();
+    final nextItems = page.items.where((p) {
+      if (p.id != null && existingIds.contains(p.id)) return false;
+      if (_filterFeatured && ((p.id ?? 0) % 5 != 0)) return false;
+      return true;
+    }).toList();
+    setState(() {
+      _products = [..._products, ...nextItems];
+      _catalogCursorName = page.nextCursorSortValue;
+      _catalogCursorId = page.nextCursorId;
+      _catalogHasMore = page.hasMore;
+      _loadingMoreCatalog = false;
     });
   }
 
-  Future<void> _filterProducts({int? categoryId, int? brandId, String? search}) async {
-    _selectedCategoryId = categoryId;
-    _selectedBrandId = brandId;
-    _applyProductFilter();
+  void _applyProductFilter({bool immediate = false}) {
+    _catalogSearchDebounce?.cancel();
+    if (immediate || Platform.environment.containsKey('FLUTTER_TEST')) {
+      _reloadCatalogFromScratch();
+      return;
+    }
+    _catalogSearchDebounce = Timer(
+      const Duration(milliseconds: 180),
+      _reloadCatalogFromScratch,
+    );
   }
 
   void _toggleProductLayout() {
@@ -2185,11 +2284,187 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
   int? _getDaysUntilExpiry(String? expiryDate) => calculateDaysUntilExpiry(expiryDate);
 
-  void _addToCart(Product product) {
-    if (product.isOutOfStock) {
+  Future<ProductVariation?> _showVariationSelectorDialog(
+    Product product,
+    List<ProductVariation> variations,
+  ) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currency = widget.settings.currencySymbol;
+    return showDialog<ProductVariation>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(
+          children: [
+            ProductThumbnail(
+              imagePath: product.resolvedImagePath,
+              imageColor: product.imageColor,
+              size: 44,
+              borderRadius: 8,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Select Variation • SKU: ${product.sku}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 440,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 360),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: variations.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, idx) {
+                final v = variations[idx];
+                final outOfStock = v.stockQuantity <= 0;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () {
+                    if (outOfStock) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(
+                          content: Text('${product.name} (${v.name}) is OUT OF STOCK!'),
+                          backgroundColor: const Color(0xFFEF4444),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.pop(ctx, v);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: outOfStock
+                          ? (isDark
+                              ? const Color(0xFF450A0A).withValues(alpha: 0.35)
+                              : const Color(0xFFFEF2F2))
+                          : (isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF8FAFC)),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: outOfStock
+                            ? const Color(0xFFFCA5A5)
+                            : (isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                v.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                'SKU: ${v.subSku} • Stock: ${v.stockQuantity % 1 == 0 ? v.stockQuantity.toInt() : v.stockQuantity.toStringAsFixed(1)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: outOfStock
+                                      ? const Color(0xFFDC2626)
+                                      : const Color(0xFF16A34A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4F46E5)
+                                .withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$currency ${v.sellingPrice.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              color: Color(0xFF4F46E5),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addToCart(
+    Product product, {
+    ProductVariation? preselectedVariation,
+  }) async {
+    ProductVariation? chosen = preselectedVariation;
+    if (product.isVariable && chosen == null && product.id != null) {
+      final db = await _dbFuture;
+      final variations = await db.getProductVariations(product.id!);
+      if (!mounted) return;
+      if (variations.isNotEmpty) {
+        chosen = await _showVariationSelectorDialog(product, variations);
+        if (chosen == null || !mounted) return;
+      }
+    }
+
+    final effectiveStock = chosen?.stockQuantity ?? product.stockQuantity;
+    final labelName =
+        chosen != null ? '${product.name} (${chosen.name})' : product.name;
+    if (effectiveStock <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${product.name} is OUT OF STOCK!'),
+          content: Text('$labelName is OUT OF STOCK!'),
           backgroundColor: const Color(0xFFEF4444),
           duration: const Duration(seconds: 1),
         ),
@@ -2213,7 +2488,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       );
     }
 
-    ref.read(cartProvider.notifier).addProduct(product);
+    ref.read(cartProvider.notifier).addProduct(product, variation: chosen);
     _applyProductTaxIfConfigured(product);
   }
 
@@ -2291,16 +2566,26 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       final weightGrams = int.tryParse(trimmed.substring(7, 12)) ?? 0;
       final weightKg = weightGrams > 0 ? (weightGrams / 1000.0) : 1.0;
 
-      final Product? scaleItem = _allProducts.cast<Product?>().firstWhere(
+      final db = await _dbFuture;
+      Product? scaleItem = _products.cast<Product?>().firstWhere(
             (p) => p!.sku.toLowerCase().contains(itemCode) || p.barcode.toLowerCase().contains(itemCode),
             orElse: () => null,
           );
+      if (scaleItem == null) {
+        final fallback = await db.getProductsPaged(
+          search: itemCode,
+          pageSize: 5,
+          includeTotalCount: false,
+        );
+        scaleItem = fallback.items.isNotEmpty ? fallback.items.first : null;
+      }
 
       if (scaleItem != null) {
         _addToCartWithQuantity(scaleItem, weightKg);
         _searchController.clear();
-        _applyProductFilter();
+        _applyProductFilter(immediate: true);
         _searchFocusNode.requestFocus();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Weight-Scale parsed: ${scaleItem.name} — ${weightKg.toStringAsFixed(3)} kg'),
@@ -2312,30 +2597,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       }
     }
 
-    // 1. In-memory exact lookup
-    final Product? matched = _allProducts.cast<Product?>().firstWhere(
-          (p) => (p!.barcode.toLowerCase() == trimmed) || (p.sku.toLowerCase() == trimmed),
-          orElse: () => null,
-        );
-
-    if (matched != null) {
-      _addToCart(matched);
-      _searchController.clear();
-      _applyProductFilter();
-      _searchFocusNode.requestFocus();
-      return;
-    }
-
-    // 2. Fallback to database lookup
+    // 1. Database exact SKU / Barcode / Variation Sub-SKU lookup
     final db = await _dbFuture;
-    final product = await db.getProductByCode(code.trim());
-    if (product != null) {
-      _addToCart(product);
+    final dbMatch = await db.getProductWithMatchedVariationByCode(code.trim());
+    if (dbMatch != null) {
+      await _addToCart(dbMatch.$1, preselectedVariation: dbMatch.$2);
       _searchController.clear();
-      _applyProductFilter();
+      _applyProductFilter(immediate: true);
       _searchFocusNode.requestFocus();
     } else {
-      _applyProductFilter();
+      _applyProductFilter(immediate: true);
     }
   }
 
@@ -2359,12 +2630,20 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     );
   }
 
-  void _openSolarBundleDialog() {
+  Future<void> _openSolarBundleDialog() async {
+    final db = await _dbFuture;
+    final prods = (await db.getProductsPaged(
+      page: 1,
+      pageSize: 300,
+      includeTotalCount: false,
+    ))
+        .items;
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (_) => SolarBundleDialog(
         settings: widget.settings,
-        products: _allProducts,
+        products: prods,
         onBundleSelected: (bundleItems) {
           ref.read(cartProvider.notifier).addBundleItems(bundleItems);
         },
@@ -2997,7 +3276,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final loadedItems = <CartItem>[];
     if (sale.items != null && sale.items!.isNotEmpty) {
       for (final item in sale.items!) {
-        final prod = _allProducts.cast<Product?>().firstWhere(
+        final prod = _products.cast<Product?>().firstWhere(
               (p) => p!.id == item.productId,
               orElse: () => null,
             );
@@ -3344,18 +3623,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   @override
   Widget build(BuildContext context) {
     final cartState = ref.watch(cartProvider);
-    ref.listen<AsyncValue<CatalogState>>(productListProvider, (_, next) {
-      next.whenData((catalog) {
-        if (!mounted) return;
-        setState(() {
-          _categories = catalog.categories;
-          _brands = catalog.brands;
-          _allProducts = catalog.products;
-          _loadingCatalog = false;
-        });
-        _applyProductFilter();
-      });
-    });
 
     final currency = widget.settings.currencySymbol;
     final nowTime = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
@@ -4200,15 +4467,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                               SizedBox(width: 20, child: Text('${index + 1}', style: TextStyle(fontSize: 12, color: textSecondary))),
 
                                               // Thumbnail image
-                                              Container(
-                                                width: 36,
-                                                height: 36,
-                                                decoration: BoxDecoration(
-                                                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEEF2FF),
-                                                  borderRadius: BorderRadius.circular(6),
-                                                  border: Border.all(color: borderColor),
-                                                ),
-                                                child: Icon(Icons.inventory_2_outlined, size: 18, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
+                                              ProductThumbnail(
+                                                imagePath: item.product.resolvedImagePath,
+                                                imageColor: item.product.imageColor,
+                                                size: 36,
+                                                borderRadius: 6,
                                               ),
                                               const SizedBox(width: 10),
 
@@ -4219,7 +4482,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
-                                                      item.product.name,
+                                                      item.displayName,
                                                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
                                                       maxLines: 1,
                                                       overflow: TextOverflow.ellipsis,
@@ -5083,7 +5346,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                       context: context,
                                                       builder: (_) => AddProductDialog(
                                                         onProductSaved: () async {
-                                                          await _loadInitialData();
+                                                          await _reloadCatalogFromScratch();
                                                         },
                                                       ),
                                                     );
@@ -5106,9 +5369,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                             ? 4
                                                             : (width >= 440 ? 3 : 2)));
                                                 // Fixed compact height so cards never stretch into giant blocks
-                                                const double cardHeight = 112.0;
+                                                const double cardHeight = 122.0;
 
                                                 return GridView.builder(
+                                                  controller: _catalogScrollController,
                                                   padding: const EdgeInsets.all(8),
                                                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                                     crossAxisCount: crossAxisCount,
@@ -5116,8 +5380,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                     crossAxisSpacing: 6,
                                                     mainAxisSpacing: 6,
                                                   ),
-                                                  itemCount: _products.length,
+                                                  itemCount: _products.length + (_loadingMoreCatalog ? 1 : 0),
                                                   itemBuilder: (context, index) {
+                                                    if (index >= _products.length) {
+                                                      return const Center(
+                                                        child: Padding(
+                                                          padding: EdgeInsets.all(12),
+                                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                                        ),
+                                                      );
+                                                    }
                                                     final p = _products[index];
                                                     final currency = widget.settings.currencySymbol;
                                                     final isOutOfStock = p.isOutOfStock;
@@ -5182,36 +5454,61 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                 ],
                                                               ),
 
-                                                              // Product Title & Details
+                                                              // Product Thumbnail, Title & Details
                                                               Expanded(
                                                                 child: Padding(
                                                                   padding: const EdgeInsets.symmetric(vertical: 2),
-                                                                  child: Column(
-                                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                                  child: Row(
+                                                                    crossAxisAlignment: CrossAxisAlignment.center,
                                                                     children: [
-                                                                      Text(
-                                                                        p.name,
-                                                                        style: TextStyle(
-                                                                          fontWeight: FontWeight.bold,
-                                                                          fontSize: 11,
-                                                                          color: textPrimary,
-                                                                          height: 1.15,
-                                                                        ),
-                                                                        maxLines: 2,
-                                                                        overflow: TextOverflow.ellipsis,
+                                                                      ProductThumbnail(
+                                                                        imagePath: p.resolvedImagePath,
+                                                                        imageColor: p.imageColor,
+                                                                        size: 36,
+                                                                        borderRadius: 6,
                                                                       ),
-                                                                      const SizedBox(height: 1),
-                                                                      Row(
-                                                                        children: [
-                                                                          Expanded(
-                                                                            child: Text(
-                                                                              p.sku,
-                                                                              style: TextStyle(fontSize: 9, color: textSecondary),
-                                                                              maxLines: 1,
+                                                                      const SizedBox(width: 7),
+                                                                      Expanded(
+                                                                        child: Column(
+                                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                                          mainAxisAlignment: MainAxisAlignment.center,
+                                                                          children: [
+                                                                            Text(
+                                                                              p.name,
+                                                                              style: TextStyle(
+                                                                                fontWeight: FontWeight.bold,
+                                                                                fontSize: 11,
+                                                                                color: textPrimary,
+                                                                                height: 1.15,
+                                                                              ),
+                                                                              maxLines: 2,
                                                                               overflow: TextOverflow.ellipsis,
                                                                             ),
-                                                                          ),
+                                                                            const SizedBox(height: 1),
+                                                                            Row(
+                                                                              children: [
+                                                                                if (p.isVariable) ...[
+                                                                                  Container(
+                                                                                    margin: const EdgeInsets.only(right: 4),
+                                                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0.5),
+                                                                                    decoration: BoxDecoration(
+                                                                                      color: const Color(0xFF4F46E5).withValues(alpha: 0.14),
+                                                                                      borderRadius: BorderRadius.circular(3),
+                                                                                    ),
+                                                                                    child: const Text(
+                                                                                      'VAR',
+                                                                                      style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                                                                    ),
+                                                                                  ),
+                                                                                ],
+                                                                                Expanded(
+                                                                                  child: Text(
+                                                                                    p.sku,
+                                                                                    style: TextStyle(fontSize: 9, color: textSecondary),
+                                                                                    maxLines: 1,
+                                                                                    overflow: TextOverflow.ellipsis,
+                                                                                  ),
+                                                                                ),
                                                                           if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
                                                                             Builder(
                                                                               builder: (_) {
@@ -5263,7 +5560,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                     ],
                                                                   ),
                                                                 ),
-                                                              ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
 
                                                               // Price & Add Button Row
                                                               Row(
@@ -5303,10 +5603,23 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                               },
                                             )
                                           : ListView.separated(
+                                              controller: _catalogScrollController,
                                               padding: EdgeInsets.all(isSmallScreen ? 6 : 10),
-                                              itemCount: _products.length,
+                                              itemCount: _products.length + (_loadingMoreCatalog ? 1 : 0),
                                               separatorBuilder: (_, __) => SizedBox(height: isSmallScreen ? 4 : 6),
                                               itemBuilder: (context, index) {
+                                                if (index >= _products.length) {
+                                                  return const Padding(
+                                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                                    child: Center(
+                                                      child: SizedBox(
+                                                        width: 22,
+                                                        height: 22,
+                                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
                                                 final p = _products[index];
                                                 final currency = widget.settings.currencySymbol;
                                                 final isOutOfStock = p.isOutOfStock;
@@ -5329,33 +5642,47 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                       ),
                                                       child: Row(
                                                         children: [
-                                                          Container(
-                                                            width: isSmallScreen ? 28 : 36,
-                                                            height: isSmallScreen ? 28 : 36,
-                                                            decoration: BoxDecoration(
-                                                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEEF2FF),
-                                                              borderRadius: BorderRadius.circular(isSmallScreen ? 6 : 8),
-                                                            ),
-                                                            child: Icon(
-                                                              Icons.medication_outlined,
-                                                              color: const Color(0xFF4F46E5),
-                                                              size: isSmallScreen ? 16 : 20,
-                                                            ),
+                                                          ProductThumbnail(
+                                                            imagePath: p.resolvedImagePath,
+                                                            imageColor: p.imageColor,
+                                                            size: isSmallScreen ? 30 : 38,
+                                                            borderRadius: isSmallScreen ? 6 : 8,
+                                                            fallbackIcon: Icons.inventory_2_outlined,
                                                           ),
                                                           SizedBox(width: isSmallScreen ? 8 : 12),
                                                           Expanded(
                                                             child: Column(
                                                               crossAxisAlignment: CrossAxisAlignment.start,
                                                               children: [
-                                                                Text(
-                                                                  p.name,
-                                                                  style: TextStyle(
-                                                                    fontWeight: FontWeight.bold,
-                                                                    fontSize: isSmallScreen ? 12 : 13,
-                                                                    color: textPrimary,
-                                                                  ),
-                                                                  maxLines: 1,
-                                                                  overflow: TextOverflow.ellipsis,
+                                                                Row(
+                                                                  children: [
+                                                                    if (p.isVariable) ...[
+                                                                      Container(
+                                                                        margin: const EdgeInsets.only(right: 6),
+                                                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                                        decoration: BoxDecoration(
+                                                                          color: const Color(0xFF4F46E5).withValues(alpha: 0.14),
+                                                                          borderRadius: BorderRadius.circular(4),
+                                                                        ),
+                                                                        child: const Text(
+                                                                          'VAR',
+                                                                          style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                    Expanded(
+                                                                      child: Text(
+                                                                        p.name,
+                                                                        style: TextStyle(
+                                                                          fontWeight: FontWeight.bold,
+                                                                          fontSize: isSmallScreen ? 12 : 13,
+                                                                          color: textPrimary,
+                                                                        ),
+                                                                        maxLines: 1,
+                                                                        overflow: TextOverflow.ellipsis,
+                                                                      ),
+                                                                    ),
+                                                                  ],
                                                                 ),
                                                                 const SizedBox(height: 2),
                                                                 Wrap(

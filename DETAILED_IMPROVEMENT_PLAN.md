@@ -534,26 +534,26 @@ Multiple places use `.withOpacity()` instead of `.withValues(alpha: ...)` — so
 
 ---
 
-### 🟡 PHASE 5: Product Images & Enhanced Catalog (Week 11-12)
+### ✅ PHASE 5: Product Images & Enhanced Catalog (Week 11-12) — COMPLETED
 
 #### Step 5.1: Add Product Images
-- [ ] Add `image_path` column to products table
-- [ ] Implement image picker in Add/Edit product screen
-- [ ] Store images in `SmartPOS/product_images/` directory
-- [ ] Show thumbnails in product list and POS catalog grid
-- [ ] Compress/resize images for performance
+- [x] Add `image_path` column to products table *(Schema v6 migration + automatic backfill from legacy non-hex `image_color` paths)*
+- [x] Implement image picker in Add/Edit product screen *(`AddProductScreen`, `AddProductDialog`, & `NativeFileHelper.pickProductImage`)*
+- [x] Store images in `SmartPOS/product_images/` directory *(handled by `ProductImageService.saveCompressedProductImage` with old managed file cleanup)*
+- [x] Show thumbnails in product list and POS catalog grid *(shared `ProductThumbnail` with `cacheWidth` bounds across `ProductsListScreen`, `ProductDetailDialog`, POS Grid/List/Cart, & `PdfExportService`)*
+- [x] Compress/resize images for performance *(pure-Dart `package:image` resize max 512px + JPEG quality 82 / transparent PNG preservation)*
 
 #### Step 5.2: Implement Product Variations (Size/Color/etc.)
-- [ ] Currently `variation_templates` table exists but variations aren't fully integrated
-- [ ] Wire up variable products in POS terminal
-- [ ] Show variation selector popup when adding variable product to cart
-- [ ] Track stock per variation
+- [x] Wire template-based variation generator & manual options in `AddProductScreen` *(`Generate from Template` dialog using `variation_templates` + sub-SKU generator)*
+- [x] Wire up variable products in POS terminal *(`PosTerminalScreen` VAR badges, barcode `sub_sku` matching, `CartNotifier` per-variation line keying)*
+- [x] Show variation selector popup when adding variable product to cart *(variation selector modal displaying variation sub-SKU, selling price, & live stock)*
+- [x] Track stock per variation *(`BaseRepository.adjustProductAndVariationStock` + `sale_items.variation_id`/`variation_name` synced across sales, returns, quotations, & purchases)*
 
 #### Step 5.3: Implement Pagination & Virtual Scrolling
-- [ ] Add cursor-based pagination to all list queries
-- [ ] Implement `DataTablePaginationBar` with proper server-side paging
-- [ ] Lazy-load products in POS catalog
-- [ ] Target: smooth performance with 50,000+ products
+- [x] Add cursor-based pagination to all list queries *(`PagedResult<T>`, keyset + offset `getProductsPaged`, `getSalesPaged`, `getPurchasesPaged`, `getContactsPaged` + SQL aggregate stats & Schema v6 indexes)*
+- [x] Implement `DataTablePaginationBar` with proper server-side paging *(`ProductsListScreen`, `SalesListScreen`, `PurchasesListScreen`, & `CustomersScreen`)*
+- [x] Lazy-load products in POS catalog *(`PosTerminalScreen` 50-item cursor infinite scroll via `ScrollController` + server-side debounced filtering)*
+- [x] Target: smooth performance with 50,000+ products *(verified with 50,000-product SQLite benchmark & cursor traversal suite)*
 
 ---
 

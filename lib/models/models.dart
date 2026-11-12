@@ -18,6 +18,7 @@ export 'product_variation.dart';
 export 'selling_price_group.dart';
 export 'warranty.dart';
 export 'product.dart';
+export 'paged_result.dart';
 export 'contact.dart';
 export 'customer_group.dart';
 export 'cart_item.dart';

@@ -3,6 +3,8 @@ class SaleItem {
   final int? id;
   final int saleId;
   final int? productId;
+  final int? variationId;
+  final String? variationName;
   final String productName;
   final String sku;
   final double unitPrice;
@@ -24,6 +26,8 @@ class SaleItem {
     this.id,
     required this.saleId,
     this.productId,
+    this.variationId,
+    this.variationName,
     required this.productName,
     required this.sku,
     required this.unitPrice,
@@ -42,6 +46,11 @@ class SaleItem {
     this.taxName,
   }) : discountValue = discountValue ??
             (packDiscount > 0 ? packDiscount : discount);
+
+  String get displayName =>
+      (variationName != null && variationName!.trim().isNotEmpty)
+          ? '$productName ($variationName)'
+          : productName;
 
   double get packValue => unitPrice * quantity;
 
@@ -73,6 +82,8 @@ class SaleItem {
         if (id != null) 'id': id,
         'sale_id': saleId,
         'product_id': productId,
+        'variation_id': variationId,
+        'variation_name': variationName ?? '',
         'product_name': productName,
         'sku': sku,
         'unit_price': unitPrice,
@@ -105,6 +116,10 @@ class SaleItem {
       id: map['id'] as int?,
       saleId: map['sale_id'] as int,
       productId: map['product_id'] as int?,
+      variationId: map['variation_id'] as int?,
+      variationName: (map['variation_name'] as String?)?.isNotEmpty == true
+          ? map['variation_name'] as String
+          : null,
       productName: map['product_name'] as String,
       sku: map['sku'] as String? ?? '',
       unitPrice: (map['unit_price'] as num).toDouble(),

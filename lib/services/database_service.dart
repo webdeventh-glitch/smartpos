@@ -17,7 +17,7 @@ class DatabaseService {
   final String? dbFilePath;
   DatabaseService(this.db, {this.dbFilePath});
 
-  static const int currentSchemaVersion = 5;
+  static const int currentSchemaVersion = 6;
   static DatabaseService? _instance;
   static DatabaseService? get instanceOrNull => _instance;
   static DatabaseService get instance =>
@@ -546,4 +546,108 @@ class DatabaseService {
         action: action,
         search: search,
       );
+
+  // ===================== PHASE 5 DELEGATORS =====================
+  Future<PagedResult<Product>> getProductsPaged({
+    int? categoryId,
+    int? brandId,
+    String? search,
+    String stockFilter = 'all',
+    String productType = 'all',
+    int page = 1,
+    int pageSize = 25,
+    String? cursorName,
+    int? cursorId,
+    bool includeTotalCount = true,
+  }) =>
+      productRepo.getProductsPaged(
+        categoryId: categoryId,
+        brandId: brandId,
+        search: search,
+        stockFilter: stockFilter,
+        productType: productType,
+        page: page,
+        pageSize: pageSize,
+        cursorName: cursorName,
+        cursorId: cursorId,
+        includeTotalCount: includeTotalCount,
+      );
+
+  Future<Map<String, num>> getProductCatalogStats() =>
+      productRepo.getProductCatalogStats();
+
+  Future<Map<int, String>> getProductImagePathsByIds(Iterable<int> productIds) =>
+      productRepo.getProductImagePathsByIds(productIds);
+
+  Future<(Product, ProductVariation?)?> getProductWithMatchedVariationByCode(
+    String code,
+  ) =>
+      productRepo.getProductWithMatchedVariationByCode(code);
+
+  Future<PagedResult<Sale>> getSalesPaged({
+    String? status,
+    String? search,
+    String conversionFilter = 'all',
+    int page = 1,
+    int pageSize = 25,
+    int? cursorId,
+    bool includeTotalCount = true,
+  }) =>
+      salesRepo.getSalesPaged(
+        status: status,
+        search: search,
+        conversionFilter: conversionFilter,
+        page: page,
+        pageSize: pageSize,
+        cursorId: cursorId,
+        includeTotalCount: includeTotalCount,
+      );
+
+  Future<Map<String, int>> getSalesTabCounts() => salesRepo.getSalesTabCounts();
+
+  Future<PagedResult<Purchase>> getPurchasesPaged({
+    String? status,
+    String? paymentStatus,
+    String? search,
+    int page = 1,
+    int pageSize = 25,
+    int? cursorId,
+    bool includeTotalCount = true,
+  }) =>
+      purchaseRepo.getPurchasesPaged(
+        status: status,
+        paymentStatus: paymentStatus,
+        search: search,
+        page: page,
+        pageSize: pageSize,
+        cursorId: cursorId,
+        includeTotalCount: includeTotalCount,
+      );
+
+  Future<Map<String, num>> getPurchaseSummaryStats() =>
+      purchaseRepo.getPurchaseSummaryStats();
+
+  Future<PagedResult<Contact>> getContactsPaged({
+    String? type,
+    String? search,
+    String balanceFilter = 'all',
+    int page = 1,
+    int pageSize = 25,
+    String? cursorName,
+    int? cursorId,
+    bool includeTotalCount = true,
+  }) =>
+      contactsRepo.getContactsPaged(
+        type: type,
+        search: search,
+        balanceFilter: balanceFilter,
+        page: page,
+        pageSize: pageSize,
+        cursorName: cursorName,
+        cursorId: cursorId,
+        includeTotalCount: includeTotalCount,
+      );
+
+  Future<Map<String, num>> getContactSummaryStats({required String type}) =>
+      contactsRepo.getContactSummaryStats(type: type);
 }

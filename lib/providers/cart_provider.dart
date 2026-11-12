@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/cart_item.dart';
 import '../models/customer_group.dart';
 import '../models/product.dart';
+import '../models/product_variation.dart';
 import '../models/tax_group.dart';
 import '../models/tax_rate.dart';
 
@@ -206,22 +207,31 @@ class CartNotifier extends Notifier<CartState> {
     Product product, {
     double quantity = 1.0,
     bool mergeByUnitPrice = false,
+    ProductVariation? variation,
   }) {
+    final basePrice = variation?.sellingPrice ?? product.sellingPrice;
     final tieredPrice =
-        state.activeCustomerGroup?.applyPricing(product.sellingPrice) ??
-            product.sellingPrice;
+        state.activeCustomerGroup?.applyPricing(basePrice) ?? basePrice;
     final updated = state.items.map((e) => e.clone()).toList();
     final idx = updated.indexWhere(
       (item) =>
           item.product.id == product.id &&
+          item.variationId == variation?.id &&
           (!mergeByUnitPrice || item.unitPrice == tieredPrice),
     );
     if (idx >= 0) {
       updated[idx].quantity += quantity;
     } else {
+      final lineProduct =
+          (variation != null && variation.subSku.trim().isNotEmpty)
+              ? product.copyWith(sku: variation.subSku.trim())
+              : product;
       updated.add(
         CartItem(
-          product: product,
+          product: lineProduct,
+          variationId: variation?.id,
+          variationName: variation?.name,
+          basePrice: basePrice,
           quantity: quantity,
           unitPrice: tieredPrice,
           batchNumber: product.batchNumber,

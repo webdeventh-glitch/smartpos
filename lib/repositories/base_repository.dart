@@ -45,4 +45,43 @@ abstract class BaseRepository {
       );
     }
   }
+
+  /// Atomically adjusts stock for a product or specific product variation,
+  /// keeping parent `products.stock_quantity` synchronized to the sum of
+  /// all variation quantities when [variationId] is present.
+  Future<void> adjustProductAndVariationStock(
+    DatabaseExecutor txn, {
+    required int productId,
+    int? variationId,
+    required double delta,
+    bool clampAtZero = false,
+  }) async {
+    if (variationId != null) {
+      final updatedVarRows = await txn.rawUpdate(
+        clampAtZero
+            ? 'UPDATE variations SET stock_quantity = MAX(0, stock_quantity + ?) WHERE id = ?'
+            : 'UPDATE variations SET stock_quantity = stock_quantity + ? WHERE id = ?',
+        [delta, variationId],
+      );
+      if (updatedVarRows > 0) {
+        final sumRows = await txn.rawQuery(
+          'SELECT COALESCE(SUM(stock_quantity), 0.0) AS total_stock FROM variations WHERE product_id = ?',
+          [productId],
+        );
+        final total = (sumRows.first['total_stock'] as num?)?.toDouble() ?? 0.0;
+        await txn.rawUpdate(
+          'UPDATE products SET stock_quantity = ? WHERE id = ?',
+          [total, productId],
+        );
+        return;
+      }
+    }
+
+    await txn.rawUpdate(
+      clampAtZero
+          ? 'UPDATE products SET stock_quantity = MAX(0, stock_quantity + ?) WHERE id = ?'
+          : 'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+      [delta, productId],
+    );
+  }
 }

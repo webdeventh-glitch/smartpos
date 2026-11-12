@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:path/path.dart' as p;
+import 'product_image_service.dart';
 
 /// Information model for international currencies
 class CurrencyInfo {
@@ -365,8 +366,9 @@ if (\$dialog.ShowDialog(\$form) -eq [System.Windows.Forms.DialogResult]::OK) {
     }
   }
 
-  /// Opens native Windows file dialog to pick a product image file
-  static Future<String?> pickProductImage() async {
+  /// Opens native Windows file dialog to pick a product image file and stores
+  /// a compressed/resized copy in `SmartPOS/product_images/`.
+  static Future<String?> pickProductImage({String? existingImagePath}) async {
     try {
       final pickedPath = await _runNativeDialog(
         title: 'Select Product Image (PNG, JPG, WEBP, JPEG)',
@@ -374,20 +376,10 @@ if (\$dialog.ShowDialog(\$form) -eq [System.Windows.Forms.DialogResult]::OK) {
       );
       if (pickedPath == null) return null;
 
-      // Persistently copy into AppData/Local/SmartPOS/products
-      final base = Platform.environment['LOCALAPPDATA'] ??
-          Platform.environment['APPDATA'] ??
-          Directory.current.path;
-      final prodDir = Directory(p.join(base, 'SmartPOS', 'products'));
-      if (!prodDir.existsSync()) {
-        await prodDir.create(recursive: true);
-      }
-
-      final ext = p.extension(pickedPath);
-      final filename = 'prod_${DateTime.now().millisecondsSinceEpoch}$ext';
-      final destination = p.join(prodDir.path, filename);
-      await File(pickedPath).copy(destination);
-      return destination;
+      return await ProductImageService.saveCompressedProductImage(
+        pickedPath,
+        existingImagePath: existingImagePath,
+      );
     } catch (e) {
       debugPrint('Error picking product image: $e');
       return null;

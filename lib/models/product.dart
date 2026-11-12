@@ -18,6 +18,7 @@ class Product {
   final double stockQuantity;
   final double alertQuantity;
   final String? imageColor; // Hex string for visual tile fallback
+  final String? imagePath; // Persistent local file path in product_images/
   final String? warranty;
   final List<ProductVariation>? variations;
   final String? batchNumber;
@@ -44,6 +45,7 @@ class Product {
     required this.stockQuantity,
     this.alertQuantity = 5.0,
     this.imageColor,
+    this.imagePath,
     this.warranty,
     this.variations,
     this.batchNumber,
@@ -57,6 +59,14 @@ class Product {
   bool get isVariable => type == 'variable';
   bool get isLowStock => stockQuantity <= alertQuantity && stockQuantity > 0;
   bool get isOutOfStock => stockQuantity <= 0;
+
+  String? get resolvedImagePath {
+    final direct = imagePath?.trim() ?? '';
+    if (direct.isNotEmpty) return direct;
+    final legacy = imageColor?.trim() ?? '';
+    if (legacy.isNotEmpty && !legacy.startsWith('#')) return legacy;
+    return null;
+  }
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
@@ -75,6 +85,7 @@ class Product {
         'stock_quantity': stockQuantity,
         'alert_quantity': alertQuantity,
         'image_color': imageColor ?? '#004EEB',
+        'image_path': imagePath,
         'warranty': warranty ?? '',
         'batch_number': batchNumber ?? '',
         'expiry_date': expiryDate ?? '',
@@ -103,6 +114,7 @@ class Product {
         stockQuantity: (map['stock_quantity'] as num).toDouble(),
         alertQuantity: (map['alert_quantity'] as num?)?.toDouble() ?? 5.0,
         imageColor: map['image_color'] as String?,
+        imagePath: map['image_path'] as String?,
         warranty: map['warranty'] as String?,
         variations: variations,
         batchNumber: map['batch_number'] as String?,
@@ -130,6 +142,8 @@ class Product {
     double? stockQuantity,
     double? alertQuantity,
     String? imageColor,
+    String? imagePath,
+    bool clearImagePath = false,
     String? warranty,
     List<ProductVariation>? variations,
     String? batchNumber,
@@ -156,6 +170,7 @@ class Product {
         stockQuantity: stockQuantity ?? this.stockQuantity,
         alertQuantity: alertQuantity ?? this.alertQuantity,
         imageColor: imageColor ?? this.imageColor,
+        imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
         warranty: warranty ?? this.warranty,
         variations: variations ?? this.variations,
         batchNumber: batchNumber ?? this.batchNumber,

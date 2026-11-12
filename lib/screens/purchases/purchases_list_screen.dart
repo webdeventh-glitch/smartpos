@@ -1,11 +1,13 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/data_table_pagination_bar.dart';
 import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
-import 'add_purchase_dialog.dart';
 import 'add_purchase_screen.dart';
 import 'purchase_receipt_dialog.dart';
 
@@ -29,6 +31,16 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
   String _searchQuery = '';
   String _statusFilter = 'all';
   String _paymentFilter = 'all';
+  int _currentPage = 1;
+  int _pageSize = 25;
+  int _totalFilteredCount = 0;
+  int _totalOrdersCount = 0;
+  int _receivedCount = 0;
+  int _pendingCount = 0;
+  int _orderedCount = 0;
+  double _totalPurchasesAmount = 0.0;
+  double _totalDueAmount = 0.0;
+  Timer? _searchDebounce;
   final ScrollController _hScroll = ScrollController();
   final TextEditingController _searchCtrl = TextEditingController();
 
@@ -40,17 +52,51 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _hScroll.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool refreshStats = true}) async {
     final db = await DatabaseService.initialize();
-    final list = await db.getPurchases();
+    var paged = await db.getPurchasesPaged(
+      status: _statusFilter,
+      paymentStatus: _paymentFilter,
+      search: _searchQuery,
+      page: _currentPage,
+      pageSize: _pageSize,
+    );
+    if (paged.items.isEmpty &&
+        paged.totalCount > 0 &&
+        _currentPage > paged.totalPages) {
+      _currentPage = paged.totalPages;
+      paged = await db.getPurchasesPaged(
+        status: _statusFilter,
+        paymentStatus: _paymentFilter,
+        search: _searchQuery,
+        page: _currentPage,
+        pageSize: _pageSize,
+      );
+    }
+
+    Map<String, num>? stats;
+    if (refreshStats) {
+      stats = await db.getPurchaseSummaryStats();
+    }
+
     if (mounted) {
       setState(() {
-        _purchases = list;
+        _purchases = paged.items;
+        _totalFilteredCount = paged.totalCount;
+        if (stats != null) {
+          _totalOrdersCount = stats['totalCount']?.toInt() ?? 0;
+          _totalPurchasesAmount = stats['totalAmount']?.toDouble() ?? 0.0;
+          _totalDueAmount = stats['totalDue']?.toDouble() ?? 0.0;
+          _receivedCount = stats['receivedCount']?.toInt() ?? 0;
+          _pendingCount = stats['pendingCount']?.toInt() ?? 0;
+          _orderedCount = stats['orderedCount']?.toInt() ?? 0;
+        }
         _loading = false;
       });
     }
@@ -302,23 +348,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currency = widget.settings.currencySymbol;
-
-    final filteredPurchases = _purchases.where((p) {
-      if (_statusFilter != 'all' && p.status.toLowerCase() != _statusFilter) return false;
-      if (_paymentFilter != 'all' && p.paymentStatus.toLowerCase() != _paymentFilter) return false;
-      if (_searchQuery.isNotEmpty) {
-        final q = _searchQuery.toLowerCase();
-        final matchRef = p.refNo.toLowerCase().contains(q);
-        final matchSup = p.supplierName.toLowerCase().contains(q);
-        final matchLoc = p.locationName.toLowerCase().contains(q);
-        final matchNote = p.note.toLowerCase().contains(q);
-        if (!matchRef && !matchSup && !matchLoc && !matchNote) return false;
-      }
-      return true;
-    }).toList();
-
-    final totalPurchases = _purchases.fold(0.0, (sum, p) => sum + p.totalAmount);
-    final totalDue = _purchases.fold(0.0, (sum, p) => sum + p.dueAmount);
+    final filteredPurchases = _purchases;
+    final totalPurchases = _totalPurchasesAmount;
+    final totalDue = _totalDueAmount;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
@@ -368,7 +400,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
               builder: (context, constraints) {
                 final c1 = _miniCard('Total Purchases', '$currency${totalPurchases.toStringAsFixed(2)}', const Color(0xFF4F46E5), isDark: isDark);
                 final c2 = _miniCard('Total Payables Due', '$currency${totalDue.toStringAsFixed(2)}', const Color(0xFFEF4444), isDark: isDark);
-                final c3 = _miniCard('Purchase Orders', '${_purchases.length} orders', const Color(0xFF10B981), isDark: isDark);
+                final c3 = _miniCard('Purchase Orders', '$_totalOrdersCount orders', const Color(0xFF10B981), isDark: isDark);
 
                 if (constraints.maxWidth < 650) {
                   return Column(
@@ -403,38 +435,62 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                   children: [
                     _buildSegmentTab(
                       label: 'All Purchases',
-                      count: _purchases.length,
+                      count: _totalOrdersCount,
                       isActive: _statusFilter == 'all',
                       activeColor: const Color(0xFF4F46E5),
                       isDark: isDark,
-                      onTap: () => setState(() => _statusFilter = 'all'),
+                      onTap: () {
+                        setState(() {
+                          _statusFilter = 'all';
+                          _currentPage = 1;
+                        });
+                        _load(refreshStats: false);
+                      },
                     ),
                     const SizedBox(width: 8),
                     _buildSegmentTab(
                       label: 'Received (In Store)',
-                      count: _purchases.where((p) => p.status.toLowerCase() == 'received').length,
+                      count: _receivedCount,
                       isActive: _statusFilter == 'received',
                       activeColor: const Color(0xFF10B981),
                       isDark: isDark,
-                      onTap: () => setState(() => _statusFilter = 'received'),
+                      onTap: () {
+                        setState(() {
+                          _statusFilter = 'received';
+                          _currentPage = 1;
+                        });
+                        _load(refreshStats: false);
+                      },
                     ),
                     const SizedBox(width: 8),
                     _buildSegmentTab(
                       label: 'Pending Delivery',
-                      count: _purchases.where((p) => p.status.toLowerCase() == 'pending').length,
+                      count: _pendingCount,
                       isActive: _statusFilter == 'pending',
                       activeColor: const Color(0xFFD97706),
                       isDark: isDark,
-                      onTap: () => setState(() => _statusFilter = 'pending'),
+                      onTap: () {
+                        setState(() {
+                          _statusFilter = 'pending';
+                          _currentPage = 1;
+                        });
+                        _load(refreshStats: false);
+                      },
                     ),
                     const SizedBox(width: 8),
                     _buildSegmentTab(
                       label: 'Purchase Orders (PO)',
-                      count: _purchases.where((p) => p.status.toLowerCase() == 'ordered').length,
+                      count: _orderedCount,
                       isActive: _statusFilter == 'ordered',
                       activeColor: const Color(0xFF6366F1),
                       isDark: isDark,
-                      onTap: () => setState(() => _statusFilter = 'ordered'),
+                      onTap: () {
+                        setState(() {
+                          _statusFilter = 'ordered';
+                          _currentPage = 1;
+                        });
+                        _load(refreshStats: false);
+                      },
                     ),
                   ],
                 ),
@@ -455,7 +511,21 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                     flex: 3,
                     child: TextField(
                       controller: _searchCtrl,
-                      onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val.trim();
+                          _currentPage = 1;
+                        });
+                        _searchDebounce?.cancel();
+                        if (Platform.environment.containsKey('FLUTTER_TEST')) {
+                          _load(refreshStats: false);
+                        } else {
+                          _searchDebounce = Timer(
+                            const Duration(milliseconds: 220),
+                            () => _load(refreshStats: false),
+                          );
+                        }
+                      },
                       style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                       decoration: InputDecoration(
                         hintText: 'Search purchases by Ref No, Supplier, Location...',
@@ -490,7 +560,13 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                           DropdownMenuItem(value: 'pending', child: Text('Pending')),
                           DropdownMenuItem(value: 'ordered', child: Text('Ordered')),
                         ],
-                        onChanged: (val) => setState(() => _statusFilter = val ?? 'all'),
+                        onChanged: (val) {
+                          setState(() {
+                            _statusFilter = val ?? 'all';
+                            _currentPage = 1;
+                          });
+                          _load(refreshStats: false);
+                        },
                       ),
                     ),
                   ),
@@ -514,7 +590,13 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                           DropdownMenuItem(value: 'due', child: Text('Due / Unpaid')),
                           DropdownMenuItem(value: 'partial', child: Text('Partial')),
                         ],
-                        onChanged: (val) => setState(() => _paymentFilter = val ?? 'all'),
+                        onChanged: (val) {
+                          setState(() {
+                            _paymentFilter = val ?? 'all';
+                            _currentPage = 1;
+                          });
+                          _load(refreshStats: false);
+                        },
                       ),
                     ),
                   ),
@@ -757,6 +839,25 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                           ),
                         ),
             ),
+            if (!_loading && _purchases.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              DataTablePaginationBar(
+                currentPage: _currentPage,
+                pageSize: _pageSize,
+                totalItems: _totalFilteredCount,
+                onPageChanged: (newPage) {
+                  setState(() => _currentPage = newPage);
+                  _load(refreshStats: false);
+                },
+                onPageSizeChanged: (newSize) {
+                  setState(() {
+                    _pageSize = newSize;
+                    _currentPage = 1;
+                  });
+                  _load(refreshStats: false);
+                },
+              ),
+            ],
           ],
         ),
       ),

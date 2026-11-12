@@ -243,7 +243,7 @@ class ThermalPrinterService {
           : item.quantity.toStringAsFixed(2);
       bytes.addAll(
         generator.row([
-          PosColumn(text: _asciiSafe(item.productName), width: 6),
+          PosColumn(text: _asciiSafe(item.displayName), width: 6),
           PosColumn(
             text: qtyStr,
             width: 2,

@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/print_service.dart';
+import '../../widgets/product_thumbnail.dart';
 
 class ProductDetailDialog extends StatefulWidget {
   final Product product;
@@ -303,22 +303,12 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: borderColor),
                           ),
-                          child: (p.imageColor != null &&
-                                  File(p.imageColor!).existsSync())
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(7),
-                                  child: Image.file(File(p.imageColor!),
-                                      fit: BoxFit.cover),
-                                )
-                              : Center(
-                                  child: Icon(
-                                    Icons.image_outlined,
-                                    size: 68,
-                                    color: isDark
-                                        ? const Color(0xFF475569)
-                                        : const Color(0xFFCBD5E1),
-                                  ),
-                                ),
+                          child: ProductThumbnail(
+                            imagePath: p.resolvedImagePath,
+                            imageColor: p.imageColor,
+                            size: 150,
+                            borderRadius: 7,
+                          ),
                         ),
                       ],
                     ),
@@ -406,7 +396,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                       '$currency ${p.sellingPrice.toStringAsFixed(2)}',
                                       isDark: isDark,
                                     ),
-                                    _tableBodyImageCell(p.imageColor, isDark),
+                                    _tableBodyImageCell(
+                                        p.resolvedImagePath, p.imageColor, isDark),
                                   ],
                                 ),
                                 // Variation Rows (if variable product)
@@ -423,14 +414,14 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                       children: [
                                         _tableBodyCell(
                                           canViewCost
-                                              ? '$currency ${v.purchasePrice.toStringAsFixed(2)}'
-                                              : '••••••',
+                                              ? '${v.name} • $currency ${v.purchasePrice.toStringAsFixed(2)}'
+                                              : '${v.name} (Stock: ${v.stockQuantity.toStringAsFixed(0)})',
                                           isDark: isDark,
                                         ),
                                         _tableBodyCell(
                                           canViewCost
-                                              ? '$currency ${v.purchasePrice.toStringAsFixed(2)}'
-                                              : '••••••',
+                                              ? 'Stock: ${v.stockQuantity.toStringAsFixed(0)} • SKU: ${v.subSku}'
+                                              : 'Stock: ${v.stockQuantity.toStringAsFixed(0)}',
                                           isDark: isDark,
                                         ),
                                         _tableBodyCell(
@@ -448,7 +439,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                           isDark: isDark,
                                         ),
                                         _tableBodyImageCell(
-                                            p.imageColor, isDark),
+                                            p.resolvedImagePath, p.imageColor, isDark),
                                       ],
                                     );
                                   }),
@@ -754,32 +745,17 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
     );
   }
 
-  Widget _tableBodyImageCell(String? imagePath, bool isDark) {
+  Widget _tableBodyImageCell(String? imagePath, String? imageColor, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Center(
-        child: (imagePath != null && File(imagePath).existsSync())
-            ? Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                      color: isDark
-                          ? const Color(0xFF334155)
-                          : const Color(0xFFE2E8F0)),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: Image.file(File(imagePath), fit: BoxFit.cover),
-                ),
-              )
-            : Icon(
-                Icons.image_outlined,
-                size: 20,
-                color:
-                    isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-              ),
+        child: ProductThumbnail(
+          imagePath: imagePath,
+          imageColor: imageColor,
+          size: 28,
+          borderRadius: 4,
+          fallbackIcon: Icons.image_outlined,
+        ),
       ),
     );
   }

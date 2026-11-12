@@ -6,6 +6,15 @@ import 'base_repository.dart';
 abstract class ISalesRepository {
   Future<Sale> createSale({required Sale sale, required List<CartItem> items, List<Map<String, dynamic>>? splitTenders});
   Future<List<Sale>> getSales({String? status, String? search});
+  Future<PagedResult<Sale>> getSalesPaged({
+    String? status,
+    String? search,
+    String conversionFilter = 'all',
+    int page = 1,
+    int pageSize = 25,
+    int? cursorId,
+    bool includeTotalCount = true,
+  });
   Future<List<Sale>> getQuotations({String? search, String conversionFilter = 'all'});
   Future<Sale> convertQuotationToInvoice({required int quotationId, String paymentMethod = 'cash', double? paidAmount, String note = ''});
   Future<List<SaleItem>> getSaleItems(int saleId);
@@ -50,9 +59,11 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
         if (sale.saleStatus == 'final' && item.product.id != null) {
           final baseDeduction = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
-          await txn.rawUpdate(
-            'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
-            [baseDeduction, item.product.id],
+          await adjustProductAndVariationStock(
+            txn,
+            productId: item.product.id!,
+            variationId: item.variationId,
+            delta: -baseDeduction,
           );
         }
       }
@@ -190,6 +201,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
             .map((e) => SaleItem(
                   saleId: saleId,
                   productId: e.product.id,
+                  variationId: e.variationId,
+                  variationName: e.variationName,
                   productName: e.product.name,
                   sku: e.product.sku,
                   unitPrice: e.unitPrice,
@@ -241,9 +254,11 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           final item = SaleItem.fromMap(row);
           if (item.productId != null) {
             final restoreQty = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
-            await txn.rawUpdate(
-              'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
-              [restoreQty, item.productId],
+            await adjustProductAndVariationStock(
+              txn,
+              productId: item.productId!,
+              variationId: item.variationId,
+              delta: restoreQty,
             );
           }
         }
@@ -269,9 +284,11 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
         if (isNowFinal && item.product.id != null) {
           final baseDeduction = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
-          await txn.rawUpdate(
-            'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
-            [baseDeduction, item.product.id],
+          await adjustProductAndVariationStock(
+            txn,
+            productId: item.product.id!,
+            variationId: item.variationId,
+            delta: -baseDeduction,
           );
         }
       }
@@ -367,9 +384,11 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           final item = SaleItem.fromMap(row);
           if (item.productId != null) {
             final qtyToRestore = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
-            await txn.rawUpdate(
-              'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
-              [qtyToRestore, item.productId],
+            await adjustProductAndVariationStock(
+              txn,
+              productId: item.productId!,
+              variationId: item.variationId,
+              delta: qtyToRestore,
             );
           }
         }
@@ -502,6 +521,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         final newItem = SaleItem(
           saleId: saleId,
           productId: item.productId,
+          variationId: item.variationId,
+          variationName: item.variationName,
           productName: item.productName,
           sku: item.sku,
           unitPrice: item.unitPrice,
@@ -524,9 +545,11 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
         if (item.productId != null) {
           final deductQty = item.quantity * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
-          await txn.rawUpdate(
-            'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
-            [deductQty, item.productId],
+          await adjustProductAndVariationStock(
+            txn,
+            productId: item.productId!,
+            variationId: item.variationId,
+            delta: -deductQty,
           );
         }
       }
@@ -648,6 +671,94 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     final rows =
         await db.query('sales', where: where, whereArgs: whereArgs, orderBy: 'id DESC');
     return rows.map((e) => Sale.fromMap(e)).toList();
+  }
+
+  @override
+  Future<PagedResult<Sale>> getSalesPaged({
+    String? status,
+    String? search,
+    String conversionFilter = 'all',
+    int page = 1,
+    int pageSize = 25,
+    int? cursorId,
+    bool includeTotalCount = true,
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final safePageSize = pageSize < 1 ? 25 : pageSize;
+    final baseConditions = <String>[];
+    final baseArgs = <dynamic>[];
+
+    if (status != null && status.isNotEmpty) {
+      baseConditions.add('sale_status = ?');
+      baseArgs.add(status);
+    }
+    if (conversionFilter == 'pending') {
+      baseConditions.add('(converted_to_sale_id IS NULL OR converted_to_sale_id = 0)');
+    } else if (conversionFilter == 'converted') {
+      baseConditions.add('(converted_to_sale_id IS NOT NULL AND converted_to_sale_id > 0)');
+    }
+    final cleanSearch = search?.trim() ?? '';
+    if (cleanSearch.isNotEmpty) {
+      final q = '%$cleanSearch%';
+      baseConditions.add('(invoice_no LIKE ? OR customer_name LIKE ?)');
+      baseArgs.addAll([q, q]);
+    }
+
+    final queryConditions = List<String>.from(baseConditions);
+    final queryArgs = List<dynamic>.from(baseArgs);
+    if (cursorId != null) {
+      queryConditions.add('id < ?');
+      queryArgs.add(cursorId);
+    }
+
+    final rows = await db.query(
+      'sales',
+      where: queryConditions.isNotEmpty ? queryConditions.join(' AND ') : null,
+      whereArgs: queryArgs.isNotEmpty ? queryArgs : null,
+      orderBy: 'id DESC',
+      limit: safePageSize + 1,
+      offset: cursorId != null ? null : (safePage - 1) * safePageSize,
+    );
+
+    final hasMore = rows.length > safePageSize;
+    final items = rows.take(safePageSize).map(Sale.fromMap).toList();
+
+    int totalCount = 0;
+    if (includeTotalCount) {
+      final baseWhere =
+          baseConditions.isNotEmpty ? 'WHERE ${baseConditions.join(' AND ')}' : '';
+      final countRows = await db.rawQuery(
+        'SELECT COUNT(*) AS total FROM sales $baseWhere',
+        baseArgs,
+      );
+      totalCount = (countRows.first['total'] as int?) ?? 0;
+    }
+
+    return PagedResult<Sale>(
+      items: items,
+      totalCount: totalCount,
+      currentPage: safePage,
+      pageSize: safePageSize,
+      nextCursorId: items.isNotEmpty ? items.last.id : cursorId,
+      hasMore: hasMore,
+    );
+  }
+
+  /// Counts final, draft, and quotation rows in one pass for SalesListScreen tabs.
+  Future<Map<String, int>> getSalesTabCounts() async {
+    final rows = await db.rawQuery('''
+      SELECT
+        COALESCE(SUM(CASE WHEN sale_status = 'final' THEN 1 ELSE 0 END), 0) AS final_count,
+        COALESCE(SUM(CASE WHEN sale_status = 'draft' THEN 1 ELSE 0 END), 0) AS draft_count,
+        COALESCE(SUM(CASE WHEN sale_status = 'quotation' THEN 1 ELSE 0 END), 0) AS quotation_count
+      FROM sales
+    ''');
+    final r = rows.first;
+    return {
+      'final': (r['final_count'] as num?)?.toInt() ?? 0,
+      'draft': (r['draft_count'] as num?)?.toInt() ?? 0,
+      'quotation': (r['quotation_count'] as num?)?.toInt() ?? 0,
+    };
   }
 
   @override
@@ -807,10 +918,12 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         itemMap['return_id'] = id;
         await txn.insert('sale_return_items', itemMap);
 
-        // Restock returned product
-        await txn.rawUpdate(
-          'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
-          [item.quantity, item.productId],
+        // Restock returned product (and specific variation if linked)
+        await adjustProductAndVariationStock(
+          txn,
+          productId: item.productId,
+          variationId: item.variationId,
+          delta: item.quantity,
         );
       }
 

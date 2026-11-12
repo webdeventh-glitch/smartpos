@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -8,6 +10,7 @@ import '../pos/quick_customer_dialog.dart';
 import 'contact_ledger_screen.dart';
 import 'payment_reminder_dialog.dart';
 import '../../services/print_service.dart';
+import '../../widgets/data_table_pagination_bar.dart';
 import '../../widgets/record_contact_payment_dialog.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 
@@ -25,6 +28,15 @@ class _CustomersScreenState extends State<CustomersScreen> {
   bool _loading = true;
   String _filter = 'all'; // 'all', 'defaulters', 'over_limit', 'clear'
   String _searchQuery = '';
+  int _currentPage = 1;
+  int _pageSize = 25;
+  int _totalFilteredCount = 0;
+  int _totalCustomersCount = 0;
+  int _defaultersCount = 0;
+  int _overLimitCount = 0;
+  int _clearCount = 0;
+  double _totalReceivable = 0.0;
+  Timer? _searchDebounce;
   final TextEditingController _searchCtrl = TextEditingController();
 
   @override
@@ -35,16 +47,49 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool refreshStats = true}) async {
     final db = await DatabaseService.initialize();
-    final list = await db.getContacts(type: 'customer');
+    var paged = await db.getContactsPaged(
+      type: 'customer',
+      search: _searchQuery,
+      balanceFilter: _filter,
+      page: _currentPage,
+      pageSize: _pageSize,
+    );
+    if (paged.items.isEmpty &&
+        paged.totalCount > 0 &&
+        _currentPage > paged.totalPages) {
+      _currentPage = paged.totalPages;
+      paged = await db.getContactsPaged(
+        type: 'customer',
+        search: _searchQuery,
+        balanceFilter: _filter,
+        page: _currentPage,
+        pageSize: _pageSize,
+      );
+    }
+
+    Map<String, num>? stats;
+    if (refreshStats) {
+      stats = await db.getContactSummaryStats(type: 'customer');
+    }
+
     if (mounted) {
       setState(() {
-        _customers = list;
+        _customers = paged.items;
+        _totalFilteredCount = paged.totalCount;
+        if (stats != null) {
+          _totalCustomersCount = stats['totalCount']?.toInt() ?? 0;
+          _defaultersCount = stats['activeDuesCount']?.toInt() ?? 0;
+          _overLimitCount = stats['overLimitCount']?.toInt() ?? 0;
+          _clearCount = stats['clearCount']?.toInt() ?? 0;
+          _totalReceivable = stats['totalReceivable']?.toDouble() ?? 0.0;
+        }
         _loading = false;
       });
     }
@@ -333,8 +378,19 @@ class _CustomersScreenState extends State<CustomersScreen> {
     );
   }
 
-  void _printDefaultersSheet(List<Contact> defaulters) {
-    final listToPrint = defaulters.isNotEmpty ? defaulters : _customers.where((c) => c.balance > 0).toList();
+  Future<void> _printDefaultersSheet(List<Contact> defaulters) async {
+    List<Contact> listToPrint = defaulters;
+    if (listToPrint.isEmpty) {
+      final db = await DatabaseService.initialize();
+      listToPrint = (await db.getContactsPaged(
+        type: 'customer',
+        balanceFilter: 'defaulters',
+        pageSize: 1000,
+        includeTotalCount: false,
+      ))
+          .items;
+    }
+    if (!mounted) return;
     final html = PrintService.generateDefaultersListHtml(
       settings: widget.settings,
       defaulters: listToPrint,
@@ -355,28 +411,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currency = widget.settings.currencySymbol;
-
-    // Defaulters analysis
-    final defaulters = _customers.where((c) => c.balance > 0).toList();
-    final overLimit = _customers.where((c) => c.creditLimit > 0 && c.balance > c.creditLimit).toList();
-    final cleared = _customers.where((c) => c.balance <= 0).toList();
-    final totalReceivable = defaulters.fold(0.0, (sum, c) => sum + c.balance);
-
-    // Apply Filter & Search
-    final displayedCustomers = _customers.where((c) {
-      if (_filter == 'defaulters' && c.balance <= 0) return false;
-      if (_filter == 'over_limit' && (c.creditLimit <= 0 || c.balance <= c.creditLimit)) return false;
-      if (_filter == 'clear' && c.balance > 0) return false;
-
-      if (_searchQuery.isNotEmpty) {
-        final q = _searchQuery.toLowerCase();
-        final matchName = c.name.toLowerCase().contains(q);
-        final matchPhone = c.phone.toLowerCase().contains(q);
-        final matchBiz = c.businessName?.toLowerCase().contains(q) ?? false;
-        if (!matchName && !matchPhone && !matchBiz) return false;
-      }
-      return true;
-    }).toList();
+    final totalReceivable = _totalReceivable;
+    final displayedCustomers = _customers;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
@@ -414,7 +450,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       ),
                       icon: const Icon(Icons.print_rounded, size: 18),
                       label: const Text('Print Defaulters Sheet', style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: () => _printDefaultersSheet(defaulters),
+                      onPressed: () => _printDefaultersSheet(const <Contact>[]),
                     ),
                     if (_canManageCustomers)
                       ElevatedButton.icon(
@@ -476,10 +512,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
             // 4 KPI Summary Cards (Responsive)
             LayoutBuilder(
               builder: (context, constraints) {
-                final c1 = _miniCard('Total Customers', '${_customers.length}', const Color(0xFF4F46E5), isDark: isDark);
-                final c2 = _miniCard('Defaulters (Pending Due)', '${defaulters.length} customers', const Color(0xFFEF4444), isDark: isDark);
+                final c1 = _miniCard('Total Customers', '$_totalCustomersCount', const Color(0xFF4F46E5), isDark: isDark);
+                final c2 = _miniCard('Defaulters (Pending Due)', '$_defaultersCount customers', const Color(0xFFEF4444), isDark: isDark);
                 final c3 = _miniCard('Total Overdue Receivables', '$currency${totalReceivable.toStringAsFixed(2)}', const Color(0xFFDC2626), isDark: isDark);
-                final c4 = _miniCard('Credit Limit Exceeded', '${overLimit.length} accounts', const Color(0xFFF59E0B), isDark: isDark);
+                final c4 = _miniCard('Credit Limit Exceeded', '$_overLimitCount accounts', const Color(0xFFF59E0B), isDark: isDark);
 
                 if (constraints.maxWidth >= 1050) {
                   return Row(
@@ -537,10 +573,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   runSpacing: 8,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    _filterChip('all', 'All (${_customers.length})', isDark),
-                    _filterChip('defaulters', 'Defaulters / Dues (${defaulters.length})', isDark, isHighlight: true, icon: Icons.warning_amber_rounded),
-                    _filterChip('over_limit', 'Limit Exceeded (${overLimit.length})', isDark, icon: Icons.block_rounded),
-                    _filterChip('clear', 'Zero Balance (${cleared.length})', isDark, icon: Icons.check_circle_outline_rounded),
+                    _filterChip('all', 'All ($_totalCustomersCount)', isDark),
+                    _filterChip('defaulters', 'Defaulters / Dues ($_defaultersCount)', isDark, isHighlight: true, icon: Icons.warning_amber_rounded),
+                    _filterChip('over_limit', 'Limit Exceeded ($_overLimitCount)', isDark, icon: Icons.block_rounded),
+                    _filterChip('clear', 'Zero Balance ($_clearCount)', isDark, icon: Icons.check_circle_outline_rounded),
                   ],
                 );
 
@@ -557,7 +593,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
                               icon: const Icon(Icons.clear, size: 16),
                               onPressed: () {
                                 _searchCtrl.clear();
-                                setState(() => _searchQuery = '');
+                                setState(() {
+                                  _searchQuery = '';
+                                  _currentPage = 1;
+                                });
+                                _load(refreshStats: false);
                               },
                             )
                           : null,
@@ -566,7 +606,21 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val.trim();
+                        _currentPage = 1;
+                      });
+                      _searchDebounce?.cancel();
+                      if (Platform.environment.containsKey('FLUTTER_TEST')) {
+                        _load(refreshStats: false);
+                      } else {
+                        _searchDebounce = Timer(
+                          const Duration(milliseconds: 220),
+                          () => _load(refreshStats: false),
+                        );
+                      }
+                    },
                   ),
                 );
 
@@ -827,6 +881,25 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           ),
                         ),
             ),
+            if (!_loading && _customers.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              DataTablePaginationBar(
+                currentPage: _currentPage,
+                pageSize: _pageSize,
+                totalItems: _totalFilteredCount,
+                onPageChanged: (newPage) {
+                  setState(() => _currentPage = newPage);
+                  _load(refreshStats: false);
+                },
+                onPageSizeChanged: (newSize) {
+                  setState(() {
+                    _pageSize = newSize;
+                    _currentPage = 1;
+                  });
+                  _load(refreshStats: false);
+                },
+              ),
+            ],
           ],
         ),
       ),
@@ -839,7 +912,13 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
-      onTap: () => setState(() => _filter = id),
+      onTap: () {
+        setState(() {
+          _filter = id;
+          _currentPage = 1;
+        });
+        _load(refreshStats: false);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(

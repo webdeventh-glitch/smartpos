@@ -6,6 +6,7 @@ import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/regional_data_service.dart';
+import '../../widgets/product_thumbnail.dart';
 
 class AddProductScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -100,6 +101,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   bool _isPickingImage = false;
   String _selectedColor = '#004EEB';
   String? _pickedImagePath;
+  List<VariationTemplate> _variationTemplates = [];
 
   @override
   void initState() {
@@ -137,6 +139,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final unList = await db.getUnits();
     final tRates = await db.getTaxRates();
     final tGroups = await db.getTaxGroups();
+    final varTemplates = await db.getVariationTemplates();
     List<ProductVariation> loadedVars = [];
     if (widget.productToEdit != null && widget.productToEdit!.id != null) {
       loadedVars = await db.getProductVariations(widget.productToEdit!.id!);
@@ -150,6 +153,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         _dbUnits = unList;
         _taxRates = tRates;
         _taxGroups = tGroups;
+        _variationTemplates = varTemplates;
         for (final u in unList) {
           final label = u.shortName.isNotEmpty && u.shortName != u.actualName
               ? '${u.actualName} (${u.shortName})'
@@ -177,11 +181,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
           if (!_units.contains(_selectedUnit)) {
             _units.add(_selectedUnit);
           }
-          if (p.imageColor != null && File(p.imageColor!).existsSync()) {
-            _pickedImagePath = p.imageColor;
-            _imageCtrl.text = p_path.basename(p.imageColor!);
+          final existingImg = p.resolvedImagePath;
+          if (existingImg != null && File(existingImg).existsSync()) {
+            _pickedImagePath = existingImg;
+            _imageCtrl.text = p_path.basename(existingImg);
+            _selectedColor =
+                (p.imageColor != null && p.imageColor!.startsWith('#'))
+                    ? p.imageColor!
+                    : '#4F46E5';
           } else {
-            _selectedColor = p.imageColor ?? '#4F46E5';
+            _pickedImagePath = existingImg;
+            _selectedColor =
+                (p.imageColor != null && p.imageColor!.startsWith('#'))
+                    ? p.imageColor!
+                    : '#4F46E5';
             _imageCtrl.text = 'Badge ($_selectedColor)';
           }
           _batchCtrl.text = p.batchNumber ?? '';
@@ -438,7 +451,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (_isPickingImage) return;
     setState(() => _isPickingImage = true);
     try {
-      final picked = await NativeFileHelper.pickProductImage();
+      final picked = await NativeFileHelper.pickProductImage(
+        existingImagePath: _pickedImagePath,
+      );
       if (picked != null) {
         setState(() {
           _pickedImagePath = picked;
@@ -748,6 +763,147 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  Future<void> _showApplyTemplateDialog() async {
+    if (_variationTemplates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No variation templates configured yet. Go to Products -> Variations to create reusable templates (e.g. Size, Color).',
+          ),
+        ),
+      );
+      return;
+    }
+    VariationTemplate selected = _variationTemplates.first;
+    final pCtrl = TextEditingController(text: _purchasePriceCtrl.text);
+    final sCtrl = TextEditingController(text: _sellingPriceCtrl.text);
+    final stCtrl = TextEditingController(text: '10');
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text(
+            'Generate Variations from Template',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<VariationTemplate>(
+                  initialValue: selected,
+                  decoration: const InputDecoration(
+                    labelText: 'Select Variation Template',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _variationTemplates
+                      .map((t) => DropdownMenuItem(
+                            value: t,
+                            child: Text('${t.name} (${t.values.join(", ")})'),
+                          ))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) setDlgState(() => selected = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: selected.values
+                      .map((v) => Chip(
+                            label: Text(v, style: const TextStyle(fontSize: 12)),
+                            visualDensity: VisualDensity.compact,
+                          ))
+                      .toList(),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: pCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: _inputDecor('Cost Price'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: sCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: _inputDecor('Selling Price'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: stCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: _inputDecor('Stock Each'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.auto_awesome, size: 16),
+              label: Text('Generate ${selected.values.length} Variations'),
+              onPressed: () {
+                final pPrice = double.tryParse(pCtrl.text.trim()) ?? 0.0;
+                final sPrice = double.tryParse(sCtrl.text.trim()) ?? 0.0;
+                final stockVal = double.tryParse(stCtrl.text.trim()) ?? 0.0;
+                final baseSku = _skuCtrl.text.trim().isNotEmpty
+                    ? _skuCtrl.text.trim()
+                    : 'VAR';
+                final existingNames = _variations
+                    .map((v) => v.name.toLowerCase().trim())
+                    .toSet();
+                setState(() {
+                  for (final rawVal in selected.values) {
+                    final label = '${selected.name}: $rawVal';
+                    if (existingNames.contains(label.toLowerCase())) continue;
+                    final suffix = rawVal
+                        .trim()
+                        .toUpperCase()
+                        .replaceAll(RegExp(r'[^A-Z0-9]+'), '-');
+                    _variations.add(
+                      ProductVariation(
+                        productId: widget.productToEdit?.id ?? 0,
+                        name: label,
+                        subSku: '$baseSku-$suffix',
+                        purchasePrice: pPrice,
+                        sellingPrice: sPrice,
+                        stockQuantity: stockVal,
+                      ),
+                    );
+                    existingNames.add(label.toLowerCase());
+                  }
+                });
+                Navigator.pop(ctx);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<bool> _saveProduct() async {
     // 1. If Product Name is empty, but user selected Brand or Category, auto-fill
     if (_nameCtrl.text.trim().isEmpty) {
@@ -966,7 +1122,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
             : selling,
         stockQuantity: _productType == 'variable' ? totalVarStock : stock,
         alertQuantity: alert,
-        imageColor: _pickedImagePath ?? _selectedColor,
+        imageColor: _selectedColor,
+        imagePath: _pickedImagePath,
         warranty: _selectedWarranty?.name,
         batchNumber: batchVal,
         expiryDate: expVal,
@@ -997,7 +1154,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
               : selling,
           stockQuantity: _productType == 'variable' ? totalVarStock : stock,
           alertQuantity: alert,
-          imageColor: _pickedImagePath ?? _selectedColor,
+          imageColor: _selectedColor,
+          imagePath: _pickedImagePath,
           warranty: _selectedWarranty?.name,
           batchNumber: batchVal,
           expiryDate: expVal,
@@ -2366,18 +2524,38 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 fontSize: 14,
                                 color: Color(0xFF1E293B)),
                           ),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0038B8),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(6)),
-                            ),
-                            icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Add Variation Option'),
-                            onPressed: _showAddVariationModal,
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF0038B8),
+                                  side: const BorderSide(
+                                      color: Color(0xFF0038B8)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6)),
+                                ),
+                                icon: const Icon(Icons.auto_awesome, size: 16),
+                                label: const Text('Generate from Template'),
+                                onPressed: _showApplyTemplateDialog,
+                              ),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0038B8),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6)),
+                                ),
+                                icon: const Icon(Icons.add, size: 16),
+                                label: const Text('Add Variation Option'),
+                                onPressed: _showAddVariationModal,
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -2898,36 +3076,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
         // Live swatch or image preview
         Row(
           children: [
-            Container(
-              height: 64,
-              width: 64,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFCBD5E1)),
-              ),
-              child: (_pickedImagePath != null &&
-                      File(_pickedImagePath!).existsSync())
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
-                        File(_pickedImagePath!),
-                        fit: BoxFit.cover,
-                        width: 64,
-                        height: 64,
-                      ),
-                    )
-                  : Container(
-                      decoration: BoxDecoration(
-                        color: Color(int.tryParse(
-                                _selectedColor.replaceFirst('#', '0xFF')) ??
-                            0xFF004EEB),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.inventory_2,
-                            color: Colors.white, size: 28),
-                      ),
-                    ),
+            ProductThumbnail(
+              imagePath: _pickedImagePath,
+              imageColor: _selectedColor,
+              size: 64,
+              borderRadius: 8,
             ),
             if (_pickedImagePath != null &&
                 File(_pickedImagePath!).existsSync()) ...[

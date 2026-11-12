@@ -4,6 +4,16 @@ import 'base_repository.dart';
 
 abstract class IContactsRepository {
   Future<List<Contact>> getContacts({String? type, String? search});
+  Future<PagedResult<Contact>> getContactsPaged({
+    String? type,
+    String? search,
+    String balanceFilter = 'all',
+    int page = 1,
+    int pageSize = 25,
+    String? cursorName,
+    int? cursorId,
+    bool includeTotalCount = true,
+  });
   Future<Contact?> getContactById(int id);
   Future<int> addContact(Contact contact);
   Future<int> updateContact(Contact contact);
@@ -49,6 +59,112 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
       ORDER BY c.name ASC
     ''', whereArgs);
     return rows.map((e) => Contact.fromMap(e)).toList();
+  }
+
+  @override
+  Future<PagedResult<Contact>> getContactsPaged({
+    String? type,
+    String? search,
+    String balanceFilter = 'all',
+    int page = 1,
+    int pageSize = 25,
+    String? cursorName,
+    int? cursorId,
+    bool includeTotalCount = true,
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final safePageSize = pageSize < 1 ? 25 : pageSize;
+    final baseConditions = <String>[];
+    final baseArgs = <dynamic>[];
+
+    if (type != null && type.isNotEmpty) {
+      baseConditions.add('c.type = ?');
+      baseArgs.add(type);
+    }
+    if (balanceFilter == 'defaulters') {
+      baseConditions.add('c.balance > 0');
+    } else if (balanceFilter == 'over_limit') {
+      baseConditions.add('(c.credit_limit > 0 AND c.balance > c.credit_limit)');
+    } else if (balanceFilter == 'clear') {
+      baseConditions.add('c.balance <= 0');
+    }
+    final cleanSearch = search?.trim() ?? '';
+    if (cleanSearch.isNotEmpty) {
+      final q = '%$cleanSearch%';
+      baseConditions.add('(c.name LIKE ? OR c.phone LIKE ?)');
+      baseArgs.addAll([q, q]);
+    }
+
+    final queryConditions = List<String>.from(baseConditions);
+    final queryArgs = List<dynamic>.from(baseArgs);
+    final useCursor = cursorName != null && cursorId != null;
+    if (useCursor) {
+      queryConditions.add(
+        '(c.name COLLATE NOCASE > ? COLLATE NOCASE OR (c.name COLLATE NOCASE = ? COLLATE NOCASE AND c.id > ?))',
+      );
+      queryArgs.addAll([cursorName, cursorName, cursorId]);
+    }
+
+    final whereClause =
+        queryConditions.isNotEmpty ? 'WHERE ${queryConditions.join(' AND ')}' : '';
+    final limitOffset = useCursor
+        ? 'LIMIT ${safePageSize + 1}'
+        : 'LIMIT ${safePageSize + 1} OFFSET ${(safePage - 1) * safePageSize}';
+
+    final rows = await db.rawQuery('''
+      SELECT c.*, cg.name AS customer_group_name
+      FROM contacts c
+      LEFT JOIN customer_groups cg ON cg.id = c.customer_group_id
+      $whereClause
+      ORDER BY c.name COLLATE NOCASE ASC, c.id ASC
+      $limitOffset
+    ''', queryArgs);
+
+    final hasMore = rows.length > safePageSize;
+    final items = rows.take(safePageSize).map(Contact.fromMap).toList();
+
+    int totalCount = 0;
+    if (includeTotalCount) {
+      final baseWhere =
+          baseConditions.isNotEmpty ? 'WHERE ${baseConditions.join(' AND ')}' : '';
+      final countRows = await db.rawQuery(
+        'SELECT COUNT(*) AS total FROM contacts c $baseWhere',
+        baseArgs,
+      );
+      totalCount = (countRows.first['total'] as int?) ?? 0;
+    }
+
+    return PagedResult<Contact>(
+      items: items,
+      totalCount: totalCount,
+      currentPage: safePage,
+      pageSize: safePageSize,
+      nextCursorId: items.isNotEmpty ? items.last.id : cursorId,
+      nextCursorSortValue: items.isNotEmpty ? items.last.name : cursorName,
+      hasMore: hasMore,
+    );
+  }
+
+  /// Computes contact summary totals for a contact type (`customer` or `supplier`).
+  Future<Map<String, num>> getContactSummaryStats({required String type}) async {
+    final rows = await db.rawQuery('''
+      SELECT
+        COUNT(*) AS total_count,
+        COALESCE(SUM(CASE WHEN balance > 0 THEN balance ELSE 0 END), 0.0) AS total_receivable,
+        COALESCE(SUM(CASE WHEN balance > 0 THEN 1 ELSE 0 END), 0) AS active_dues_count,
+        COALESCE(SUM(CASE WHEN credit_limit > 0 AND balance > credit_limit THEN 1 ELSE 0 END), 0) AS over_limit_count,
+        COALESCE(SUM(CASE WHEN balance <= 0 THEN 1 ELSE 0 END), 0) AS clear_count
+      FROM contacts
+      WHERE type = ?
+    ''', [type]);
+    final r = rows.first;
+    return {
+      'totalCount': (r['total_count'] as num?)?.toInt() ?? 0,
+      'totalReceivable': (r['total_receivable'] as num?)?.toDouble() ?? 0.0,
+      'activeDuesCount': (r['active_dues_count'] as num?)?.toInt() ?? 0,
+      'overLimitCount': (r['over_limit_count'] as num?)?.toInt() ?? 0,
+      'clearCount': (r['clear_count'] as num?)?.toInt() ?? 0,
+    };
   }
 
   @override

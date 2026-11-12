@@ -113,6 +113,53 @@ class DatabaseSchema {
         'phase4_printers_and_invoice_layouts',
       );
     }
+    if (fromVersion < 6 && toVersion >= 6) {
+      await _applyV6Phase5Migrations(db);
+      await _recordMigration(
+        db,
+        6,
+        'phase5_product_images_variations_and_pagination',
+      );
+    }
+  }
+
+  static Future<void> _applyV6Phase5Migrations(Database db) async {
+    await _addColumnIfMissing(db, 'products', 'category_id', 'INTEGER');
+    await _addColumnIfMissing(db, 'products', 'brand_id', 'INTEGER');
+    await _addColumnIfMissing(db, 'products', 'stock_quantity', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(db, 'products', 'image_color', 'TEXT');
+    await _addColumnIfMissing(db, 'products', 'image_path', 'TEXT');
+    await _addColumnIfMissing(db, 'variations', 'product_id', 'INTEGER');
+    await _addColumnIfMissing(db, 'variations', 'sub_sku', 'TEXT');
+    await _addColumnIfMissing(db, 'sale_items', 'variation_id', 'INTEGER');
+    await _addColumnIfMissing(db, 'sale_items', 'variation_name', 'TEXT');
+    await _addColumnIfMissing(db, 'sale_return_items', 'variation_id', 'INTEGER');
+    await _addColumnIfMissing(db, 'sale_return_items', 'variation_name', 'TEXT');
+
+    // Move legacy filesystem paths previously saved into image_color into image_path.
+    if (await _tableExists(db, 'products') &&
+        await _columnExists(db, 'products', 'image_color')) {
+      await db.execute('''
+        UPDATE products
+        SET image_path = image_color,
+            image_color = '#004EEB'
+        WHERE (image_path IS NULL OR TRIM(image_path) = '')
+          AND image_color IS NOT NULL
+          AND TRIM(image_color) != ''
+          AND TRIM(image_color) NOT LIKE '#%'
+      ''');
+    }
+
+    // Indexes for 50k+ cursor/paged catalog queries and fast variation lookups.
+    await _ensureIndex(db, 'idx_products_name_id', 'products', 'name COLLATE NOCASE, id');
+    await _ensureIndex(db, 'idx_products_cat_name', 'products', 'category_id, name COLLATE NOCASE, id');
+    await _ensureIndex(db, 'idx_products_brand_name', 'products', 'brand_id, name COLLATE NOCASE, id');
+    await _ensureIndex(db, 'idx_products_stock', 'products', 'stock_quantity');
+    await _ensureIndex(db, 'idx_variations_prod', 'variations', 'product_id, id');
+    await _ensureIndex(db, 'idx_variations_subsku', 'variations', 'sub_sku');
+    await _ensureIndex(db, 'idx_sales_status_id', 'sales', 'sale_status, id DESC');
+    await _ensureIndex(db, 'idx_purchases_id', 'purchases', 'id DESC');
+    await _ensureIndex(db, 'idx_contacts_type_name', 'contacts', 'type, name COLLATE NOCASE, id');
   }
 
   static Future<void> _applyV4Phase3Migrations(Database db) async {
@@ -1056,6 +1103,8 @@ class DatabaseSchema {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         return_id INTEGER NOT NULL,
         product_id INTEGER NOT NULL,
+        variation_id INTEGER,
+        variation_name TEXT,
         product_name TEXT NOT NULL,
         sku TEXT,
         batch_number TEXT,
@@ -1837,6 +1886,7 @@ class DatabaseSchema {
         stock_quantity REAL NOT NULL,
         alert_quantity REAL DEFAULT 5.0,
         image_color TEXT,
+        image_path TEXT,
         type TEXT DEFAULT 'single',
         barcode_type TEXT DEFAULT 'Code 128',
         warranty TEXT,
@@ -1903,6 +1953,8 @@ class DatabaseSchema {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sale_id INTEGER NOT NULL,
         product_id INTEGER,
+        variation_id INTEGER,
+        variation_name TEXT,
         product_name TEXT NOT NULL,
         sku TEXT,
         unit_price REAL NOT NULL,
@@ -2231,6 +2283,8 @@ class DatabaseSchema {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         return_id INTEGER NOT NULL,
         product_id INTEGER NOT NULL,
+        variation_id INTEGER,
+        variation_name TEXT,
         product_name TEXT NOT NULL,
         sku TEXT,
         batch_number TEXT,

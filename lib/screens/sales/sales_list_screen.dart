@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
@@ -5,6 +7,7 @@ import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/messaging_service.dart';
 import '../../services/pdf_export_service.dart';
+import '../../widgets/data_table_pagination_bar.dart';
 import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import '../pos/receipt_dialog.dart';
@@ -32,12 +35,15 @@ class _SalesListScreenState extends State<SalesListScreen> {
   bool _filtersOpen = false;
   String _search = '';
   bool _loading = true;
+  int _currentPage = 1;
   int _entriesPerPage = 25;
+  int _totalFilteredCount = 0;
   String _activeTab = 'final'; // 'final', 'draft', 'quotation'
   String _quotationFilter = 'all'; // 'all', 'pending', 'converted'
   int _finalCount = 0;
   int _draftCount = 0;
   int _quotationCount = 0;
+  Timer? _searchDebounce;
   final ScrollController _tableScrollController = ScrollController();
 
   @override
@@ -48,43 +54,47 @@ class _SalesListScreenState extends State<SalesListScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _tableScrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool refreshTabCounts = true}) async {
     final db = await DatabaseService.initialize();
-    final allSales = await db.getSales();
-    final finals = allSales.where((s) => s.saleStatus == 'final').toList();
-    final drafts = allSales.where((s) => s.saleStatus == 'draft').toList();
-    final quotes = allSales.where((s) => s.saleStatus == 'quotation').toList();
-
-    List<Sale> target;
-    if (_activeTab == 'draft') {
-      target = drafts;
-    } else if (_activeTab == 'quotation') {
-      if (_quotationFilter == 'pending') {
-        target = quotes.where((s) => !s.isConvertedQuotation).toList();
-      } else if (_quotationFilter == 'converted') {
-        target = quotes.where((s) => s.isConvertedQuotation).toList();
-      } else {
-        target = quotes;
-      }
-    } else {
-      target = finals;
+    var paged = await db.getSalesPaged(
+      status: _activeTab,
+      search: _search,
+      conversionFilter: _activeTab == 'quotation' ? _quotationFilter : 'all',
+      page: _currentPage,
+      pageSize: _entriesPerPage,
+    );
+    if (paged.items.isEmpty &&
+        paged.totalCount > 0 &&
+        _currentPage > paged.totalPages) {
+      _currentPage = paged.totalPages;
+      paged = await db.getSalesPaged(
+        status: _activeTab,
+        search: _search,
+        conversionFilter: _activeTab == 'quotation' ? _quotationFilter : 'all',
+        page: _currentPage,
+        pageSize: _entriesPerPage,
+      );
     }
 
-    if (_search.isNotEmpty) {
-      final q = _search.toLowerCase();
-      target = target.where((s) => s.invoiceNo.toLowerCase().contains(q) || s.customerName.toLowerCase().contains(q)).toList();
+    Map<String, int>? tabCounts;
+    if (refreshTabCounts) {
+      tabCounts = await db.getSalesTabCounts();
     }
 
     if (mounted) {
       setState(() {
-        _sales = target;
-        _finalCount = finals.length;
-        _draftCount = drafts.length;
-        _quotationCount = quotes.length;
+        _sales = paged.items;
+        _totalFilteredCount = paged.totalCount;
+        if (tabCounts != null) {
+          _finalCount = tabCounts['final'] ?? 0;
+          _draftCount = tabCounts['draft'] ?? 0;
+          _quotationCount = tabCounts['quotation'] ?? 0;
+        }
         _loading = false;
       });
     }
@@ -378,6 +388,9 @@ class _SalesListScreenState extends State<SalesListScreen> {
     final items = await db.getSaleItems(s.id!);
     final fullSale = Sale.fromMap(s.toMap(), items: items);
     final layout = await db.getDefaultInvoiceLayout();
+    final prodImages = await db.getProductImagePathsByIds(
+      items.map((i) => i.productId).whereType<int>(),
+    );
     final html = PrintService.generateQuotationHtml(
       settings: widget.settings,
       sale: fullSale,
@@ -396,6 +409,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
             settings: widget.settings,
             layout: layout,
             paperSizeOverride: paper,
+            productImagePathsById: prodImages,
           ),
         ),
       );
@@ -408,11 +422,15 @@ class _SalesListScreenState extends State<SalesListScreen> {
     final items = await db.getSaleItems(s.id!);
     final fullSale = Sale.fromMap(s.toMap(), items: items);
     final layout = await db.getDefaultInvoiceLayout();
+    final prodImages = await db.getProductImagePathsByIds(
+      items.map((i) => i.productId).whereType<int>(),
+    );
     final bytes = await PdfExportService.generateSalePdf(
       sale: fullSale,
       settings: widget.settings,
       layout: layout,
       paperSizeOverride: 'a4',
+      productImagePathsById: prodImages,
     );
     final prefix = s.isQuotation ? 'Quotation' : 'Invoice';
     if (email) {
@@ -647,24 +665,33 @@ class _SalesListScreenState extends State<SalesListScreen> {
                             label: const Text('All Quotations', style: TextStyle(fontSize: 11.5)),
                             selected: _quotationFilter == 'all',
                             onSelected: (_) {
-                              setState(() => _quotationFilter = 'all');
-                              _load();
+                              setState(() {
+                                _quotationFilter = 'all';
+                                _currentPage = 1;
+                              });
+                              _load(refreshTabCounts: false);
                             },
                           ),
                           ChoiceChip(
                             label: const Text('Pending Conversion', style: TextStyle(fontSize: 11.5)),
                             selected: _quotationFilter == 'pending',
                             onSelected: (_) {
-                              setState(() => _quotationFilter = 'pending');
-                              _load();
+                              setState(() {
+                                _quotationFilter = 'pending';
+                                _currentPage = 1;
+                              });
+                              _load(refreshTabCounts: false);
                             },
                           ),
                           ChoiceChip(
                             label: const Text('Converted to Invoice', style: TextStyle(fontSize: 11.5)),
                             selected: _quotationFilter == 'converted',
                             onSelected: (_) {
-                              setState(() => _quotationFilter = 'converted');
-                              _load();
+                              setState(() {
+                                _quotationFilter = 'converted';
+                                _currentPage = 1;
+                              });
+                              _load(refreshTabCounts: false);
                             },
                           ),
                         ],
@@ -695,7 +722,13 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                   DropdownMenuItem(value: 25, child: Text('25', style: TextStyle(fontSize: 12))),
                                   DropdownMenuItem(value: 50, child: Text('50', style: TextStyle(fontSize: 12))),
                                 ],
-                                onChanged: (val) => setState(() => _entriesPerPage = val ?? 25),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _entriesPerPage = val ?? 25;
+                                    _currentPage = 1;
+                                  });
+                                  _load(refreshTabCounts: false);
+                                },
                               ),
                             ),
                           ),
@@ -730,7 +763,16 @@ class _SalesListScreenState extends State<SalesListScreen> {
                           style: TextStyle(fontSize: 12, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                           onChanged: (val) {
                             _search = val;
-                            _load();
+                            _currentPage = 1;
+                            _searchDebounce?.cancel();
+                            if (Platform.environment.containsKey('FLUTTER_TEST')) {
+                              _load(refreshTabCounts: false);
+                            } else {
+                              _searchDebounce = Timer(
+                                const Duration(milliseconds: 220),
+                                () => _load(refreshTabCounts: false),
+                              );
+                            }
                           },
                           decoration: const InputDecoration(
                             hintText: 'Search sales, invoices, customers...',
@@ -1081,6 +1123,26 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                 );
                               },
                             ),
+                  if (!_loading && _sales.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    DataTablePaginationBar(
+                      currentPage: _currentPage,
+                      pageSize: _entriesPerPage,
+                      totalItems: _totalFilteredCount,
+                      pageSizeOptions: const [10, 25, 50],
+                      onPageChanged: (newPage) {
+                        setState(() => _currentPage = newPage);
+                        _load(refreshTabCounts: false);
+                      },
+                      onPageSizeChanged: (newSize) {
+                        setState(() {
+                          _entriesPerPage = newSize;
+                          _currentPage = 1;
+                        });
+                        _load(refreshTabCounts: false);
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1117,9 +1179,10 @@ class _SalesListScreenState extends State<SalesListScreen> {
       onTap: () {
         setState(() {
           _activeTab = tabKey;
+          _currentPage = 1;
           _loading = true;
         });
-        _load();
+        _load(refreshTabCounts: false);
       },
       borderRadius: BorderRadius.circular(8),
       child: Container(

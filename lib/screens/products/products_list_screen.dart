@@ -1,16 +1,16 @@
-import 'dart:io';
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
+import '../../widgets/product_thumbnail.dart';
 import 'add_product_dialog.dart';
 import 'product_detail_dialog.dart';
 import 'print_labels_screen.dart';
 import '../../services/print_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
-import '../purchases/add_purchase_dialog.dart';
 import '../purchases/add_purchase_screen.dart';
 
 class ProductsListScreen extends StatefulWidget {
@@ -32,7 +32,7 @@ class ProductsListScreen extends StatefulWidget {
 }
 
 class _ProductsListScreenState extends State<ProductsListScreen> {
-  List<Product> _allProducts = [];
+  List<Product> _products = [];
   List<Category> _categories = [];
   List<Brand> _brands = [];
 
@@ -40,13 +40,19 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   int? _selectedCategory;
   int? _selectedBrand;
   String _stockFilter = 'all'; // 'all', 'in_stock', 'low_stock', 'out_of_stock'
-  String _typeFilter = 'all'; // 'all', 'single', 'variable'
+  final String _typeFilter = 'all'; // 'all', 'single', 'variable'
   String _search = '';
   bool _loading = true;
 
-  // Pagination States
+  // Pagination & Server-Side Aggregate States
   int _currentPage = 1;
   int _pageSize = 10;
+  int _totalFiltered = 0;
+  int _totalCatalogCount = 0;
+  int _lowOrOutCount = 0;
+  double _totalUnitsCount = 0.0;
+  double _totalInventoryValue = 0.0;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -54,19 +60,61 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load({bool refreshMetadata = true}) async {
     final db = await DatabaseService.initialize();
-    final prods = await db.getProducts();
-    final cats = await db.getCategories();
-    final brs = await db.getBrands();
+    var paged = await db.getProductsPaged(
+      categoryId: _selectedCategory,
+      brandId: _selectedBrand,
+      search: _search,
+      stockFilter: _stockFilter,
+      productType: _typeFilter,
+      page: _currentPage,
+      pageSize: _pageSize,
+    );
+    if (paged.items.isEmpty &&
+        paged.totalCount > 0 &&
+        _currentPage > paged.totalPages) {
+      _currentPage = paged.totalPages;
+      paged = await db.getProductsPaged(
+        categoryId: _selectedCategory,
+        brandId: _selectedBrand,
+        search: _search,
+        stockFilter: _stockFilter,
+        productType: _typeFilter,
+        page: _currentPage,
+        pageSize: _pageSize,
+      );
+    }
 
     if (mounted) {
       setState(() {
-        _allProducts = prods;
-        _categories = cats;
-        _brands = brs;
+        _products = paged.items;
+        _totalFiltered = paged.totalCount;
         _loading = false;
       });
+    }
+
+    if (refreshMetadata || _categories.isEmpty) {
+      final cats = await db.getCategories();
+      final brs = await db.getBrands();
+      final stats = await db.getProductCatalogStats();
+      if (mounted) {
+        setState(() {
+          _categories = cats;
+          _brands = brs;
+          _totalCatalogCount = stats['totalCount']?.toInt() ?? 0;
+          _lowOrOutCount = (stats['lowStockCount']?.toInt() ?? 0) +
+              (stats['outOfStockCount']?.toInt() ?? 0);
+          _totalUnitsCount = stats['totalUnits']?.toDouble() ?? 0.0;
+          _totalInventoryValue = stats['sellingValue']?.toDouble() ?? 0.0;
+        });
+      }
     }
   }
 
@@ -426,8 +474,22 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     );
   }
 
-  void _printPriceList(List<Product> prods) {
-    final listToPrint = prods.isNotEmpty ? prods : _allProducts;
+  Future<void> _printPriceList(List<Product> prods) async {
+    List<Product> listToPrint = prods;
+    if (listToPrint.isEmpty) {
+      final db = await DatabaseService.initialize();
+      listToPrint = (await db.getProductsPaged(
+        categoryId: _selectedCategory,
+        brandId: _selectedBrand,
+        search: _search,
+        stockFilter: _stockFilter,
+        productType: _typeFilter,
+        page: 1,
+        pageSize: 500,
+      ))
+          .items;
+    }
+    if (!mounted) return;
     final html = PrintService.generatePriceListHtml(
       settings: widget.settings,
       products: listToPrint,
@@ -477,52 +539,18 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     }
   }
 
-  List<Product> _getFilteredProducts() {
-    return _allProducts.where((p) {
-      if (_selectedCategory != null && p.categoryId != _selectedCategory)
-        return false;
-      if (_selectedBrand != null && p.brandId != _selectedBrand) return false;
-
-      if (_typeFilter != 'all' && p.type != _typeFilter) return false;
-
-      if (_stockFilter == 'in_stock' && p.isOutOfStock) return false;
-      if (_stockFilter == 'low_stock' && !p.isLowStock) return false;
-      if (_stockFilter == 'out_of_stock' && !p.isOutOfStock) return false;
-
-      if (_search.isNotEmpty) {
-        final q = _search.toLowerCase();
-        final match = p.name.toLowerCase().contains(q) ||
-            p.sku.toLowerCase().contains(q) ||
-            p.barcode.toLowerCase().contains(q) ||
-            p.categoryName.toLowerCase().contains(q) ||
-            p.brandName.toLowerCase().contains(q);
-        if (!match) return false;
-      }
-
-      return true;
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currency = widget.settings.currencySymbol;
-    final filtered = _getFilteredProducts();
-    final totalFiltered = filtered.length;
+    final totalFiltered = _totalFiltered;
     final totalPages = max(1, (totalFiltered / _pageSize).ceil());
     final currentPage = _currentPage > totalPages ? totalPages : _currentPage;
-    final startIndex = (currentPage - 1) * _pageSize;
-    final endIndex = min(totalFiltered, startIndex + _pageSize);
-    final paginatedProducts = totalFiltered > 0
-        ? filtered.sublist(startIndex, endIndex)
-        : <Product>[];
+    final paginatedProducts = _products;
 
-    final totalInventoryValue = filtered.fold(
-        0.0, (sum, p) => sum + (p.sellingPrice * p.stockQuantity));
-    final totalUnitsCount =
-        filtered.fold(0.0, (sum, p) => sum + p.stockQuantity);
-    final lowStockCount =
-        _allProducts.where((p) => p.isLowStock || p.isOutOfStock).length;
+    final totalInventoryValue = _totalInventoryValue;
+    final totalUnitsCount = _totalUnitsCount;
+    final lowStockCount = _lowOrOutCount;
 
     return Scaffold(
       backgroundColor:
@@ -590,11 +618,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           icon: const Icon(Icons.qr_code_2_rounded, size: 18),
                           label: const Text('Print Labels'),
                           onPressed: () {
-                            final prod = filtered.isNotEmpty
-                                ? filtered.first
-                                : (_allProducts.isNotEmpty
-                                    ? _allProducts.first
-                                    : null);
+                            final prod = _products.isNotEmpty ? _products.first : null;
                             if (widget.onNavigateToPrintLabels != null) {
                               widget.onNavigateToPrintLabels!(prod);
                             } else {
@@ -621,7 +645,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         icon: const Icon(Icons.print_rounded, size: 18),
                         label: const Text('Print Price List',
                             style: TextStyle(fontWeight: FontWeight.bold)),
-                        onPressed: () => _printPriceList(filtered),
+                        onPressed: () => _printPriceList(paginatedProducts),
                       ),
                       if (_canQuickStockIn)
                         ElevatedButton.icon(
@@ -682,7 +706,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 Expanded(
                   child: _metricCard(
                       'Total Products',
-                      '${_allProducts.length} SKUs',
+                      '$_totalCatalogCount SKUs',
                       Icons.inventory_2_outlined,
                       const Color(0xFF4F46E5),
                       isDark
@@ -761,10 +785,17 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               color: isDark
                                   ? Colors.white
                                   : const Color(0xFF0F172A)),
-                          onChanged: (val) => setState(() {
-                            _search = val.trim();
-                            _currentPage = 1;
-                          }),
+                          onChanged: (val) {
+                            setState(() {
+                              _search = val.trim();
+                              _currentPage = 1;
+                            });
+                            _searchDebounce?.cancel();
+                            _searchDebounce = Timer(
+                              const Duration(milliseconds: 220),
+                              () => _load(refreshMetadata: false),
+                            );
+                          },
                           decoration: InputDecoration(
                             hintText: 'Search product name, SKU, or barcode...',
                             hintStyle: TextStyle(
@@ -830,10 +861,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                             ? Colors.white
                                             : const Color(0xFF0F172A))))),
                           ],
-                          onChanged: (val) => setState(() {
-                            _selectedCategory = val;
-                            _currentPage = 1;
-                          }),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedCategory = val;
+                              _currentPage = 1;
+                            });
+                            _load(refreshMetadata: false);
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -868,10 +902,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                             ? Colors.white
                                             : const Color(0xFF0F172A))))),
                           ],
-                          onChanged: (val) => setState(() {
-                            _selectedBrand = val;
-                            _currentPage = 1;
-                          }),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedBrand = val;
+                              _currentPage = 1;
+                            });
+                            _load(refreshMetadata: false);
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -926,6 +963,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                 _stockFilter = val;
                                 _currentPage = 1;
                               });
+                              _load(refreshMetadata: false);
                             }
                           },
                         ),
@@ -951,6 +989,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                               _search = '';
                               _currentPage = 1;
                             });
+                            _load(refreshMetadata: false);
                           },
                         ),
                     ],
@@ -966,7 +1005,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   child: Padding(
                       padding: EdgeInsets.all(40),
                       child: CircularProgressIndicator()))
-            else if (filtered.isEmpty)
+            else if (paginatedProducts.isEmpty)
               Container(
                 padding: const EdgeInsets.all(40),
                 width: double.infinity,
@@ -1077,35 +1116,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                               horizontal: 16, vertical: 12),
                                           child: Row(
                                             children: [
-                                              Container(
-                                                width: 36,
-                                                height: 36,
-                                                decoration: BoxDecoration(
-                                                  color: isDark
-                                                      ? const Color(0xFF312E81)
-                                                          .withValues(
-                                                              alpha: 0.4)
-                                                      : const Color(0xFFEEF2FF),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                child: (p.imageColor != null &&
-                                                        File(p.imageColor!)
-                                                            .existsSync())
-                                                    ? ClipRRect(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(8),
-                                                        child: Image.file(
-                                                            File(p.imageColor!),
-                                                            fit: BoxFit.cover),
-                                                      )
-                                                    : const Icon(
-                                                        Icons
-                                                            .shopping_bag_outlined,
-                                                        color:
-                                                            Color(0xFF818CF8),
-                                                        size: 18),
+                                              ProductThumbnail(
+                                                imagePath: p.resolvedImagePath,
+                                                imageColor: p.imageColor,
+                                                size: 38,
+                                                borderRadius: 8,
+                                                fallbackIcon: Icons.shopping_bag_outlined,
                                               ),
                                               const SizedBox(width: 10),
                                               Expanded(
@@ -1637,12 +1653,17 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       currentPage: currentPage,
                       pageSize: _pageSize,
                       totalItems: totalFiltered,
-                      onPageChanged: (newPage) =>
-                          setState(() => _currentPage = newPage),
-                      onPageSizeChanged: (newSize) => setState(() {
-                        _pageSize = newSize;
-                        _currentPage = 1;
-                      }),
+                      onPageChanged: (newPage) {
+                        setState(() => _currentPage = newPage);
+                        _load(refreshMetadata: false);
+                      },
+                      onPageSizeChanged: (newSize) {
+                        setState(() {
+                          _pageSize = newSize;
+                          _currentPage = 1;
+                        });
+                        _load(refreshMetadata: false);
+                      },
                     ),
                   ],
                 ),

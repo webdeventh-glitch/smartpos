@@ -4,6 +4,8 @@ import 'sale_item.dart';
 /// Single item in POS Cart / Sale Invoice
 class CartItem {
   final Product product;
+  final int? variationId;
+  final String? variationName;
   double quantity;
   double unitPrice;
   double discount; // amount in currency
@@ -21,6 +23,9 @@ class CartItem {
 
   CartItem({
     required this.product,
+    this.variationId,
+    this.variationName,
+    double? basePrice,
     this.quantity = 1.0,
     required this.unitPrice,
     this.discount = 0.0,
@@ -34,7 +39,7 @@ class CartItem {
     double? discountValue,
     this.taxAmount = 0.0,
     this.taxName,
-  })  : basePrice = product.sellingPrice,
+  })  : basePrice = basePrice ?? product.sellingPrice,
         discountType = discountType ?? (packDiscount > 0 ? 'percentage' : 'fixed'),
         discountValue =
             discountValue ?? (packDiscount > 0 ? packDiscount : discount) {
@@ -67,6 +72,11 @@ class CartItem {
     unitPrice = basePrice * unitMultiplier;
   }
 
+  String get displayName =>
+      (variationName != null && variationName!.trim().isNotEmpty)
+          ? '${product.name} ($variationName)'
+          : product.name;
+
   double get subtotal => (packValue - calculatedDiscount).clamp(0.0, double.infinity);
 
   double get packValue => unitPrice * quantity;
@@ -85,6 +95,8 @@ class CartItem {
   Map<String, dynamic> toMap(int saleId) => {
         'sale_id': saleId,
         'product_id': product.id,
+        'variation_id': variationId,
+        'variation_name': variationName ?? '',
         'product_name': product.name,
         'sku': product.sku,
         'unit_price': unitPrice,
@@ -105,6 +117,9 @@ class CartItem {
 
   Map<String, dynamic> toSavedStateMap() => {
         'product': product.toMap(),
+        'variation_id': variationId,
+        'variation_name': variationName ?? '',
+        'base_price': basePrice,
         'quantity': quantity,
         'unit_price': unitPrice,
         'discount': discount,
@@ -122,6 +137,11 @@ class CartItem {
 
   factory CartItem.fromSavedStateMap(Map<String, dynamic> map) => CartItem(
         product: Product.fromMap(map['product'] as Map<String, dynamic>),
+        variationId: map['variation_id'] as int?,
+        variationName: (map['variation_name'] as String?)?.isNotEmpty == true
+            ? map['variation_name'] as String
+            : null,
+        basePrice: (map['base_price'] as num?)?.toDouble(),
         quantity: (map['quantity'] as num).toDouble(),
         unitPrice: (map['unit_price'] as num).toDouble(),
         discount: (map['discount'] as num?)?.toDouble() ?? 0.0,
@@ -139,6 +159,9 @@ class CartItem {
 
   CartItem clone() => CartItem(
         product: product,
+        variationId: variationId,
+        variationName: variationName,
+        basePrice: basePrice,
         quantity: quantity,
         unitPrice: unitPrice,
         discount: discount,
@@ -170,6 +193,9 @@ class CartItem {
         );
     return CartItem(
       product: prod,
+      variationId: item.variationId,
+      variationName: item.variationName,
+      basePrice: item.unitPrice,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       discount: item.discountType == 'fixed' ? item.discount : 0.0,

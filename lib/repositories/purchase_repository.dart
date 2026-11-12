@@ -6,6 +6,15 @@ abstract class IPurchaseRepository {
   Future<int> createPurchase(
       {required Purchase purchase, required List<Map<String, dynamic>> items});
   Future<List<Purchase>> getPurchases();
+  Future<PagedResult<Purchase>> getPurchasesPaged({
+    String? status,
+    String? paymentStatus,
+    String? search,
+    int page = 1,
+    int pageSize = 25,
+    int? cursorId,
+    bool includeTotalCount = true,
+  });
   Future<void> settlePurchasePayment({
     required int purchaseId,
     required double amountPaid,
@@ -105,6 +114,7 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
 
       for (var item in items) {
         final productId = item['product_id'] as int?;
+        final variationId = item['variation_id'] as int?;
         final qty = (item['quantity'] as num).toDouble();
         final unitCost = (item['purchase_price'] as num?)?.toDouble() ??
             (item['unit_cost'] as num?)?.toDouble();
@@ -117,23 +127,37 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
 
         if (productId != null) {
           if (isReceived) {
-            // Increment physical stock quantity only if goods are received
-            if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
-              await txn.rawUpdate(
-                'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ?, selling_price = ? WHERE id = ?',
-                [qty, unitCost, sellingPrice, productId],
-              );
-            } else if (unitCost != null) {
-              await txn.rawUpdate(
-                'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ? WHERE id = ?',
-                [qty, unitCost, productId],
-              );
+            if (variationId != null) {
+              if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+                await txn.rawUpdate(
+                  'UPDATE variations SET purchase_price = ?, selling_price = ? WHERE id = ?',
+                  [unitCost, sellingPrice, variationId],
+                );
+              } else if (unitCost != null) {
+                await txn.rawUpdate(
+                  'UPDATE variations SET purchase_price = ? WHERE id = ?',
+                  [unitCost, variationId],
+                );
+              }
             } else {
-              await txn.rawUpdate(
-                'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
-                [qty, productId],
-              );
+              if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+                await txn.rawUpdate(
+                  'UPDATE products SET purchase_price = ?, selling_price = ? WHERE id = ?',
+                  [unitCost, sellingPrice, productId],
+                );
+              } else if (unitCost != null) {
+                await txn.rawUpdate(
+                  'UPDATE products SET purchase_price = ? WHERE id = ?',
+                  [unitCost, productId],
+                );
+              }
             }
+            await adjustProductAndVariationStock(
+              txn,
+              productId: productId,
+              variationId: variationId,
+              delta: qty,
+            );
 
             // If expiry date or batch is provided, update product metadata
             if (expDate != null && expDate.isNotEmpty) {
@@ -250,6 +274,7 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
       if (oldStatus != 'received' && newStatus == 'received') {
         for (final item in items) {
           final productId = item['product_id'] as int?;
+          final variationId = item['variation_id'] as int?;
           final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
           final unitCost = (item['purchase_price'] as num?)?.toDouble() ??
               (item['unit_cost'] as num?)?.toDouble();
@@ -260,22 +285,37 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
               (item['expiry_date'] ?? item['exp_date'])?.toString().trim();
 
           if (productId != null) {
-            if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
-              await txn.rawUpdate(
-                'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ?, selling_price = ? WHERE id = ?',
-                [qty, unitCost, sellingPrice, productId],
-              );
-            } else if (unitCost != null) {
-              await txn.rawUpdate(
-                'UPDATE products SET stock_quantity = stock_quantity + ?, purchase_price = ? WHERE id = ?',
-                [qty, unitCost, productId],
-              );
+            if (variationId != null) {
+              if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+                await txn.rawUpdate(
+                  'UPDATE variations SET purchase_price = ?, selling_price = ? WHERE id = ?',
+                  [unitCost, sellingPrice, variationId],
+                );
+              } else if (unitCost != null) {
+                await txn.rawUpdate(
+                  'UPDATE variations SET purchase_price = ? WHERE id = ?',
+                  [unitCost, variationId],
+                );
+              }
             } else {
-              await txn.rawUpdate(
-                'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
-                [qty, productId],
-              );
+              if (unitCost != null && sellingPrice != null && sellingPrice > 0) {
+                await txn.rawUpdate(
+                  'UPDATE products SET purchase_price = ?, selling_price = ? WHERE id = ?',
+                  [unitCost, sellingPrice, productId],
+                );
+              } else if (unitCost != null) {
+                await txn.rawUpdate(
+                  'UPDATE products SET purchase_price = ? WHERE id = ?',
+                  [unitCost, productId],
+                );
+              }
             }
+            await adjustProductAndVariationStock(
+              txn,
+              productId: productId,
+              variationId: variationId,
+              delta: qty,
+            );
 
             if (expDate != null && expDate.isNotEmpty) {
               await txn.rawUpdate(
@@ -304,11 +344,15 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
       else if (oldStatus == 'received' && newStatus != 'received') {
         for (final item in items) {
           final productId = item['product_id'] as int?;
+          final variationId = item['variation_id'] as int?;
           final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
           if (productId != null) {
-            await txn.rawUpdate(
-              'UPDATE products SET stock_quantity = MAX(0, stock_quantity - ?) WHERE id = ?',
-              [qty, productId],
+            await adjustProductAndVariationStock(
+              txn,
+              productId: productId,
+              variationId: variationId,
+              delta: -qty,
+              clampAtZero: true,
             );
           }
         }
@@ -373,11 +417,15 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
       if (wasReceived) {
         for (final item in purchase.getItems()) {
           final productId = item['product_id'] as int?;
+          final variationId = item['variation_id'] as int?;
           final qty = (item['quantity'] as num?)?.toDouble() ?? 1.0;
           if (productId != null) {
-            await txn.rawUpdate(
-              'UPDATE products SET stock_quantity = MAX(0, stock_quantity - ?) WHERE id = ?',
-              [qty, productId],
+            await adjustProductAndVariationStock(
+              txn,
+              productId: productId,
+              variationId: variationId,
+              delta: -qty,
+              clampAtZero: true,
             );
           }
         }
@@ -445,6 +493,99 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
   Future<List<Purchase>> getPurchases() async {
     final rows = await db.query('purchases', orderBy: 'id DESC');
     return rows.map((e) => Purchase.fromMap(e)).toList();
+  }
+
+  @override
+  Future<PagedResult<Purchase>> getPurchasesPaged({
+    String? status,
+    String? paymentStatus,
+    String? search,
+    int page = 1,
+    int pageSize = 25,
+    int? cursorId,
+    bool includeTotalCount = true,
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final safePageSize = pageSize < 1 ? 25 : pageSize;
+    final baseConditions = <String>[];
+    final baseArgs = <dynamic>[];
+
+    if (status != null && status.isNotEmpty && status != 'all') {
+      baseConditions.add('status = ?');
+      baseArgs.add(status);
+    }
+    if (paymentStatus != null && paymentStatus.isNotEmpty && paymentStatus != 'all') {
+      baseConditions.add('payment_status = ?');
+      baseArgs.add(paymentStatus);
+    }
+    final cleanSearch = search?.trim() ?? '';
+    if (cleanSearch.isNotEmpty) {
+      final q = '%$cleanSearch%';
+      baseConditions.add('(ref_no LIKE ? OR supplier_name LIKE ?)');
+      baseArgs.addAll([q, q]);
+    }
+
+    final queryConditions = List<String>.from(baseConditions);
+    final queryArgs = List<dynamic>.from(baseArgs);
+    if (cursorId != null) {
+      queryConditions.add('id < ?');
+      queryArgs.add(cursorId);
+    }
+
+    final rows = await db.query(
+      'purchases',
+      where: queryConditions.isNotEmpty ? queryConditions.join(' AND ') : null,
+      whereArgs: queryArgs.isNotEmpty ? queryArgs : null,
+      orderBy: 'id DESC',
+      limit: safePageSize + 1,
+      offset: cursorId != null ? null : (safePage - 1) * safePageSize,
+    );
+
+    final hasMore = rows.length > safePageSize;
+    final items = rows.take(safePageSize).map(Purchase.fromMap).toList();
+
+    int totalCount = 0;
+    if (includeTotalCount) {
+      final baseWhere =
+          baseConditions.isNotEmpty ? 'WHERE ${baseConditions.join(' AND ')}' : '';
+      final countRows = await db.rawQuery(
+        'SELECT COUNT(*) AS total FROM purchases $baseWhere',
+        baseArgs,
+      );
+      totalCount = (countRows.first['total'] as int?) ?? 0;
+    }
+
+    return PagedResult<Purchase>(
+      items: items,
+      totalCount: totalCount,
+      currentPage: safePage,
+      pageSize: safePageSize,
+      nextCursorId: items.isNotEmpty ? items.last.id : cursorId,
+      hasMore: hasMore,
+    );
+  }
+
+  /// Computes purchase summary metrics and tab counts in a single SQL query.
+  Future<Map<String, num>> getPurchaseSummaryStats() async {
+    final rows = await db.rawQuery('''
+      SELECT
+        COUNT(*) AS total_count,
+        COALESCE(SUM(total_amount), 0.0) AS total_amount,
+        COALESCE(SUM(CASE WHEN total_amount - paid_amount > 0 THEN total_amount - paid_amount ELSE 0 END), 0.0) AS total_due,
+        COALESCE(SUM(CASE WHEN status = 'received' THEN 1 ELSE 0 END), 0) AS received_count,
+        COALESCE(SUM(CASE WHEN status = 'ordered' THEN 1 ELSE 0 END), 0) AS ordered_count,
+        COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_count
+      FROM purchases
+    ''');
+    final r = rows.first;
+    return {
+      'totalCount': (r['total_count'] as num?)?.toInt() ?? 0,
+      'totalAmount': (r['total_amount'] as num?)?.toDouble() ?? 0.0,
+      'totalDue': (r['total_due'] as num?)?.toDouble() ?? 0.0,
+      'receivedCount': (r['received_count'] as num?)?.toInt() ?? 0,
+      'orderedCount': (r['ordered_count'] as num?)?.toInt() ?? 0,
+      'pendingCount': (r['pending_count'] as num?)?.toInt() ?? 0,
+    };
   }
 
   // Stock Transfers

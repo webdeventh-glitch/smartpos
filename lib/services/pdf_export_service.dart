@@ -301,7 +301,7 @@ class PdfExportService {
                       : pw.Text('-', style: pw.TextStyle(fontSize: baseFont - 1)),
                 ),
               cell(
-                it.productName +
+                it.displayName +
                     (activeLayout.showBrand ? '' : ''),
                 bold: true,
               ),

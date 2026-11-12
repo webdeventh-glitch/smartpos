@@ -25,6 +25,7 @@ dependencies:
   flutter_riverpod: ^3.5.0
   pdf: ^3.13.1
   esc_pos_utils_plus: ^2.0.4
+  image: ^4.12.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

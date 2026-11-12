@@ -71,7 +71,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         final item = widget.sale.items![i];
         final qtyStr = item.quantity.toStringAsFixed(item.quantity % 1 == 0 ? 0 : 2);
         final unitStr = (item.unitName != null && item.unitName!.isNotEmpty) ? ' ${item.unitName}' : '';
-        buffer.writeln('${i + 1}. *${item.productName}*');
+        buffer.writeln('${i + 1}. *${item.displayName}*');
         buffer.writeln('    $qtyStr$unitStr x $currency${item.unitPrice.toStringAsFixed(2)} = *$currency${item.subtotal.toStringAsFixed(2)}*');
         if (item.resolvedDiscountAmount > 0) {
           buffer.writeln('    Disc: ${item.formatDiscountTag(currency)}');
@@ -333,7 +333,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
       buffer.writeln('------------------------------------------------------------------------');
       if (widget.sale.items != null) {
         for (final item in widget.sale.items!) {
-          final name = item.productName.length > 20 ? item.productName.substring(0, 20) : item.productName.padRight(20);
+          final name = item.displayName.length > 20 ? item.displayName.substring(0, 20) : item.displayName.padRight(20);
           final batch = (item.batchNumber ?? '-').padRight(8);
           final exp = (item.expiryDate ?? '-').padRight(10);
           final qty = item.quantity.toStringAsFixed(0).padLeft(3);
@@ -357,7 +357,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
       buffer.writeln('------------------------------------------------------------------------');
       if (widget.sale.items != null) {
         for (final item in widget.sale.items!) {
-          final name = item.productName.length > 35 ? item.productName.substring(0, 35) : item.productName.padRight(35);
+          final name = item.displayName.length > 35 ? item.displayName.substring(0, 35) : item.displayName.padRight(35);
           final qty = item.quantity.toStringAsFixed(0).padLeft(5);
           final rate = item.unitPrice.toStringAsFixed(2).padLeft(13);
           final disc = (item.resolvedDiscountAmount > 0
@@ -645,6 +645,11 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         final messenger = ScaffoldMessenger.of(context);
                         final db = await DatabaseService.initialize();
                         final layout = await db.getDefaultInvoiceLayout();
+                        final prodImages = await db.getProductImagePathsByIds(
+                          (widget.sale.items ?? const <SaleItem>[])
+                              .map((i) => i.productId)
+                              .whereType<int>(),
+                        );
                         final paperOverride = _paperSize.contains('58')
                             ? '58mm'
                             : (_paperSize.contains('80') ? '80mm' : 'a4');
@@ -654,6 +659,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                           layout: layout,
                           paperSizeOverride: paperOverride,
                           customerPreviousBalance: widget.customerPreviousBalance,
+                          productImagePathsById: prodImages,
                         );
                         final file = await PdfExportService.savePdfFile(
                           bytes,
@@ -676,6 +682,11 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         final messenger = ScaffoldMessenger.of(context);
                         final db = await DatabaseService.initialize();
                         final layout = await db.getDefaultInvoiceLayout();
+                        final prodImages = await db.getProductImagePathsByIds(
+                          (widget.sale.items ?? const <SaleItem>[])
+                              .map((i) => i.productId)
+                              .whereType<int>(),
+                        );
                         String recipientEmail = '';
                         if (widget.sale.customerId != null) {
                           final cust = await db.getContactById(widget.sale.customerId!);
@@ -687,6 +698,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                           layout: layout,
                           paperSizeOverride: 'a4',
                           customerPreviousBalance: widget.customerPreviousBalance,
+                          productImagePathsById: prodImages,
                         );
                         final savedFile = await PdfExportService.emailPdfInvoice(
                           bytes: bytes,
@@ -867,7 +879,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
               final packVal = it.unitPrice * it.quantity;
               return TableRow(
                 children: [
-                  _td(it.productName, align: TextAlign.left, isBold: true),
+                  _td(it.displayName, align: TextAlign.left, isBold: true),
                   _td(it.batchNumber ?? '02260'),
                   _td(it.expiryDate ?? '12-2028', color: const Color(0xFFD97706)),
                   _td('${it.quantity.toInt()}'),
@@ -1193,7 +1205,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     children: [
                       Expanded(
                         child: Text(
-                          item.productName,
+                          item.displayName,
                           style: TextStyle(fontSize: is58mm ? 11 : 12, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
                         ),
                       ),

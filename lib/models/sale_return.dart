@@ -84,6 +84,8 @@ class SaleReturnItem {
   final int? id;
   final int returnId;
   final int productId;
+  final int? variationId;
+  final String? variationName;
   final String productName;
   final String sku;
   final String batchNumber;
@@ -95,6 +97,8 @@ class SaleReturnItem {
     this.id,
     required this.returnId,
     required this.productId,
+    this.variationId,
+    this.variationName,
     required this.productName,
     this.sku = '',
     this.batchNumber = '',
@@ -107,6 +111,9 @@ class SaleReturnItem {
         if (id != null) 'id': id,
         'return_id': returnId,
         'product_id': productId,
+        if (variationId != null) 'variation_id': variationId,
+        if (variationName != null && variationName!.isNotEmpty)
+          'variation_name': variationName,
         'product_name': productName,
         'sku': sku,
         'batch_number': batchNumber,
@@ -119,6 +126,10 @@ class SaleReturnItem {
         id: map['id'] as int?,
         returnId: map['return_id'] as int? ?? 0,
         productId: map['product_id'] as int? ?? 0,
+        variationId: map['variation_id'] as int?,
+        variationName: (map['variation_name'] as String?)?.isNotEmpty == true
+            ? map['variation_name'] as String
+            : null,
         productName: map['product_name'] as String? ?? '',
         sku: map['sku'] as String? ?? '',
         batchNumber: map['batch_number'] as String? ?? '',

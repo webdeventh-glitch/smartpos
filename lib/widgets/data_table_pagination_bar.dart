@@ -145,32 +145,35 @@ class DataTablePaginationBar extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          width: 32,
-          height: 32,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: enabled
-                ? (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9))
-                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
               color: enabled
-                  ? (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1))
-                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+                  ? (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9))
+                  : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: enabled
+                    ? (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1))
+                    : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+              ),
             ),
-          ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: enabled
-                ? (isDark ? Colors.white : const Color(0xFF334155))
-                : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
+            child: Icon(
+              icon,
+              size: 18,
+              color: enabled
+                  ? (isDark ? Colors.white : const Color(0xFF334155))
+                  : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
+            ),
           ),
         ),
       ),

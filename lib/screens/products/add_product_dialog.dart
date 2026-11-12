@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/regional_data_service.dart';
+import '../../widgets/product_thumbnail.dart';
 
 class AddProductDialog extends StatefulWidget {
   final Product? productToEdit;
@@ -37,11 +39,14 @@ class _AddProductDialogState extends State<AddProductDialog> {
   BusinessSettings? _settings;
   bool _loading = true;
   bool _isSaving = false;
+  bool _isPickingImage = false;
+  String? _pickedImagePath;
 
   @override
   void initState() {
     super.initState();
     final p = widget.productToEdit;
+    _pickedImagePath = p?.resolvedImagePath;
     _nameController = TextEditingController(text: p?.name ?? '');
     _skuController = TextEditingController(text: p?.sku ?? '');
     _barcodeController = TextEditingController(text: p?.barcode ?? '');
@@ -180,7 +185,10 @@ class _AddProductDialogState extends State<AddProductDialog> {
         sellingPrice: double.tryParse(_sellingPriceController.text.trim()) ?? 0.0,
         stockQuantity: double.tryParse(_stockController.text.trim()) ?? 0.0,
         alertQuantity: double.tryParse(_alertController.text.trim()) ?? 5.0,
-        imageColor: widget.productToEdit?.imageColor ?? '#004EEB',
+        imageColor: (widget.productToEdit?.imageColor?.startsWith('#') ?? false)
+            ? widget.productToEdit!.imageColor
+            : '#004EEB',
+        imagePath: _pickedImagePath,
         batchNumber: _batchController.text.trim().isNotEmpty ? _batchController.text.trim() : null,
         expiryDate: _expiryController.text.trim().isNotEmpty ? _expiryController.text.trim() : null,
         bonusQty: double.tryParse(_bonusController.text.trim()) ?? 0.0,
@@ -223,6 +231,21 @@ class _AddProductDialogState extends State<AddProductDialog> {
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _pickProductImage() async {
+    if (_isPickingImage) return;
+    setState(() => _isPickingImage = true);
+    try {
+      final picked = await NativeFileHelper.pickProductImage(
+        existingImagePath: _pickedImagePath,
+      );
+      if (picked != null && mounted) {
+        setState(() => _pickedImagePath = picked);
+      }
+    } finally {
+      if (mounted) setState(() => _isPickingImage = false);
     }
   }
 
@@ -555,7 +578,42 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           ],
                         ),
                       ],
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
+
+                      // Product Image Upload & Preview
+                      Row(
+                        children: [
+                          ProductThumbnail(
+                            imagePath: _pickedImagePath,
+                            imageColor: widget.productToEdit?.imageColor ?? '#004EEB',
+                            size: 48,
+                            borderRadius: 8,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _isPickingImage ? null : _pickProductImage,
+                              icon: const Icon(Icons.image_outlined, size: 18),
+                              label: Text(
+                                _isPickingImage
+                                    ? 'Processing Image...'
+                                    : (_pickedImagePath != null
+                                        ? 'Change Product Image'
+                                        : 'Select Product Image (Compressed)'),
+                              ),
+                            ),
+                          ),
+                          if (_pickedImagePath != null) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              tooltip: 'Remove Image',
+                              onPressed: () => setState(() => _pickedImagePath = null),
+                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 20),
 
                       // Save buttons
                       Row(
