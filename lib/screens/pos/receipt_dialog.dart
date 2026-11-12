@@ -38,7 +38,10 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
   void initState() {
     super.initState();
     final name = widget.sale.customerName.toLowerCase().trim();
-    final isWalkIn = name.contains('walk-in') || name.contains('walk in') || name == 'cash customer' || name.contains('walkin');
+    final isWalkIn = name.contains('walk-in') ||
+        name.contains('walk in') ||
+        name == 'cash customer' ||
+        name.contains('walkin');
     // Retail counter walk-in defaults to 80mm POS slip; Registered account holder defaults to A4 Agency invoice
     _paperSize = isWalkIn ? '80mm POS' : 'A4 Agency';
   }
@@ -58,7 +61,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
     buffer.writeln('========================================');
     buffer.writeln('*${widget.settings.businessName.toUpperCase()}*');
     buffer.writeln('Branch: ${widget.settings.branchName}');
-    if (widget.settings.phone.isNotEmpty) buffer.writeln('Tel: ${widget.settings.phone}');
+    if (widget.settings.phone.isNotEmpty)
+      buffer.writeln('Tel: ${widget.settings.phone}');
     buffer.writeln('========================================');
     buffer.writeln('*INVOICE:* ${widget.sale.invoiceNo}');
     buffer.writeln('Date: ${widget.sale.createdAt}');
@@ -69,30 +73,41 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
     if (widget.sale.items != null) {
       for (int i = 0; i < widget.sale.items!.length; i++) {
         final item = widget.sale.items![i];
-        final qtyStr = item.quantity.toStringAsFixed(item.quantity % 1 == 0 ? 0 : 2);
-        final unitStr = (item.unitName != null && item.unitName!.isNotEmpty) ? ' ${item.unitName}' : '';
+        final qtyStr =
+            item.quantity.toStringAsFixed(item.quantity % 1 == 0 ? 0 : 2);
+        final unitStr = (item.unitName != null && item.unitName!.isNotEmpty)
+            ? ' ${item.unitName}'
+            : '';
         buffer.writeln('${i + 1}. *${item.displayName}*');
-        buffer.writeln('    $qtyStr$unitStr x $currency${item.unitPrice.toStringAsFixed(2)} = *$currency${item.subtotal.toStringAsFixed(2)}*');
+        buffer.writeln(
+            '    $qtyStr$unitStr x $currency${item.unitPrice.toStringAsFixed(2)} = *$currency${item.subtotal.toStringAsFixed(2)}*');
         if (item.resolvedDiscountAmount > 0) {
           buffer.writeln('    Disc: ${item.formatDiscountTag(currency)}');
         }
       }
     }
     buffer.writeln('----------------------------------------');
-    buffer.writeln('Subtotal: $currency${widget.sale.subtotal.toStringAsFixed(2)}');
+    buffer.writeln(
+        'Subtotal: $currency${widget.sale.subtotal.toStringAsFixed(2)}');
     if (widget.sale.discount > 0) {
-      buffer.writeln('Discount: -$currency${widget.sale.discount.toStringAsFixed(2)}');
+      buffer.writeln(
+          'Discount: -$currency${widget.sale.discount.toStringAsFixed(2)}');
     }
     if (widget.sale.taxAmount > 0) {
-      buffer.writeln('Tax: +$currency${widget.sale.taxAmount.toStringAsFixed(2)}');
+      buffer.writeln(
+          'Tax: +$currency${widget.sale.taxAmount.toStringAsFixed(2)}');
       for (final entry in widget.sale.taxBreakdownMap.entries) {
-        buffer.writeln('  • ${entry.key}: +$currency${entry.value.toStringAsFixed(2)}');
+        buffer.writeln(
+            '  • ${entry.key}: +$currency${entry.value.toStringAsFixed(2)}');
       }
     }
-    buffer.writeln('*TOTAL PAYABLE: $currency${widget.sale.totalAmount.toStringAsFixed(2)}*');
-    buffer.writeln('Amount Paid: $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
+    buffer.writeln(
+        '*TOTAL PAYABLE: $currency${widget.sale.totalAmount.toStringAsFixed(2)}*');
+    buffer.writeln(
+        'Amount Paid: $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
     if (widget.sale.dueAmount > 0) {
-      buffer.writeln('*Balance Due: $currency${widget.sale.dueAmount.toStringAsFixed(2)}*');
+      buffer.writeln(
+          '*Balance Due: $currency${widget.sale.dueAmount.toStringAsFixed(2)}*');
     }
     buffer.writeln('========================================');
     buffer.writeln('Thank you for your business.');
@@ -111,7 +126,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         builder: (ctx, setDlgState) {
           return Dialog(
             backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Container(
               width: 480,
               padding: const EdgeInsets.all(22),
@@ -128,10 +144,12 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF25D366).withValues(alpha: 0.15),
+                                color: const Color(0xFF25D366)
+                                    .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const FaIcon(FontAwesomeIcons.whatsapp, color: Color(0xFF25D366), size: 22),
+                              child: const FaIcon(FontAwesomeIcons.whatsapp,
+                                  color: Color(0xFF25D366), size: 22),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -143,7 +161,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
-                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF0F172A),
                                     ),
                                   ),
                                   Text(
@@ -152,7 +172,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF64748B),
                                     ),
                                   ),
                                 ],
@@ -168,13 +190,14 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
                   Text(
                     'Customer WhatsApp Number *',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                      color: isDark
+                          ? const Color(0xFFCBD5E1)
+                          : const Color(0xFF334155),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -189,26 +212,38 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     ),
                     decoration: InputDecoration(
                       hintText: 'e.g. 03001234567 or 923001234567',
-                      hintStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
-                      prefixIcon: const Icon(Icons.phone_iphone_rounded, size: 18, color: Color(0xFF25D366)),
+                      hintStyle: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? const Color(0xFF64748B)
+                              : const Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(Icons.phone_iphone_rounded,
+                          size: 18, color: Color(0xFF25D366)),
                       isDense: true,
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      fillColor: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFCBD5E1)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
-
                   Text(
                     'Message Preview',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                      color: isDark
+                          ? const Color(0xFFCBD5E1)
+                          : const Color(0xFF334155),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -216,9 +251,14 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     height: 150,
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0)),
                     ),
                     child: SingleChildScrollView(
                       child: Text(
@@ -226,14 +266,15 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         style: TextStyle(
                           fontSize: 11,
                           fontFamily: 'monospace',
-                          color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B),
+                          color: isDark
+                              ? const Color(0xFFE2E8F0)
+                              : const Color(0xFF1E293B),
                           height: 1.4,
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 18),
-
                   Wrap(
                     alignment: WrapAlignment.end,
                     spacing: 8,
@@ -243,16 +284,21 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF4F46E5),
                           side: const BorderSide(color: Color(0xFF4F46E5)),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.copy_rounded, size: 15),
-                        label: const Text('Copy Bill Text', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        label: const Text('Copy Bill Text',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12)),
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: message));
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('WhatsApp bill copied to clipboard!'),
+                              content:
+                                  Text('WhatsApp bill copied to clipboard!'),
                               backgroundColor: Color(0xFF4F46E5),
                               duration: Duration(seconds: 2),
                             ),
@@ -264,13 +310,18 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF25D366),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 16),
-                        label: const Text('Send via WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        label: const Text('Send via WhatsApp',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12)),
                         onPressed: () {
-                          var phone = phoneCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
+                          var phone =
+                              phoneCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
                           if (phone.startsWith('0')) {
                             phone = '92${phone.substring(1)}';
                           } else if (phone.length == 10) {
@@ -283,7 +334,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                               Process.run('cmd', ['/c', 'start', '', url]);
                             }
                           } catch (e, st) {
-                            AppLogger.warning('ReceiptDialog', 'Failed launching WhatsApp link', e, st);
+                            AppLogger.warning('ReceiptDialog',
+                                'Failed launching WhatsApp link', e, st);
                           }
                           Clipboard.setData(ClipboardData(text: message));
                           Navigator.pop(ctx);
@@ -312,35 +364,48 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
     final isPharma = widget.settings.isPharmacy;
     final isRest = widget.settings.isRestaurant;
     final buffer = StringBuffer();
-    buffer.writeln('========================================================================');
+    buffer.writeln(
+        '========================================================================');
     buffer.writeln(widget.settings.businessName.toUpperCase());
     if (isPharma) {
-      buffer.writeln('DISTRIBUTOR & WHOLESALER - ${widget.settings.branchName}');
+      buffer
+          .writeln('DISTRIBUTOR & WHOLESALER - ${widget.settings.branchName}');
     } else if (isRest) {
       buffer.writeln('RESTAURANT & CAFE - ${widget.settings.branchName}');
     } else {
       buffer.writeln('RETAIL & POINT OF SALE - ${widget.settings.branchName}');
     }
     buffer.writeln(widget.settings.address);
-    if (widget.settings.phone.isNotEmpty) buffer.writeln('CELL NO: ${widget.settings.phone}');
-    buffer.writeln('------------------------------------------------------------------------');
-    buffer.writeln('INVOICE NO:  ${widget.sale.invoiceNo}    DATE: ${widget.sale.createdAt}');
-    buffer.writeln('CUSTOMER:    ${widget.sale.customerName}    PAY: ${widget.sale.paymentMethod.toUpperCase()}');
-    buffer.writeln('------------------------------------------------------------------------');
+    if (widget.settings.phone.isNotEmpty)
+      buffer.writeln('CELL NO: ${widget.settings.phone}');
+    buffer.writeln(
+        '------------------------------------------------------------------------');
+    buffer.writeln(
+        'INVOICE NO:  ${widget.sale.invoiceNo}    DATE: ${widget.sale.createdAt}');
+    buffer.writeln(
+        'CUSTOMER:    ${widget.sale.customerName}    PAY: ${widget.sale.paymentMethod.toUpperCase()}');
+    buffer.writeln(
+        '------------------------------------------------------------------------');
 
     if (isPharma) {
-      buffer.writeln('DESCRIPTION           BATCH    EXP-DATE   QTY  BONUS   RATE     DISC%    NET TOTAL');
-      buffer.writeln('------------------------------------------------------------------------');
+      buffer.writeln(
+          'DESCRIPTION           BATCH    EXP-DATE   QTY  BONUS   RATE     DISC%    NET TOTAL');
+      buffer.writeln(
+          '------------------------------------------------------------------------');
       if (widget.sale.items != null) {
         for (final item in widget.sale.items!) {
-          final name = item.displayName.length > 20 ? item.displayName.substring(0, 20) : item.displayName.padRight(20);
+          final name = item.displayName.length > 20
+              ? item.displayName.substring(0, 20)
+              : item.displayName.padRight(20);
           final batch = (item.batchNumber ?? '-').padRight(8);
           final exp = (item.expiryDate ?? '-').padRight(10);
           final qty = item.quantity.toStringAsFixed(0).padLeft(3);
           final bonus = item.bonusQuantity.toStringAsFixed(0).padLeft(5);
           final rate = item.unitPrice.toStringAsFixed(2).padLeft(8);
           final pctDisc = item.discountType == 'percentage'
-              ? (item.discountValue > 0 ? item.discountValue : item.packDiscount)
+              ? (item.discountValue > 0
+                  ? item.discountValue
+                  : item.packDiscount)
               : item.packDiscount;
           final disc = (pctDisc > 0
                   ? '${pctDisc.toStringAsFixed(pctDisc == pctDisc.roundToDouble() ? 0 : 1)}%'
@@ -353,11 +418,15 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         }
       }
     } else {
-      buffer.writeln('ITEM DESCRIPTION                       QTY    UNIT PRICE     DISC       TOTAL');
-      buffer.writeln('------------------------------------------------------------------------');
+      buffer.writeln(
+          'ITEM DESCRIPTION                       QTY    UNIT PRICE     DISC       TOTAL');
+      buffer.writeln(
+          '------------------------------------------------------------------------');
       if (widget.sale.items != null) {
         for (final item in widget.sale.items!) {
-          final name = item.displayName.length > 35 ? item.displayName.substring(0, 35) : item.displayName.padRight(35);
+          final name = item.displayName.length > 35
+              ? item.displayName.substring(0, 35)
+              : item.displayName.padRight(35);
           final qty = item.quantity.toStringAsFixed(0).padLeft(5);
           final rate = item.unitPrice.toStringAsFixed(2).padLeft(13);
           final disc = (item.resolvedDiscountAmount > 0
@@ -370,40 +439,56 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
       }
     }
 
-    buffer.writeln('------------------------------------------------------------------------');
-    buffer.writeln('SUBTOTAL:                 $currency${widget.sale.subtotal.toStringAsFixed(2)}');
+    buffer.writeln(
+        '------------------------------------------------------------------------');
+    buffer.writeln(
+        'SUBTOTAL:                 $currency${widget.sale.subtotal.toStringAsFixed(2)}');
     if (widget.sale.discount > 0) {
-      buffer.writeln('${isPharma ? "PACK DISCOUNT:" : "DISCOUNT:     "}           -$currency${widget.sale.discount.toStringAsFixed(2)}');
+      buffer.writeln(
+          '${isPharma ? "PACK DISCOUNT:" : "DISCOUNT:     "}           -$currency${widget.sale.discount.toStringAsFixed(2)}');
     }
     if (widget.sale.taxAmount > 0) {
-      buffer.writeln('${isPharma ? "ADVANCE TAX (SEC 236H):" : "TAX:                   "}  +$currency${widget.sale.taxAmount.toStringAsFixed(2)}');
+      buffer.writeln(
+          '${isPharma ? "ADVANCE TAX (SEC 236H):" : "TAX:                   "}  +$currency${widget.sale.taxAmount.toStringAsFixed(2)}');
       for (final entry in widget.sale.taxBreakdownMap.entries) {
-        buffer.writeln('  ${entry.key.padRight(24)} +$currency${entry.value.toStringAsFixed(2)}');
+        buffer.writeln(
+            '  ${entry.key.padRight(24)} +$currency${entry.value.toStringAsFixed(2)}');
       }
     }
-    buffer.writeln('TOTAL AMOUNT:             $currency${widget.sale.totalAmount.toStringAsFixed(2)}');
-    buffer.writeln('PAID AMOUNT:              $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
-    if (widget.sale.dueAmount > 0) buffer.writeln('BALANCE DUE:              $currency${widget.sale.dueAmount.toStringAsFixed(2)}');
-    buffer.writeln('========================================================================');
+    buffer.writeln(
+        'TOTAL AMOUNT:             $currency${widget.sale.totalAmount.toStringAsFixed(2)}');
+    buffer.writeln(
+        'PAID AMOUNT:              $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
+    if (widget.sale.dueAmount > 0)
+      buffer.writeln(
+          'BALANCE DUE:              $currency${widget.sale.dueAmount.toStringAsFixed(2)}');
+    buffer.writeln(
+        '========================================================================');
     if (isPharma) {
-      buffer.writeln('FORM 2A (SEE RULES 19 & 30). WARRANTY UNDER SECTION 23(i) OF DRUG ACT, 1976');
-      buffer.writeln('Note: Expiry claim must be reported 6 months prior to expiry date with original bill.');
+      buffer.writeln(
+          'FORM 2A (SEE RULES 19 & 30). WARRANTY UNDER SECTION 23(i) OF DRUG ACT, 1976');
+      buffer.writeln(
+          'Note: Expiry claim must be reported 6 months prior to expiry date with original bill.');
     } else {
-      buffer.writeln('Thank you for shopping with us! Please retain this receipt for returns/exchange.');
+      buffer.writeln(
+          'Thank you for shopping with us! Please retain this receipt for returns/exchange.');
     }
-    buffer.writeln('========================================================================');
+    buffer.writeln(
+        '========================================================================');
     return buffer.toString();
   }
 
   @override
   Widget build(BuildContext context) {
     final currency = widget.settings.currencySymbol;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
     final isA4 = _paperSize == 'A4 Agency' || _paperSize == 'A4';
     final is58mm = _paperSize == '58mm Thermal' || _paperSize == '58mm';
     final double dialogWidth = isA4
-        ? math.min(screenWidth * 0.95, 840.0)
-        : math.min(screenWidth * 0.95, 540.0);
+        ? math.min(screenWidth * 0.95, 920.0)
+        : math.min(screenWidth * 0.95, 760.0);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
@@ -412,11 +497,14 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
       child: Center(
         child: Container(
           width: dialogWidth,
-          constraints: const BoxConstraints(maxHeight: 820),
+          constraints: BoxConstraints(
+            maxHeight: math.min(screenHeight * 0.92, 860.0),
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.transparent),
+            border: Border.all(
+                color: isDark ? const Color(0xFF334155) : Colors.transparent),
             boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
@@ -430,7 +518,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             children: [
               // Top control bar
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: const BoxDecoration(
                   color: Color(0xFF0F172A),
                   borderRadius: BorderRadius.only(
@@ -440,26 +529,32 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.print_outlined, color: Colors.white, size: 18),
+                    const Icon(Icons.print_outlined,
+                        color: Colors.white, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Invoice Preview ($_paperSize)',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
                     _formatChip('A4 Agency', isA4),
                     const SizedBox(width: 6),
-                    _formatChip('80mm POS', _paperSize == '80mm POS' || _paperSize == '80mm'),
+                    _formatChip('80mm POS',
+                        _paperSize == '80mm POS' || _paperSize == '80mm'),
                     const SizedBox(width: 6),
                     _formatChip('58mm Thermal', is58mm),
                     const SizedBox(width: 8),
                     IconButton(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                      icon: const Icon(Icons.close,
+                          color: Colors.white70, size: 20),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -469,7 +564,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
               // Invoice Body with clean background and paper card
               Flexible(
                 child: Container(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF1F5F9),
                   alignment: Alignment.topCenter,
                   child: SingleChildScrollView(
                     padding: EdgeInsets.symmetric(
@@ -493,7 +590,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                               ),
                             ],
                           ),
-                          child: isA4 ? _buildA4AgencyInvoice(currency) : _buildThermalReceipt(currency, is58mm),
+                          child: isA4
+                              ? _buildA4AgencyInvoice(currency)
+                              : _buildThermalReceipt(currency, is58mm),
                         ),
                       ),
                     ),
@@ -503,10 +602,17 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
 
               // Bottom Actions
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                  border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                  color: isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF8FAFC),
+                  border: Border(
+                      top: BorderSide(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0))),
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(16),
                     bottomRight: Radius.circular(16),
@@ -514,39 +620,51 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                 ),
                 child: LayoutBuilder(
                   builder: (context, actionConstraints) {
-                    final isNarrow = actionConstraints.maxWidth < 580;
-                    final isUltraNarrow = actionConstraints.maxWidth < 440;
+                    final isNarrow = actionConstraints.maxWidth < 620;
+                    final isUltraNarrow = actionConstraints.maxWidth < 460;
 
                     final whatsappBtn = ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: isNarrow ? 10 : 14, vertical: 12),
+                        minimumSize: const Size(0, 42),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: isNarrow ? 12 : 16, vertical: 10),
                         backgroundColor: const Color(0xFF25D366),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
-                      icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 16),
+                      icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 15),
                       label: Text(
-                        isUltraNarrow ? 'WA' : (isNarrow ? 'WhatsApp' : 'WhatsApp Bill'),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        isUltraNarrow ? 'WA' : 'WhatsApp',
+                        maxLines: 1,
+                        softWrap: false,
                         overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 13),
                       ),
                       onPressed: _showWhatsAppModal,
                     );
 
                     final printBtn = ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        minimumSize: const Size(0, 42),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: isNarrow ? 12 : 16, vertical: 10),
                         backgroundColor: const Color(0xFF4F46E5),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
-                      icon: const Icon(Icons.print_rounded, size: 17),
+                      icon: const Icon(Icons.print_rounded, size: 16),
                       label: Text(
-                        isUltraNarrow ? 'Print' : (isNarrow ? 'Print ($_paperSize)' : 'Print Document ($_paperSize)'),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        isUltraNarrow ? 'Print' : 'Print ($_paperSize)',
+                        maxLines: 1,
+                        softWrap: false,
                         overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 13),
                       ),
                       onPressed: () async {
                         final html = PrintService.generateSaleInvoiceHtml(
@@ -555,7 +673,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                           tenderedAmount: widget.tenderedAmount,
                           changeReturn: widget.changeReturn,
                           paperSizeOverride: _paperSize,
-                          customerPreviousBalance: widget.customerPreviousBalance,
+                          customerPreviousBalance:
+                              widget.customerPreviousBalance,
                         );
                         await PrintService.openPrintWindow(
                           htmlContent: html,
@@ -564,7 +683,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Invoice #${widget.sale.invoiceNo} dispatched to Windows Print Manager!'),
+                              content: Text(
+                                  'Invoice #${widget.sale.invoiceNo} dispatched to Windows Print Manager!'),
                               backgroundColor: const Color(0xFF10B981),
                               behavior: SnackBarBehavior.floating,
                             ),
@@ -575,28 +695,41 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
 
                     final completeBtn = ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        minimumSize: const Size(0, 42),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: isNarrow ? 14 : 18, vertical: 10),
                         backgroundColor: const Color(0xFF10B981),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
-                      icon: const Icon(Icons.check_circle_rounded, size: 17),
+                      icon: const Icon(Icons.check_circle_rounded, size: 16),
                       label: Text(
                         isUltraNarrow ? 'Done' : 'Complete (New Sale)',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 13),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
                     );
 
                     final copyBtn = IconButton(
-                      icon: Icon(Icons.copy, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                      icon: Icon(Icons.copy,
+                          size: 18,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF475569)),
                       tooltip: 'Copy Plaintext Invoice',
                       onPressed: () {
-                        Clipboard.setData(ClipboardData(text: _generatePlainTextReceipt()));
+                        Clipboard.setData(
+                            ClipboardData(text: _generatePlainTextReceipt()));
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Invoice copied to clipboard for direct printing!'),
+                            content: Text(
+                                'Invoice copied to clipboard for direct printing!'),
                             backgroundColor: Color(0xFF4F46E5),
                             duration: Duration(seconds: 2),
                           ),
@@ -605,17 +738,20 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     );
 
                     final thermalBtn = IconButton(
-                      icon: const Icon(Icons.receipt_long_rounded, size: 18, color: Color(0xFF7C3AED)),
+                      icon: const Icon(Icons.receipt_long_rounded,
+                          size: 18, color: Color(0xFF7C3AED)),
                       tooltip: 'Direct ESC/POS Thermal Print',
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
                         try {
-                          final printed = await ThermalPrinterService.printSaleReceipt(
+                          final printed =
+                              await ThermalPrinterService.printSaleReceipt(
                             sale: widget.sale,
                             settings: widget.settings,
                             tenderedAmount: widget.tenderedAmount,
                             changeReturn: widget.changeReturn,
-                            customerPreviousBalance: widget.customerPreviousBalance,
+                            customerPreviousBalance:
+                                widget.customerPreviousBalance,
                           );
                           messenger.showSnackBar(
                             SnackBar(
@@ -624,7 +760,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                                     ? 'Receipt #${widget.sale.invoiceNo} sent to ESC/POS thermal printer!'
                                     : 'No ESC/POS thermal printer configured. Configure one in Settings -> Printing.',
                               ),
-                              backgroundColor: printed ? const Color(0xFF10B981) : Colors.orange,
+                              backgroundColor: printed
+                                  ? const Color(0xFF10B981)
+                                  : Colors.orange,
                             ),
                           );
                         } catch (e) {
@@ -639,7 +777,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     );
 
                     final pdfBtn = IconButton(
-                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 18, color: Color(0xFFDC2626)),
+                      icon: const Icon(Icons.picture_as_pdf_rounded,
+                          size: 18, color: Color(0xFFDC2626)),
                       tooltip: 'Export PDF Invoice',
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
@@ -658,7 +797,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                           settings: widget.settings,
                           layout: layout,
                           paperSizeOverride: paperOverride,
-                          customerPreviousBalance: widget.customerPreviousBalance,
+                          customerPreviousBalance:
+                              widget.customerPreviousBalance,
                           productImagePathsById: prodImages,
                         );
                         final file = await PdfExportService.savePdfFile(
@@ -676,7 +816,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     );
 
                     final emailBtn = IconButton(
-                      icon: const Icon(Icons.email_outlined, size: 18, color: Color(0xFF0284C7)),
+                      icon: const Icon(Icons.email_outlined,
+                          size: 18, color: Color(0xFF0284C7)),
                       tooltip: 'Email PDF Invoice',
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
@@ -689,7 +830,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         );
                         String recipientEmail = '';
                         if (widget.sale.customerId != null) {
-                          final cust = await db.getContactById(widget.sale.customerId!);
+                          final cust =
+                              await db.getContactById(widget.sale.customerId!);
                           recipientEmail = cust?.email ?? '';
                         }
                         final bytes = await PdfExportService.generateSalePdf(
@@ -697,38 +839,50 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                           settings: widget.settings,
                           layout: layout,
                           paperSizeOverride: 'a4',
-                          customerPreviousBalance: widget.customerPreviousBalance,
+                          customerPreviousBalance:
+                              widget.customerPreviousBalance,
                           productImagePathsById: prodImages,
                         );
-                        final savedFile = await PdfExportService.emailPdfInvoice(
+                        final savedFile =
+                            await PdfExportService.emailPdfInvoice(
                           bytes: bytes,
                           baseName: 'Invoice_${widget.sale.invoiceNo}',
                           recipientEmail: recipientEmail,
-                          subject: '${widget.settings.businessName} - Invoice #${widget.sale.invoiceNo}',
-                          body: 'Dear ${widget.sale.customerName},\n\nPlease find attached your invoice #${widget.sale.invoiceNo} for ${widget.settings.currencySymbol}${widget.sale.totalAmount.toStringAsFixed(2)}.\n\nThank you for your business!\n${widget.settings.businessName}',
+                          subject:
+                              '${widget.settings.businessName} - Invoice #${widget.sale.invoiceNo}',
+                          body:
+                              'Dear ${widget.sale.customerName},\n\nPlease find attached your invoice #${widget.sale.invoiceNo} for ${widget.settings.currencySymbol}${widget.sale.totalAmount.toStringAsFixed(2)}.\n\nThank you for your business!\n${widget.settings.businessName}',
                         );
                         messenger.showSnackBar(
                           SnackBar(
-                            content: Text('Email draft opened! PDF saved at: ${savedFile.path}'),
+                            content: Text(
+                                'Email draft opened! PDF saved at: ${savedFile.path}'),
                             backgroundColor: const Color(0xFF0284C7),
                           ),
                         );
                       },
                     );
 
-                    return Row(
-                      children: [
-                        copyBtn,
-                        thermalBtn,
-                        pdfBtn,
-                        emailBtn,
-                        const SizedBox(width: 4),
-                        whatsappBtn,
-                        const SizedBox(width: 8),
-                        Expanded(child: printBtn),
-                        const SizedBox(width: 8),
-                        Expanded(child: completeBtn),
-                      ],
+                    return SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [copyBtn, thermalBtn, pdfBtn, emailBtn],
+                          ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [whatsappBtn, printBtn, completeBtn],
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -782,12 +936,19 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             children: [
               Text(
                 widget.settings.businessName.toUpperCase(),
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 0.5, color: Color(0xFF0F172A)),
+                style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                    color: Color(0xFF0F172A)),
               ),
               const SizedBox(height: 2),
               Text(
                 'DISTRIBUTOR AND WHOLESALER - ${widget.settings.branchName.toUpperCase()}',
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF334155)),
               ),
               Text(
                 widget.settings.address,
@@ -796,7 +957,10 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
               if (widget.settings.phone.isNotEmpty)
                 Text(
                   'CELL NO: ${widget.settings.phone}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF334155)),
                 ),
             ],
           ),
@@ -819,9 +983,11 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _a4MetaField('INVOICE NO:', widget.sale.invoiceNo),
-                    _a4MetaField('PARTY CODE:', '${widget.sale.customerId ?? 2033}'),
+                    _a4MetaField(
+                        'PARTY CODE:', '${widget.sale.customerId ?? 2033}'),
                     _a4MetaField('PARTY NAME:', widget.sale.customerName),
-                    _a4MetaField('ADDRESS:', widget.settings.address.split(',').first),
+                    _a4MetaField(
+                        'ADDRESS:', widget.settings.address.split(',').first),
                   ],
                 ),
               ),
@@ -832,10 +998,15 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _a4MetaField('DATE:', widget.sale.createdAt.split(' ').first),
+                    _a4MetaField(
+                        'DATE:', widget.sale.createdAt.split(' ').first),
                     _a4MetaField('S/MAN.CODE:', '02'),
                     _a4MetaField('NAME:', 'NASIR MENGAL'),
-                    _a4MetaField('TIME:', widget.sale.createdAt.contains(' ') ? widget.sale.createdAt.split(' ').last : '11:38:27'),
+                    _a4MetaField(
+                        'TIME:',
+                        widget.sale.createdAt.contains(' ')
+                            ? widget.sale.createdAt.split(' ').last
+                            : '11:38:27'),
                   ],
                 ),
               ),
@@ -881,14 +1052,20 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                 children: [
                   _td(it.displayName, align: TextAlign.left, isBold: true),
                   _td(it.batchNumber ?? '02260'),
-                  _td(it.expiryDate ?? '12-2028', color: const Color(0xFFD97706)),
+                  _td(it.expiryDate ?? '12-2028',
+                      color: const Color(0xFFD97706)),
                   _td('${it.quantity.toInt()}'),
-                  _td(it.bonusQuantity > 0 ? '${it.bonusQuantity.toInt()}' : '0', color: const Color(0xFF059669)),
+                  _td(
+                      it.bonusQuantity > 0
+                          ? '${it.bonusQuantity.toInt()}'
+                          : '0',
+                      color: const Color(0xFF059669)),
                   _td(it.unitPrice.toStringAsFixed(2)),
                   _td(packVal.toStringAsFixed(2)),
                   _td(
                     it.resolvedDiscountAmount > 0
-                        ? (it.discountType == 'percentage' && it.discountValue > 0
+                        ? (it.discountType == 'percentage' &&
+                                it.discountValue > 0
                             ? '${it.resolvedDiscountAmount.toStringAsFixed(2)} (${it.discountValue.toStringAsFixed(it.discountValue == it.discountValue.roundToDouble() ? 0 : 1)}%)'
                             : it.resolvedDiscountAmount.toStringAsFixed(2))
                         : '0.00',
@@ -922,16 +1099,22 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                               ? 'Advance Tax Under Section(236H)= 0.50%    $currency${widget.sale.taxAmount.toStringAsFixed(2)}'
                               : 'Tax Amount: $currency${widget.sale.taxAmount.toStringAsFixed(2)}'))
                       : 'Tax: Exempt (0.00%)',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11),
                 ),
               ),
               const SizedBox(width: 12),
               Row(
                 children: [
-                  const Text('TOTAL : ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  const Text('TOTAL : ',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   Text(
                     '$currency${widget.sale.totalAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF0F172A)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        color: Color(0xFF0F172A)),
                   ),
                 ],
               ),
@@ -943,12 +1126,15 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         // Numbers of products & Rupees in words
         Row(
           children: [
-            Text('Numbers of Products:  ${items.length}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+            Text('Numbers of Products:  ${items.length}',
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
             const SizedBox(width: 20),
             Expanded(
               child: Text(
                 'Amount in Words: ${_numberToWords(widget.sale.totalAmount)}',
-                style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
+                style:
+                    const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -970,19 +1156,27 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _ledgerItem(
-                  widget.settings.enableSecondaryLanguage ? 'PREVIOUS BALANCE (پچھلا بقایا)' : 'PREVIOUS BALANCE',
+                  widget.settings.enableSecondaryLanguage
+                      ? 'PREVIOUS BALANCE (پچھلا بقایا)'
+                      : 'PREVIOUS BALANCE',
                   '$currency${(widget.customerPreviousBalance ?? 0.0).toStringAsFixed(2)}',
                 ),
                 _ledgerItem(
-                  widget.settings.enableSecondaryLanguage ? 'CURRENT INVOICE (موجودہ بل)' : 'CURRENT INVOICE',
+                  widget.settings.enableSecondaryLanguage
+                      ? 'CURRENT INVOICE (موجودہ بل)'
+                      : 'CURRENT INVOICE',
                   '$currency${widget.sale.totalAmount.toStringAsFixed(2)}',
                 ),
                 _ledgerItem(
-                  widget.settings.enableSecondaryLanguage ? 'RECEIVED TODAY (آج وصولی)' : 'RECEIVED TODAY',
+                  widget.settings.enableSecondaryLanguage
+                      ? 'RECEIVED TODAY (آج وصولی)'
+                      : 'RECEIVED TODAY',
                   '$currency${widget.sale.paidAmount.toStringAsFixed(2)}',
                 ),
                 _ledgerItem(
-                  widget.settings.enableSecondaryLanguage ? 'NET CLOSING KHATA (کل واجب الادا)' : 'NET CLOSING KHATA',
+                  widget.settings.enableSecondaryLanguage
+                      ? 'NET CLOSING KHATA (کل واجب الادا)'
+                      : 'NET CLOSING KHATA',
                   '$currency${((widget.customerPreviousBalance ?? 0.0) + widget.sale.totalAmount - widget.sale.paidAmount).toStringAsFixed(2)}',
                   isBoldRed: true,
                 ),
@@ -1013,7 +1207,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                   'FORM 2A (SEE RULES 19 & 30). WARRANTY UNDER SECTION 23(i) OF DRUG ACT, 1976.\n'
                   'I am being a resident of Pakistan carrying on business at Khuzdar. Do hereby give this warranty that the drug contained in this invoice, described as sold by us do not contravene in any way the provision of section 23 of the Drug Act, 1976.\n'
                   'Note: This Warranty does not apply to Unani, Homeopathic, Bio Chemic, System of Medicine, Herbal and General Item.',
-                  style: TextStyle(fontSize: 9, color: Color(0xFF475569), height: 1.3),
+                  style: TextStyle(
+                      fontSize: 9, color: Color(0xFF475569), height: 1.3),
                 ),
               ],
             ),
@@ -1022,13 +1217,17 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Checked By _______________________', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+              const Text('Checked By _______________________',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
               if (widget.settings.enableSecondaryLanguage)
                 const Directionality(
                   textDirection: TextDirection.rtl,
                   child: Text(
                     'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFB91C1C)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: Color(0xFFB91C1C)),
                   ),
                 )
               else
@@ -1058,7 +1257,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                   '1. Goods once sold can be exchanged within 7 days upon presentation of original bill.\n'
                   '2. Altered, damaged, or clearance sale items are non-refundable.\n'
                   '3. Thank you for choosing ${widget.settings.businessName}!',
-                  style: const TextStyle(fontSize: 9, color: Color(0xFF475569), height: 1.3),
+                  style: const TextStyle(
+                      fontSize: 9, color: Color(0xFF475569), height: 1.3),
                 ),
               ],
             ),
@@ -1075,7 +1275,11 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                 ),
               ),
               SizedBox(width: 8),
-              Text('Customer Receipt Copy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF4F46E5))),
+              Text('Customer Receipt Copy',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      color: Color(0xFF4F46E5))),
             ],
           ),
         ],
@@ -1092,7 +1296,10 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+            style: const TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF475569)),
           ),
           const SizedBox(height: 2),
           Text(
@@ -1102,7 +1309,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w900,
-              color: isBoldRed ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
+              color:
+                  isBoldRed ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
             ),
           ),
         ],
@@ -1117,10 +1325,18 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         children: [
           SizedBox(
             width: 90,
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF334155))),
+            child: Text(label,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    color: Color(0xFF334155))),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Color(0xFF0F172A))),
+            child: Text(value,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                    color: Color(0xFF0F172A))),
           ),
         ],
       ),
@@ -1133,12 +1349,16 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 9.5, color: Color(0xFF0F172A)),
+        style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 9.5,
+            color: Color(0xFF0F172A)),
       ),
     );
   }
 
-  Widget _td(String text, {TextAlign align = TextAlign.center, bool isBold = false, Color? color}) {
+  Widget _td(String text,
+      {TextAlign align = TextAlign.center, bool isBold = false, Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
       child: Text(
@@ -1171,15 +1391,21 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         const SizedBox(height: 2),
         Text(
           widget.settings.branchName,
-          style: TextStyle(fontSize: is58mm ? 11 : 12, fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
+          style: TextStyle(
+              fontSize: is58mm ? 11 : 12,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF475569)),
         ),
         Text(
           widget.settings.address,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: is58mm ? 10 : 11, color: const Color(0xFF64748B)),
+          style: TextStyle(
+              fontSize: is58mm ? 10 : 11, color: const Color(0xFF64748B)),
         ),
         if (widget.settings.phone.isNotEmpty)
-          Text('Tel: ${widget.settings.phone}', style: TextStyle(fontSize: is58mm ? 10 : 11, color: const Color(0xFF64748B))),
+          Text('Tel: ${widget.settings.phone}',
+              style: TextStyle(
+                  fontSize: is58mm ? 10 : 11, color: const Color(0xFF64748B))),
         const SizedBox(height: 12),
         _dottedDivider(),
         const SizedBox(height: 10),
@@ -1206,12 +1432,17 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                       Expanded(
                         child: Text(
                           item.displayName,
-                          style: TextStyle(fontSize: is58mm ? 11 : 12, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                          style: TextStyle(
+                              fontSize: is58mm ? 11 : 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF0F172A)),
                         ),
                       ),
                       Text(
                         '$currency${item.subtotal.toStringAsFixed(2)}',
-                        style: TextStyle(fontSize: is58mm ? 11 : 12, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: is58mm ? 11 : 12,
+                            fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -1220,12 +1451,17 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     children: [
                       Text(
                         '${item.quantity.toInt()} x $currency${item.unitPrice.toStringAsFixed(2)}${item.bonusQuantity > 0 ? " (+${item.bonusQuantity.toInt()} Free)" : ""}',
-                        style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                        style: const TextStyle(
+                            fontSize: 10, color: Color(0xFF64748B)),
                       ),
-                      if (item.batchNumber != null && item.batchNumber!.isNotEmpty)
+                      if (item.batchNumber != null &&
+                          item.batchNumber!.isNotEmpty)
                         Text(
                           'B:${item.batchNumber} Exp:${item.expiryDate ?? "-"}',
-                          style: const TextStyle(fontSize: 9, color: Color(0xFFD97706), fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 9,
+                              color: Color(0xFFD97706),
+                              fontWeight: FontWeight.bold),
                         ),
                     ],
                   ),
@@ -1234,7 +1470,10 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                       padding: const EdgeInsets.only(top: 1),
                       child: Text(
                         'Item Disc: ${item.formatDiscountTag(currency)}',
-                        style: const TextStyle(fontSize: 9.5, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                            fontSize: 9.5,
+                            color: Color(0xFFDC2626),
+                            fontWeight: FontWeight.w600),
                       ),
                     ),
                 ],
@@ -1246,39 +1485,55 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         _dottedDivider(),
         const SizedBox(height: 8),
 
-        _calcRow('Subtotal', '$currency${widget.sale.subtotal.toStringAsFixed(2)}'),
+        _calcRow(
+            'Subtotal', '$currency${widget.sale.subtotal.toStringAsFixed(2)}'),
         if (widget.sale.discount > 0)
-          _calcRow(widget.settings.isPharmacy ? 'Pack Discount' : 'Discount', '-$currency${widget.sale.discount.toStringAsFixed(2)}'),
+          _calcRow(widget.settings.isPharmacy ? 'Pack Discount' : 'Discount',
+              '-$currency${widget.sale.discount.toStringAsFixed(2)}'),
         if (widget.sale.taxAmount > 0) ...[
           if (widget.sale.taxBreakdownMap.isNotEmpty) ...[
             for (final entry in widget.sale.taxBreakdownMap.entries)
-              _calcRow(entry.key, '+$currency${entry.value.toStringAsFixed(2)}'),
+              _calcRow(
+                  entry.key, '+$currency${entry.value.toStringAsFixed(2)}'),
           ],
-          _calcRow(widget.settings.isPharmacy ? 'Advance Tax (236H)' : 'Total Tax', '+$currency${widget.sale.taxAmount.toStringAsFixed(2)}'),
+          _calcRow(
+              widget.settings.isPharmacy ? 'Advance Tax (236H)' : 'Total Tax',
+              '+$currency${widget.sale.taxAmount.toStringAsFixed(2)}'),
         ],
 
         const SizedBox(height: 6),
         _dottedDivider(),
         const SizedBox(height: 6),
 
-        _calcRow('TOTAL PAYABLE', '$currency${widget.sale.totalAmount.toStringAsFixed(2)}', isBold: true),
-        _calcRow('Amount Paid', '$currency${widget.sale.paidAmount.toStringAsFixed(2)}'),
+        _calcRow('TOTAL PAYABLE',
+            '$currency${widget.sale.totalAmount.toStringAsFixed(2)}',
+            isBold: true),
+        _calcRow('Amount Paid',
+            '$currency${widget.sale.paidAmount.toStringAsFixed(2)}'),
         if (widget.sale.dueAmount > 0)
-          _calcRow('Balance Due', '$currency${widget.sale.dueAmount.toStringAsFixed(2)}', isBold: true),
+          _calcRow('Balance Due',
+              '$currency${widget.sale.dueAmount.toStringAsFixed(2)}',
+              isBold: true),
 
         if (widget.settings.isPharmacy) ...[
           const SizedBox(height: 14),
           const Text(
             'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFB91C1C)),
           ),
         ] else ...[
           const SizedBox(height: 12),
           const Text(
             'Thank you for shopping with us!\nPlease retain this receipt for returns/exchange.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF475569)),
           ),
         ],
       ],
@@ -1291,8 +1546,16 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
-          Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF64748B))),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E293B))),
         ],
       ),
     );
@@ -1331,7 +1594,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         35,
         (index) => Expanded(
           child: Container(
-            color: index % 2 == 0 ? Colors.transparent : const Color(0xFFCBD5E1),
+            color:
+                index % 2 == 0 ? Colors.transparent : const Color(0xFFCBD5E1),
             height: 1.2,
           ),
         ),
