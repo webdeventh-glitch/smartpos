@@ -57,11 +57,11 @@ class _SmartSidebarState extends State<SmartSidebar> {
       _userMgmtExpanded = true;
     } else if (route == AppRoute.customers || route == AppRoute.suppliers) {
       _contactsExpanded = true;
-    } else if (const [AppRoute.productsList, AppRoute.categories, AppRoute.addProduct, AppRoute.printLabels, AppRoute.variationTemplates, AppRoute.units, AppRoute.brands, AppRoute.warranties, AppRoute.sellingPriceGroups, AppRoute.importProducts].contains(route)) {
+    } else if (const [AppRoute.productsList, AppRoute.categories, AppRoute.addProduct, AppRoute.printLabels, AppRoute.variationTemplates, AppRoute.units, AppRoute.brands, AppRoute.warranties, AppRoute.sellingPriceGroups, AppRoute.importProducts, AppRoute.discountRules].contains(route)) {
       _productsExpanded = true;
-    } else if (const [AppRoute.purchasesList, AppRoute.purchaseReturn, AppRoute.addPurchase].contains(route)) {
+    } else if (const [AppRoute.purchasesList, AppRoute.purchaseReturn, AppRoute.addPurchase, AppRoute.purchaseOrders].contains(route)) {
       _purchasesExpanded = true;
-    } else if (const [AppRoute.posTerminal, AppRoute.salesList, AppRoute.salesReturn].contains(route)) {
+    } else if (const [AppRoute.posTerminal, AppRoute.salesList, AppRoute.salesReturn, AppRoute.salesOrders, AppRoute.commissionAgents].contains(route)) {
       _sellExpanded = true;
     } else if (route == AppRoute.stockTransfers) {
       _transfersExpanded = true;
@@ -71,7 +71,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
       _expensesExpanded = true;
     } else if (const [AppRoute.reports, AppRoute.inventoryAudit].contains(route)) {
       _reportsExpanded = true;
-    } else if (const [AppRoute.settings, AppRoute.paymentAccounts, AppRoute.annualClosing, AppRoute.moduleSettings, AppRoute.cloudSync].contains(route)) {
+    } else if (const [AppRoute.settings, AppRoute.paymentAccounts, AppRoute.chequeManagement, AppRoute.annualClosing, AppRoute.moduleSettings, AppRoute.cloudSync].contains(route)) {
       _settingsExpanded = true;
     } else if (const [AppRoute.businessModulesHub, AppRoute.restaurantCafe, AppRoute.repairService, AppRoute.hotelManagement, AppRoute.gymFitness, AppRoute.manufacturing, AppRoute.wooCommerceSync, AppRoute.hrmEmployee, AppRoute.accountingCrm, AppRoute.fruitMandi, AppRoute.poultryBusiness].contains(route)) {
       _industryExpanded = true;
@@ -698,15 +698,15 @@ class _SmartSidebarState extends State<SmartSidebar> {
     final canSettings = can('settings.manage');
 
     // Check if parent sections are active
-    final isProductsActive = const [AppRoute.productsList, AppRoute.categories, AppRoute.addProduct, AppRoute.printLabels, AppRoute.variationTemplates, AppRoute.units, AppRoute.brands, AppRoute.warranties, AppRoute.sellingPriceGroups, AppRoute.importProducts].contains(widget.selectedRoute);
-    final isPurchasesActive = const [AppRoute.purchasesList, AppRoute.purchaseReturn, AppRoute.addPurchase].contains(widget.selectedRoute);
-    final isSellActive = const [AppRoute.posTerminal, AppRoute.salesList, AppRoute.salesReturn].contains(widget.selectedRoute);
+    final isProductsActive = const [AppRoute.productsList, AppRoute.categories, AppRoute.addProduct, AppRoute.printLabels, AppRoute.variationTemplates, AppRoute.units, AppRoute.brands, AppRoute.warranties, AppRoute.sellingPriceGroups, AppRoute.importProducts, AppRoute.discountRules].contains(widget.selectedRoute);
+    final isPurchasesActive = const [AppRoute.purchasesList, AppRoute.purchaseReturn, AppRoute.addPurchase, AppRoute.purchaseOrders].contains(widget.selectedRoute);
+    final isSellActive = const [AppRoute.posTerminal, AppRoute.salesList, AppRoute.salesReturn, AppRoute.salesOrders, AppRoute.commissionAgents].contains(widget.selectedRoute);
     final isContactsActive = const [AppRoute.customers, AppRoute.suppliers].contains(widget.selectedRoute);
     final isTransfersActive = widget.selectedRoute == AppRoute.stockTransfers;
     final isAdjustmentsActive = widget.selectedRoute == AppRoute.stockAdjustments;
     final isExpensesActive = widget.selectedRoute == AppRoute.expenses;
     final isReportsActive = const [AppRoute.reports, AppRoute.inventoryAudit].contains(widget.selectedRoute);
-    final isSettingsActive = const [AppRoute.settings, AppRoute.paymentAccounts, AppRoute.annualClosing, AppRoute.moduleSettings, AppRoute.cloudSync].contains(widget.selectedRoute);
+    final isSettingsActive = const [AppRoute.settings, AppRoute.paymentAccounts, AppRoute.chequeManagement, AppRoute.annualClosing, AppRoute.moduleSettings, AppRoute.cloudSync].contains(widget.selectedRoute);
     final isIndustryActive = const [AppRoute.businessModulesHub, AppRoute.restaurantCafe, AppRoute.repairService, AppRoute.hotelManagement, AppRoute.gymFitness, AppRoute.manufacturing, AppRoute.wooCommerceSync, AppRoute.hrmEmployee, AppRoute.accountingCrm, AppRoute.fruitMandi, AppRoute.poultryBusiness].contains(widget.selectedRoute);
 
     return [
@@ -761,6 +761,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
               _subItem(title: 'Variations', urduSubtitle: 'ویرینٹس', route: AppRoute.variationTemplates),
             if (canAddProduct) _subItem(title: 'Import Products', urduSubtitle: 'امپورٹ', route: AppRoute.importProducts),
             if (canSettings) _subItem(title: 'Price Groups', urduSubtitle: 'قیمت گروپس', route: AppRoute.sellingPriceGroups),
+            if (canSettings || canAddProduct) _subItem(title: 'Discount Rules', urduSubtitle: 'رعایت کے اصول', route: AppRoute.discountRules),
             _subItem(title: 'Units', urduSubtitle: 'پیمائش کے یونٹس', route: AppRoute.units),
             _subItem(title: 'Categories', urduSubtitle: 'کیٹیگریز', route: AppRoute.categories),
             _subItem(title: 'Brands', urduSubtitle: 'برانڈز', route: AppRoute.brands),
@@ -828,6 +829,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
         ),
         if (!widget.isCollapsed && _sellExpanded) ...[
           if (canSales) _subItem(title: 'All Sales', urduSubtitle: 'تمام بلز', route: AppRoute.salesList),
+          if (canSales) _subItem(title: 'Sales Orders', urduSubtitle: 'سیلز آرڈرز', route: AppRoute.salesOrders),
+          if (canSales) _subItem(title: 'Commission Agents', urduSubtitle: 'کمیشن ایجنٹس', route: AppRoute.commissionAgents),
           if (canPos) _subItem(title: 'POS Terminal', urduSubtitle: 'کاؤنٹر سیل', route: AppRoute.posTerminal),
           if (canSales) _subItem(title: 'List POS', urduSubtitle: 'پی او ایس انوائسز', route: AppRoute.salesList),
           if (canReturns && _isModEnabled(BusinessSettings.moduleReturns))
@@ -850,6 +853,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
         ),
         if (!widget.isCollapsed && _purchasesExpanded) ...[
           _subItem(title: 'Purchases List', urduSubtitle: 'خریداری لسٹ', route: AppRoute.purchasesList),
+          _subItem(title: 'Purchase Orders', urduSubtitle: 'پرچیز آرڈرز', route: AppRoute.purchaseOrders),
           if (canAddPurchase) _subItem(title: 'Add Purchase', urduSubtitle: 'نئی خریداری درج کریں', route: AppRoute.addPurchase),
           if (canAddPurchase && _isModEnabled(BusinessSettings.moduleReturns))
             _subItem(title: 'Purchase Return', urduSubtitle: 'خریداری واپسی', route: AppRoute.purchaseReturn),
@@ -897,6 +901,15 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _subItem(title: 'Customers', urduSubtitle: 'گاہک / کسٹمرز', route: AppRoute.customers),
         _subItem(title: 'Suppliers', urduSubtitle: 'سپلائرز / وینڈرز', route: AppRoute.suppliers),
         _subItem(title: 'Customer Groups', urduSubtitle: 'کسٹمر گروپس', route: AppRoute.customers),
+      ],
+
+      if (canSettings) ...[
+        _navItem(
+          icon: Icons.account_balance_outlined,
+          title: 'Cheques & Clearing',
+          urduSubtitle: 'چیک مینجمنٹ',
+          route: AppRoute.chequeManagement,
+        ),
       ],
 
       // User Management

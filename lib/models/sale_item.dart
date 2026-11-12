@@ -9,6 +9,7 @@ class SaleItem {
   final String sku;
   final double unitPrice;
   final double quantity;
+  final double fulfilledQuantity;
   final double discount;
   final double subtotal;
   final String? batchNumber;
@@ -32,6 +33,7 @@ class SaleItem {
     required this.sku,
     required this.unitPrice,
     required this.quantity,
+    this.fulfilledQuantity = 0.0,
     this.discount = 0.0,
     required this.subtotal,
     this.batchNumber,
@@ -53,6 +55,8 @@ class SaleItem {
           : productName;
 
   double get packValue => unitPrice * quantity;
+  double get remainingQuantity =>
+      (quantity - fulfilledQuantity).clamp(0.0, double.infinity);
 
   double get resolvedDiscountAmount {
     if (discount > 0) return discount;
@@ -88,6 +92,7 @@ class SaleItem {
         'sku': sku,
         'unit_price': unitPrice,
         'quantity': quantity,
+        'fulfilled_quantity': fulfilledQuantity,
         'discount': discount,
         'subtotal': subtotal,
         'batch_number': batchNumber ?? '',
@@ -124,6 +129,7 @@ class SaleItem {
       sku: map['sku'] as String? ?? '',
       unitPrice: (map['unit_price'] as num).toDouble(),
       quantity: (map['quantity'] as num).toDouble(),
+      fulfilledQuantity: (map['fulfilled_quantity'] as num?)?.toDouble() ?? 0.0,
       discount: discAmt,
       subtotal: (map['subtotal'] as num).toDouble(),
       batchNumber: map['batch_number'] as String?,

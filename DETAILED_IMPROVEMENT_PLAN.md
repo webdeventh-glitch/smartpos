@@ -557,43 +557,43 @@ Multiple places use `.withOpacity()` instead of `.withValues(alpha: ...)` — so
 
 ---
 
-### 🟡 PHASE 6: Advanced Business Features (Week 13-16)
+### ✅ PHASE 6: Advanced Business Features (Week 13-16) — COMPLETED
 
 #### Step 6.1: Sales Orders Workflow
-- [ ] Create sales order screen
-- [ ] Status tracking: Ordered → Partial → Completed
-- [ ] Convert sales order to invoice (partial or full)
-- [ ] Track pending orders dashboard widget
+- [x] Create sales order screen *(`SalesOrdersScreen` + `AppRoute.salesOrders` wired in `SmartSidebar`, `MainShell`, & `SalesRepository`)*
+- [x] Status tracking: Ordered → Partial → Completed *(`sales.order_status` + `sale_items.fulfilled_quantity` tracking)*
+- [x] Convert sales order to invoice (partial or full) *(`SalesRepository.convertSalesOrderToInvoice` with partial/full line quantities & live stock deduction)*
+- [x] Track pending orders dashboard widget *(`DashboardScreen._buildPendingOrdersWidget` displaying pending Sales & Purchase Orders with quick actions)*
 
 #### Step 6.2: Purchase Orders Workflow
-- [ ] Create purchase order screen
-- [ ] Status tracking: Ordered → Partial Received → Received
-- [ ] Convert PO to purchase (receive goods)
-- [ ] Email PO to supplier
+- [x] Create purchase order screen *(`PurchaseOrdersScreen` + `AppRoute.purchaseOrders` wired in `SmartSidebar` & `MainShell`)*
+- [x] Status tracking: Ordered → Partial Received → Received *(`PurchaseRepository.receivePurchaseOrderItems` transitioning `ordered` → `partial` → `received`)*
+- [x] Convert PO to purchase (receive goods) *(Partial or full GRN creation with product/variation stock & supplier khata updates)*
+- [x] Email PO to supplier *(PDF generation via `PdfExportService.generateReportPdf` + prefilled `mailto:` launch & clipboard summary via `emailPdfInvoice`)*
 
 #### Step 6.3: Cheque Management
-- [ ] Add cheque fields to payment records
-- [ ] Track cheque due dates
-- [ ] Cheque clearance workflow
-- [ ] Reports: Pending cheques, cleared cheques
+- [x] Add cheque fields to payment records *(Schema v7 `cheque_number`, `bank_name`, `cheque_due_date`, `cheque_status`, `cheque_cleared_at` on `payment_transactions` & `contact_payments` + inline `PaymentModal` inputs)*
+- [x] Track cheque due dates *(`PaymentTransaction.isOverdueCheque` + `ChequeManagementScreen` overdue filtering & alerts)*
+- [x] Cheque clearance workflow *(`AdvancedFeaturesRepository.updateChequeStatus` for `pending`, `cleared`, `bounced`, `cancelled`)*
+- [x] Reports: Pending cheques, cleared cheques *(`ReportsScreen` Tab 11: Cheque Reports & `ChequeManagementScreen` KPIs)*
 
 #### Step 6.4: Commission Agents
-- [ ] Create commission agents table
-- [ ] Assign agent to sales
-- [ ] Calculate commission (% of sale amount)
-- [ ] Commission reports per agent
+- [x] Create commission agents table *(`commission_agents` table + `CommissionAgent` model + `CommissionAgentsScreen`)*
+- [x] Assign agent to sales *(`PosTerminalScreen` & `SalesOrdersScreen` commission agent selector saved to `sales`)*
+- [x] Calculate commission (% of sale amount) *(Auto-computed `commission_amount` on final sales & converted sales orders)*
+- [x] Commission reports per agent *(`AdvancedFeaturesRepository.getCommissionReport` + `CommissionAgentsScreen` + `ReportsScreen` Tab 12)*
 
 #### Step 6.5: Discount Schedules
-- [ ] Create discount rules table (date range, day of week, conditions)
-- [ ] Auto-apply discounts at POS based on rules
-- [ ] Support: Buy X Get Y, Quantity breaks, Time-based sales
+- [x] Create discount rules table (date range, day of week, conditions) *(Schema v7 enhanced `discounts` table + `DiscountRule` model + `DiscountRulesScreen`)*
+- [x] Auto-apply discounts at POS based on rules *(`DiscountRule.evaluateCart` reactive cart evaluation + `Promo Applied` indicator in `PosTerminalScreen`)*
+- [x] Support: Buy X Get Y, Quantity breaks, Time-based sales *(`buy_x_get_y`, `quantity_break`, `time_based`, & `standard` promo engines)*
 
 #### Step 6.6: Automated Backup Scheduler
-- [ ] Add backup schedule settings (daily, weekly, custom)
-- [ ] Background timer for automatic SQLite backup
-- [ ] Keep last N backups (configurable)
-- [ ] Backup before schema migrations
-- [ ] One-click restore functionality
+- [x] Add backup schedule settings (daily, weekly, custom) *(Schema v7 `business_settings` columns + `SettingsScreen` Tab 6 scheduler UI)*
+- [x] Background timer for automatic SQLite backup *(`BackupUpdateService.startAutoBackupScheduler` periodic interval + `isAutoBackupDue` / `runScheduledBackupIfDue`)*
+- [x] Keep last N backups (configurable) *(`BackupUpdateService.enforceBackupRetention`)*
+- [x] Backup before schema migrations *(`BackupUpdateService.createPreMigrationBackupIfNeeded` hooked in `DatabaseService.initialize` `onUpgrade` & `onOpen`)*
+- [x] One-click restore functionality *(`SettingsScreen` 1-Click SQLite Backup & Restore center + `BackupUpdateService.restoreFromBackup`)*
 
 ---
 

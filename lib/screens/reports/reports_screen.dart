@@ -50,10 +50,15 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   // Trending Products State
   String _trendingSort = 'qty'; // 'qty' or 'rev'
 
+  // Phase 6 Reports State: Cheques & Commission Agents
+  List<PaymentTransaction> _chequeReportRows = [];
+  Map<String, num> _chequeReportSummary = {};
+  List<Map<String, dynamic>> _commissionReportRows = [];
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 10, vsync: this);
+    _tabController = TabController(length: 12, vsync: this);
     _applyFilter('month');
   }
 
@@ -140,6 +145,12 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       action: _activityActionFilter,
       search: _activitySearchCtrl.text.trim(),
     );
+    final cheques = await db.getCheques();
+    final chequeSummary = await db.getChequeSummary();
+    final commReport = await db.getCommissionReport(
+      startDate: _startDate,
+      endDate: _endDate,
+    );
 
     if (mounted) {
       setState(() {
@@ -149,6 +160,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         _registerReports = regRep;
         _stockExpiryReports = expRep;
         _activityLogs = actLogs;
+        _chequeReportRows = cheques;
+        _chequeReportSummary = chequeSummary;
+        _commissionReportRows = commReport;
         _loading = false;
       });
     }
@@ -745,6 +759,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 Tab(icon: Icon(Icons.receipt_long_rounded), text: 'Tax / GST Report'),
                 Tab(icon: Icon(Icons.people_alt_outlined), text: 'Customer & Supplier Dues'),
                 Tab(icon: Icon(Icons.history_edu_rounded), text: 'Activity Log'),
+                Tab(icon: Icon(Icons.account_balance_outlined), text: 'Cheque Reports'),
+                Tab(icon: Icon(Icons.badge_outlined), text: 'Commission Agents'),
               ],
             ),
             const SizedBox(height: 16),
@@ -786,6 +802,12 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
                         // Tab 10: Activity Log / Audit Trail
                         _buildActivityLogTab(isDark),
+
+                        // Tab 11: Cheque Reports (Pending / Cleared)
+                        _buildChequeReportTab(cur, isDark),
+
+                        // Tab 12: Commission Agents Report
+                        _buildCommissionReportTab(cur, isDark),
                       ],
                     ),
                   ),
@@ -2304,6 +2326,84 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildChequeReportTab(String cur, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _topKpi('PENDING CHEQUES', '$cur${((_chequeReportSummary['pendingAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}', '${_chequeReportSummary['pendingCount'] ?? 0} Pending', const Color(0xFFF59E0B), Icons.pending_actions_rounded, isDark),
+            const SizedBox(width: 12),
+            _topKpi('CLEARED CHEQUES', '$cur${((_chequeReportSummary['clearedAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}', '${_chequeReportSummary['clearedCount'] ?? 0} Cleared', const Color(0xFF10B981), Icons.check_circle_outline_rounded, isDark),
+            const SizedBox(width: 12),
+            _topKpi('OVERDUE CHEQUES', '$cur${((_chequeReportSummary['overdueAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}', '${_chequeReportSummary['overdueCount'] ?? 0} Overdue', Colors.red, Icons.warning_amber_rounded, isDark),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor)),
+            child: _chequeReportRows.isEmpty
+                ? const Center(child: Text('No cheque transactions recorded in this system.', style: TextStyle(color: Colors.grey)))
+                : ListView.separated(
+                    itemCount: _chequeReportRows.length,
+                    separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+                    itemBuilder: (_, idx) {
+                      final c = _chequeReportRows[idx];
+                      final st = c.isOverdueCheque ? 'OVERDUE' : c.chequeStatus.toUpperCase();
+                      return ListTile(
+                        dense: true,
+                        title: Text(
+                          '${c.chequeNumber.isNotEmpty ? "Cheque #${c.chequeNumber}" : c.refNo} • ${c.contactName}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        subtitle: Text(
+                          'Bank: ${c.bankName.isEmpty ? "-" : c.bankName} • Due: ${c.chequeDueDate.isEmpty ? "-" : c.chequeDueDate} • Status: $st',
+                          style: const TextStyle(fontSize: 11.5),
+                        ),
+                        trailing: Text('$cur${c.amount.toStringAsFixed(2)}',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCommissionReportTab(String cur, bool isDark) {
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    return Container(
+      decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor)),
+      child: _commissionReportRows.isEmpty
+          ? const Center(child: Text('No commission agents registered yet.', style: TextStyle(color: Colors.grey)))
+          : ListView.separated(
+              itemCount: _commissionReportRows.length,
+              separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+              itemBuilder: (_, idx) {
+                final r = _commissionReportRows[idx];
+                return ListTile(
+                  dense: true,
+                  title: Text('${r['agentName']} (${((r['commissionPercent'] as double?) ?? 0.0).toStringAsFixed(1)}%)',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: Text(
+                    'Invoices: ${r['saleCount']} • Total Sales: $cur${((r['totalSales'] as double?) ?? 0.0).toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 11.5),
+                  ),
+                  trailing: Text(
+                    '$cur${((r['totalCommission'] as double?) ?? 0.0).toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF10B981)),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

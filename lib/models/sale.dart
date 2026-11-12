@@ -18,13 +18,19 @@ class Sale {
   final String
       paymentMethod; // 'cash', 'card', 'bank_transfer', 'cheque', 'split'
   final String paymentStatus; // 'paid', 'partial', 'due'
-  final String saleStatus; // 'final', 'draft', 'quotation', 'suspended'
+  final String saleStatus; // 'final', 'draft', 'quotation', 'suspended', 'sales_order'
+  final String orderStatus; // '', 'ordered', 'partial', 'completed'
   final String note;
   final String createdAt;
   final List<SaleItem>? items;
   final String? userName;
   final int? convertedFromQuotationId;
   final int? convertedToSaleId;
+  final int? convertedFromOrderId;
+  final int? commissionAgentId;
+  final String commissionAgentName;
+  final double commissionPercent;
+  final double commissionAmount;
   final int? taxGroupId;
   final String taxBreakdownJson;
 
@@ -43,6 +49,7 @@ class Sale {
     this.paymentMethod = 'cash',
     this.paymentStatus = 'paid',
     this.saleStatus = 'final',
+    this.orderStatus = '',
     this.note = '',
     required this.createdAt,
     this.items,
@@ -50,6 +57,11 @@ class Sale {
     String? cashierName,
     this.convertedFromQuotationId,
     this.convertedToSaleId,
+    this.convertedFromOrderId,
+    this.commissionAgentId,
+    this.commissionAgentName = '',
+    this.commissionPercent = 0.0,
+    this.commissionAmount = 0.0,
     this.taxGroupId,
     this.taxBreakdownJson = '',
   }) : cashierName = cashierName ?? userName ?? 'Cashier';
@@ -58,6 +70,9 @@ class Sale {
 
   double get dueAmount => totalAmount - paidAmount;
   bool get isQuotation => saleStatus == 'quotation';
+  bool get isSalesOrder => saleStatus == 'sales_order';
+  bool get isPendingSalesOrder =>
+      isSalesOrder && orderStatus != 'completed';
   bool get isConvertedQuotation =>
       isQuotation && convertedToSaleId != null && convertedToSaleId! > 0;
 
@@ -89,6 +104,7 @@ class Sale {
         'payment_method': paymentMethod,
         'payment_status': paymentStatus,
         'sale_status': saleStatus,
+        'order_status': orderStatus,
         'note': note,
         'created_at': createdAt,
         'user_name': userName ?? cashierName,
@@ -96,6 +112,13 @@ class Sale {
           'converted_from_quotation_id': convertedFromQuotationId,
         if (convertedToSaleId != null)
           'converted_to_sale_id': convertedToSaleId,
+        if (convertedFromOrderId != null)
+          'converted_from_order_id': convertedFromOrderId,
+        if (commissionAgentId != null)
+          'commission_agent_id': commissionAgentId,
+        'commission_agent_name': commissionAgentName,
+        'commission_percent': commissionPercent,
+        'commission_amount': commissionAmount,
         if (taxGroupId != null) 'tax_group_id': taxGroupId,
         'tax_breakdown_json': taxBreakdownJson,
       };
@@ -116,12 +139,18 @@ class Sale {
         paymentMethod: map['payment_method'] as String? ?? 'cash',
         paymentStatus: map['payment_status'] as String? ?? 'paid',
         saleStatus: map['sale_status'] as String? ?? 'final',
+        orderStatus: map['order_status'] as String? ?? '',
         note: map['note'] as String? ?? '',
         createdAt: map['created_at'] as String,
         items: items,
         userName: map['user_name'] as String?,
         convertedFromQuotationId: map['converted_from_quotation_id'] as int?,
         convertedToSaleId: map['converted_to_sale_id'] as int?,
+        convertedFromOrderId: map['converted_from_order_id'] as int?,
+        commissionAgentId: map['commission_agent_id'] as int?,
+        commissionAgentName: map['commission_agent_name'] as String? ?? '',
+        commissionPercent: (map['commission_percent'] as num?)?.toDouble() ?? 0.0,
+        commissionAmount: (map['commission_amount'] as num?)?.toDouble() ?? 0.0,
         taxGroupId: map['tax_group_id'] as int?,
         taxBreakdownJson: map['tax_breakdown_json'] as String? ?? '',
       );

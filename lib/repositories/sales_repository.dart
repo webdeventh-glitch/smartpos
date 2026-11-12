@@ -4,7 +4,14 @@ import '../services/auth_service.dart';
 import 'base_repository.dart';
 
 abstract class ISalesRepository {
-  Future<Sale> createSale({required Sale sale, required List<CartItem> items, List<Map<String, dynamic>>? splitTenders});
+  Future<Sale> createSale({
+    required Sale sale,
+    required List<CartItem> items,
+    List<Map<String, dynamic>>? splitTenders,
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
+  });
   Future<List<Sale>> getSales({String? status, String? search});
   Future<PagedResult<Sale>> getSalesPaged({
     String? status,
@@ -48,6 +55,9 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     required Sale sale,
     required List<CartItem> items,
     List<Map<String, dynamic>>? splitTenders,
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
   }) async {
     final createdSale = await db.transaction((txn) async {
       // 1. Insert Sale record
@@ -128,6 +138,10 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           final amt = (st['amount'] as num?)?.toDouble() ?? 0.0;
           if (amt > 0) {
             final m = st['method'] as String? ?? 'cash';
+            final isCheque = m.toLowerCase() == 'cheque';
+            final chNo = (st['chequeNumber'] as String?) ?? chequeNumber;
+            final chBank = (st['bankName'] as String?) ?? bankName;
+            final chDue = (st['chequeDueDate'] as String?) ?? chequeDueDate;
             await txn.insert('payment_transactions', {
               'transaction_type': 'sale',
               'parent_id': saleId,
@@ -141,10 +155,15 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
               'note': sale.note,
               'created_by': 'Cashier',
               'created_at': nowStr,
+              'cheque_number': isCheque ? chNo : '',
+              'bank_name': isCheque ? chBank : '',
+              'cheque_due_date': isCheque ? chDue : '',
+              'cheque_status': isCheque ? 'pending' : '',
             });
           }
         }
-      } else if (sale.paidAmount > 0) {
+      } else if (sale.paidAmount > 0 && sale.saleStatus == 'final') {
+        final isCheque = sale.paymentMethod.toLowerCase() == 'cheque';
         await txn.insert('payment_transactions', {
           'transaction_type': 'sale',
           'parent_id': saleId,
@@ -158,6 +177,10 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           'note': sale.note,
           'created_by': 'Cashier',
           'created_at': nowStr,
+          'cheque_number': isCheque ? chequeNumber : '',
+          'bank_name': isCheque ? bankName : '',
+          'cheque_due_date': isCheque ? chequeDueDate : '',
+          'cheque_status': isCheque ? 'pending' : '',
         });
       }
 
@@ -190,11 +213,17 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         paymentMethod: sale.paymentMethod,
         paymentStatus: sale.paymentStatus,
         saleStatus: sale.saleStatus,
+        orderStatus: sale.orderStatus,
         note: sale.note,
         createdAt: sale.createdAt,
         userName: sale.userName,
         convertedFromQuotationId: sale.convertedFromQuotationId,
         convertedToSaleId: sale.convertedToSaleId,
+        convertedFromOrderId: sale.convertedFromOrderId,
+        commissionAgentId: sale.commissionAgentId,
+        commissionAgentName: sale.commissionAgentName,
+        commissionPercent: sale.commissionPercent,
+        commissionAmount: sale.commissionAmount,
         taxGroupId: sale.taxGroupId,
         taxBreakdownJson: sale.taxBreakdownJson,
         items: items
@@ -744,13 +773,14 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     );
   }
 
-  /// Counts final, draft, and quotation rows in one pass for SalesListScreen tabs.
+  /// Counts final, draft, quotation, and sales_order rows in one pass.
   Future<Map<String, int>> getSalesTabCounts() async {
     final rows = await db.rawQuery('''
       SELECT
         COALESCE(SUM(CASE WHEN sale_status = 'final' THEN 1 ELSE 0 END), 0) AS final_count,
         COALESCE(SUM(CASE WHEN sale_status = 'draft' THEN 1 ELSE 0 END), 0) AS draft_count,
-        COALESCE(SUM(CASE WHEN sale_status = 'quotation' THEN 1 ELSE 0 END), 0) AS quotation_count
+        COALESCE(SUM(CASE WHEN sale_status = 'quotation' THEN 1 ELSE 0 END), 0) AS quotation_count,
+        COALESCE(SUM(CASE WHEN sale_status = 'sales_order' THEN 1 ELSE 0 END), 0) AS sales_order_count
       FROM sales
     ''');
     final r = rows.first;
@@ -758,7 +788,326 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
       'final': (r['final_count'] as num?)?.toInt() ?? 0,
       'draft': (r['draft_count'] as num?)?.toInt() ?? 0,
       'quotation': (r['quotation_count'] as num?)?.toInt() ?? 0,
+      'sales_order': (r['sales_order_count'] as num?)?.toInt() ?? 0,
     };
+  }
+
+  // ==================== STEP 6.1: SALES ORDERS WORKFLOW ====================
+
+  Future<String> generateNextSalesOrderNo() async {
+    final rows = await db.rawQuery('SELECT MAX(id) as max_id FROM sales');
+    final maxId = (rows.first['max_id'] as int?) ?? 1000;
+    return 'SO-${maxId + 1}';
+  }
+
+  Future<Map<String, dynamic>> getPendingSalesOrdersSummary({int limit = 5}) async {
+    final rows = await db.query(
+      'sales',
+      where: "sale_status = 'sales_order' AND COALESCE(NULLIF(order_status, ''), 'ordered') != 'completed'",
+      orderBy: 'id DESC',
+    );
+    final orders = rows.map((e) => Sale.fromMap(e)).toList();
+    final totalAmt = orders.fold<double>(0.0, (s, o) => s + o.totalAmount);
+    return {
+      'count': orders.length,
+      'totalAmount': totalAmt,
+      'orders': orders.take(limit).toList(),
+    };
+  }
+
+  /// Converts a Sales Order (partial or full line quantities) into a final Sale invoice,
+  /// deducts stock cleanly, records payment/cheque ledger, and transitions order_status
+  /// across `ordered` -> `partial` -> `completed`.
+  Future<Sale> convertSalesOrderToInvoice({
+    required int orderId,
+    Map<int, double>? fulfillQuantitiesByItemId,
+    String paymentMethod = 'cash',
+    double? paidAmount,
+    String note = '',
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
+  }) async {
+    final createdInvoice = await db.transaction((txn) async {
+      final orderRows = await txn.query(
+        'sales',
+        where: "id = ? AND sale_status = 'sales_order'",
+        whereArgs: [orderId],
+        limit: 1,
+      );
+      if (orderRows.isEmpty) {
+        throw Exception('Sales Order #$orderId not found.');
+      }
+      final order = Sale.fromMap(orderRows.first);
+      if (order.orderStatus == 'completed') {
+        throw Exception('Sales Order ${order.invoiceNo} is already completed.');
+      }
+
+      final itemRows = await txn.query(
+        'sale_items',
+        where: 'sale_id = ?',
+        whereArgs: [orderId],
+        orderBy: 'id ASC',
+      );
+      final orderItems = itemRows.map((e) => SaleItem.fromMap(e)).toList();
+      if (orderItems.isEmpty) {
+        throw Exception('Sales Order ${order.invoiceNo} has no line items.');
+      }
+
+      final itemsToInvoice = <Map<String, dynamic>>[];
+      double invoiceSubtotal = 0.0;
+      double invoiceTax = 0.0;
+
+      for (final item in orderItems) {
+        final itemId = item.id!;
+        final remaining = item.remainingQuantity;
+        if (remaining <= 0) continue;
+
+        final requested = fulfillQuantitiesByItemId != null
+            ? (fulfillQuantitiesByItemId[itemId] ?? 0.0)
+            : remaining;
+        final fulfillQty = requested.clamp(0.0, remaining).toDouble();
+        if (fulfillQty <= 0) continue;
+
+        final ratio = item.quantity > 0 ? (fulfillQty / item.quantity) : 0.0;
+        final lineSub = double.parse((item.unitPrice * fulfillQty).toStringAsFixed(2));
+        final lineDisc = double.parse((item.discount * ratio).toStringAsFixed(2));
+        final lineTax = double.parse((item.taxAmount * ratio).toStringAsFixed(2));
+
+        invoiceSubtotal += lineSub;
+        invoiceTax += lineTax;
+
+        itemsToInvoice.add({
+          'sourceItem': item,
+          'fulfillQty': fulfillQty,
+          'lineSubtotal': (lineSub - lineDisc).clamp(0.0, double.infinity),
+          'lineDisc': lineDisc,
+          'lineTax': lineTax,
+        });
+      }
+
+      if (itemsToInvoice.isEmpty) {
+        throw Exception('No remaining item quantity selected to convert.');
+      }
+
+      final orderSubtotal = order.subtotal > 0 ? order.subtotal : invoiceSubtotal;
+      final orderScale = orderSubtotal > 0 ? (invoiceSubtotal / orderSubtotal).clamp(0.0, 1.0) : 1.0;
+      final invoiceOrderDiscount =
+          double.parse((order.discount * orderScale).toStringAsFixed(2));
+      final invoiceShipping = order.orderStatus == 'ordered' ? order.shipping : 0.0;
+      final finalTotal = double.parse(
+        (invoiceSubtotal - invoiceOrderDiscount + invoiceTax + invoiceShipping)
+            .clamp(0.0, double.infinity)
+            .toStringAsFixed(2),
+      );
+      final resolvedPaid = (paidAmount ?? finalTotal).clamp(0.0, finalTotal);
+      final paymentStatus = resolvedPaid >= finalTotal
+          ? 'paid'
+          : (resolvedPaid > 0 ? 'partial' : 'due');
+      final commAmt = order.commissionPercent > 0
+          ? double.parse(((finalTotal * order.commissionPercent) / 100.0).toStringAsFixed(2))
+          : 0.0;
+
+      final maxRows = await txn.rawQuery('SELECT MAX(id) as max_id FROM sales');
+      final maxId = (maxRows.first['max_id'] as int?) ?? 1000;
+      final invoiceNo = 'INV-${maxId + 1}';
+      final nowStr = DateTime.now().toIso8601String();
+
+      final invoiceSale = Sale(
+        invoiceNo: invoiceNo,
+        customerId: order.customerId,
+        customerName: order.customerName,
+        subtotal: invoiceSubtotal,
+        discount: invoiceOrderDiscount,
+        taxAmount: invoiceTax,
+        taxRate: order.taxRate,
+        shipping: invoiceShipping,
+        totalAmount: finalTotal,
+        paidAmount: resolvedPaid,
+        paymentMethod: paymentMethod,
+        paymentStatus: paymentStatus,
+        saleStatus: 'final',
+        orderStatus: '',
+        note: note.trim().isNotEmpty
+            ? note.trim()
+            : 'Converted from Sales Order #${order.invoiceNo}',
+        createdAt: nowStr,
+        userName: AuthService.currentUser?.name ?? order.userName,
+        convertedFromOrderId: orderId,
+        commissionAgentId: order.commissionAgentId,
+        commissionAgentName: order.commissionAgentName,
+        commissionPercent: order.commissionPercent,
+        commissionAmount: commAmt,
+        taxGroupId: order.taxGroupId,
+        taxBreakdownJson: order.taxBreakdownJson,
+      );
+
+      final saleId = await txn.insert('sales', invoiceSale.toMap());
+      final savedItems = <SaleItem>[];
+
+      for (final entry in itemsToInvoice) {
+        final item = entry['sourceItem'] as SaleItem;
+        final fulfillQty = entry['fulfillQty'] as double;
+        final lineDisc = entry['lineDisc'] as double;
+        final lineTax = entry['lineTax'] as double;
+        final lineSub = entry['lineSubtotal'] as double;
+
+        final newItem = SaleItem(
+          saleId: saleId,
+          productId: item.productId,
+          variationId: item.variationId,
+          variationName: item.variationName,
+          productName: item.productName,
+          sku: item.sku,
+          unitPrice: item.unitPrice,
+          quantity: fulfillQty,
+          fulfilledQuantity: fulfillQty,
+          discount: lineDisc,
+          subtotal: lineSub,
+          batchNumber: item.batchNumber,
+          expiryDate: item.expiryDate,
+          bonusQuantity: item.bonusQuantity,
+          packDiscount: item.packDiscount,
+          unitName: item.unitName,
+          unitMultiplier: item.unitMultiplier,
+          discountType: item.discountType,
+          discountValue: item.discountValue,
+          taxAmount: lineTax,
+          taxName: item.taxName,
+        );
+        await txn.insert('sale_items', newItem.toMap());
+        savedItems.add(newItem);
+
+        // Update fulfilled_quantity on source Sales Order line item
+        await txn.rawUpdate(
+          'UPDATE sale_items SET fulfilled_quantity = fulfilled_quantity + ? WHERE id = ?',
+          [fulfillQty, item.id],
+        );
+
+        // Deduct live stock
+        if (item.productId != null) {
+          final deductQty =
+              fulfillQty * (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+          await adjustProductAndVariationStock(
+            txn,
+            productId: item.productId!,
+            variationId: item.variationId,
+            delta: -deductQty,
+          );
+        }
+      }
+
+      // Check whether all Sales Order items are now completely fulfilled
+      final refreshedItems = await txn.query(
+        'sale_items',
+        where: 'sale_id = ?',
+        whereArgs: [orderId],
+      );
+      final allCompleted = refreshedItems.every((r) {
+        final qty = (r['quantity'] as num?)?.toDouble() ?? 0.0;
+        final fulfilled = (r['fulfilled_quantity'] as num?)?.toDouble() ?? 0.0;
+        return fulfilled >= qty - 0.0001;
+      });
+      await txn.update(
+        'sales',
+        {
+          'order_status': allCompleted ? 'completed' : 'partial',
+          if (allCompleted) 'converted_to_sale_id': saleId,
+        },
+        where: 'id = ?',
+        whereArgs: [orderId],
+      );
+
+      final dueAmt = (finalTotal - resolvedPaid).clamp(0.0, double.infinity);
+      if (order.customerId != null && dueAmt > 0) {
+        await txn.rawUpdate(
+          'UPDATE contacts SET balance = balance + ? WHERE id = ?',
+          [dueAmt, order.customerId],
+        );
+      }
+
+      if (resolvedPaid > 0) {
+        final methodKey = paymentMethod.toLowerCase();
+        if (methodKey == 'cash') {
+          await txn.rawUpdate(
+            'UPDATE cash_registers SET total_sales_cash = total_sales_cash + ? WHERE status = \'open\'',
+            [resolvedPaid],
+          );
+        } else if (methodKey == 'card') {
+          await txn.rawUpdate(
+            'UPDATE cash_registers SET total_sales_card = total_sales_card + ? WHERE status = \'open\'',
+            [resolvedPaid],
+          );
+        } else {
+          await txn.rawUpdate(
+            'UPDATE cash_registers SET total_sales_other = total_sales_other + ? WHERE status = \'open\'',
+            [resolvedPaid],
+          );
+        }
+
+        final isCheque = methodKey == 'cheque';
+        await txn.insert('payment_transactions', {
+          'transaction_type': 'sale',
+          'parent_id': saleId,
+          'contact_id': order.customerId,
+          'contact_name': order.customerName,
+          'payment_method': paymentMethod,
+          'amount': resolvedPaid,
+          'account_name': methodKey == 'cash' ? 'Cash Register' : 'Main Bank Account',
+          'transaction_date': nowStr,
+          'ref_no': invoiceNo,
+          'note': 'Invoice from Sales Order ${order.invoiceNo}',
+          'created_by': AuthService.currentUser?.name ?? 'Cashier',
+          'created_at': nowStr,
+          'cheque_number': isCheque ? chequeNumber : '',
+          'bank_name': isCheque ? bankName : '',
+          'cheque_due_date': isCheque ? chequeDueDate : '',
+          'cheque_status': isCheque ? 'pending' : '',
+        });
+      }
+
+      await recordActivity(
+        action: 'converted',
+        entityType: 'sales_order',
+        entityId: orderId,
+        newValues: {
+          'invoice_no': invoiceNo,
+          'invoice_id': saleId,
+          'order_status': allCompleted ? 'completed' : 'partial',
+          'total_amount': finalTotal,
+        },
+        txn: txn,
+      );
+
+      return Sale(
+        id: saleId,
+        invoiceNo: invoiceSale.invoiceNo,
+        customerId: invoiceSale.customerId,
+        customerName: invoiceSale.customerName,
+        subtotal: invoiceSale.subtotal,
+        discount: invoiceSale.discount,
+        taxAmount: invoiceSale.taxAmount,
+        taxRate: invoiceSale.taxRate,
+        shipping: invoiceSale.shipping,
+        totalAmount: invoiceSale.totalAmount,
+        paidAmount: invoiceSale.paidAmount,
+        paymentMethod: invoiceSale.paymentMethod,
+        paymentStatus: invoiceSale.paymentStatus,
+        saleStatus: 'final',
+        note: invoiceSale.note,
+        createdAt: invoiceSale.createdAt,
+        userName: invoiceSale.userName,
+        convertedFromOrderId: orderId,
+        commissionAgentId: invoiceSale.commissionAgentId,
+        commissionAgentName: invoiceSale.commissionAgentName,
+        commissionPercent: invoiceSale.commissionPercent,
+        commissionAmount: invoiceSale.commissionAmount,
+        items: savedItems,
+      );
+    });
+
+    dbService.triggerAsyncMySqlSync();
+    return createdInvoice;
   }
 
   @override

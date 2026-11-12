@@ -30,6 +30,8 @@ class Purchase {
   final String payTermType; // 'days', 'months'
   final String documentPath;
   final String purchaseDate;
+  final bool isPurchaseOrder;
+  final int? convertedFromPoId;
 
   Purchase({
     this.id,
@@ -59,6 +61,8 @@ class Purchase {
     this.payTermType = 'days',
     this.documentPath = '',
     String? purchaseDate,
+    this.isPurchaseOrder = false,
+    this.convertedFromPoId,
   }) : purchaseDate = purchaseDate ?? createdAt;
 
   double get dueAmount =>
@@ -107,6 +111,9 @@ class Purchase {
         'pay_term_type': payTermType,
         'document_path': documentPath,
         'purchase_date': purchaseDate,
+        'is_purchase_order': isPurchaseOrder ? 1 : 0,
+        if (convertedFromPoId != null)
+          'converted_from_po_id': convertedFromPoId,
       };
 
   factory Purchase.fromMap(Map<String, dynamic> map) => Purchase(
@@ -139,5 +146,7 @@ class Purchase {
         documentPath: map['document_path'] as String? ?? '',
         purchaseDate: map['purchase_date'] as String? ??
             (map['created_at'] as String? ?? ''),
+        isPurchaseOrder: (map['is_purchase_order'] as int? ?? 0) == 1,
+        convertedFromPoId: map['converted_from_po_id'] as int?,
       );
 }

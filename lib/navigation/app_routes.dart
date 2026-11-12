@@ -42,7 +42,12 @@ enum AppRoute {
   poultryBusiness(38, '/modules/poultry', 'Poultry Business'),
   moduleSettings(39, '/modules/settings', 'Module Settings'),
   cloudSync(40, '/cloud-sync', 'Cloud Sync'),
-  addPurchase(41, '/purchases/add', 'Add Purchase');
+  addPurchase(41, '/purchases/add', 'Add Purchase'),
+  salesOrders(42, '/sales/orders', 'Sales Orders'),
+  purchaseOrders(43, '/purchases/orders', 'Purchase Orders'),
+  chequeManagement(44, '/cheques', 'Cheques'),
+  commissionAgents(45, '/commission-agents', 'Commission Agents'),
+  discountRules(46, '/discounts', 'Discount Rules');
 
   final int tabIndex;
   final String routePath;

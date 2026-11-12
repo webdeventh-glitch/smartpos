@@ -322,7 +322,7 @@ void main() {
       await v5Raw.close();
 
       db = await DatabaseService.initialize(customPath: v5DbPath);
-      expect(await db.db.getVersion(), 6);
+      expect(await db.db.getVersion(), DatabaseService.currentSchemaVersion);
 
       final imgProd = (await db.getProducts(search: 'LEG-IMG')).first;
       expect(imgProd.imagePath, legacyImg.path);

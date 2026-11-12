@@ -121,6 +121,117 @@ class DatabaseSchema {
         'phase5_product_images_variations_and_pagination',
       );
     }
+    if (fromVersion < 7 && toVersion >= 7) {
+      await _applyV7Phase6Migrations(db);
+      await _recordMigration(
+        db,
+        7,
+        'phase6_orders_cheques_commissions_discounts_backup',
+      );
+    }
+  }
+
+  static Future<void> _applyV7Phase6Migrations(Database db) async {
+    // Step 6.1: Sales Orders workflow & partial fulfillment
+    await _addColumnIfMissing(db, 'sales', 'order_status', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'sales', 'converted_from_order_id', 'INTEGER');
+    await _addColumnIfMissing(db, 'sale_items', 'fulfilled_quantity', 'REAL DEFAULT 0.0');
+
+    // Step 6.2: Purchase Orders workflow
+    await _addColumnIfMissing(db, 'purchases', 'is_purchase_order', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(db, 'purchases', 'converted_from_po_id', 'INTEGER');
+
+    // Step 6.3: Cheque management fields on payment records
+    await _addColumnIfMissing(db, 'payment_transactions', 'cheque_number', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'payment_transactions', 'bank_name', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'payment_transactions', 'cheque_due_date', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'payment_transactions', 'cheque_status', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'payment_transactions', 'cheque_cleared_at', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'contact_payments', 'cheque_number', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'contact_payments', 'bank_name', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'contact_payments', 'cheque_due_date', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'contact_payments', 'cheque_status', "TEXT DEFAULT ''");
+
+    // Backfill legacy cheque payments without cheque_status to 'pending'
+    if (await _tableExists(db, 'payment_transactions')) {
+      await db.execute('''
+        UPDATE payment_transactions
+        SET cheque_status = 'pending'
+        WHERE LOWER(payment_method) = 'cheque'
+          AND (cheque_status IS NULL OR TRIM(cheque_status) = '')
+      ''');
+    }
+
+    // Step 6.4: Commission Agents table & sale commission attribution
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS commission_agents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT DEFAULT '',
+        email TEXT DEFAULT '',
+        address TEXT DEFAULT '',
+        commission_percent REAL DEFAULT 0.0,
+        is_active INTEGER DEFAULT 1,
+        notes TEXT DEFAULT '',
+        created_at TEXT NOT NULL
+      )
+    ''');
+    await _addColumnIfMissing(db, 'sales', 'commission_agent_id', 'INTEGER');
+    await _addColumnIfMissing(db, 'sales', 'commission_agent_name', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'sales', 'commission_percent', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(db, 'sales', 'commission_amount', 'REAL DEFAULT 0.0');
+
+    // Step 6.5: Discount Schedules & Conditional Rules
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS discounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        rule_type TEXT DEFAULT 'standard',
+        discount_type TEXT DEFAULT 'percentage',
+        discount_amount REAL DEFAULT 0.0,
+        starts_at TEXT,
+        ends_at TEXT,
+        product_id INTEGER,
+        brand_id INTEGER,
+        category_id INTEGER,
+        location_id INTEGER,
+        days_of_week TEXT DEFAULT '',
+        start_time TEXT DEFAULT '',
+        end_time TEXT DEFAULT '',
+        min_quantity REAL DEFAULT 0.0,
+        buy_quantity REAL DEFAULT 0.0,
+        free_quantity REAL DEFAULT 0.0,
+        min_order_amount REAL DEFAULT 0.0,
+        priority INTEGER DEFAULT 1,
+        applicable_in_pos INTEGER DEFAULT 1,
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT
+      )
+    ''');
+    await _addColumnIfMissing(db, 'discounts', 'rule_type', "TEXT DEFAULT 'standard'");
+    await _addColumnIfMissing(db, 'discounts', 'product_id', 'INTEGER');
+    await _addColumnIfMissing(db, 'discounts', 'days_of_week', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'discounts', 'start_time', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'discounts', 'end_time', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'discounts', 'min_quantity', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(db, 'discounts', 'buy_quantity', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(db, 'discounts', 'free_quantity', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(db, 'discounts', 'min_order_amount', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(db, 'discounts', 'applicable_in_pos', 'INTEGER DEFAULT 1');
+
+    // Step 6.6: Automated Backup Scheduler settings
+    await _addColumnIfMissing(db, 'business_settings', 'auto_backup_enabled', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(db, 'business_settings', 'backup_frequency', "TEXT DEFAULT 'daily'");
+    await _addColumnIfMissing(db, 'business_settings', 'backup_interval_hours', 'INTEGER DEFAULT 24');
+    await _addColumnIfMissing(db, 'business_settings', 'backup_retention_count', 'INTEGER DEFAULT 10');
+    await _addColumnIfMissing(db, 'business_settings', 'last_auto_backup_at', "TEXT DEFAULT ''");
+
+    // Phase 6 Indexes
+    await _ensureIndex(db, 'idx_sales_order_status', 'sales', 'sale_status, order_status, id DESC');
+    await _ensureIndex(db, 'idx_sales_commission_agent', 'sales', 'commission_agent_id, created_at');
+    await _ensureIndex(db, 'idx_purchases_po', 'purchases', 'is_purchase_order, status, id DESC');
+    await _ensureIndex(db, 'idx_pay_txn_cheque', 'payment_transactions', 'payment_method, cheque_status, cheque_due_date');
+    await _ensureIndex(db, 'idx_discounts_active', 'discounts', 'is_active, priority');
   }
 
   static Future<void> _applyV6Phase5Migrations(Database db) async {
@@ -937,7 +1048,11 @@ class DatabaseSchema {
         date TEXT NOT NULL,
         ref_no TEXT,
         note TEXT,
-        document_path TEXT
+        document_path TEXT,
+        cheque_number TEXT DEFAULT '',
+        bank_name TEXT DEFAULT '',
+        cheque_due_date TEXT DEFAULT '',
+        cheque_status TEXT DEFAULT ''
       );
     ''');
     await _addColumnIfMissing(db, 'contact_payments', 'document_path', 'TEXT');
@@ -1338,7 +1453,12 @@ class DatabaseSchema {
         ref_no TEXT,
         note TEXT,
         created_by TEXT DEFAULT 'Cashier',
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        cheque_number TEXT DEFAULT '',
+        bank_name TEXT DEFAULT '',
+        cheque_due_date TEXT DEFAULT '',
+        cheque_status TEXT DEFAULT '',
+        cheque_cleared_at TEXT DEFAULT ''
       );
     ''');
 
@@ -1845,7 +1965,12 @@ class DatabaseSchema {
         auto_print_receipt INTEGER DEFAULT 0,
         auto_print_kot INTEGER DEFAULT 0,
         default_printer_id INTEGER,
-        default_invoice_layout_id INTEGER
+        default_invoice_layout_id INTEGER,
+        auto_backup_enabled INTEGER DEFAULT 0,
+        backup_frequency TEXT DEFAULT 'daily',
+        backup_interval_hours INTEGER DEFAULT 24,
+        backup_retention_count INTEGER DEFAULT 10,
+        last_auto_backup_at TEXT DEFAULT ''
       )
     ''');
 
@@ -1936,12 +2061,18 @@ class DatabaseSchema {
         payment_method TEXT DEFAULT 'cash',
         payment_status TEXT DEFAULT 'paid',
         sale_status TEXT DEFAULT 'final',
+        order_status TEXT DEFAULT '',
         note TEXT,
         created_at TEXT NOT NULL,
         cash_register_id INTEGER,
         user_name TEXT,
         converted_from_quotation_id INTEGER,
         converted_to_sale_id INTEGER,
+        converted_from_order_id INTEGER,
+        commission_agent_id INTEGER,
+        commission_agent_name TEXT DEFAULT '',
+        commission_percent REAL DEFAULT 0.0,
+        commission_amount REAL DEFAULT 0.0,
         tax_group_id INTEGER,
         tax_breakdown_json TEXT DEFAULT ''
       )
@@ -1959,6 +2090,7 @@ class DatabaseSchema {
         sku TEXT,
         unit_price REAL NOT NULL,
         quantity REAL NOT NULL,
+        fulfilled_quantity REAL DEFAULT 0.0,
         discount REAL DEFAULT 0.0,
         subtotal REAL NOT NULL,
         batch_number TEXT,
@@ -2004,7 +2136,9 @@ class DatabaseSchema {
         pay_term_number INTEGER,
         pay_term_type TEXT DEFAULT 'days',
         document_path TEXT DEFAULT '',
-        purchase_date TEXT DEFAULT ''
+        purchase_date TEXT DEFAULT '',
+        is_purchase_order INTEGER DEFAULT 0,
+        converted_from_po_id INTEGER
       )
     ''');
 
@@ -2193,7 +2327,11 @@ class DatabaseSchema {
         date TEXT NOT NULL,
         ref_no TEXT,
         note TEXT,
-        document_path TEXT
+        document_path TEXT,
+        cheque_number TEXT DEFAULT '',
+        bank_name TEXT DEFAULT '',
+        cheque_due_date TEXT DEFAULT '',
+        cheque_status TEXT DEFAULT ''
       )
     ''');
 
@@ -2475,7 +2613,12 @@ class DatabaseSchema {
         ref_no TEXT,
         note TEXT,
         created_by TEXT DEFAULT 'Cashier',
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        cheque_number TEXT DEFAULT '',
+        bank_name TEXT DEFAULT '',
+        cheque_due_date TEXT DEFAULT '',
+        cheque_status TEXT DEFAULT '',
+        cheque_cleared_at TEXT DEFAULT ''
       )
     ''');
 

@@ -44,6 +44,11 @@ class _PaymentModalState extends State<PaymentModal> {
   final TextEditingController _splitCardController = TextEditingController();
   final TextEditingController _splitBankController = TextEditingController();
 
+  // Cheque tracking controllers (Step 6.3)
+  final TextEditingController _chequeNoController = TextEditingController();
+  final TextEditingController _chequeBankController = TextEditingController();
+  final TextEditingController _chequeDueDateController = TextEditingController();
+
   bool _isSplitMode = false;
   String _selectedMethod = 'cash'; // 'cash', 'card', 'bank_transfer', 'cheque', 'credit'
   String? _validationError;
@@ -73,6 +78,9 @@ class _PaymentModalState extends State<PaymentModal> {
     _splitCashController.dispose();
     _splitCardController.dispose();
     _splitBankController.dispose();
+    _chequeNoController.dispose();
+    _chequeBankController.dispose();
+    _chequeDueDateController.dispose();
     super.dispose();
   }
 
@@ -256,8 +264,20 @@ class _PaymentModalState extends State<PaymentModal> {
       'redeemedLoyaltyPoints': _redeemLoyalty ? _loyaltyDiscount : 0.0,
       'loyaltyDiscount': _redeemLoyalty ? _loyaltyDiscount : 0.0,
       'splitTenders': [
-        if (paid > 0) {'method': _selectedMethod, 'amount': paid},
+        if (paid > 0)
+          {
+            'method': _selectedMethod,
+            'amount': paid,
+            if (_selectedMethod == 'cheque') ...{
+              'chequeNumber': _chequeNoController.text.trim(),
+              'bankName': _chequeBankController.text.trim(),
+              'chequeDueDate': _chequeDueDateController.text.trim(),
+            },
+          },
       ],
+      'chequeNumber': _selectedMethod == 'cheque' ? _chequeNoController.text.trim() : '',
+      'bankName': _selectedMethod == 'cheque' ? _chequeBankController.text.trim() : '',
+      'chequeDueDate': _selectedMethod == 'cheque' ? _chequeDueDateController.text.trim() : '',
       'note': isForeign
           ? 'Foreign Currency Tender: $tenderCode (${_selectedRate!.symbol}$foreignTenderedVal @ ${rate.toStringAsFixed(2)} = ${widget.currencySymbol}${_tendered.toStringAsFixed(2)}). Change: ${widget.currencySymbol}${_changeReturn.toStringAsFixed(2)} (${_selectedRate!.symbol}${foreignChangeVal.toStringAsFixed(2)})'
           : _noteController.text.trim(),
@@ -1239,6 +1259,74 @@ class _PaymentModalState extends State<PaymentModal> {
                       ),
                     ],
                   ),
+                ),
+              ],
+
+              if (!_isSplitMode && _selectedMethod == 'cheque') ...[
+                const SizedBox(height: 12),
+                Text(
+                  'CHEQUE DETAILS (FOR CHEQUE CLEARING)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _chequeNoController,
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          hintText: 'Cheque No.',
+                          isDense: true,
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _chequeBankController,
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          hintText: 'Bank Name',
+                          isDense: true,
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _chequeDueDateController,
+                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          hintText: 'Due YYYY-MM-DD',
+                          isDense: true,
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
 

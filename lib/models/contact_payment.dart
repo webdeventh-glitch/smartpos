@@ -11,6 +11,10 @@ class ContactPayment {
   final String refNo;
   final String note;
   final String? documentPath;
+  final String chequeNumber;
+  final String bankName;
+  final String chequeDueDate;
+  final String chequeStatus;
 
   ContactPayment({
     this.id,
@@ -23,7 +27,12 @@ class ContactPayment {
     required this.refNo,
     this.note = '',
     this.documentPath,
-  });
+    this.chequeNumber = '',
+    this.bankName = '',
+    this.chequeDueDate = '',
+    String? chequeStatus,
+  }) : chequeStatus =
+            chequeStatus ?? (paymentMethod == 'cheque' ? 'pending' : '');
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
@@ -36,6 +45,10 @@ class ContactPayment {
         'ref_no': refNo,
         'note': note,
         if (documentPath != null && documentPath!.isNotEmpty) 'document_path': documentPath,
+        'cheque_number': chequeNumber,
+        'bank_name': bankName,
+        'cheque_due_date': chequeDueDate,
+        'cheque_status': chequeStatus,
       };
 
   factory ContactPayment.fromMap(Map<String, dynamic> map) => ContactPayment(
@@ -49,5 +62,9 @@ class ContactPayment {
         refNo: map['ref_no'] as String? ?? '',
         note: map['note'] as String? ?? '',
         documentPath: map['document_path'] as String?,
+        chequeNumber: map['cheque_number'] as String? ?? '',
+        bankName: map['bank_name'] as String? ?? '',
+        chequeDueDate: map['cheque_due_date'] as String? ?? '',
+        chequeStatus: map['cheque_status'] as String?,
       );
 }

@@ -13,3 +13,4 @@ export 'sale_repository.dart';
 export 'seeder_repository.dart';
 export 'settings_repository.dart';
 export 'sync_repository.dart';
+export 'advanced_features_repository.dart';

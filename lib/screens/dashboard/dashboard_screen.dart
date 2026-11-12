@@ -34,6 +34,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Map<String, dynamic>> _topProducts = [];
   List<Product> _lowStock = [];
   List<Sale> _recentSales = [];
+  Map<String, dynamic> _pendingSalesOrders = {'count': 0, 'totalAmount': 0.0, 'orders': <Sale>[]};
+  Map<String, dynamic> _pendingPurchaseOrders = {'count': 0, 'totalAmount': 0.0, 'orders': <Purchase>[]};
 
   bool _loading = true;
   bool _refreshing = false;
@@ -62,6 +64,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final topProducts = await db.getTopSellingProducts(limit: 5);
       final lowStock = await db.getLowStockProducts();
       final sales = await db.getSales();
+      final pendingSo = await db.getPendingSalesOrdersSummary(limit: 4);
+      final pendingPo = await db.getPendingPurchaseOrdersSummary(limit: 4);
 
       if (mounted) {
         setState(() {
@@ -72,6 +76,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _topProducts = topProducts;
           _lowStock = lowStock;
           _recentSales = sales.take(6).toList();
+          _pendingSalesOrders = pendingSo;
+          _pendingPurchaseOrders = pendingPo;
           _loading = false;
           _refreshing = false;
         });
@@ -784,8 +790,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   label: 'Reports',
                   onTap: () => widget.onNavigateToRoute(AppRoute.reports),
                 ),
+                _actionPill(
+                  icon: Icons.assignment_turned_in_outlined,
+                  label: 'Sales Orders',
+                  onTap: () => widget.onNavigateToRoute(AppRoute.salesOrders),
+                ),
+                _actionPill(
+                  icon: Icons.local_shipping_outlined,
+                  label: 'Purchase Orders',
+                  onTap: () => widget.onNavigateToRoute(AppRoute.purchaseOrders),
+                ),
               ],
             ),
+            const SizedBox(height: 20),
+
+            // Step 6.1 & 6.2: Pending Sales & Purchase Orders Dashboard Widget
+            _buildPendingOrdersWidget(currency),
             const SizedBox(height: 24),
 
             // ================= 5. ANALYTICS & CHARTS SECTION =================
@@ -1850,6 +1870,143 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildPendingOrdersWidget(String currency) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final soCount = (_pendingSalesOrders['count'] as int?) ?? 0;
+    final soTotal = (_pendingSalesOrders['totalAmount'] as double?) ?? 0.0;
+    final soList = (_pendingSalesOrders['orders'] as List<dynamic>? ?? const []).cast<Sale>();
+    final poCount = (_pendingPurchaseOrders['count'] as int?) ?? 0;
+    final poTotal = (_pendingPurchaseOrders['totalAmount'] as double?) ?? 0.0;
+    final poList = (_pendingPurchaseOrders['orders'] as List<dynamic>? ?? const []).cast<Purchase>();
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF4F46E5), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Pending Sales Orders ($soCount)',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    Text(
+                      '$currency ${soTotal.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () => widget.onNavigateToRoute(AppRoute.salesOrders),
+                      child: const Text('Manage'),
+                    ),
+                  ],
+                ),
+                if (soList.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No pending sales orders awaiting invoicing.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  )
+                else
+                  ...soList.map((o) => Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${o.invoiceNo} • ${o.customerName} (${(o.orderStatus.isEmpty ? "ordered" : o.orderStatus).toUpperCase()})',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            Text('$currency ${o.totalAmount.toStringAsFixed(2)}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      )),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.local_shipping_rounded, color: Color(0xFF0038B8), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Pending Purchase Orders ($poCount)',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    Text(
+                      '$currency ${poTotal.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0038B8)),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () => widget.onNavigateToRoute(AppRoute.purchaseOrders),
+                      child: const Text('Receive'),
+                    ),
+                  ],
+                ),
+                if (poList.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No pending supplier purchase orders.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  )
+                else
+                  ...poList.map((p) => Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${p.refNo} • ${p.supplierName} (${p.status.toUpperCase()})',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            Text('$currency ${p.totalAmount.toStringAsFixed(2)}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      )),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

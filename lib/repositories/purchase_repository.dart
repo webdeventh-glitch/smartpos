@@ -10,6 +10,7 @@ abstract class IPurchaseRepository {
     String? status,
     String? paymentStatus,
     String? search,
+    bool? purchaseOrdersOnly,
     int page = 1,
     int pageSize = 25,
     int? cursorId,
@@ -23,6 +24,9 @@ abstract class IPurchaseRepository {
     String refNo = '',
     String note = '',
     String createdBy = 'Cashier',
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
   });
 }
 
@@ -40,6 +44,9 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
     String refNo = '',
     String note = '',
     String createdBy = 'Cashier',
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
   }) async {
     await db.transaction((txn) async {
       final rows = await txn.query('purchases',
@@ -71,6 +78,7 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
 
       // Record in payment_transactions table
       final nowStr = DateTime.now().toIso8601String();
+      final isCheque = paymentMethod.toLowerCase() == 'cheque';
       await txn.insert('payment_transactions', {
         'transaction_type': 'purchase',
         'parent_id': purchaseId,
@@ -88,6 +96,10 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
             : 'Supplier installment payment for ${purchase.referenceNo}',
         'created_by': createdBy,
         'created_at': nowStr,
+        'cheque_number': isCheque ? chequeNumber : '',
+        'bank_name': isCheque ? bankName : '',
+        'cheque_due_date': isCheque ? chequeDueDate : '',
+        'cheque_status': isCheque ? 'pending' : '',
       });
     });
   }
@@ -102,6 +114,9 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
   Future<int> createPurchase({
     required Purchase purchase,
     required List<Map<String, dynamic>> items,
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
   }) async {
     final purchaseId = await db.transaction((txn) async {
       final purchaseMap = purchase.toMap();
@@ -212,7 +227,7 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
         );
       }
 
-      // If supplier was paid, debit the payment account or cash register
+      // If supplier was paid, debit the payment account or cash register and log payment_transaction
       if (purchase.paidAmount > 0) {
         if (purchase.paymentAccountId != null) {
           await txn.rawUpdate(
@@ -225,6 +240,33 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
             [purchase.paidAmount],
           );
         }
+
+        final nowStr = DateTime.now().toIso8601String();
+        final isCheque = purchase.paymentMethod.toLowerCase() == 'cheque';
+        await txn.insert('payment_transactions', {
+          'transaction_type': 'purchase',
+          'parent_id': purchaseId,
+          'contact_id': purchase.supplierId,
+          'contact_name': purchase.supplierName,
+          'payment_method': purchase.paymentMethod,
+          'amount': purchase.paidAmount,
+          'account_id': purchase.paymentAccountId,
+          'account_name': purchase.paymentMethod.toLowerCase() == 'cash'
+              ? 'Cash Register'
+              : 'Main Bank Account',
+          'transaction_date':
+              purchase.purchaseDate.isNotEmpty ? purchase.purchaseDate : nowStr,
+          'ref_no': purchase.refNo,
+          'note': purchase.paymentNote.isNotEmpty
+              ? purchase.paymentNote
+              : 'Payment for Purchase ${purchase.refNo}',
+          'created_by': 'System',
+          'created_at': nowStr,
+          'cheque_number': isCheque ? chequeNumber : '',
+          'bank_name': isCheque ? bankName : '',
+          'cheque_due_date': isCheque ? chequeDueDate : '',
+          'cheque_status': isCheque ? 'pending' : '',
+        });
       }
 
       // Queue for live MySQL sync
@@ -500,6 +542,7 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
     String? status,
     String? paymentStatus,
     String? search,
+    bool? purchaseOrdersOnly,
     int page = 1,
     int pageSize = 25,
     int? cursorId,
@@ -510,6 +553,11 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
     final baseConditions = <String>[];
     final baseArgs = <dynamic>[];
 
+    if (purchaseOrdersOnly == true) {
+      baseConditions.add('is_purchase_order = 1');
+    } else if (purchaseOrdersOnly == false) {
+      baseConditions.add('COALESCE(is_purchase_order, 0) = 0');
+    }
     if (status != null && status.isNotEmpty && status != 'all') {
       baseConditions.add('status = ?');
       baseArgs.add(status);
@@ -650,5 +698,250 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
       }
       return id;
     });
+  }
+
+  // ==================== STEP 6.2: PURCHASE ORDERS WORKFLOW ====================
+
+  Future<String> generateNextPurchaseOrderRef() async {
+    final rows = await db.rawQuery('SELECT MAX(id) as max_id FROM purchases');
+    final maxId = (rows.first['max_id'] as int?) ?? 100;
+    return 'PO-ORD-${maxId + 1}';
+  }
+
+  Future<Map<String, dynamic>> getPendingPurchaseOrdersSummary({int limit = 5}) async {
+    final rows = await db.query(
+      'purchases',
+      where: "is_purchase_order = 1 AND status != 'received'",
+      orderBy: 'id DESC',
+    );
+    final orders = rows.map((e) => Purchase.fromMap(e)).toList();
+    final totalAmt = orders.fold<double>(0.0, (s, o) => s + o.totalAmount);
+    return {
+      'count': orders.length,
+      'totalAmount': totalAmt,
+      'orders': orders.take(limit).toList(),
+    };
+  }
+
+  /// Receives partial or full line-item quantities for a Purchase Order, creating a
+  /// linked GRN Purchase record, incrementing product/variation stock, updating supplier
+  /// balance, and transitioning PO status across `ordered` -> `partial` -> `received`.
+  Future<int> receivePurchaseOrderItems({
+    required int poId,
+    Map<int, double>? receiveQtyByLineIndex,
+    String supplierInvoiceRef = '',
+    double paidNow = 0.0,
+    String paymentMethod = 'cash',
+    int? paymentAccountId,
+    String note = '',
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
+  }) async {
+    final grnPurchaseId = await db.transaction((txn) async {
+      final rows = await txn.query(
+        'purchases',
+        where: 'id = ?',
+        whereArgs: [poId],
+        limit: 1,
+      );
+      if (rows.isEmpty) throw Exception('Purchase Order #$poId not found');
+      final po = Purchase.fromMap(rows.first);
+      if (po.status == 'received') {
+        throw Exception('Purchase Order ${po.refNo} is already fully received.');
+      }
+
+      final poItems = po.getItems();
+      if (poItems.isEmpty) {
+        throw Exception('Purchase Order ${po.refNo} has no items.');
+      }
+
+      final grnItems = <Map<String, dynamic>>[];
+      double grnTotal = 0.0;
+
+      for (int i = 0; i < poItems.length; i++) {
+        final line = poItems[i];
+        final orderedQty = (line['quantity'] as num?)?.toDouble() ?? 0.0;
+        final alreadyReceived =
+            (line['received_quantity'] as num?)?.toDouble() ?? 0.0;
+        final remaining = (orderedQty - alreadyReceived).clamp(0.0, double.infinity);
+        if (remaining <= 0) continue;
+
+        final req = receiveQtyByLineIndex != null
+            ? (receiveQtyByLineIndex[i] ?? 0.0)
+            : remaining;
+        final recvQty = req.clamp(0.0, remaining).toDouble();
+        if (recvQty <= 0) continue;
+
+        final unitCost = (line['purchase_price'] as num?)?.toDouble() ??
+            (line['unit_cost'] as num?)?.toDouble() ??
+            0.0;
+        final sellingPrice = (line['selling_price'] as num?)?.toDouble();
+        final subtotal = double.parse((unitCost * recvQty).toStringAsFixed(2));
+        grnTotal += subtotal;
+
+        line['received_quantity'] = alreadyReceived + recvQty;
+        grnItems.add({
+          ...line,
+          'quantity': recvQty,
+          'subtotal': subtotal,
+        });
+
+        final productId = line['product_id'] as int?;
+        final variationId = line['variation_id'] as int?;
+        if (productId != null) {
+          if (variationId != null && unitCost > 0) {
+            await txn.rawUpdate(
+              'UPDATE variations SET purchase_price = ? WHERE id = ?',
+              [unitCost, variationId],
+            );
+          } else if (unitCost > 0) {
+            await txn.rawUpdate(
+              'UPDATE products SET purchase_price = ? WHERE id = ?',
+              [unitCost, productId],
+            );
+          }
+          if (sellingPrice != null && sellingPrice > 0) {
+            if (variationId != null) {
+              await txn.rawUpdate(
+                'UPDATE variations SET selling_price = ? WHERE id = ?',
+                [sellingPrice, variationId],
+              );
+            } else {
+              await txn.rawUpdate(
+                'UPDATE products SET selling_price = ? WHERE id = ?',
+                [sellingPrice, productId],
+              );
+            }
+          }
+          await adjustProductAndVariationStock(
+            txn,
+            productId: productId,
+            variationId: variationId,
+            delta: recvQty,
+          );
+        }
+      }
+
+      if (grnItems.isEmpty) {
+        throw Exception('No remaining item quantity selected to receive.');
+      }
+
+      final allReceived = poItems.every((line) {
+        final orderedQty = (line['quantity'] as num?)?.toDouble() ?? 0.0;
+        final recvQty = (line['received_quantity'] as num?)?.toDouble() ?? 0.0;
+        return recvQty >= orderedQty - 0.0001;
+      });
+      final newPoStatus = allReceived ? 'received' : 'partial';
+
+      await txn.update(
+        'purchases',
+        {
+          'status': newPoStatus,
+          'items_json': jsonEncode(poItems),
+        },
+        where: 'id = ?',
+        whereArgs: [poId],
+      );
+
+      final maxRows = await txn.rawQuery('SELECT MAX(id) as max_id FROM purchases');
+      final maxId = (maxRows.first['max_id'] as int?) ?? 100;
+      final nowStr = DateTime.now().toIso8601String();
+      final effectiveRef = supplierInvoiceRef.trim().isNotEmpty
+          ? supplierInvoiceRef.trim()
+          : 'GRN-${maxId + 1}';
+
+      final clampedPaid = paidNow.clamp(0.0, grnTotal);
+      final payStatus = clampedPaid >= grnTotal
+          ? 'paid'
+          : (clampedPaid > 0 ? 'partial' : 'due');
+
+      final grnPurchase = Purchase(
+        refNo: effectiveRef,
+        supplierId: po.supplierId,
+        supplierName: po.supplierName,
+        locationId: po.locationId,
+        locationName: po.locationName,
+        totalAmount: grnTotal,
+        paidAmount: clampedPaid,
+        status: 'received',
+        paymentStatus: payStatus,
+        createdAt: nowStr,
+        note: note.trim().isNotEmpty
+            ? note.trim()
+            : 'Goods received against PO ${po.refNo}',
+        itemsJson: jsonEncode(grnItems),
+        paymentMethod: paymentMethod,
+        paymentAccountId: paymentAccountId,
+        purchaseDate: nowStr,
+        isPurchaseOrder: false,
+        convertedFromPoId: poId,
+      );
+
+      final grnId = await txn.insert('purchases', grnPurchase.toMap());
+
+      final dueAmt = (grnTotal - clampedPaid).clamp(0.0, double.infinity);
+      if (po.supplierId != null && dueAmt > 0) {
+        await txn.rawUpdate(
+          'UPDATE contacts SET balance = balance + ? WHERE id = ?',
+          [dueAmt, po.supplierId],
+        );
+      }
+
+      if (clampedPaid > 0) {
+        if (paymentAccountId != null) {
+          await txn.rawUpdate(
+            'UPDATE payment_accounts SET current_balance = current_balance - ? WHERE id = ?',
+            [clampedPaid, paymentAccountId],
+          );
+        } else if (paymentMethod.toLowerCase() == 'cash') {
+          await txn.rawUpdate(
+            'UPDATE cash_registers SET total_sales_cash = total_sales_cash - ? WHERE status = \'open\'',
+            [clampedPaid],
+          );
+        }
+
+        final isCheque = paymentMethod.toLowerCase() == 'cheque';
+        await txn.insert('payment_transactions', {
+          'transaction_type': 'purchase',
+          'parent_id': grnId,
+          'contact_id': po.supplierId,
+          'contact_name': po.supplierName,
+          'payment_method': paymentMethod,
+          'amount': clampedPaid,
+          'account_id': paymentAccountId,
+          'account_name': paymentMethod.toLowerCase() == 'cash'
+              ? 'Cash Register'
+              : 'Main Bank Account',
+          'transaction_date': nowStr,
+          'ref_no': effectiveRef,
+          'note': 'GRN payment for PO ${po.refNo}',
+          'created_by': 'System',
+          'created_at': nowStr,
+          'cheque_number': isCheque ? chequeNumber : '',
+          'bank_name': isCheque ? bankName : '',
+          'cheque_due_date': isCheque ? chequeDueDate : '',
+          'cheque_status': isCheque ? 'pending' : '',
+        });
+      }
+
+      await recordActivity(
+        action: 'received',
+        entityType: 'purchase_order',
+        entityId: poId,
+        newValues: {
+          'grn_ref': effectiveRef,
+          'grn_id': grnId,
+          'po_status': newPoStatus,
+          'total_amount': grnTotal,
+        },
+        txn: txn,
+      );
+
+      return grnId;
+    });
+
+    dbService.triggerAsyncMySqlSync();
+    return grnPurchaseId;
   }
 }

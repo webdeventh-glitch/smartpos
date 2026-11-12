@@ -95,6 +95,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   // Parked bills count
   int _parkedCount = 0;
 
+  // Phase 6: Commission Agents & Scheduled Promo Discounts
+  List<CommissionAgent> _commissionAgents = [];
+  CommissionAgent? _selectedCommissionAgent;
+  List<DiscountRule> _discountRules = [];
+  String _appliedPromoRuleName = '';
+  bool _manualOrderDiscountOverride = false;
+
   late String _wordsLanguage;
 
   @override
@@ -244,6 +251,20 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       includeTotalCount: false,
     );
     if (!mounted) return;
+    final initialItems = _filterFeatured
+        ? firstPage.items.where((p) => (p.id ?? 0) % 5 == 0).toList()
+        : firstPage.items;
+    setState(() {
+      _categories = categories;
+      _brands = brands;
+      _products = initialItems;
+      _catalogCursorName = firstPage.nextCursorSortValue;
+      _catalogCursorId = firstPage.nextCursorId;
+      _catalogHasMore = firstPage.hasMore;
+      _loadingMoreCatalog = false;
+      _loadingCatalog = false;
+    });
+
     final customers = await db.getContacts(type: 'customer');
     if (!mounted) return;
     final customerGroups = await db.getCustomerGroups();
@@ -256,15 +277,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     if (!mounted) return;
     final activeReg = await ref.read(activeRegisterProvider.future);
     if (!mounted) return;
+    final commissionAgents = await db.getCommissionAgents(activeOnly: true);
+    if (!mounted) return;
+    final discountRules = await db.getDiscountRules(activeOnly: true);
+    if (!mounted) return;
 
     final Contact? defaultCust = customers.cast<Contact?>().firstWhere(
           (c) => c!.name.toLowerCase().contains('walk-in') || c.name.toLowerCase().contains('walk in'),
           orElse: () => customers.isNotEmpty ? customers.first : null,
         );
-
-    final initialItems = _filterFeatured
-        ? firstPage.items.where((p) => (p.id ?? 0) % 5 == 0).toList()
-        : firstPage.items;
 
     setState(() {
       _customers = customers;
@@ -272,15 +293,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       _taxRates = taxRates;
       _taxGroups = taxGroups;
       _selectedCustomer = defaultCust;
-      _categories = categories;
-      _brands = brands;
-      _products = initialItems;
-      _catalogCursorName = firstPage.nextCursorSortValue;
-      _catalogCursorId = firstPage.nextCursorId;
-      _catalogHasMore = firstPage.hasMore;
-      _loadingMoreCatalog = false;
       _parkedCount = parked.length;
-      _loadingCatalog = false;
+      _commissionAgents = commissionAgents;
+      _discountRules = discountRules;
     });
 
     if (widget.initialSaleToResume != null && _resumedSaleId == null) {
@@ -2679,6 +2694,25 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   double get _grandTotal => ref.read(cartProvider).grandTotal;
   double get _totalQuantity => ref.read(cartProvider).totalQuantity;
 
+  void _applyPromoDiscountIfApplicable(List<CartItem> items) {
+    if (_manualOrderDiscountOverride || _discountRules.isEmpty) return;
+    final eval = DiscountRule.evaluateCart(rules: _discountRules, items: items);
+    final notifier = ref.read(cartProvider.notifier);
+    if (eval.hasDiscount) {
+      final current = ref.read(cartProvider);
+      if (current.discountType != 'fixed' ||
+          (current.discountValue - eval.discountAmount).abs() > 0.01) {
+        notifier.setOrderDiscount('fixed', eval.discountAmount);
+      }
+      if (_appliedPromoRuleName != eval.appliedRuleNames.join(', ')) {
+        setState(() => _appliedPromoRuleName = eval.appliedRuleNames.join(', '));
+      }
+    } else if (_appliedPromoRuleName.isNotEmpty) {
+      notifier.setOrderDiscount('fixed', 0.0);
+      setState(() => _appliedPromoRuleName = '');
+    }
+  }
+
   // Checkout Actions
   Future<void> _processCheckout({
     required String paymentMethod,
@@ -2691,6 +2725,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     List<Map<String, dynamic>>? splitTenders,
     double loyaltyDiscount = 0.0,
     double redeemedPoints = 0.0,
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
   }) async {
     final requiredPerm =
         saleStatus == 'quotation' ? 'quotation.manage' : 'sale.create';
@@ -2768,6 +2805,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final totalDiscount = _calculatedDiscount + loyaltyDiscount;
     final finalBillTotal = (_grandTotal - loyaltyDiscount).clamp(0.0, double.infinity);
     final cartSnapshot = ref.read(cartProvider);
+    final commAgent = _selectedCommissionAgent;
+    final commPct = commAgent?.commissionPercent ?? 0.0;
+    final commAmt = (commAgent != null && commPct > 0 && saleStatus == 'final')
+        ? double.parse(((finalBillTotal * commPct) / 100.0).toStringAsFixed(2))
+        : 0.0;
 
     final sale = Sale(
       invoiceNo: invoiceNo,
@@ -2787,6 +2829,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       saleStatus: saleStatus,
       note: note,
       createdAt: now,
+      commissionAgentId: commAgent?.id,
+      commissionAgentName: commAgent?.name ?? '',
+      commissionPercent: commPct,
+      commissionAmount: commAmt,
       taxGroupId: cartSnapshot.selectedTaxGroup?.id,
       taxBreakdownJson: cartSnapshot.taxBreakdown.isNotEmpty
           ? jsonEncode(cartSnapshot.taxBreakdown)
@@ -2806,6 +2852,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         sale: sale,
         items: List.from(_cart),
         splitTenders: splitTenders,
+        chequeNumber: chequeNumber,
+        bankName: bankName,
+        chequeDueDate: chequeDueDate,
       );
     }
 
@@ -2814,6 +2863,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       setState(() {
         _resumedSaleId = null;
         _resumedInvoiceNo = null;
+        _appliedPromoRuleName = '';
+        _manualOrderDiscountOverride = false;
       });
       _loadInitialData();
 
@@ -3217,6 +3268,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         note: result['note'] as String,
         loyaltyDiscount: loyaltyDiscount,
         redeemedPoints: redeemedPoints,
+        chequeNumber: (result['chequeNumber'] as String?) ?? '',
+        bankName: (result['bankName'] as String?) ?? '',
+        chequeDueDate: (result['chequeDueDate'] as String?) ?? '',
       );
     }
   }
@@ -3623,6 +3677,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   @override
   Widget build(BuildContext context) {
     final cartState = ref.watch(cartProvider);
+    ref.listen<CartState>(cartProvider, (prev, next) {
+      if (prev == null || prev.items != next.items) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _applyPromoDiscountIfApplicable(next.items);
+        });
+      }
+    });
 
     final currency = widget.settings.currencySymbol;
     final nowTime = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
@@ -4018,7 +4079,64 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               decoration: BoxDecoration(
                                 border: Border(bottom: BorderSide(color: borderColor)),
                               ),
-                              child: Row(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_commissionAgents.isNotEmpty || _appliedPromoRuleName.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Row(
+                                        children: [
+                                          if (_commissionAgents.isNotEmpty) ...[
+                                            const Icon(Icons.badge_outlined, size: 15, color: Color(0xFF4F46E5)),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: DropdownButtonHideUnderline(
+                                                child: DropdownButton<CommissionAgent?>(
+                                                  isDense: true,
+                                                  isExpanded: true,
+                                                  value: _selectedCommissionAgent,
+                                                  hint: const Text('Assign Commission Agent (optional)', style: TextStyle(fontSize: 11.5)),
+                                                  items: [
+                                                    const DropdownMenuItem<CommissionAgent?>(
+                                                      value: null,
+                                                      child: Text('No Commission Agent', style: TextStyle(fontSize: 11.5)),
+                                                    ),
+                                                    ..._commissionAgents.map(
+                                                      (a) => DropdownMenuItem<CommissionAgent?>(
+                                                        value: a,
+                                                        child: Text(
+                                                          'Agent: ${a.name} (${a.commissionPercent.toStringAsFixed(1)}%)',
+                                                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  onChanged: (val) => setState(() => _selectedCommissionAgent = val),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                          if (_appliedPromoRuleName.isNotEmpty) ...[
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF10B981).withValues(alpha: 0.14),
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: const Color(0xFF10B981)),
+                                              ),
+                                              child: Text(
+                                                'Promo Applied: $_appliedPromoRuleName',
+                                                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  Row(
                                 children: [
                                   // Customer Selector with Live Search (F3) - Expanded
                                   Expanded(
@@ -4232,7 +4350,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                   ],
                                 ],
                               ),
-                            ),
+                            ],
+                          ),
+                        ),
 
                             // Universal POS Bar: Wholesale/Retail Mode Toggle + Open Item Quick Button
                             Container(

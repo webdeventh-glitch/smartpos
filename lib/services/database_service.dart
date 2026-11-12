@@ -5,6 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/models.dart';
 import '../repositories/repositories.dart';
 import 'app_logger.dart';
+import 'backup_update_service.dart';
 import 'database_encryption_service.dart';
 import 'database_schema.dart';
 
@@ -17,7 +18,7 @@ class DatabaseService {
   final String? dbFilePath;
   DatabaseService(this.db, {this.dbFilePath});
 
-  static const int currentSchemaVersion = 6;
+  static const int currentSchemaVersion = 7;
   static DatabaseService? _instance;
   static DatabaseService? get instanceOrNull => _instance;
   static DatabaseService get instance =>
@@ -42,6 +43,8 @@ class DatabaseService {
   late final IndustryModulesRepository industryModulesRepo =
       IndustryModulesRepository(this);
   late final SeederRepository seederRepo = SeederRepository(this);
+  late final AdvancedFeaturesRepository advancedRepo =
+      AdvancedFeaturesRepository(this);
 
   /// Flushes WAL pages into the main .db file so backups and vault snapshots are complete.
   Future<void> checkpointWal() async {
@@ -103,11 +106,21 @@ class DatabaseService {
             'DatabaseService',
             'Upgrading Smart POS SQLite schema from v$oldVersion to v$newVersion',
           );
+          await BackupUpdateService.instance.createPreMigrationBackupIfNeeded(
+            dbPath: dbPath,
+            oldVersion: oldVersion,
+            newVersion: newVersion,
+          );
           await DatabaseSchema.runMigrations(db, fromVersion: oldVersion, toVersion: newVersion);
         },
         onOpen: (db) async {
           final ver = await db.getVersion();
           if (ver < currentSchemaVersion) {
+            await BackupUpdateService.instance.createPreMigrationBackupIfNeeded(
+              dbPath: dbPath,
+              oldVersion: ver,
+              newVersion: currentSchemaVersion,
+            );
             await DatabaseSchema.runMigrations(db, fromVersion: ver, toVersion: currentSchemaVersion);
             await db.setVersion(currentSchemaVersion);
           } else {
@@ -220,8 +233,18 @@ class DatabaseService {
     required Sale sale,
     required List<CartItem> items,
     List<Map<String, dynamic>>? splitTenders,
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
   }) =>
-      salesRepo.createSale(sale: sale, items: items, splitTenders: splitTenders);
+      salesRepo.createSale(
+        sale: sale,
+        items: items,
+        splitTenders: splitTenders,
+        chequeNumber: chequeNumber,
+        bankName: bankName,
+        chequeDueDate: chequeDueDate,
+      );
   Future<Sale> updateSale({
     required int saleId,
     required Sale sale,
@@ -251,8 +274,22 @@ class DatabaseService {
     String refNo = '',
     String note = '',
     String createdBy = 'Cashier',
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
   }) =>
-      purchaseRepo.settlePurchasePayment(purchaseId: purchaseId, amountPaid: amountPaid, paymentMethod: paymentMethod, accountName: accountName, refNo: refNo, note: note, createdBy: createdBy);
+      purchaseRepo.settlePurchasePayment(
+        purchaseId: purchaseId,
+        amountPaid: amountPaid,
+        paymentMethod: paymentMethod,
+        accountName: accountName,
+        refNo: refNo,
+        note: note,
+        createdBy: createdBy,
+        chequeNumber: chequeNumber,
+        bankName: bankName,
+        chequeDueDate: chequeDueDate,
+      );
   Future<void> recordContactPayment({
     required int contactId,
     required double amount,
@@ -262,8 +299,23 @@ class DatabaseService {
     String refNo = '',
     String note = '',
     String createdBy = 'Cashier',
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
   }) =>
-      contactsRepo.recordContactPayment(contactId: contactId, amount: amount, paymentMethod: paymentMethod, transactionType: transactionType, accountName: accountName, refNo: refNo, note: note, createdBy: createdBy);
+      contactsRepo.recordContactPayment(
+        contactId: contactId,
+        amount: amount,
+        paymentMethod: paymentMethod,
+        transactionType: transactionType,
+        accountName: accountName,
+        refNo: refNo,
+        note: note,
+        createdBy: createdBy,
+        chequeNumber: chequeNumber,
+        bankName: bankName,
+        chequeDueDate: chequeDueDate,
+      );
   Future<Map<String, dynamic>> getContactLedger({
     required int contactId,
     required String contactType,
@@ -295,8 +347,17 @@ class DatabaseService {
   Future<int> createPurchase({
     required Purchase purchase,
     required List<Map<String, dynamic>> items,
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
   }) =>
-      purchaseRepo.createPurchase(purchase: purchase, items: items);
+      purchaseRepo.createPurchase(
+        purchase: purchase,
+        items: items,
+        chequeNumber: chequeNumber,
+        bankName: bankName,
+        chequeDueDate: chequeDueDate,
+      );
   Future<bool> updatePurchaseStatus(int purchaseId, String newStatus) => purchaseRepo.updatePurchaseStatus(purchaseId, newStatus);
   Future<bool> deletePurchase(int purchaseId) => purchaseRepo.deletePurchase(purchaseId);
   Future<List<Purchase>> getPurchases() => purchaseRepo.getPurchases();
@@ -609,6 +670,7 @@ class DatabaseService {
     String? status,
     String? paymentStatus,
     String? search,
+    bool? purchaseOrdersOnly,
     int page = 1,
     int pageSize = 25,
     int? cursorId,
@@ -618,6 +680,7 @@ class DatabaseService {
         status: status,
         paymentStatus: paymentStatus,
         search: search,
+        purchaseOrdersOnly: purchaseOrdersOnly,
         page: page,
         pageSize: pageSize,
         cursorId: cursorId,
@@ -650,4 +713,133 @@ class DatabaseService {
 
   Future<Map<String, num>> getContactSummaryStats({required String type}) =>
       contactsRepo.getContactSummaryStats(type: type);
+
+  // ===================== PHASE 6: ADVANCED BUSINESS FEATURES =====================
+
+  // Step 6.1: Sales Orders Workflow
+  Future<String> generateNextSalesOrderNo() =>
+      salesRepo.generateNextSalesOrderNo();
+  Future<Map<String, dynamic>> getPendingSalesOrdersSummary({int limit = 5}) =>
+      salesRepo.getPendingSalesOrdersSummary(limit: limit);
+  Future<Sale> convertSalesOrderToInvoice({
+    required int orderId,
+    Map<int, double>? fulfillQuantitiesByItemId,
+    String paymentMethod = 'cash',
+    double? paidAmount,
+    String note = '',
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
+  }) =>
+      salesRepo.convertSalesOrderToInvoice(
+        orderId: orderId,
+        fulfillQuantitiesByItemId: fulfillQuantitiesByItemId,
+        paymentMethod: paymentMethod,
+        paidAmount: paidAmount,
+        note: note,
+        chequeNumber: chequeNumber,
+        bankName: bankName,
+        chequeDueDate: chequeDueDate,
+      );
+
+  // Step 6.2: Purchase Orders Workflow
+  Future<String> generateNextPurchaseOrderRef() =>
+      purchaseRepo.generateNextPurchaseOrderRef();
+  Future<Map<String, dynamic>> getPendingPurchaseOrdersSummary({int limit = 5}) =>
+      purchaseRepo.getPendingPurchaseOrdersSummary(limit: limit);
+  Future<int> receivePurchaseOrderItems({
+    required int poId,
+    Map<int, double>? receiveQtyByLineIndex,
+    String supplierInvoiceRef = '',
+    double paidNow = 0.0,
+    String paymentMethod = 'cash',
+    int? paymentAccountId,
+    String note = '',
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
+  }) =>
+      purchaseRepo.receivePurchaseOrderItems(
+        poId: poId,
+        receiveQtyByLineIndex: receiveQtyByLineIndex,
+        supplierInvoiceRef: supplierInvoiceRef,
+        paidNow: paidNow,
+        paymentMethod: paymentMethod,
+        paymentAccountId: paymentAccountId,
+        note: note,
+        chequeNumber: chequeNumber,
+        bankName: bankName,
+        chequeDueDate: chequeDueDate,
+      );
+
+  // Step 6.3: Cheque Management
+  Future<List<PaymentTransaction>> getCheques({
+    String? status,
+    String? transactionType,
+    String? search,
+  }) =>
+      advancedRepo.getCheques(
+        status: status,
+        transactionType: transactionType,
+        search: search,
+      );
+  Future<Map<String, num>> getChequeSummary() =>
+      advancedRepo.getChequeSummary();
+  Future<void> updateChequeStatus({
+    required int transactionId,
+    required String newStatus,
+    String? clearedDate,
+    String? note,
+  }) =>
+      advancedRepo.updateChequeStatus(
+        transactionId: transactionId,
+        newStatus: newStatus,
+        clearedDate: clearedDate,
+        note: note,
+      );
+
+  // Step 6.4: Commission Agents
+  Future<List<CommissionAgent>> getCommissionAgents({bool activeOnly = false}) =>
+      advancedRepo.getCommissionAgents(activeOnly: activeOnly);
+  Future<int> addCommissionAgent(CommissionAgent agent) =>
+      advancedRepo.addCommissionAgent(agent);
+  Future<int> updateCommissionAgent(CommissionAgent agent) =>
+      advancedRepo.updateCommissionAgent(agent);
+  Future<int> deleteCommissionAgent(int id) =>
+      advancedRepo.deleteCommissionAgent(id);
+  Future<List<Map<String, dynamic>>> getCommissionReport({
+    DateTime? startDate,
+    DateTime? endDate,
+    int? agentId,
+  }) =>
+      advancedRepo.getCommissionReport(
+        startDate: startDate,
+        endDate: endDate,
+        agentId: agentId,
+      );
+  Future<List<Sale>> getSalesByCommissionAgent(
+    int agentId, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) =>
+      advancedRepo.getSalesByCommissionAgent(
+        agentId,
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+  // Step 6.5: Discount Schedules
+  Future<List<DiscountRule>> getDiscountRules({bool activeOnly = false}) =>
+      advancedRepo.getDiscountRules(activeOnly: activeOnly);
+  Future<int> addDiscountRule(DiscountRule rule) =>
+      advancedRepo.addDiscountRule(rule);
+  Future<int> updateDiscountRule(DiscountRule rule) =>
+      advancedRepo.updateDiscountRule(rule);
+  Future<int> deleteDiscountRule(int id) =>
+      advancedRepo.deleteDiscountRule(id);
+  Future<DiscountEvaluationResult> evaluateCartDiscounts(
+    List<CartItem> items, {
+    DateTime? now,
+  }) =>
+      advancedRepo.evaluateCartDiscounts(items, now: now);
 }

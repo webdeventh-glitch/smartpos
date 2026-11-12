@@ -112,6 +112,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   bool _isLoadingBackups = false;
   final TextEditingController _offlinePkgCtrl = TextEditingController(text: r'D:\updates\smartpos_v2.6_update.pkg');
   bool _isStartingApi = false;
+  bool _autoBackupEnabled = false;
+  String _backupFrequency = 'daily';
+  late TextEditingController _backupIntervalHoursCtrl;
+  late TextEditingController _backupRetentionCtrl;
+  bool _isSavingBackupSchedule = false;
 
   // Bill Customization & Printing State
   String _receiptPaperSize = '80mm';
@@ -234,6 +239,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _ratesList = CurrencyRateService.parseRatesJson(s.exchangeRatesJson, s.currencyCode);
     _selectedCurrencyInfo = RegionalDataService.findCurrency(s.currencyCode) ??
         RegionalDataService.findCurrency('PKR');
+    _autoBackupEnabled = s.autoBackupEnabled;
+    _backupFrequency = s.backupFrequency.isNotEmpty ? s.backupFrequency : 'daily';
+    _backupIntervalHoursCtrl = TextEditingController(
+      text: '${s.backupIntervalHours > 0 ? s.backupIntervalHours : 24}',
+    );
+    _backupRetentionCtrl = TextEditingController(
+      text: '${s.backupRetentionCount > 0 ? s.backupRetentionCount : 10}',
+    );
 
     _initLicenseInfo();
     _loadSubData();
@@ -364,6 +377,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _receiptReturnPolicyCtrl.dispose();
     _invoiceHeadingCtrl.dispose();
     _encPassphraseCtrl.dispose();
+    _backupIntervalHoursCtrl.dispose();
+    _backupRetentionCtrl.dispose();
     super.dispose();
   }
 
@@ -5455,6 +5470,129 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             onPressed: _isCreatingBackup ? null : _createInstantBackup,
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.schedule_rounded, size: 18, color: Color(0xFF4F46E5)),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'Automated Backup Scheduler & Retention',
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                Switch(
+                                  value: _autoBackupEnabled,
+                                  onChanged: (v) => setState(() => _autoBackupEnabled = v),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    initialValue: _backupFrequency,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Frequency',
+                                      isDense: true,
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    items: const [
+                                      DropdownMenuItem(value: 'daily', child: Text('Daily (24h)')),
+                                      DropdownMenuItem(value: 'weekly', child: Text('Weekly (7d)')),
+                                      DropdownMenuItem(value: 'custom', child: Text('Custom Hours')),
+                                    ],
+                                    onChanged: (v) => setState(() => _backupFrequency = v ?? 'daily'),
+                                  ),
+                                ),
+                                if (_backupFrequency == 'custom') ...[
+                                  const SizedBox(width: 8),
+                                  SizedBox(
+                                    width: 100,
+                                    child: TextField(
+                                      controller: _backupIntervalHoursCtrl,
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Every (hrs)',
+                                        isDense: true,
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(width: 8),
+                                SizedBox(
+                                  width: 110,
+                                  child: TextField(
+                                    controller: _backupRetentionCtrl,
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Keep Last N',
+                                      isDense: true,
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: _isSavingBackupSchedule
+                                      ? null
+                                      : () async {
+                                          setState(() => _isSavingBackupSchedule = true);
+                                          final hrs = int.tryParse(_backupIntervalHoursCtrl.text.trim()) ?? 24;
+                                          final keep = int.tryParse(_backupRetentionCtrl.text.trim()) ?? 10;
+                                          final updated = widget.settings.copyWith(
+                                            autoBackupEnabled: _autoBackupEnabled,
+                                            backupFrequency: _backupFrequency,
+                                            backupIntervalHours: hrs > 0 ? hrs : 24,
+                                            backupRetentionCount: keep > 0 ? keep : 10,
+                                          );
+                                          final db = await DatabaseService.initialize();
+                                          await db.updateBusinessSettings(updated);
+                                          if (updated.autoBackupEnabled) {
+                                            await BackupUpdateService.instance.runScheduledBackupIfDue(
+                                              settings: updated,
+                                              db: db,
+                                            );
+                                            await _loadBackups();
+                                          }
+                                          widget.onSettingsUpdated(updated);
+                                          if (mounted) {
+                                            setState(() => _isSavingBackupSchedule = false);
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Automated backup schedule saved!'),
+                                                backgroundColor: Color(0xFF10B981),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                  child: Text(_isSavingBackupSchedule ? 'Saving...' : 'Save Schedule'),
+                                ),
+                              ],
+                            ),
+                            if (widget.settings.lastAutoBackupAt.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  'Last Auto Backup: ${widget.settings.lastAutoBackupAt}',
+                                  style: const TextStyle(fontSize: 10.5, color: Colors.grey),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Row(

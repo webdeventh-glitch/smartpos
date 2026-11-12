@@ -272,6 +272,9 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
     String refNo = '',
     String note = '',
     String createdBy = 'Cashier',
+    String chequeNumber = '',
+    String bankName = '',
+    String chequeDueDate = '',
   }) async {
     await db.transaction((txn) async {
       final rows = await txn.query('contacts', where: 'id = ?', whereArgs: [contactId], limit: 1);
@@ -287,6 +290,7 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
       final nowStr = DateTime.now().toIso8601String();
       final actualRef = refNo.isNotEmpty ? refNo : 'REC-${DateTime.now().millisecondsSinceEpoch}';
       final actualNote = note.isNotEmpty ? note : 'Direct ledger settlement for ${contact.name}';
+      final isCheque = paymentMethod.toLowerCase() == 'cheque';
 
       final paymentId = await txn.insert('contact_payments', {
         'contact_id': contactId,
@@ -297,6 +301,10 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
         'date': nowStr,
         'ref_no': actualRef,
         'note': actualNote,
+        'cheque_number': chequeNumber,
+        'bank_name': bankName,
+        'cheque_due_date': chequeDueDate,
+        'cheque_status': isCheque ? 'pending' : '',
       });
 
       await txn.insert('payment_transactions', {
@@ -312,6 +320,10 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
         'note': actualNote,
         'created_by': createdBy,
         'created_at': nowStr,
+        'cheque_number': chequeNumber,
+        'bank_name': bankName,
+        'cheque_due_date': chequeDueDate,
+        'cheque_status': isCheque ? 'pending' : '',
       });
     });
   }
@@ -345,6 +357,7 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
 
       // Record in payment_transactions table for unified ledger history
       final nowStr = DateTime.now().toIso8601String();
+      final isCheque = payment.paymentMethod.toLowerCase() == 'cheque';
       await txn.insert('payment_transactions', {
         'transaction_type': payment.paymentType == 'receive' ? 'customer_payment' : 'supplier_payment',
         'parent_id': paymentId,
@@ -358,6 +371,12 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
         'note': payment.note,
         'created_by': 'Cashier',
         'created_at': nowStr,
+        'cheque_number': payment.chequeNumber,
+        'bank_name': payment.bankName,
+        'cheque_due_date': payment.chequeDueDate,
+        'cheque_status': isCheque
+            ? (payment.chequeStatus.isNotEmpty ? payment.chequeStatus : 'pending')
+            : '',
       });
 
       return paymentId;

@@ -174,14 +174,14 @@ void main() {
   });
 
   group('Step 2.3: Typed AppRoute Navigation', () {
-    test('AppRoute bijectively maps all 42 tab indices and route paths', () {
-      expect(AppRoute.values.length, 42);
+    test('AppRoute bijectively maps all 47 tab indices and route paths', () {
+      expect(AppRoute.values.length, 47);
       final indices = AppRoute.values.map((r) => r.tabIndex).toSet();
       final paths = AppRoute.values.map((r) => r.routePath).toSet();
-      expect(indices.length, 42);
-      expect(paths.length, 42);
+      expect(indices.length, 47);
+      expect(paths.length, 47);
 
-      for (int i = 0; i < 42; i++) {
+      for (int i = 0; i < 47; i++) {
         final route = AppRoute.fromIndex(i);
         expect(route.tabIndex, i);
         expect(AppRoute.fromPath(route.routePath), route);

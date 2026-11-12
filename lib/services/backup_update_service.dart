@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:path/path.dart' as path;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import '../models/models.dart';
 import 'app_logger.dart';
 import 'auth_service.dart';
 import 'database_encryption_service.dart';
@@ -14,6 +16,148 @@ class BackupUpdateService {
   static BackupUpdateService get instance => _instance ??= BackupUpdateService._();
 
   BackupUpdateService._();
+  Timer? _autoBackupTimer;
+
+  bool get isSchedulerRunning => _autoBackupTimer != null;
+
+  /// Resolves interval in hours from frequency setting ('daily', 'weekly', 'custom').
+  static Duration intervalForSettings(BusinessSettings settings) {
+    switch (settings.backupFrequency.toLowerCase()) {
+      case 'weekly':
+        return const Duration(days: 7);
+      case 'custom':
+        final hours = settings.backupIntervalHours > 0 ? settings.backupIntervalHours : 24;
+        return Duration(hours: hours);
+      case 'daily':
+      default:
+        return const Duration(hours: 24);
+    }
+  }
+
+  /// Returns true when automated backup is enabled and the configured schedule interval has elapsed.
+  static bool isAutoBackupDue(BusinessSettings settings, {DateTime? now}) {
+    if (!settings.autoBackupEnabled) return false;
+    final lastRaw = settings.lastAutoBackupAt.trim();
+    if (lastRaw.isEmpty) return true;
+    final last = DateTime.tryParse(lastRaw);
+    if (last == null) return true;
+    final checkNow = now ?? DateTime.now();
+    return checkNow.difference(last) >= intervalForSettings(settings);
+  }
+
+  /// Creates a safety backup before schema upgrades on file-backed databases.
+  Future<File?> createPreMigrationBackupIfNeeded({
+    required String dbPath,
+    required int oldVersion,
+    required int newVersion,
+    Directory? targetDir,
+  }) async {
+    if (dbPath.isEmpty ||
+        dbPath == inMemoryDatabasePath ||
+        oldVersion >= newVersion ||
+        !File(dbPath).existsSync()) {
+      return null;
+    }
+    try {
+      final dir = targetDir ?? await getBackupDirectory();
+      final now = DateTime.now();
+      final stamp =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_'
+          '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+      final dest = File(
+        path.join(
+          dir.path,
+          'smartpos_premigration_v${oldVersion}_to_v${newVersion}_$stamp.db.enc',
+        ),
+      );
+      await DatabaseEncryptionService.encryptFile(File(dbPath), dest);
+      AppLogger.info(
+        'BackupUpdateService',
+        'Pre-migration backup created at ${dest.path} (v$oldVersion -> v$newVersion)',
+      );
+      return dest;
+    } catch (e, st) {
+      AppLogger.warning('BackupUpdateService', 'Pre-migration backup failed', e, st);
+      return null;
+    }
+  }
+
+  /// Prunes oldest backup files so at most [keepCount] backups remain.
+  Future<int> enforceBackupRetention({
+    required int keepCount,
+    Directory? targetDir,
+  }) async {
+    if (keepCount <= 0) return 0;
+    final dir = targetDir ?? await getBackupDirectory();
+    if (!dir.existsSync()) return 0;
+    final files = dir
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.db.enc') || f.path.endsWith('.db'))
+        .toList();
+    if (files.length <= keepCount) return 0;
+    files.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+    int deleted = 0;
+    for (final stale in files.skip(keepCount)) {
+      try {
+        await stale.delete();
+        deleted++;
+      } catch (e, st) {
+        AppLogger.warning('BackupUpdateService', 'Failed deleting old backup ${stale.path}', e, st);
+      }
+    }
+    return deleted;
+  }
+
+  /// Executes an automatic backup if due, updates `last_auto_backup_at`, and trims retention.
+  Future<File?> runScheduledBackupIfDue({
+    required BusinessSettings settings,
+    DatabaseService? db,
+    Directory? targetDir,
+    String? dbPathOverride,
+    DateTime? now,
+  }) async {
+    final checkNow = now ?? DateTime.now();
+    if (!isAutoBackupDue(settings, now: checkNow)) return null;
+
+    final file = await createBackup(
+      customNote: 'scheduled_${settings.backupFrequency}',
+      targetDir: targetDir,
+      dbPathOverride: dbPathOverride,
+    );
+    await enforceBackupRetention(
+      keepCount: settings.backupRetentionCount,
+      targetDir: targetDir,
+    );
+    final updated = settings.copyWith(lastAutoBackupAt: checkNow.toIso8601String());
+    if (db != null) {
+      await db.updateBusinessSettings(updated);
+    } else if (DatabaseService.instanceOrNull != null) {
+      await DatabaseService.instance.updateBusinessSettings(updated);
+    }
+    return file;
+  }
+
+  /// Starts periodic background check for due scheduled backups (skipped in flutter test).
+  void startAutoBackupScheduler({Duration checkInterval = const Duration(minutes: 15)}) {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    _autoBackupTimer?.cancel();
+    _autoBackupTimer = Timer.periodic(checkInterval, (_) async {
+      try {
+        final db = DatabaseService.instanceOrNull;
+        if (db == null || !db.db.isOpen) return;
+        final settings = await db.getBusinessSettings();
+        await runScheduledBackupIfDue(settings: settings, db: db);
+      } catch (e, st) {
+        AppLogger.warning('BackupUpdateService', 'Scheduled backup tick failed', e, st);
+      }
+    });
+  }
+
+  void stopAutoBackupScheduler() {
+    _autoBackupTimer?.cancel();
+    _autoBackupTimer = null;
+  }
 
   String _getBaseDir() {
     return Platform.environment['LOCALAPPDATA'] ??

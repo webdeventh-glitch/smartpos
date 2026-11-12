@@ -6,6 +6,7 @@ import '../navigation/app_routes.dart';
 import '../providers/providers.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
+import '../services/backup_update_service.dart';
 import '../services/database_service.dart';
 import '../services/qulop_service.dart';
 import '../widgets/smart_app_bar.dart';
@@ -22,10 +23,15 @@ import 'products/variation_templates_screen.dart';
 import 'products/print_labels_screen.dart';
 import 'products/warranties_screen.dart';
 import 'products/selling_price_groups_screen.dart';
+import 'products/discount_rules_screen.dart';
 import 'products/import_products_screen.dart';
 import 'sales/sales_list_screen.dart';
+import 'sales/sales_orders_screen.dart';
+import 'sales/commission_agents_screen.dart';
 import 'purchases/purchases_list_screen.dart';
 import 'purchases/add_purchase_screen.dart';
+import 'purchases/purchase_orders_screen.dart';
+import 'finance/cheque_management_screen.dart';
 import 'contacts/customers_screen.dart';
 import 'contacts/suppliers_screen.dart';
 import 'expenses/expenses_screen.dart';
@@ -83,6 +89,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       const Duration(seconds: 30),
       (_) => AuthService.checkSessionValidity(),
     );
+    BackupUpdateService.instance.startAutoBackupScheduler();
   }
 
   bool _handleGlobalKeyEvent(KeyEvent event) {
@@ -92,6 +99,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   @override
   void dispose() {
+    BackupUpdateService.instance.stopAutoBackupScheduler();
     HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     _sessionTimer?.cancel();
     super.dispose();
@@ -206,10 +214,13 @@ class _MainShellState extends ConsumerState<MainShell> {
       case AppRoute.importProducts:
         return user.hasPermission('product.import');
       case AppRoute.salesList:
+      case AppRoute.salesOrders:
+      case AppRoute.commissionAgents:
         return user.hasPermission('sale.view');
       case AppRoute.salesReturn:
         return user.hasPermission('sale.return');
       case AppRoute.purchasesList:
+      case AppRoute.purchaseOrders:
         return user.hasPermission('purchase.view');
       case AppRoute.addPurchase:
         return user.hasPermission('purchase.create');
@@ -222,6 +233,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       case AppRoute.expenses:
         return user.hasPermission('expense.view');
       case AppRoute.paymentAccounts:
+      case AppRoute.chequeManagement:
         return user.hasPermission('account.manage');
       case AppRoute.reports:
         return user.hasPermission('report.view');
@@ -230,6 +242,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       case AppRoute.stockAdjustments:
       case AppRoute.variationTemplates:
       case AppRoute.sellingPriceGroups:
+      case AppRoute.discountRules:
         return user.hasPermission('inventory.adjust');
       case AppRoute.inventoryAudit:
         return user.hasPermission('inventory.audit');
@@ -440,6 +453,16 @@ class _MainShellState extends ConsumerState<MainShell> {
           onPurchaseSaved: () => _navigateTo(AppRoute.purchasesList),
           onBackToList: () => _navigateTo(AppRoute.purchasesList),
         );
+      case AppRoute.salesOrders:
+        return SalesOrdersScreen(settings: _settings);
+      case AppRoute.purchaseOrders:
+        return PurchaseOrdersScreen(settings: _settings);
+      case AppRoute.chequeManagement:
+        return ChequeManagementScreen(settings: _settings);
+      case AppRoute.commissionAgents:
+        return CommissionAgentsScreen(settings: _settings);
+      case AppRoute.discountRules:
+        return DiscountRulesScreen(settings: _settings);
       default:
         return DashboardScreen(
           settings: _settings,

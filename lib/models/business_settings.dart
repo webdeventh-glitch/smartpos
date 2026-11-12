@@ -87,6 +87,11 @@ class BusinessSettings {
   final bool autoPrintKot;
   final int? defaultPrinterId;
   final int? defaultInvoiceLayoutId;
+  final bool autoBackupEnabled;
+  final String backupFrequency; // 'daily', 'weekly', 'custom'
+  final int backupIntervalHours;
+  final int backupRetentionCount;
+  final String lastAutoBackupAt;
 
   BusinessSettings({
     this.id = 1,
@@ -172,6 +177,11 @@ class BusinessSettings {
     this.autoPrintKot = false,
     this.defaultPrinterId,
     this.defaultInvoiceLayoutId,
+    this.autoBackupEnabled = false,
+    this.backupFrequency = 'daily',
+    this.backupIntervalHours = 24,
+    this.backupRetentionCount = 10,
+    this.lastAutoBackupAt = '',
   });
 
   String get effectiveLoginBanner {
@@ -609,6 +619,11 @@ class BusinessSettings {
     bool? autoPrintKot,
     int? defaultPrinterId,
     int? defaultInvoiceLayoutId,
+    bool? autoBackupEnabled,
+    String? backupFrequency,
+    int? backupIntervalHours,
+    int? backupRetentionCount,
+    String? lastAutoBackupAt,
   }) {
     return BusinessSettings(
       id: id ?? this.id,
@@ -703,6 +718,11 @@ class BusinessSettings {
       defaultPrinterId: defaultPrinterId ?? this.defaultPrinterId,
       defaultInvoiceLayoutId:
           defaultInvoiceLayoutId ?? this.defaultInvoiceLayoutId,
+      autoBackupEnabled: autoBackupEnabled ?? this.autoBackupEnabled,
+      backupFrequency: backupFrequency ?? this.backupFrequency,
+      backupIntervalHours: backupIntervalHours ?? this.backupIntervalHours,
+      backupRetentionCount: backupRetentionCount ?? this.backupRetentionCount,
+      lastAutoBackupAt: lastAutoBackupAt ?? this.lastAutoBackupAt,
     );
   }
 
@@ -790,6 +810,11 @@ class BusinessSettings {
         'auto_print_kot': autoPrintKot ? 1 : 0,
         'default_printer_id': defaultPrinterId,
         'default_invoice_layout_id': defaultInvoiceLayoutId,
+        'auto_backup_enabled': autoBackupEnabled ? 1 : 0,
+        'backup_frequency': backupFrequency,
+        'backup_interval_hours': backupIntervalHours,
+        'backup_retention_count': backupRetentionCount,
+        'last_auto_backup_at': lastAutoBackupAt,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
@@ -887,5 +912,10 @@ class BusinessSettings {
         autoPrintKot: modelAsBool(map['auto_print_kot'], false),
         defaultPrinterId: map['default_printer_id'] as int?,
         defaultInvoiceLayoutId: map['default_invoice_layout_id'] as int?,
+        autoBackupEnabled: modelAsBool(map['auto_backup_enabled'], false),
+        backupFrequency: modelAsString(map['backup_frequency'], 'daily'),
+        backupIntervalHours: modelAsInt(map['backup_interval_hours'], 24),
+        backupRetentionCount: modelAsInt(map['backup_retention_count'], 10),
+        lastAutoBackupAt: modelAsString(map['last_auto_backup_at']),
       );
 }

@@ -16,6 +16,11 @@ class PaymentTransaction {
   final String note;
   final String createdBy;
   final String createdAt;
+  final String chequeNumber;
+  final String bankName;
+  final String chequeDueDate;
+  final String chequeStatus; // '', 'pending', 'cleared', 'bounced', 'cancelled'
+  final String chequeClearedAt;
 
   PaymentTransaction({
     this.id,
@@ -32,7 +37,25 @@ class PaymentTransaction {
     this.note = '',
     this.createdBy = 'Cashier',
     required this.createdAt,
-  });
+    this.chequeNumber = '',
+    this.bankName = '',
+    this.chequeDueDate = '',
+    String? chequeStatus,
+    this.chequeClearedAt = '',
+  }) : chequeStatus = chequeStatus ??
+            (paymentMethod == 'cheque' ? 'pending' : '');
+
+  bool get isCheque => paymentMethod.toLowerCase() == 'cheque';
+  bool get isOverdueCheque {
+    if (!isCheque || chequeStatus != 'pending' || chequeDueDate.trim().isEmpty) {
+      return false;
+    }
+    final due = DateTime.tryParse(chequeDueDate.trim());
+    if (due == null) return false;
+    final today = DateTime.now();
+    final endOfDue = DateTime(due.year, due.month, due.day, 23, 59, 59);
+    return today.isAfter(endOfDue);
+  }
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
@@ -49,6 +72,11 @@ class PaymentTransaction {
         'note': note,
         'created_by': createdBy,
         'created_at': createdAt,
+        'cheque_number': chequeNumber,
+        'bank_name': bankName,
+        'cheque_due_date': chequeDueDate,
+        'cheque_status': chequeStatus,
+        'cheque_cleared_at': chequeClearedAt,
       };
 
   factory PaymentTransaction.fromMap(Map<String, dynamic> map) =>
@@ -67,5 +95,10 @@ class PaymentTransaction {
         note: map['note'] as String? ?? '',
         createdBy: map['created_by'] as String? ?? 'System',
         createdAt: map['created_at'] as String? ?? '',
+        chequeNumber: map['cheque_number'] as String? ?? '',
+        bankName: map['bank_name'] as String? ?? '',
+        chequeDueDate: map['cheque_due_date'] as String? ?? '',
+        chequeStatus: map['cheque_status'] as String?,
+        chequeClearedAt: map['cheque_cleared_at'] as String? ?? '',
       );
 }
