@@ -1503,7 +1503,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     };
   }
 
-  Future<int> addSaleReturn(SaleReturn sr) async {
+  Future<int> addSaleReturn(SaleReturn sr, {int locationId = 1}) async {
     return await db.transaction((txn) async {
       final map = {
         if (sr.id != null) 'id': sr.id,
@@ -1523,6 +1523,19 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         'items_json': jsonEncode(sr.items.map((i) => i.toMap()).toList()),
       };
       final id = await txn.insert('sale_returns', map);
+      int targetLocId = locationId;
+      if (targetLocId <= 1 && sr.saleId != null && sr.saleId! > 0) {
+        final origSale = await txn.query(
+          'sales',
+          columns: ['location_id'],
+          where: 'id = ?',
+          whereArgs: [sr.saleId],
+          limit: 1,
+        );
+        if (origSale.isNotEmpty) {
+          targetLocId = (origSale.first['location_id'] as int?) ?? 1;
+        }
+      }
       for (final item in sr.items) {
         final itemMap = item.toMap();
         itemMap['return_id'] = id;
@@ -1537,10 +1550,23 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           variationId: item.variationId,
           delta: restockQty,
         );
-        await txn.rawUpdate(
-          'UPDATE product_locations SET qty_available = qty_available + ?, updated_at = ? WHERE product_id = ? AND location_id = 1',
-          [restockQty, DateTime.now().toIso8601String(), item.productId],
+        final updatedLoc = await txn.rawUpdate(
+          'UPDATE product_locations SET qty_available = qty_available + ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
+          [
+            restockQty,
+            DateTime.now().toIso8601String(),
+            item.productId,
+            targetLocId,
+          ],
         );
+        if (updatedLoc == 0) {
+          await txn.insert('product_locations', {
+            'product_id': item.productId,
+            'location_id': targetLocId,
+            'qty_available': restockQty,
+            'updated_at': DateTime.now().toIso8601String(),
+          });
+        }
       }
 
       // Reduce customer balance ONLY when refund is issued as credit note / receivable offset

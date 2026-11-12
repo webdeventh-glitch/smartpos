@@ -485,13 +485,24 @@ class AccountingRepository extends BaseRepository {
     } catch (_) {}
     final salesRevenue = (grossSalesRev - retRev).clamp(0.0, double.infinity);
 
-    // 7. True Cost of Goods Sold (using unit_multiplier)
+    // 7. True Cost of Goods Sold (using unit_multiplier, net of sale returns)
     final cogsRows = await db.rawQuery(
       "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
       "FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id "
       "WHERE s.sale_status = 'final'",
     );
-    final cogsTotal = (cogsRows.first['cogs'] as num?)?.toDouble() ?? 0.0;
+    final grossCogsTotal = (cogsRows.first['cogs'] as num?)?.toDouble() ?? 0.0;
+    double returnedCogsTotal = 0.0;
+    try {
+      final retCogsRows = await db.rawQuery(
+        'SELECT COALESCE(SUM(sri.quantity * (CASE WHEN sri.unit_multiplier > 0 THEN sri.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)), 0) as ret_cogs '
+        'FROM sale_return_items sri LEFT JOIN products p ON sri.product_id = p.id',
+      );
+      returnedCogsTotal =
+          (retCogsRows.first['ret_cogs'] as num?)?.toDouble() ?? 0.0;
+    } catch (_) {}
+    final cogsTotal =
+        (grossCogsTotal - returnedCogsTotal).clamp(0.0, double.infinity);
 
     // 8. Operating Expenses
     final expRows =

@@ -6,17 +6,37 @@ import '../../services/database_service.dart';
 class SalesReturnDialog extends StatefulWidget {
   final BusinessSettings settings;
   final Sale? initialSale;
+  final int locationId;
   final VoidCallback onReturnSuccess;
 
   const SalesReturnDialog({
     super.key,
     required this.settings,
     this.initialSale,
+    this.locationId = 1,
     required this.onReturnSuccess,
   });
 
   @override
   State<SalesReturnDialog> createState() => _SalesReturnDialogState();
+}
+
+class _ManualReturnEntry {
+  final Product product;
+  final int? variationId;
+  final String variationName;
+  double quantity;
+  double unitPrice;
+
+  _ManualReturnEntry({
+    required this.product,
+    this.variationId,
+    this.variationName = '',
+    this.quantity = 1.0,
+    required this.unitPrice,
+  });
+
+  double get subtotal => quantity * unitPrice;
 }
 
 class _ReturnItemSelection {
@@ -47,17 +67,15 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
   List<_ReturnItemSelection> _itemSelections = [];
   final TextEditingController _invoiceSearchCtrl = TextEditingController();
 
-  // Mode: 0 = From Invoice, 1 = Manual Entry
+  // Mode: 0 = From Invoice, 1 = Direct / No-Invoice Return
   int _mode = 0;
 
-  // Manual Mode fields
-  Contact? _manualCustomer;
+  // Direct / No-Invoice Mode fields
+  Contact? _manualCustomer; // null => Walk-in Customer
   Product? _manualProduct;
-  final TextEditingController _manualInvoiceNoCtrl =
-      TextEditingController(text: 'INV-1001');
-  final TextEditingController _manualQtyCtrl = TextEditingController(text: '1');
-  final TextEditingController _manualPriceCtrl =
-      TextEditingController(text: '0.00');
+  final TextEditingController _manualInvoiceNoCtrl = TextEditingController();
+  final TextEditingController _manualScanCtrl = TextEditingController();
+  final List<_ManualReturnEntry> _manualReturnItems = [];
 
   // Common fields
   String _refundMethod = 'cash'; // 'cash', 'credit_note', 'bank'
@@ -74,8 +92,7 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
   void dispose() {
     _invoiceSearchCtrl.dispose();
     _manualInvoiceNoCtrl.dispose();
-    _manualQtyCtrl.dispose();
-    _manualPriceCtrl.dispose();
+    _manualScanCtrl.dispose();
     _reasonCtrl.dispose();
     super.dispose();
   }
@@ -89,16 +106,19 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
 
     if (!mounted) return;
 
+    final walkInCust = custs
+        .where((c) =>
+            c.isDefaultWalkIn || c.name.toLowerCase().contains('walk-in'))
+        .cast<Contact?>()
+        .firstOrNull;
+
     setState(() {
       _nextRef = ref;
       _recentSales = sales;
       _customers = custs;
       _allProducts = prods;
-      _manualCustomer = custs.isNotEmpty ? custs.first : null;
+      _manualCustomer = walkInCust;
       _manualProduct = prods.isNotEmpty ? prods.first : null;
-      if (_manualProduct != null) {
-        _manualPriceCtrl.text = _manualProduct!.sellingPrice.toStringAsFixed(2);
-      }
       _loading = false;
     });
 
@@ -160,12 +180,73 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
   void _selectAllItems(bool selectAll) {
     setState(() {
       for (final sel in _itemSelections) {
-        sel.selected = selectAll;
-        if (selectAll) {
-          sel.returnQty = sel.saleItem.quantity;
+        sel.selected = selectAll && sel.maxReturnable > 0;
+        if (sel.selected) {
+          sel.returnQty = sel.maxReturnable;
         }
       }
     });
+  }
+
+  void _addProductToManualBasket(
+    Product product, {
+    ProductVariation? variation,
+    double qty = 1.0,
+  }) {
+    final varId = variation?.id;
+    final varName = variation?.name ?? '';
+    final price = variation?.sellingPrice ?? product.sellingPrice;
+    setState(() {
+      final existingIdx = _manualReturnItems.indexWhere(
+        (e) => e.product.id == product.id && e.variationId == varId,
+      );
+      if (existingIdx >= 0) {
+        _manualReturnItems[existingIdx].quantity += qty;
+      } else {
+        _manualReturnItems.add(
+          _ManualReturnEntry(
+            product: product,
+            variationId: varId,
+            variationName: varName,
+            quantity: qty,
+            unitPrice: price,
+          ),
+        );
+      }
+    });
+  }
+
+  Future<void> _scanOrSearchDirectReturnProduct(String rawQuery) async {
+    final q = rawQuery.trim();
+    if (q.isEmpty) return;
+    final db = await DatabaseService.initialize();
+    final exactMatch = await db.getProductWithMatchedVariationByCode(q);
+    if (exactMatch != null) {
+      _addProductToManualBasket(exactMatch.$1, variation: exactMatch.$2);
+      _manualScanCtrl.clear();
+      return;
+    }
+    final lower = q.toLowerCase();
+    final fallback = _allProducts
+        .where(
+          (p) =>
+              p.name.toLowerCase().contains(lower) ||
+              p.sku.toLowerCase().contains(lower) ||
+              p.barcode.toLowerCase().contains(lower),
+        )
+        .cast<Product?>()
+        .firstOrNull;
+    if (fallback != null) {
+      _addProductToManualBasket(fallback);
+      _manualScanCtrl.clear();
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No product found matching "$q".'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
   }
 
   double get _totalRefundAmount {
@@ -174,9 +255,7 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
           .where((s) => s.selected)
           .fold(0.0, (sum, s) => sum + s.subtotal);
     } else {
-      final q = double.tryParse(_manualQtyCtrl.text.trim()) ?? 0.0;
-      final p = double.tryParse(_manualPriceCtrl.text.trim()) ?? 0.0;
-      return q * p;
+      return _manualReturnItems.fold(0.0, (sum, entry) => sum + entry.subtotal);
     }
   }
 
@@ -184,7 +263,7 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
     if (_mode == 0) {
       return _itemSelections.where((s) => s.selected).length;
     } else {
-      return 1;
+      return _manualReturnItems.length;
     }
   }
 
@@ -257,28 +336,63 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
         items: returnItems,
       );
 
-      await db.addSaleReturn(sr);
+      await db.addSaleReturn(sr, locationId: widget.locationId);
     } else {
-      if (_manualProduct == null) return;
-      final qty = double.tryParse(_manualQtyCtrl.text.trim()) ?? 1.0;
-      final price = double.tryParse(_manualPriceCtrl.text.trim()) ?? 0.0;
+      if (_manualReturnItems.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('Please scan or add at least one product to return.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+      final isWalkIn = _manualCustomer == null ||
+          _manualCustomer!.id == null ||
+          _manualCustomer!.isDefaultWalkIn ||
+          _manualCustomer!.name.toLowerCase().contains('walk-in');
+      if (_refundMethod == 'credit_note' && isWalkIn) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Credit Note requires a registered customer account. Select Cash/Bank refund or choose a registered customer.',
+              ),
+              backgroundColor: Color(0xFFDC2626),
+            ),
+          );
+        }
+        return;
+      }
 
-      returnItems.add(
-        SaleReturnItem(
-          returnId: 0,
-          productId: _manualProduct!.id ?? 0,
-          productName: _manualProduct!.name,
-          sku: _manualProduct!.sku,
-          batchNumber: _manualProduct!.batchNumber ?? '',
-          quantity: qty,
-          unitPrice: price,
-          subtotal: total,
-        ),
-      );
+      for (final entry in _manualReturnItems) {
+        if (entry.quantity <= 0) continue;
+        returnItems.add(
+          SaleReturnItem(
+            returnId: 0,
+            productId: entry.product.id ?? 0,
+            variationId: entry.variationId,
+            variationName: entry.variationName,
+            productName: entry.product.name,
+            sku: entry.product.sku,
+            batchNumber: entry.product.batchNumber ?? '',
+            quantity: entry.quantity,
+            unitPrice: entry.unitPrice,
+            subtotal: entry.subtotal,
+          ),
+        );
+      }
+      if (returnItems.isEmpty) return;
 
+      final invRef = _manualInvoiceNoCtrl.text.trim().isEmpty
+          ? 'NO-INV'
+          : _manualInvoiceNoCtrl.text.trim();
       final sr = SaleReturn(
         returnNo: _nextRef,
-        invoiceNo: _manualInvoiceNoCtrl.text.trim(),
+        invoiceNo: invRef,
         customerId: _manualCustomer?.id,
         customerName: _manualCustomer?.name ?? 'Walk-in Customer',
         date: nowStr,
@@ -289,7 +403,7 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
         items: returnItems,
       );
 
-      await db.addSaleReturn(sr);
+      await db.addSaleReturn(sr, locationId: widget.locationId);
     }
 
     if (mounted) {
@@ -862,14 +976,16 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                           child: Checkbox(
                             value: sel.selected,
                             activeColor: const Color(0xFFDC2626),
-                            onChanged: (val) {
-                              setState(() {
-                                sel.selected = val ?? false;
-                                if (sel.selected && sel.returnQty == 0) {
-                                  sel.returnQty = sel.saleItem.quantity;
-                                }
-                              });
-                            },
+                            onChanged: sel.maxReturnable <= 0
+                                ? null
+                                : (val) {
+                                    setState(() {
+                                      sel.selected = val ?? false;
+                                      if (sel.selected && sel.returnQty == 0) {
+                                        sel.returnQty = sel.maxReturnable;
+                                      }
+                                    });
+                                  },
                           ),
                         ),
                         Expanded(
@@ -1030,15 +1146,27 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
         Row(
           children: [
             Expanded(
-              child: DropdownButtonFormField<Contact>(
-                initialValue: _manualCustomer,
+              child: DropdownButtonFormField<Contact?>(
+                initialValue: _customers.contains(_manualCustomer)
+                    ? _manualCustomer
+                    : null,
                 isExpanded: true,
                 decoration: const InputDecoration(
-                    labelText: 'Customer *', isDense: true),
+                    labelText: 'Customer (Walk-in or Registered)',
+                    isDense: true),
                 dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                items: _customers
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
-                    .toList(),
+                items: [
+                  const DropdownMenuItem<Contact?>(
+                    value: null,
+                    child: Text('Walk-in Customer (No Khata)'),
+                  ),
+                  ..._customers.map(
+                    (c) => DropdownMenuItem<Contact?>(
+                      value: c,
+                      child: Text(c.name, overflow: TextOverflow.ellipsis),
+                    ),
+                  ),
+                ],
                 onChanged: (v) => setState(() => _manualCustomer = v),
               ),
             ),
@@ -1047,59 +1175,270 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
               child: TextFormField(
                 controller: _manualInvoiceNoCtrl,
                 decoration: const InputDecoration(
-                    labelText: 'Original Invoice No *', isDense: true),
+                  labelText: 'Invoice / Slip Ref (Optional)',
+                  hintText: 'Leave blank if no invoice (NO-INV)',
+                  isDense: true,
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        DropdownButtonFormField<Product>(
-          initialValue: _manualProduct,
-          isExpanded: true,
-          decoration: const InputDecoration(
-              labelText: 'Select Product to Return *', isDense: true),
-          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          items: _allProducts.take(150).map((p) {
-            return DropdownMenuItem(
-              value: p,
-              child: Text(
-                  '${p.name} (${p.batchNumber ?? "No Batch"}) - Stock: ${p.stockQuantity}'),
-            );
-          }).toList(),
-          onChanged: (p) {
-            setState(() {
-              _manualProduct = p;
-              if (p != null) {
-                _manualPriceCtrl.text = p.sellingPrice.toStringAsFixed(2);
-              }
-            });
-          },
-        ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
+
+        // Fast Barcode / SKU Scanner OR Product Picker Row
         Row(
           children: [
             Expanded(
-              child: TextFormField(
-                controller: _manualQtyCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                    labelText: 'Return Quantity *', isDense: true),
-                onChanged: (_) => setState(() {}),
+              flex: 2,
+              child: TextField(
+                controller: _manualScanCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Scan Barcode / Type SKU & Press Enter',
+                  isDense: true,
+                  prefixIcon:
+                      const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                    tooltip: 'Find & Add to Return List',
+                    onPressed: () =>
+                        _scanOrSearchDirectReturnProduct(_manualScanCtrl.text),
+                  ),
+                ),
+                onSubmitted: _scanOrSearchDirectReturnProduct,
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 10),
             Expanded(
-              child: TextFormField(
-                controller: _manualPriceCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                    labelText: 'Refund Unit Price *',
-                    prefixText: '$currency ',
-                    isDense: true),
-                onChanged: (_) => setState(() {}),
+              flex: 3,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<Product>(
+                      initialValue: _manualProduct,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Or Pick Product *',
+                        isDense: true,
+                      ),
+                      dropdownColor:
+                          isDark ? const Color(0xFF1E293B) : Colors.white,
+                      items: _allProducts.take(150).map((p) {
+                        return DropdownMenuItem(
+                          value: p,
+                          child: Text(
+                            '${p.name} ($currency${p.sellingPrice.toStringAsFixed(0)})',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (p) => setState(() => _manualProduct = p),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF004EEB),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                    ),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Add', style: TextStyle(fontSize: 12)),
+                    onPressed: _manualProduct == null
+                        ? null
+                        : () => _addProductToManualBasket(_manualProduct!),
+                  ),
+                ],
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+
+        // Multi-Item Direct Return Basket Table
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          ),
+          child: _manualReturnItems.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(
+                      'Scan product barcode or select items above to return without an invoice.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ),
+                )
+              : Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(8)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Expanded(
+                              flex: 4,
+                              child: Text('Product',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold))),
+                          Expanded(
+                              flex: 3,
+                              child: Center(
+                                  child: Text('Return Qty',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold)))),
+                          Expanded(
+                              flex: 2,
+                              child: Text('Unit Price',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold))),
+                          Expanded(
+                              flex: 2,
+                              child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text('Refund',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold)))),
+                          SizedBox(width: 36),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    ..._manualReturnItems.asMap().entries.map((mapEntry) {
+                      final idx = mapEntry.key;
+                      final entry = mapEntry.value;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: isDark
+                                      ? const Color(0xFF334155)
+                                      : const Color(0xFFF1F5F9))),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    entry.variationName.isNotEmpty
+                                        ? '${entry.product.name} (${entry.variationName})'
+                                        : entry.product.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12),
+                                  ),
+                                  Text(
+                                    'SKU: ${entry.product.sku}',
+                                    style: const TextStyle(
+                                        fontSize: 10, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                        Icons.remove_circle_outline,
+                                        size: 16),
+                                    onPressed: () {
+                                      setState(() {
+                                        if (entry.quantity > 1) {
+                                          entry.quantity -= 1.0;
+                                        } else {
+                                          _manualReturnItems.removeAt(idx);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                  Text(
+                                    entry.quantity % 1 == 0
+                                        ? entry.quantity.toInt().toString()
+                                        : entry.quantity.toStringAsFixed(2),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.add_circle_outline,
+                                        size: 16),
+                                    onPressed: () =>
+                                        setState(() => entry.quantity += 1.0),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                initialValue:
+                                    entry.unitPrice.toStringAsFixed(2),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                style: const TextStyle(fontSize: 12),
+                                decoration: InputDecoration(
+                                  prefixText: '$currency ',
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 6),
+                                ),
+                                onChanged: (v) {
+                                  final parsed = double.tryParse(v.trim());
+                                  if (parsed != null && parsed >= 0) {
+                                    setState(() => entry.unitPrice = parsed);
+                                  }
+                                },
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  '$currency ${entry.subtotal.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: Color(0xFFDC2626)),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline,
+                                  size: 16, color: Color(0xFFEF4444)),
+                              onPressed: () => setState(
+                                  () => _manualReturnItems.removeAt(idx)),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
         ),
         const SizedBox(height: 16),
         _buildRefundDetailsSection(isDark),

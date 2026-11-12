@@ -491,4 +491,128 @@ void main() {
           await db.getModuleRecords('poultry', recordType: 'flock'), isEmpty);
     },
   );
+
+  test(
+    'SaleReturn COGS reversal across P&L/Dashboard/TrialBalance & Direct NO-INV multi-branch restock work accurately',
+    () async {
+      final db = await openFreshDb('cogs_reversal_no_inv_return.db');
+      final prod1Id = await db.addProduct(
+        Product(
+          name: 'Green Tea Box',
+          sku: 'TEA-100',
+          barcode: '8961004004001',
+          purchasePrice: 100.0,
+          sellingPrice: 150.0,
+          stockQuantity: 10.0,
+        ),
+      );
+      final prod2Id = await db.addProduct(
+        Product(
+          name: 'Honey Jar 250g',
+          sku: 'HNY-250',
+          barcode: '8961004004002',
+          purchasePrice: 400.0,
+          sellingPrice: 550.0,
+          stockQuantity: 5.0,
+        ),
+      );
+      final prod1 = (await db.getProductById(prod1Id))!;
+      final prod2 = (await db.getProductById(prod2Id))!;
+
+      // Sell 2 x Green Tea @ 150 (Cost 100 each => 300 rev, 200 cogs, 100 profit)
+      final sale = await db.createSale(
+        sale: Sale(
+          invoiceNo: 'INV-PNL-1',
+          customerName: 'Walk-in Customer',
+          locationId: 1,
+          subtotal: 300.0,
+          totalAmount: 300.0,
+          paidAmount: 300.0,
+          paymentMethod: 'cash',
+          paymentStatus: 'paid',
+          saleStatus: 'final',
+          createdAt: '2026-11-12 09:00:00',
+        ),
+        items: [CartItem(product: prod1, quantity: 2.0, unitPrice: 150.0)],
+      );
+
+      // Walk-in returns 1 x Green Tea from invoice (Cost 100, Refund 150)
+      await db.addSaleReturn(
+        SaleReturn(
+          returnNo: 'SR-PNL-1',
+          saleId: sale.id,
+          invoiceNo: sale.invoiceNo,
+          customerName: 'Walk-in Customer',
+          date: '2026-11-12',
+          totalAmount: 150.0,
+          refundAmount: 150.0,
+          paymentMethod: 'cash',
+          items: [
+            SaleReturnItem(
+              returnId: 0,
+              productId: prod1Id,
+              productName: prod1.name,
+              quantity: 1.0,
+              unitPrice: 150.0,
+              subtotal: 150.0,
+            ),
+          ],
+        ),
+      );
+
+      final pnl = await db.getProfitAndLossReport();
+      expect(pnl['totalSales'], closeTo(150.0, 0.01));
+      expect(pnl['cogs'], closeTo(100.0, 0.01));
+      expect(pnl['grossProfit'], closeTo(50.0, 0.01));
+      expect(pnl['netProfit'], closeTo(50.0, 0.01));
+
+      final dash = await db.getDashboardMetrics(forceRefresh: true);
+      expect(dash['cogs'], closeTo(100.0, 0.01));
+      expect(dash['netProfit'], closeTo(50.0, 0.01));
+
+      final comp = await db.getComprehensiveBusinessReport();
+      expect(comp['totalSales'], closeTo(150.0, 0.01));
+      expect(comp['cogs'], closeTo(100.0, 0.01));
+      expect(comp['netProfit'], closeTo(50.0, 0.01));
+
+      final tb = await db.getFinancialTrialBalance();
+      expect(tb['costOfGoods'], closeTo(100.0, 0.01));
+      expect(tb['netProfit'], closeTo(50.0, 0.01));
+
+      // No-invoice multi-product return at Branch 2 restocks product_locations[2]
+      await db.addSaleReturn(
+        SaleReturn(
+          returnNo: 'SR-NOINV-2',
+          invoiceNo: 'NO-INV',
+          customerName: 'Walk-in Customer',
+          date: '2026-11-12',
+          totalAmount: 700.0,
+          refundAmount: 700.0,
+          paymentMethod: 'cash',
+          reason: 'No invoice counter return',
+          items: [
+            SaleReturnItem(
+              returnId: 0,
+              productId: prod1Id,
+              productName: prod1.name,
+              quantity: 1.0,
+              unitPrice: 150.0,
+              subtotal: 150.0,
+            ),
+            SaleReturnItem(
+              returnId: 0,
+              productId: prod2Id,
+              productName: prod2.name,
+              quantity: 1.0,
+              unitPrice: 550.0,
+              subtotal: 550.0,
+            ),
+          ],
+        ),
+        locationId: 2,
+      );
+      final loc1Map = await db.getProductLocationStocks(prod2Id);
+      expect(loc1Map[2], closeTo(1.0, 0.01));
+    },
+  );
 }

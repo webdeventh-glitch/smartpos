@@ -660,7 +660,8 @@ class DatabaseService {
   Future<List<SaleReturn>> getSaleReturns() => salesRepo.getSaleReturns();
   Future<String> generateNextSaleReturnRef() =>
       salesRepo.generateNextSaleReturnRef();
-  Future<int> addSaleReturn(SaleReturn sr) => salesRepo.addSaleReturn(sr);
+  Future<int> addSaleReturn(SaleReturn sr, {int locationId = 1}) =>
+      salesRepo.addSaleReturn(sr, locationId: locationId);
   Future<List<PurchaseReturn>> getPurchaseReturns() =>
       purchaseRepo.getPurchaseReturns();
   Future<String> generateNextPurchaseReturnRef() =>

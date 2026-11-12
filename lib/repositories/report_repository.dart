@@ -199,6 +199,36 @@ class ReportRepository extends BaseRepository {
     return results;
   }
 
+  Future<double> _getReturnedCogs({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final args = <dynamic>[];
+      var whereClause = '';
+      if (startDate != null && endDate != null) {
+        whereClause = ' WHERE sr.date >= ? AND sr.date <= ?';
+        args.addAll([startDate, endDate]);
+      }
+      final rows = await db.rawQuery(
+        'SELECT COALESCE(SUM(sri.quantity * (CASE WHEN sri.unit_multiplier > 0 THEN sri.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)), 0) as ret_cogs '
+        'FROM sale_return_items sri '
+        'JOIN sale_returns sr ON sri.return_id = sr.id '
+        'LEFT JOIN products p ON sri.product_id = p.id$whereClause',
+        args,
+      );
+      return (rows.first['ret_cogs'] as num?)?.toDouble() ?? 0.0;
+    } catch (e, st) {
+      AppLogger.warning(
+        'ReportRepository',
+        'Failed loading returned COGS offset',
+        e,
+        st,
+      );
+      return 0.0;
+    }
+  }
+
   // Dashboard Aggregates (Step 7.1: Date Range Aware + Step 7.5 Cache)
   Future<Map<String, dynamic>> getDashboardMetrics({
     DateTime? startDate,
@@ -327,14 +357,19 @@ class ReportRepository extends BaseRepository {
           'DatabaseService', 'Failed loading purchase_returns sum', e, st);
     }
 
-    // True COGS for Dashboard period
+    // True COGS for Dashboard period (net of returned items cost)
     final cogsResult = await db.rawQuery(
       "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs "
       "FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id "
       "WHERE s.sale_status = 'final'${salesDateClause.replaceAll('created_at', 's.created_at')}",
       salesArgs,
     );
-    final periodCogs = (cogsResult.first['cogs'] as num?)?.toDouble() ?? 0.0;
+    final grossCogs = (cogsResult.first['cogs'] as num?)?.toDouble() ?? 0.0;
+    final retCogs = await _getReturnedCogs(
+      startDate: expStartStr,
+      endDate: expEndStr,
+    );
+    final periodCogs = (grossCogs - retCogs).clamp(0.0, double.infinity);
 
     final result = {
       'totalSales': totalSales,
@@ -381,7 +416,9 @@ class ReportRepository extends BaseRepository {
         (salesRes.first['total_sales'] as num?)?.toDouble() ?? 0.0;
     final netSales =
         (totalSales - saleReturnsTotal).clamp(0.0, double.infinity);
-    final cogs = (cogsRes.first['cogs'] as num?)?.toDouble() ?? 0.0;
+    final grossCogs = (cogsRes.first['cogs'] as num?)?.toDouble() ?? 0.0;
+    final returnedCogs = await _getReturnedCogs();
+    final cogs = (grossCogs - returnedCogs).clamp(0.0, double.infinity);
     final totalExpenses =
         (expRes.first['total_expenses'] as num?)?.toDouble() ?? 0.0;
     final recoveredAmount =
@@ -471,13 +508,37 @@ class ReportRepository extends BaseRepository {
         (salesRes.first['total_due'] as num?)?.toDouble() ?? 0.0;
     final outputTax = (salesRes.first['output_tax'] as num?)?.toDouble() ?? 0.0;
 
-    // 2. COGS (Cost of goods sold with unit_multiplier)
+    // 2. COGS (Cost of goods sold with unit_multiplier, net of sale returns)
     final cogsRes = await db.rawQuery(
       "SELECT SUM(si.quantity * (CASE WHEN si.unit_multiplier > 0 THEN si.unit_multiplier ELSE 1.0 END) * COALESCE(p.purchase_price, 0)) as cogs FROM sale_items si JOIN sales s ON si.sale_id = s.id LEFT JOIN products p ON si.product_id = p.id WHERE s.sale_status = 'final'$salesDateClause",
       salesArgs,
     );
-    final cogs = (cogsRes.first['cogs'] as num?)?.toDouble() ?? 0.0;
-    final grossProfit = totalSales - cogs;
+    final grossCogs = (cogsRes.first['cogs'] as num?)?.toDouble() ?? 0.0;
+    double saleReturnsTotal = 0.0;
+    try {
+      final retRes = await db.rawQuery(
+        startDate != null && endDate != null
+            ? 'SELECT SUM(total_amount) as total_ret FROM sale_returns WHERE date >= ? AND date <= ?'
+            : 'SELECT SUM(total_amount) as total_ret FROM sale_returns',
+        startDate != null && endDate != null
+            ? [
+                DateFormat('yyyy-MM-dd').format(startDate),
+                DateFormat('yyyy-MM-dd').format(endDate),
+              ]
+            : const [],
+      );
+      saleReturnsTotal = (retRes.first['total_ret'] as num?)?.toDouble() ?? 0.0;
+    } catch (_) {}
+    final returnedCogs = await _getReturnedCogs(
+      startDate:
+          startDate != null ? DateFormat('yyyy-MM-dd').format(startDate) : null,
+      endDate:
+          endDate != null ? DateFormat('yyyy-MM-dd').format(endDate) : null,
+    );
+    final cogs = (grossCogs - returnedCogs).clamp(0.0, double.infinity);
+    final netSales =
+        (totalSales - saleReturnsTotal).clamp(0.0, double.infinity);
+    final grossProfit = netSales - cogs;
 
     // 3. Purchases Summary & Real Input Tax
     final purchasesRes = await db.rawQuery(
@@ -574,7 +635,9 @@ class ReportRepository extends BaseRepository {
 
     return {
       'invoiceCount': invoiceCount,
-      'totalSales': totalSales,
+      'totalSales': netSales,
+      'grossSales': totalSales,
+      'totalSellReturn': saleReturnsTotal,
       'totalPaidSales': totalPaidSales,
       'totalDueSales': totalDueSales,
       'outputTax': outputTax,

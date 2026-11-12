@@ -110,6 +110,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   Contact? _selectedCustomer;
   List<Contact> _customers = [];
   List<CustomerGroup> _customerGroups = [];
+  List<BusinessLocation> _locations = [];
+  int _selectedLocationId = 1;
   List<TaxRate> _taxRates = [];
   List<TaxGroup> _taxGroups = [];
 
@@ -346,6 +348,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     if (!mounted) return;
     final discountRules = await db.getDiscountRules(activeOnly: true);
     if (!mounted) return;
+    final locations = await db.getBusinessLocations();
+    if (!mounted) return;
 
     final Contact? defaultCust = customers.cast<Contact?>().firstWhere(
           (c) =>
@@ -354,9 +358,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           orElse: () => customers.isNotEmpty ? customers.first : null,
         );
 
+    final validLocId = locations.any((l) => l.id == _selectedLocationId)
+        ? _selectedLocationId
+        : (locations.isNotEmpty && locations.first.id != null
+            ? locations.first.id!
+            : 1);
+
     setState(() {
       _customers = customers;
       _customerGroups = customerGroups;
+      _locations = locations;
+      _selectedLocationId = validLocId;
       _taxRates = taxRates;
       _taxGroups = taxGroups;
       _selectedCustomer = defaultCust;
@@ -3586,6 +3598,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       invoiceNo: invoiceNo,
       customerId: _selectedCustomer?.id,
       customerName: _selectedCustomer?.name ?? 'Walk-in Customer',
+      locationId: _selectedLocationId,
       subtotal: _subtotal,
       discount: totalDiscount,
       taxAmount: _orderTax,
@@ -5190,7 +5203,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 child: Row(
                   children: [
                     if (!_isFullscreen) ...[
-                      // Location
+                      // Location / Active Branch Switcher
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -5199,16 +5212,48 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.bold,
                                   color: textPrimary)),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 160),
-                            child: Text(
-                              widget.settings.businessName,
-                              style: TextStyle(
-                                  fontSize: 12.5, color: textSecondary),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
+                          if (_locations.length > 1)
+                            DropdownButtonHideUnderline(
+                              child: DropdownButton<int>(
+                                value: _locations
+                                        .any((l) => l.id == _selectedLocationId)
+                                    ? _selectedLocationId
+                                    : _locations.first.id,
+                                isDense: true,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: textSecondary,
+                                ),
+                                dropdownColor: cardBg,
+                                items: _locations
+                                    .where((l) => l.id != null)
+                                    .map((loc) => DropdownMenuItem<int>(
+                                          value: loc.id!,
+                                          child: Text(loc.name,
+                                              overflow: TextOverflow.ellipsis),
+                                        ))
+                                    .toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() => _selectedLocationId = val);
+                                  }
+                                },
+                              ),
+                            )
+                          else
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 160),
+                              child: Text(
+                                _locations.isNotEmpty
+                                    ? _locations.first.name
+                                    : widget.settings.businessName,
+                                style: TextStyle(
+                                    fontSize: 12.5, color: textSecondary),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                             ),
-                          ),
                         ],
                       ),
                       const SizedBox(width: 14),
@@ -5459,6 +5504,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 context: context,
                                 builder: (_) => SalesReturnDialog(
                                   settings: widget.settings,
+                                  locationId: _selectedLocationId,
                                   onReturnSuccess: _loadInitialData,
                                 ),
                               ),
