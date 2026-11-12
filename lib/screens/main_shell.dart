@@ -45,17 +45,17 @@ import 'notifications/notification_templates_screen.dart';
 import 'returns/sales_return_screen.dart';
 import 'returns/purchase_return_screen.dart';
 import 'financial/annual_closing_screen.dart';
-import 'business_modules/business_modules_hub_screen.dart';
-import 'business_modules/restaurant_cafe_screen.dart';
-import 'business_modules/repair_service_screen.dart';
-import 'business_modules/hotel_management_screen.dart';
-import 'business_modules/gym_fitness_screen.dart';
-import 'business_modules/manufacturing_screen.dart';
-import 'business_modules/woocommerce_sync_screen.dart';
-import 'business_modules/hrm_employee_screen.dart';
-import 'business_modules/accounting_crm_screen.dart';
-import 'business_modules/fruit_mandi_screen.dart';
-import 'business_modules/poultry_business_screen.dart';
+import 'business_modules/business_modules_hub_screen.dart' deferred as mod_hub;
+import 'business_modules/restaurant_cafe_screen.dart' deferred as mod_restaurant;
+import 'business_modules/repair_service_screen.dart' deferred as mod_repair;
+import 'business_modules/hotel_management_screen.dart' deferred as mod_hotel;
+import 'business_modules/gym_fitness_screen.dart' deferred as mod_gym;
+import 'business_modules/manufacturing_screen.dart' deferred as mod_mfg;
+import 'business_modules/woocommerce_sync_screen.dart' deferred as mod_woo;
+import 'business_modules/hrm_employee_screen.dart' deferred as mod_hrm;
+import 'business_modules/accounting_crm_screen.dart' deferred as mod_acc;
+import 'business_modules/fruit_mandi_screen.dart' deferred as mod_fruit;
+import 'business_modules/poultry_business_screen.dart' deferred as mod_poultry;
 import 'settings/module_settings_screen.dart';
 import 'settings/cloud_sync_screen.dart';
 
@@ -70,7 +70,7 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   bool _sidebarCollapsed = false;
-  bool _initializedLayout = false;
+  bool? _lastCompactBreakpoint;
   late BusinessSettings _settings;
   String _activeLocationName = 'Main Branch HQ';
   Timer? _sessionTimer;
@@ -108,11 +108,10 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_initializedLayout) {
-      _initializedLayout = true;
-      if (MediaQuery.of(context).size.width < 1300) {
-        _sidebarCollapsed = true;
-      }
+    final isCompact = MediaQuery.of(context).size.width < 1280;
+    if (_lastCompactBreakpoint == null || _lastCompactBreakpoint != isCompact) {
+      _lastCompactBreakpoint = isCompact;
+      _sidebarCollapsed = isCompact;
     }
   }
 
@@ -407,30 +406,63 @@ class _MainShellState extends ConsumerState<MainShell> {
       case AppRoute.annualClosing:
         return AnnualClosingScreen(settings: _settings);
       case AppRoute.businessModulesHub:
-        return BusinessModulesHubScreen(
-          settings: _settings,
-          onNavigateToRoute: _navigateTo,
+        return _DeferredModuleView(
+          loader: mod_hub.loadLibrary,
+          builder: () => mod_hub.BusinessModulesHubScreen(
+            settings: _settings,
+            onNavigateToRoute: _navigateTo,
+          ),
         );
       case AppRoute.restaurantCafe:
-        return RestaurantCafeScreen(settings: _settings);
+        return _DeferredModuleView(
+          loader: mod_restaurant.loadLibrary,
+          builder: () => mod_restaurant.RestaurantCafeScreen(settings: _settings),
+        );
       case AppRoute.repairService:
-        return RepairServiceScreen(settings: _settings);
+        return _DeferredModuleView(
+          loader: mod_repair.loadLibrary,
+          builder: () => mod_repair.RepairServiceScreen(settings: _settings),
+        );
       case AppRoute.hotelManagement:
-        return HotelManagementScreen(settings: _settings);
+        return _DeferredModuleView(
+          loader: mod_hotel.loadLibrary,
+          builder: () => mod_hotel.HotelManagementScreen(settings: _settings),
+        );
       case AppRoute.gymFitness:
-        return GymFitnessScreen(settings: _settings);
+        return _DeferredModuleView(
+          loader: mod_gym.loadLibrary,
+          builder: () => mod_gym.GymFitnessScreen(settings: _settings),
+        );
       case AppRoute.manufacturing:
-        return ManufacturingScreen(settings: _settings);
+        return _DeferredModuleView(
+          loader: mod_mfg.loadLibrary,
+          builder: () => mod_mfg.ManufacturingScreen(settings: _settings),
+        );
       case AppRoute.wooCommerceSync:
-        return WooCommerceSyncScreen(settings: _settings);
+        return _DeferredModuleView(
+          loader: mod_woo.loadLibrary,
+          builder: () => mod_woo.WooCommerceSyncScreen(settings: _settings),
+        );
       case AppRoute.hrmEmployee:
-        return HrmEmployeeScreen(settings: _settings);
+        return _DeferredModuleView(
+          loader: mod_hrm.loadLibrary,
+          builder: () => mod_hrm.HrmEmployeeScreen(settings: _settings),
+        );
       case AppRoute.accountingCrm:
-        return AccountingCrmScreen(settings: _settings);
+        return _DeferredModuleView(
+          loader: mod_acc.loadLibrary,
+          builder: () => mod_acc.AccountingCrmScreen(settings: _settings),
+        );
       case AppRoute.fruitMandi:
-        return FruitMandiScreen(settings: _settings);
+        return _DeferredModuleView(
+          loader: mod_fruit.loadLibrary,
+          builder: () => mod_fruit.FruitMandiScreen(settings: _settings),
+        );
       case AppRoute.poultryBusiness:
-        return PoultryBusinessScreen(settings: _settings);
+        return _DeferredModuleView(
+          loader: mod_poultry.loadLibrary,
+          builder: () => mod_poultry.PoultryBusinessScreen(settings: _settings),
+        );
       case AppRoute.moduleSettings:
         return ModuleSettingsScreen(
           settings: _settings,
@@ -575,6 +607,63 @@ class _MainShellState extends ConsumerState<MainShell> {
       ),
         ),
       ),
+    );
+  }
+}
+
+/// Defers loading heavy industry module code until first navigation (Step 7.5).
+class _DeferredModuleView extends StatefulWidget {
+  final Future<void> Function() loader;
+  final Widget Function() builder;
+
+  const _DeferredModuleView({
+    required this.loader,
+    required this.builder,
+  });
+
+  @override
+  State<_DeferredModuleView> createState() => _DeferredModuleViewState();
+}
+
+class _DeferredModuleViewState extends State<_DeferredModuleView> {
+  late Future<void> _loadFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFuture = widget.loader();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DeferredModuleView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.loader != widget.loader) {
+      _loadFuture = widget.loader();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _loadFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done &&
+            !snapshot.hasError) {
+          return widget.builder();
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Failed to load module: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          );
+        }
+        return const Center(child: CircularProgressIndicator());
+      },
     );
   }
 }

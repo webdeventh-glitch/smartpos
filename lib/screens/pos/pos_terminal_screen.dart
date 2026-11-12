@@ -11,6 +11,8 @@ import '../../providers/providers.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/keyboard_shortcuts_service.dart';
+import '../../services/theme_service.dart';
 import 'quick_customer_dialog.dart';
 import 'customer_search_dialog.dart';
 import '../expenses/add_expense_dialog.dart';
@@ -91,6 +93,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   int _catalogQueryToken = 0;
   Timer? _catalogSearchDebounce;
   bool _isGridView = false; // Switchable layout: Grid vs List view (Default List view)
+  int _mobileTabIndex = 1; // For <1050px tablet compact toggle: 0 = Cart, 1 = Catalog
 
   // Parked bills count
   int _parkedCount = 0;
@@ -103,6 +106,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   bool _manualOrderDiscountOverride = false;
 
   late String _wordsLanguage;
+  late String _shortcutsJson;
+  late Map<String, String> _shortcutBindings;
 
   @override
   void initState() {
@@ -110,6 +115,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     _wordsLanguage = widget.settings.totalInWordsLanguage.isNotEmpty
         ? widget.settings.totalInWordsLanguage
         : 'ur';
+    _shortcutsJson = widget.settings.keyboardShortcutsJson;
+    _shortcutBindings = KeyboardShortcutsService.resolveBindings(_shortcutsJson);
     _dbFuture = DatabaseService.initialize();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -246,18 +253,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       categoryId: _selectedCategoryId,
       brandId: _selectedBrandId,
       search: _searchController.text.trim(),
+      featuredOnly: _filterFeatured,
       page: 1,
       pageSize: _posPageSize,
       includeTotalCount: false,
     );
     if (!mounted) return;
-    final initialItems = _filterFeatured
-        ? firstPage.items.where((p) => (p.id ?? 0) % 5 == 0).toList()
-        : firstPage.items;
     setState(() {
       _categories = categories;
       _brands = brands;
-      _products = initialItems;
+      _products = firstPage.items;
       _catalogCursorName = firstPage.nextCursorSortValue;
       _catalogCursorId = firstPage.nextCursorId;
       _catalogHasMore = firstPage.hasMore;
@@ -343,16 +348,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       categoryId: _selectedCategoryId,
       brandId: _selectedBrandId,
       search: _searchController.text.trim(),
+      featuredOnly: _filterFeatured,
       page: 1,
       pageSize: _posPageSize,
       includeTotalCount: false,
     );
     if (!mounted || token != _catalogQueryToken) return;
-    final filteredItems = _filterFeatured
-        ? page.items.where((p) => (p.id ?? 0) % 5 == 0).toList()
-        : page.items;
     setState(() {
-      _products = filteredItems;
+      _products = page.items;
       _catalogCursorName = page.nextCursorSortValue;
       _catalogCursorId = page.nextCursorId;
       _catalogHasMore = page.hasMore;
@@ -376,6 +379,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       categoryId: _selectedCategoryId,
       brandId: _selectedBrandId,
       search: _searchController.text.trim(),
+      featuredOnly: _filterFeatured,
       page: 1,
       pageSize: _posPageSize,
       cursorName: _catalogCursorName,
@@ -386,7 +390,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final existingIds = _products.map((p) => p.id).whereType<int>().toSet();
     final nextItems = page.items.where((p) {
       if (p.id != null && existingIds.contains(p.id)) return false;
-      if (_filterFeatured && ((p.id ?? 0) % 5 != 0)) return false;
       return true;
     }).toList();
     setState(() {
@@ -695,7 +698,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 color: tempType == 'percentage' ? const Color(0xFF4F46E5) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(6),
                                 boxShadow: tempType == 'percentage'
-                                    ? [BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.25), blurRadius: 4, offset: const Offset(0, 1))]
+                                    ? [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.25), blurRadius: 4, offset: const Offset(0, 1))]
                                     : null,
                               ),
                               child: Row(
@@ -729,7 +732,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                 color: tempType == 'fixed' ? const Color(0xFF4F46E5) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(6),
                                 boxShadow: tempType == 'fixed'
-                                    ? [BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.25), blurRadius: 4, offset: const Offset(0, 1))]
+                                    ? [BoxShadow(color: const Color(0xFF4F46E5).withValues(alpha: 0.25), blurRadius: 4, offset: const Offset(0, 1))]
                                     : null,
                               ),
                               child: Row(
@@ -3536,92 +3539,251 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
   }
 
+  VoidCallback _callbackForShortcutAction(String actionId) {
+    switch (actionId) {
+      case 'help':
+        return _showShortcutsDialog;
+      case 'quickCash':
+        return _quickCashCheckout;
+      case 'customerSearch':
+        return _openCustomerSearchModal;
+      case 'suspendSale':
+        return _suspendSale;
+      case 'toggleView':
+        return _toggleProductLayout;
+      case 'quickCustomer':
+        return _openQuickCustomerModal;
+      case 'multiPay':
+        return _handleMultiplePayClick;
+      case 'clearCart':
+        return _clearCart;
+      case 'recentSales':
+        return _openRecentTransactionsModal;
+      case 'registerDetails':
+        return () => showDialog(
+              context: context,
+              builder: (_) => RegisterDetailsDialog(settings: widget.settings),
+            );
+      default:
+        return () {};
+    }
+  }
+
+  Map<ShortcutActivator, VoidCallback> _buildDynamicShortcuts() {
+    final map = <ShortcutActivator, VoidCallback>{
+      const SingleActivator(LogicalKeyboardKey.f11): _openCustomProductDialog,
+      const SingleActivator(LogicalKeyboardKey.f12): _toggleWholesaleMode,
+      const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () =>
+          ref.read(cartProvider.notifier).undo(),
+      const SingleActivator(LogicalKeyboardKey.keyY, control: true): () =>
+          ref.read(cartProvider.notifier).redo(),
+      const SingleActivator(LogicalKeyboardKey.escape): () {
+        _searchFocusNode.requestFocus();
+      },
+      const SingleActivator(LogicalKeyboardKey.slash, shift: true):
+          _showShortcutsDialog,
+    };
+
+    for (final spec in KeyboardShortcutsService.actions) {
+      if (spec.isGlobalOrForm) continue;
+      final assignedKey = _shortcutBindings[spec.id] ?? spec.defaultKeyLabel;
+      final logicalKey = KeyboardShortcutsService.parseFunctionKey(assignedKey);
+      if (logicalKey != null) {
+        map[SingleActivator(logicalKey)] = _callbackForShortcutAction(spec.id);
+      }
+    }
+    return map;
+  }
+
   void _showShortcutsDialog() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
     final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
     final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    bool isCustomizing = false;
+    final draftBindings = Map<String, String>.from(_shortcutBindings);
 
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 8,
-        backgroundColor: cardBg,
-        child: Container(
-          width: 500,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                          borderRadius: BorderRadius.circular(10),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 8,
+          backgroundColor: cardBg,
+          child: Container(
+            width: 560,
+            constraints: const BoxConstraints(maxHeight: 620),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.keyboard_rounded, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 20),
                         ),
-                        child: Icon(Icons.keyboard_rounded, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'POS Terminal Shortcuts',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: textPrimary),
-                          ),
-                          Text(
-                            'Quick keyboard hotkeys for rapid cashier operation',
-                            style: TextStyle(fontSize: 12, color: textSecondary),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, size: 20, color: textSecondary),
-                    onPressed: () => Navigator.pop(ctx),
-                    splashRadius: 18,
-                  ),
-                ],
-              ),
-              Divider(height: 24, color: borderColor),
-
-              _shortcutRow('F1', 'Keyboard Shortcuts Help Modal', isDark),
-              _shortcutRow('F2', 'Quick Cash Pay (Instant Complete)', isDark),
-              _shortcutRow('F3', 'Live Customer Search (Name, Phone, Medical Store)', isDark),
-              _shortcutRow('F4', 'Suspend / Park Current Sale Order', isDark),
-              _shortcutRow('F5', 'Toggle Product View (Grid / List)', isDark),
-              _shortcutRow('F6', 'Add New Customer (Quick Modal)', isDark),
-              _shortcutRow('F7', 'Multiple / Split Pay Modal', isDark),
-              _shortcutRow('F8', 'Cancel Sale / Clear Cart', isDark),
-              _shortcutRow('F9', 'Recent Sales & Transactions (Reprint / Recall)', isDark),
-              _shortcutRow('F10', 'Register Details & Session', isDark),
-              _shortcutRow('Esc', 'Focus Barcode Scanner / Search Input', isDark),
-
-              const SizedBox(height: 18),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F46E5),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Got it', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'POS Terminal Shortcuts [F1 / ?]',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: textPrimary),
+                            ),
+                            Text(
+                              isCustomizing
+                                  ? 'Reassign F-keys for cashier operations and save'
+                                  : 'Quick keyboard hotkeys for rapid cashier operation',
+                              style: TextStyle(fontSize: 12, color: textSecondary),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => setDlgState(() => isCustomizing = !isCustomizing),
+                          icon: Icon(isCustomizing ? Icons.visibility_outlined : Icons.tune_rounded, size: 16),
+                          label: Text(isCustomizing ? 'Preview' : 'Customize F-Keys', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, size: 20, color: textSecondary),
+                          onPressed: () => Navigator.pop(ctx),
+                          splashRadius: 18,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                Divider(height: 20, color: borderColor),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        ...KeyboardShortcutsService.actions.map((spec) {
+                          final currentKey = draftBindings[spec.id] ?? spec.defaultKeyLabel;
+                          if (!isCustomizing || spec.isGlobalOrForm) {
+                            return _shortcutRow(currentKey, spec.label, isDark);
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 96,
+                                  child: DropdownButtonFormField<String>(
+                                    initialValue: KeyboardShortcutsService.customizableFKeys.contains(currentKey)
+                                        ? currentKey
+                                        : spec.defaultKeyLabel,
+                                    isDense: true,
+                                    decoration: const InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    ),
+                                    items: KeyboardShortcutsService.customizableFKeys
+                                        .map((k) => DropdownMenuItem(value: k, child: Text(k, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))))
+                                        .toList(),
+                                    onChanged: (newKey) {
+                                      if (newKey != null) {
+                                        setDlgState(() => draftBindings[spec.id] = newKey);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    spec.label,
+                                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textPrimary),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        _shortcutRow('F11', 'Custom Product / Ad-hoc Item', isDark),
+                        _shortcutRow('F12', 'Toggle Wholesale Pricing Mode', isDark),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (isCustomizing)
+                      TextButton(
+                        onPressed: () {
+                          setDlgState(() {
+                            for (final a in KeyboardShortcutsService.actions) {
+                              draftBindings[a.id] = a.defaultKeyLabel;
+                            }
+                          });
+                        },
+                        child: const Text('Reset Defaults'),
+                      )
+                    else
+                      const SizedBox.shrink(),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isCustomizing) ...[
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.save_rounded, size: 16),
+                            label: const Text('Save Bindings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            onPressed: () async {
+                              final encoded = KeyboardShortcutsService.encodeBindings(draftBindings);
+                              final db = await _dbFuture;
+                              final updated = widget.settings.copyWith(keyboardShortcutsJson: encoded);
+                              await db.updateBusinessSettings(updated);
+                              if (mounted) {
+                                ref.read(settingsProvider.notifier).setSettings(updated);
+                                setState(() {
+                                  _shortcutsJson = encoded;
+                                  _shortcutBindings = KeyboardShortcutsService.resolveBindings(encoded);
+                                });
+                              }
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            },
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F46E5),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -3690,6 +3852,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 1200;
+    final isTabletCompact = screenWidth < 1050;
+    final isTouchFriendly = ThemeService.touchFriendlyNotifier.value;
 
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final screenBg = isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9);
@@ -3701,29 +3865,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return CallbackShortcuts(
-      bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.f1): _showShortcutsDialog,
-        const SingleActivator(LogicalKeyboardKey.f2): _quickCashCheckout,
-        const SingleActivator(LogicalKeyboardKey.f3): _openCustomerSearchModal,
-        const SingleActivator(LogicalKeyboardKey.f4): _suspendSale,
-        const SingleActivator(LogicalKeyboardKey.f5): _toggleProductLayout,
-        const SingleActivator(LogicalKeyboardKey.f6): _openQuickCustomerModal,
-        const SingleActivator(LogicalKeyboardKey.f7): _handleMultiplePayClick,
-        const SingleActivator(LogicalKeyboardKey.f8): _clearCart,
-        const SingleActivator(LogicalKeyboardKey.f9): _openRecentTransactionsModal,
-        const SingleActivator(LogicalKeyboardKey.f10): () {
-          showDialog(context: context, builder: (_) => RegisterDetailsDialog(settings: widget.settings));
-        },
-        const SingleActivator(LogicalKeyboardKey.f11): _openCustomProductDialog,
-        const SingleActivator(LogicalKeyboardKey.f12): _toggleWholesaleMode,
-        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () =>
-            ref.read(cartProvider.notifier).undo(),
-        const SingleActivator(LogicalKeyboardKey.keyY, control: true): () =>
-            ref.read(cartProvider.notifier).redo(),
-        const SingleActivator(LogicalKeyboardKey.escape): () {
-          _searchFocusNode.requestFocus();
-        },
-      },
+      bindings: _buildDynamicShortcuts(),
       child: Focus(
         autofocus: true,
         child: Scaffold(
@@ -4062,13 +4204,56 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 ),
               ),
 
+              if (isTabletCompact)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    border: Border(bottom: BorderSide(color: borderColor)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          selected: _mobileTabIndex == 1,
+                          onSelected: (_) => setState(() => _mobileTabIndex = 1),
+                          label: SizedBox(
+                            width: double.infinity,
+                            child: Text(
+                              'Catalog (${_products.length})',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          selected: _mobileTabIndex == 0,
+                          onSelected: (_) => setState(() => _mobileTabIndex = 0),
+                          label: SizedBox(
+                            width: double.infinity,
+                            child: Text(
+                              'Cart (${cartState.items.length}) • $currency${_grandTotal.toStringAsFixed(0)}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // ================= MAIN TERMINAL SPLIT LAYOUT =================
               Expanded(
                 child: Row(
                   children: [
                     // ================= LEFT: ORDER CART & CHECKOUT =================
+                    if (!isTabletCompact || _mobileTabIndex == 0)
                     Expanded(
-                      flex: 6,
+                      flex: isTabletCompact ? 1 : 6,
                       child: Container(
                         color: cardBg,
                         child: Column(
@@ -4960,7 +5145,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                 Icon(
                                                   Icons.translate,
                                                   size: isSmallScreen ? 10 : 11,
-                                                  color: isDark ? const Color(0xFF6EE7B7).withOpacity(0.8) : const Color(0xFF16A34A).withOpacity(0.8),
+                                                  color: isDark ? const Color(0xFF6EE7B7).withValues(alpha: 0.8) : const Color(0xFF16A34A).withValues(alpha: 0.8),
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
@@ -5068,7 +5253,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                         OutlinedButton.icon(
                                           style: OutlinedButton.styleFrom(
                                             side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
-                                            backgroundColor: isDark ? const Color(0xFF312E81).withOpacity(0.3) : const Color(0xFFEEF2FF),
+                                            backgroundColor: isDark ? const Color(0xFF312E81).withValues(alpha: 0.3) : const Color(0xFFEEF2FF),
                                             foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
                                             padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 6 : 10, vertical: isSmallScreen ? 4 : 8),
                                             visualDensity: VisualDensity.compact,
@@ -5158,8 +5343,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     ),
 
                     // ================= RIGHT: PRODUCT CATALOG GRID =================
+                    if (!isTabletCompact || _mobileTabIndex == 1)
                     Expanded(
-                      flex: 5,
+                      flex: isTabletCompact ? 1 : 5,
                       child: Container(
                         color: subtleBg,
                         child: Column(
@@ -5523,7 +5709,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                       child: InkWell(
                                                         onTap: () => _addToCart(p),
                                                         borderRadius: BorderRadius.circular(6),
-                                                        hoverColor: const Color(0xFF4F46E5).withOpacity(0.04),
+                                                        hoverColor: const Color(0xFF4F46E5).withValues(alpha: 0.04),
                                                         child: Container(
                                                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
                                                           decoration: BoxDecoration(
@@ -5913,22 +6099,28 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _shortcutPill('F1', 'Search / Barcode Focus', isDark),
+                      _shortcutPill(_shortcutBindings['help'] ?? 'F1', 'Shortcuts Help (?)', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill('F2', 'Cash Checkout', isDark),
+                      _shortcutPill(_shortcutBindings['quickCash'] ?? 'F2', 'Cash Checkout', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill('F3', 'Customer', isDark),
+                      _shortcutPill(_shortcutBindings['customerSearch'] ?? 'F3', 'Customer', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill('F4', 'Hold Bill', isDark),
+                      _shortcutPill(_shortcutBindings['suspendSale'] ?? 'F4', 'Hold Bill', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill('F7', 'Partial / Split Pay', isDark),
+                      _shortcutPill(_shortcutBindings['multiPay'] ?? 'F7', 'Partial / Split Pay', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill('F8', 'Reset Order', isDark),
+                      _shortcutPill(_shortcutBindings['clearCart'] ?? 'F8', 'Reset Order', isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill('F10', 'Shift Reconciliation', isDark),
+                      _shortcutPill(_shortcutBindings['registerDetails'] ?? 'F10', 'Shift Reconciliation', isDark),
+                      const SizedBox(width: 10),
+                      _shortcutPill('Ctrl+Z', 'Undo Cart', isDark),
+                      const SizedBox(width: 10),
+                      _shortcutPill('Esc', 'Search Focus', isDark),
                       const SizedBox(width: 24),
                       Text(
-                        'Smart POS Engine • Multi-Industry',
+                        isTouchFriendly
+                            ? 'Smart POS • Touch Mode Active'
+                            : 'Smart POS Engine • Multi-Industry',
                         style: TextStyle(fontSize: 10, color: textSecondary, fontWeight: FontWeight.bold),
                       ),
                     ],

@@ -18,7 +18,7 @@ class DatabaseService {
   final String? dbFilePath;
   DatabaseService(this.db, {this.dbFilePath});
 
-  static const int currentSchemaVersion = 7;
+  static const int currentSchemaVersion = 8;
   static DatabaseService? _instance;
   static DatabaseService? get instanceOrNull => _instance;
   static DatabaseService get instance =>
@@ -403,7 +403,17 @@ class DatabaseService {
     String? searchQuery,
   }) =>
       reportRepo.getStockExpiryReport(filter: filter, searchQuery: searchQuery);
-  Future<Map<String, dynamic>> getDashboardMetrics() => reportRepo.getDashboardMetrics();
+  Future<Map<String, dynamic>> getDashboardMetrics({
+    DateTime? startDate,
+    DateTime? endDate,
+    bool forceRefresh = false,
+  }) =>
+      reportRepo.getDashboardMetrics(
+        startDate: startDate,
+        endDate: endDate,
+        forceRefresh: forceRefresh,
+      );
+  void invalidateReportCache() => ReportRepository.clearCache();
   Future<Map<String, dynamic>> getProfitAndLossReport() => reportRepo.getProfitAndLossReport();
   Future<Map<String, dynamic>> getStockValuationReport() => reportRepo.getStockValuationReport();
   Future<Map<String, dynamic>> getComprehensiveBusinessReport({
@@ -428,9 +438,34 @@ class DatabaseService {
     int? pharmacyProductTarget,
   }) =>
       seederRepo.seedInitialDataForBusinessType(businessType: businessType, pharmacyProductTarget: pharmacyProductTarget);
-  Future<List<Map<String, dynamic>>> getDailySalesTrend({int days = 7}) => reportRepo.getDailySalesTrend(days: days);
-  Future<Map<String, double>> getPaymentMethodBreakdown() => reportRepo.getPaymentMethodBreakdown();
-  Future<List<Map<String, dynamic>>> getTopSellingProducts({int limit = 5}) => reportRepo.getTopSellingProducts(limit: limit);
+  Future<List<Map<String, dynamic>>> getDailySalesTrend({
+    int days = 7,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) =>
+      reportRepo.getDailySalesTrend(
+        days: days,
+        startDate: startDate,
+        endDate: endDate,
+      );
+  Future<Map<String, double>> getPaymentMethodBreakdown({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) =>
+      reportRepo.getPaymentMethodBreakdown(
+        startDate: startDate,
+        endDate: endDate,
+      );
+  Future<List<Map<String, dynamic>>> getTopSellingProducts({
+    int limit = 5,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) =>
+      reportRepo.getTopSellingProducts(
+        limit: limit,
+        startDate: startDate,
+        endDate: endDate,
+      );
   Future<Map<String, dynamic>> getTodaySalesMetrics() => reportRepo.getTodaySalesMetrics();
   Future<List<User>> getUsers() => authRepo.getUsers();
   Future<int> addUser(User user, {bool replaceExisting = false}) => authRepo.addUser(user, replaceExisting: replaceExisting);
@@ -467,6 +502,22 @@ class DatabaseService {
   Future<int> getPendingSyncCount() => syncRepo.getPendingSyncCount();
   Future<List<Map<String, dynamic>>> getRecentSyncLogs({int limit = 50}) => syncRepo.getRecentSyncLogs(limit: limit);
   Future<void> clearCompletedSyncLogs() => syncRepo.clearCompletedSyncLogs();
+  Future<Map<String, dynamic>> resolveSyncConflict({
+    required String entityType,
+    required String entityId,
+    required Map<String, dynamic> localRecord,
+    required Map<String, dynamic> remoteRecord,
+    String localUpdatedAt = '',
+    String remoteUpdatedAt = '',
+  }) =>
+      syncRepo.resolveSyncConflict(
+        entityType: entityType,
+        entityId: entityId,
+        localRecord: localRecord,
+        remoteRecord: remoteRecord,
+        localUpdatedAt: localUpdatedAt,
+        remoteUpdatedAt: remoteUpdatedAt,
+      );
   Future<List<Map<String, dynamic>>> getGymMembers({String? status}) => industryModulesRepo.getGymMembers(status: status);
   Future<int> addGymMember(Map<String, dynamic> member) => industryModulesRepo.addGymMember(member);
   Future<int> updateGymMember(int id, Map<String, dynamic> member) => industryModulesRepo.updateGymMember(id, member);
@@ -615,6 +666,7 @@ class DatabaseService {
     String? search,
     String stockFilter = 'all',
     String productType = 'all',
+    bool featuredOnly = false,
     int page = 1,
     int pageSize = 25,
     String? cursorName,
@@ -627,6 +679,7 @@ class DatabaseService {
         search: search,
         stockFilter: stockFilter,
         productType: productType,
+        featuredOnly: featuredOnly,
         page: page,
         pageSize: pageSize,
         cursorName: cursorName,

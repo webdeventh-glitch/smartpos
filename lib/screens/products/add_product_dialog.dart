@@ -40,6 +40,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
   bool _loading = true;
   bool _isSaving = false;
   bool _isPickingImage = false;
+  bool _isFeatured = false;
   String? _pickedImagePath;
 
   @override
@@ -47,6 +48,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
     super.initState();
     final p = widget.productToEdit;
     _pickedImagePath = p?.resolvedImagePath;
+    _isFeatured = p?.isFeatured ?? false;
     _nameController = TextEditingController(text: p?.name ?? '');
     _skuController = TextEditingController(text: p?.sku ?? '');
     _barcodeController = TextEditingController(text: p?.barcode ?? '');
@@ -193,6 +195,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
         expiryDate: _expiryController.text.trim().isNotEmpty ? _expiryController.text.trim() : null,
         bonusQty: double.tryParse(_bonusController.text.trim()) ?? 0.0,
         packSize: double.tryParse(_packSizeController.text.trim()) ?? 1.0,
+        isFeatured: _isFeatured,
       );
 
       if (widget.productToEdit == null) {
@@ -613,7 +616,15 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           ],
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
+                      SwitchListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Featured Product (Show in POS Featured filter)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        value: _isFeatured,
+                        onChanged: (val) => setState(() => _isFeatured = val),
+                      ),
+                      const SizedBox(height: 12),
 
                       // Save buttons
                       Row(

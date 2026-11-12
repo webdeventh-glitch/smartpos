@@ -3,9 +3,33 @@ import '../models/models.dart';
 import '../services/app_logger.dart';
 import 'base_repository.dart';
 
+class _ReportCacheEntry {
+  final dynamic data;
+  final DateTime expiresAt;
+  const _ReportCacheEntry(this.data, this.expiresAt);
+  bool get isValid => DateTime.now().isBefore(expiresAt);
+}
+
 /// Manages dashboard KPIs, P&L, stock valuation, expiry traceability, register shifts, and trend analytics.
 class ReportRepository extends BaseRepository {
   const ReportRepository([super.dbService]);
+
+  static final Map<String, _ReportCacheEntry> _queryCache = {};
+  static const Duration _cacheTtl = Duration(seconds: 30);
+
+  static void clearCache() => _queryCache.clear();
+
+  static T? _getCached<T>(String key) {
+    final entry = _queryCache[key];
+    if (entry != null && entry.isValid && entry.data is T) {
+      return entry.data as T;
+    }
+    return null;
+  }
+
+  static void _putCached(String key, dynamic data) {
+    _queryCache[key] = _ReportCacheEntry(data, DateTime.now().add(_cacheTtl));
+  }
 
   /// Ultimate POS Register & Cashier Shift Report
   Future<List<Map<String, dynamic>>> getRegisterReport({
@@ -165,16 +189,55 @@ class ReportRepository extends BaseRepository {
     return results;
   }
 
-  // Dashboard Aggregates
-  Future<Map<String, dynamic>> getDashboardMetrics() async {
+  // Dashboard Aggregates (Step 7.1: Date Range Aware + Step 7.5 Cache)
+  Future<Map<String, dynamic>> getDashboardMetrics({
+    DateTime? startDate,
+    DateTime? endDate,
+    bool forceRefresh = false,
+  }) async {
+    final dfDay = DateFormat('yyyy-MM-dd');
+    final startStr = startDate != null ? dfDay.format(startDate) : null;
+    final endExclusiveStr = endDate != null
+        ? dfDay.format(endDate.add(const Duration(days: 1)))
+        : null;
+    final expStartStr = startStr;
+    final expEndStr = endDate != null ? dfDay.format(endDate) : null;
+
+    final cacheKey = 'dash_${dbService.dbFilePath ?? "mem"}_${startStr ?? "all"}_${expEndStr ?? "all"}';
+    if (!forceRefresh) {
+      final cached = _getCached<Map<String, dynamic>>(cacheKey);
+      if (cached != null) return Map<String, dynamic>.from(cached);
+    }
+
+    final salesArgs = <dynamic>[];
+    String salesDateClause = '';
+    if (startStr != null && endExclusiveStr != null) {
+      salesDateClause = ' AND created_at >= ? AND created_at < ?';
+      salesArgs.addAll([startStr, endExclusiveStr]);
+    }
+
+    final purchaseArgs = <dynamic>[];
+    String purchaseDateClause = '';
+    if (startStr != null && endExclusiveStr != null) {
+      purchaseDateClause = ' WHERE created_at >= ? AND created_at < ?';
+      purchaseArgs.addAll([startStr, endExclusiveStr]);
+    }
+
+    final expArgs = <dynamic>[];
+    String expDateClause = '';
+    if (expStartStr != null && expEndStr != null) {
+      expDateClause = ' WHERE date >= ? AND date <= ?';
+      expArgs.addAll([expStartStr, expEndStr]);
+    }
+
     // Total Sales & Invoice Due
     final salesResult = await db.rawQuery('''
       SELECT 
         COUNT(*) as total_invoices,
         SUM(total_amount) as total_sales,
         SUM(total_amount - paid_amount) as total_invoice_due
-      FROM sales WHERE sale_status = 'final'
-    ''');
+      FROM sales WHERE sale_status = 'final'$salesDateClause
+    ''', salesArgs);
 
     // Total Purchases & Purchase Due
     final purchaseResult = await db.rawQuery('''
@@ -182,13 +245,13 @@ class ReportRepository extends BaseRepository {
         COUNT(*) as total_purchases_count,
         SUM(total_amount) as total_purchases,
         SUM(total_amount - paid_amount) as total_purchase_due
-      FROM purchases
-    ''');
+      FROM purchases$purchaseDateClause
+    ''', purchaseArgs);
 
     // Total Expenses
     final expenseResult = await db.rawQuery('''
-      SELECT SUM(amount) as total_expenses FROM expenses
-    ''');
+      SELECT SUM(amount) as total_expenses FROM expenses$expDateClause
+    ''', expArgs);
 
     // Product Count & Low Stock Count
     final productResult = await db.rawQuery('''
@@ -218,7 +281,12 @@ class ReportRepository extends BaseRepository {
 
     double totalSellReturn = 0.0;
     try {
-      final sRetRes = await db.rawQuery("SELECT SUM(total_amount) as total FROM sale_returns");
+      final sRetRes = await db.rawQuery(
+        expStartStr != null && expEndStr != null
+            ? 'SELECT SUM(total_amount) as total FROM sale_returns WHERE date >= ? AND date <= ?'
+            : 'SELECT SUM(total_amount) as total FROM sale_returns',
+        expStartStr != null && expEndStr != null ? [expStartStr, expEndStr] : const [],
+      );
       totalSellReturn = (sRetRes.first['total'] as num?)?.toDouble() ?? 0.0;
     } catch (e, st) {
       AppLogger.warning('DatabaseService', 'Failed loading sale_returns sum', e, st);
@@ -226,13 +294,18 @@ class ReportRepository extends BaseRepository {
 
     double totalPurchaseReturn = 0.0;
     try {
-      final pRetRes = await db.rawQuery("SELECT SUM(total_amount) as total FROM purchase_returns");
+      final pRetRes = await db.rawQuery(
+        expStartStr != null && expEndStr != null
+            ? 'SELECT SUM(total_amount) as total FROM purchase_returns WHERE date >= ? AND date <= ?'
+            : 'SELECT SUM(total_amount) as total FROM purchase_returns',
+        expStartStr != null && expEndStr != null ? [expStartStr, expEndStr] : const [],
+      );
       totalPurchaseReturn = (pRetRes.first['total'] as num?)?.toDouble() ?? 0.0;
     } catch (e, st) {
       AppLogger.warning('DatabaseService', 'Failed loading purchase_returns sum', e, st);
     }
 
-    return {
+    final result = {
       'totalSales': totalSales,
       'invoiceDue': invoiceDue,
       'totalPurchases': totalPurchases,
@@ -246,6 +319,8 @@ class ReportRepository extends BaseRepository {
       'customerCount': customerCount,
       'supplierCount': supplierCount,
     };
+    _putCached(cacheKey, result);
+    return result;
   }
 
   // Phase 7: Profit & Loss and Stock Valuation Reports
@@ -483,8 +558,15 @@ class ReportRepository extends BaseRepository {
   }
 
 
-  Future<List<Map<String, dynamic>>> getDailySalesTrend({int days = 7}) async {
-    final now = DateTime.now();
+  Future<List<Map<String, dynamic>>> getDailySalesTrend({
+    int days = 7,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final anchorEnd = endDate ?? DateTime.now();
+    final effectiveDays = (startDate != null && endDate != null)
+        ? (endDate.difference(startDate).inDays + 1).clamp(1, 365)
+        : days;
     final List<Map<String, dynamic>> results = [];
 
     final rows = await db.rawQuery('''
@@ -504,8 +586,8 @@ class ReportRepository extends BaseRepository {
     }
 
     final df = DateFormat('yyyy-MM-dd');
-    for (int i = days - 1; i >= 0; i--) {
-      final day = now.subtract(Duration(days: i));
+    for (int i = effectiveDays - 1; i >= 0; i--) {
+      final day = anchorEnd.subtract(Duration(days: i));
       final key = df.format(day);
       if (byDate.containsKey(key)) {
         results.add({
@@ -527,15 +609,28 @@ class ReportRepository extends BaseRepository {
     return results;
   }
 
-  Future<Map<String, double>> getPaymentMethodBreakdown() async {
+  Future<Map<String, double>> getPaymentMethodBreakdown({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final args = <dynamic>[];
+    String dateClause = '';
+    if (startDate != null && endDate != null) {
+      final dfDay = DateFormat('yyyy-MM-dd');
+      dateClause = ' AND created_at >= ? AND created_at < ?';
+      args.addAll([
+        dfDay.format(startDate),
+        dfDay.format(endDate.add(const Duration(days: 1))),
+      ]);
+    }
     final rows = await db.rawQuery('''
       SELECT 
         payment_method,
         SUM(total_amount) as total_amount
       FROM sales
-      WHERE sale_status = 'final'
+      WHERE sale_status = 'final'$dateClause
       GROUP BY payment_method
-    ''');
+    ''', args);
 
     final Map<String, double> result = {};
     for (final r in rows) {
@@ -547,7 +642,23 @@ class ReportRepository extends BaseRepository {
     return result;
   }
 
-  Future<List<Map<String, dynamic>>> getTopSellingProducts({int limit = 5}) async {
+  Future<List<Map<String, dynamic>>> getTopSellingProducts({
+    int limit = 5,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final args = <dynamic>[];
+    String dateClause = '';
+    if (startDate != null && endDate != null) {
+      final dfDay = DateFormat('yyyy-MM-dd');
+      dateClause = ' AND s.created_at >= ? AND s.created_at < ?';
+      args.addAll([
+        dfDay.format(startDate),
+        dfDay.format(endDate.add(const Duration(days: 1))),
+      ]);
+    }
+    args.add(limit);
+
     final rows = await db.rawQuery('''
       SELECT 
         si.product_name,
@@ -555,11 +666,11 @@ class ReportRepository extends BaseRepository {
         SUM(si.subtotal) as total_revenue
       FROM sale_items si
       JOIN sales s ON si.sale_id = s.id
-      WHERE s.sale_status = 'final'
+      WHERE s.sale_status = 'final'$dateClause
       GROUP BY si.product_id, si.product_name
       ORDER BY total_qty DESC
       LIMIT ?
-    ''', [limit]);
+    ''', args);
 
     return rows.map((r) => {
       'name': (r['product_name'] as String?) ?? 'Unknown Item',

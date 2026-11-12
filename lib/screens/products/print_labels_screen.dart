@@ -400,7 +400,7 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.black.withOpacity(0.18)),
+                              border: Border.all(color: Colors.black.withValues(alpha: 0.18)),
                               boxShadow: const [
                                 BoxShadow(color: Color(0x04000000), blurRadius: 4, offset: Offset(0, 1)),
                               ],

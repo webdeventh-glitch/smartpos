@@ -252,6 +252,7 @@ class ProductRepository extends BaseRepository {
     String? search,
     String stockFilter = 'all',
     String productType = 'all',
+    bool featuredOnly = false,
   }) {
     final conditions = <String>[];
     final args = <dynamic>[];
@@ -263,6 +264,9 @@ class ProductRepository extends BaseRepository {
     if (brandId != null) {
       conditions.add('brand_id = ?');
       args.add(brandId);
+    }
+    if (featuredOnly) {
+      conditions.add('COALESCE(is_featured, 0) = 1');
     }
     if (productType != 'all' && productType.isNotEmpty) {
       conditions.add('type = ?');
@@ -294,6 +298,7 @@ class ProductRepository extends BaseRepository {
     String? search,
     String stockFilter = 'all',
     String productType = 'all',
+    bool featuredOnly = false,
     int page = 1,
     int pageSize = 25,
     String? cursorName,
@@ -308,6 +313,7 @@ class ProductRepository extends BaseRepository {
       search: search,
       stockFilter: stockFilter,
       productType: productType,
+      featuredOnly: featuredOnly,
     );
 
     final queryConditions = List<String>.from(baseFilter.conditions);

@@ -6,6 +6,7 @@ import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
 import '../../widgets/product_thumbnail.dart';
+import '../../widgets/skeleton_loader.dart';
 import 'add_product_dialog.dart';
 import 'product_detail_dialog.dart';
 import 'print_labels_screen.dart';
@@ -1001,10 +1002,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
             // Products Data Table
             if (_loading)
-              const Center(
-                  child: Padding(
-                      padding: EdgeInsets.all(40),
-                      child: CircularProgressIndicator()))
+              const TableSkeletonView(rowCount: 7)
             else if (paginatedProducts.isEmpty)
               Container(
                 padding: const EdgeInsets.all(40),

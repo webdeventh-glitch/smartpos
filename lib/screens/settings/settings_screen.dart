@@ -63,6 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   String _dateFormat = 'dd/mm/yyyy';
   String _timeFormat = '12 Hour';
   int _sessionTimeoutMinutes = 480;
+  bool _touchFriendlyMode = false;
   final TextEditingController _encPassphraseCtrl = TextEditingController();
   bool _isUpdatingEncryptionKey = false;
 
@@ -191,6 +192,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _dateFormat = s.dateFormat;
     _timeFormat = s.timeFormat;
     _sessionTimeoutMinutes = s.sessionTimeoutMinutes;
+    _touchFriendlyMode = s.touchFriendlyMode;
 
     _primaryDbType = s.primaryDbType.isNotEmpty ? s.primaryDbType : 'mysql';
     _dbHostCtrl = TextEditingController(text: s.dbHost.isNotEmpty ? s.dbHost : 'localhost');
@@ -1002,8 +1004,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     }
 
     // Key is valid -> save to database
-    final updated = BusinessSettings(
-      id: widget.settings.id,
+    final updated = widget.settings.copyWith(
       businessName: _bizNameCtrl.text.trim(),
       branchName: _branchCtrl.text.trim(),
       currencySymbol: _currencySymCtrl.text.trim(),
@@ -1014,7 +1015,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       address: _addressCtrl.text.trim(),
       receiptFooter: _footerCtrl.text.trim(),
       purchaseKey: key,
-      businessType: widget.settings.businessType,
       drugLicenseNo: _drugLicenseCtrl.text.trim(),
       dlWarrantor: _dlWarrantorCtrl.text.trim(),
       timeZone: _timeZone,
@@ -1029,8 +1029,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       defaultProfitPercent: double.tryParse(_defaultProfitPercentCtrl.text.trim()) ?? 25.0,
       startDate: _startDateCtrl.text.trim(),
       isConfigured: true,
-      logoPath: widget.settings.logoPath,
-      enabledModules: widget.settings.enabledModules,
     );
 
     final db = await DatabaseService.initialize();
@@ -1095,8 +1093,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         secondaryLanguage: _secondaryLanguage,
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
         sessionTimeoutMinutes: _sessionTimeoutMinutes,
+        touchFriendlyMode: _touchFriendlyMode,
       );
 
+      ThemeService.setTouchFriendly(_touchFriendlyMode);
       AuthService.configureSessionTimeout(_sessionTimeoutMinutes);
       final db = await DatabaseService.initialize();
       await db.updateBusinessSettings(updated);
@@ -2238,7 +2238,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = isDark ? const Color(0xFF818CF8) : const Color(0xFF0038B8);
 
-    return Scaffold(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true): () {
+          if (!_isSaving) _saveGeneralSettings();
+        },
+      },
+      child: Scaffold(
       backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -2463,6 +2469,40 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                     ),
                                   ),
                                 ],
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: ThemeService.touchFriendlyNotifier,
+                            builder: (context, touchEnabled, _) {
+                              return SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                value: touchEnabled,
+                                onChanged: (val) async {
+                                  setState(() => _touchFriendlyMode = val);
+                                  ThemeService.setTouchFriendly(val);
+                                  final updated = widget.settings.copyWith(touchFriendlyMode: val);
+                                  final db = await DatabaseService.initialize();
+                                  await db.updateBusinessSettings(updated);
+                                  widget.onSettingsUpdated(updated);
+                                },
+                                title: Text(
+                                  'Touch-Friendly POS & Form Mode',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13.5,
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Increases tap target sizes and button padding for touchscreens & tablets',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                  ),
+                                ),
+                                secondary: const Icon(Icons.touch_app_rounded, color: Color(0xFF4F46E5)),
                               );
                             },
                           ),
@@ -4971,9 +5011,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ),
           ),
 
-          // Tab 6: Software Update & Backup Center
+                          // Tab 6: Software Update & Backup Center
           _buildSoftwareUpdateAndBackupTab(isDark, primaryColor),
         ],
+      ),
       ),
     );
   }
@@ -6409,8 +6450,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         secondaryLanguage: _secondaryLanguage,
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
         sessionTimeoutMinutes: _sessionTimeoutMinutes,
+        touchFriendlyMode: _touchFriendlyMode,
       );
 
+      ThemeService.setTouchFriendly(_touchFriendlyMode);
       AuthService.configureSessionTimeout(_sessionTimeoutMinutes);
       final db = await DatabaseService.initialize();
       await db.updateBusinessSettings(updated);

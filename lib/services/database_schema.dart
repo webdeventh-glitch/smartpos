@@ -129,6 +129,34 @@ class DatabaseSchema {
         'phase6_orders_cheques_commissions_discounts_backup',
       );
     }
+    if (fromVersion < 8 && toVersion >= 8) {
+      await _applyV8Phase7Migrations(db);
+      await _recordMigration(
+        db,
+        8,
+        'phase7_featured_products_shortcuts_touch_and_perf_indexes',
+      );
+    }
+  }
+
+  static Future<void> _applyV8Phase7Migrations(Database db) async {
+    // Step 7.2: Real boolean is_featured column replacing ID % 5 hack
+    await _addColumnIfMissing(db, 'products', 'is_featured', 'INTEGER DEFAULT 0');
+
+    // Step 7.3 & 7.4: Touch-friendly UI & custom keyboard shortcut JSON
+    await _addColumnIfMissing(db, 'business_settings', 'touch_friendly_mode', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(db, 'business_settings', 'keyboard_shortcuts_json', "TEXT DEFAULT ''");
+
+    // Step 7.6: Conflict resolution audit metadata on sync_queue
+    await _addColumnIfMissing(db, 'sync_queue', 'entity_updated_at', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'sync_queue', 'conflict_resolution', "TEXT DEFAULT ''");
+
+    // Step 7.5: Hot query & report performance indexes
+    await _ensureIndex(db, 'idx_products_featured', 'products', 'is_featured, name COLLATE NOCASE, id');
+    await _ensureIndex(db, 'idx_sales_created_status', 'sales', 'sale_status, created_at');
+    await _ensureIndex(db, 'idx_purchases_status_created', 'purchases', 'status, created_at');
+    await _ensureIndex(db, 'idx_sync_queue_status', 'sync_queue', 'status, id');
+    await _ensureIndex(db, 'idx_sale_items_prod', 'sale_items', 'product_id, sale_id');
   }
 
   static Future<void> _applyV7Phase6Migrations(Database db) async {
@@ -1257,6 +1285,8 @@ class DatabaseSchema {
         attempts INTEGER DEFAULT 0,
         retry_count INTEGER DEFAULT 0,
         last_error TEXT,
+        entity_updated_at TEXT DEFAULT '',
+        conflict_resolution TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         synced_at TEXT
       );
@@ -1970,7 +2000,9 @@ class DatabaseSchema {
         backup_frequency TEXT DEFAULT 'daily',
         backup_interval_hours INTEGER DEFAULT 24,
         backup_retention_count INTEGER DEFAULT 10,
-        last_auto_backup_at TEXT DEFAULT ''
+        last_auto_backup_at TEXT DEFAULT '',
+        touch_friendly_mode INTEGER DEFAULT 0,
+        keyboard_shortcuts_json TEXT DEFAULT ''
       )
     ''');
 
@@ -2021,7 +2053,8 @@ class DatabaseSchema {
         pack_size REAL DEFAULT 1.0,
         rack_location TEXT,
         tax_rate_id INTEGER,
-        tax_group_id INTEGER
+        tax_group_id INTEGER,
+        is_featured INTEGER DEFAULT 0
       )
     ''');
 
@@ -2501,6 +2534,8 @@ class DatabaseSchema {
         attempts INTEGER DEFAULT 0,
         retry_count INTEGER DEFAULT 0,
         last_error TEXT,
+        entity_updated_at TEXT DEFAULT '',
+        conflict_resolution TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         synced_at TEXT
       )

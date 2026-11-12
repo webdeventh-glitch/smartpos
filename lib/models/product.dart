@@ -27,6 +27,7 @@ class Product {
   final double packSize; // Units per pack/box
   final int? taxRateId;
   final int? taxGroupId;
+  final bool isFeatured;
 
   Product({
     this.id,
@@ -54,6 +55,7 @@ class Product {
     this.packSize = 1.0,
     this.taxRateId,
     this.taxGroupId,
+    this.isFeatured = false,
   });
 
   bool get isVariable => type == 'variable';
@@ -93,6 +95,7 @@ class Product {
         'pack_size': packSize,
         'tax_rate_id': taxRateId,
         'tax_group_id': taxGroupId,
+        'is_featured': isFeatured ? 1 : 0,
       };
 
   factory Product.fromMap(Map<String, dynamic> map,
@@ -123,6 +126,7 @@ class Product {
         packSize: (map['pack_size'] as num?)?.toDouble() ?? 1.0,
         taxRateId: map['tax_rate_id'] as int?,
         taxGroupId: map['tax_group_id'] as int?,
+        isFeatured: (map['is_featured'] as int? ?? 0) == 1,
       );
 
   Product copyWith({
@@ -152,6 +156,7 @@ class Product {
     double? packSize,
     int? taxRateId,
     int? taxGroupId,
+    bool? isFeatured,
   }) =>
       Product(
         id: id ?? this.id,
@@ -179,5 +184,6 @@ class Product {
         packSize: packSize ?? this.packSize,
         taxRateId: taxRateId ?? this.taxRateId,
         taxGroupId: taxGroupId ?? this.taxGroupId,
+        isFeatured: isFeatured ?? this.isFeatured,
       );
 }

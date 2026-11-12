@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
@@ -542,7 +543,13 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
       );
     }
 
-    return Scaffold(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true): () {
+          if (!_isSaving) _savePurchase(andPrint: false);
+        },
+      },
+      child: Scaffold(
       backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -1673,6 +1680,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

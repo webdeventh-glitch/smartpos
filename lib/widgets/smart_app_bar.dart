@@ -290,8 +290,9 @@ class _SmartAppBarState extends State<SmartAppBar> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 1350;
-          final isNarrow = constraints.maxWidth < 1050;
+          final isCompact = constraints.maxWidth < 1450;
+          final isNarrow = constraints.maxWidth < 1120;
+          final showSyncLabel = constraints.maxWidth >= 1490;
 
           return Row(
             children: [
@@ -612,6 +613,24 @@ class _SmartAppBarState extends State<SmartAppBar> {
                 tooltip: 'Smart AI Business Assistant',
               ),
 
+              // Touch-Friendly Mode Toggle Button
+              ValueListenableBuilder<bool>(
+                valueListenable: ThemeService.touchFriendlyNotifier,
+                builder: (context, touchOn, _) {
+                  return _squareBtn(
+                    icon: Icon(
+                      Icons.touch_app_rounded,
+                      color: touchOn ? const Color(0xFF4F46E5) : const Color(0xFF64748B),
+                      size: 18,
+                    ),
+                    onTap: () => ThemeService.toggleTouchFriendly(),
+                    tooltip: touchOn
+                        ? 'Touch-Friendly Mode: ON (Click for Standard Density)'
+                        : 'Touch-Friendly Mode: OFF (Click for Larger Touch Targets)',
+                  );
+                },
+              ),
+
               // Dark / Light Mode Toggle Button
               ValueListenableBuilder<ThemeMode>(
                 valueListenable: ThemeService.themeModeNotifier,
@@ -629,58 +648,107 @@ class _SmartAppBarState extends State<SmartAppBar> {
                 },
               ),
 
-              // Sync Status Shortcut (Reactive with CloudSyncService)
+              // Online / Offline & Pending Sync Queue Pill (Step 7.6)
               ValueListenableBuilder<SyncStatusInfo>(
                 valueListenable: CloudSyncService.syncNotifier,
                 builder: (context, syncInfo, _) {
                   final isOffline = widget.settings.isOfflineOnly;
                   final isSyncing = syncInfo.state == SyncState.syncing;
+                  final isError = syncInfo.state == SyncState.error;
 
                   IconData iconData;
-                  Color iconColor;
+                  Color statusColor;
+                  String statusLabel;
                   String tooltipText;
 
                   if (isOffline) {
                     iconData = Icons.cloud_off_rounded;
-                    iconColor = const Color(0xFF94A3B8);
-                    tooltipText = 'Database: Local Offline SQLite';
+                    statusColor = const Color(0xFF64748B);
+                    statusLabel = 'Offline';
+                    tooltipText = 'Offline-First Mode: Local SQLite database active';
                   } else if (isSyncing) {
                     iconData = Icons.sync_rounded;
-                    iconColor = const Color(0xFF6366F1);
-                    tooltipText = 'Synchronizing with Laravel/MySQL...';
-                  } else if (syncInfo.pendingCount > 0) {
+                    statusColor = const Color(0xFF6366F1);
+                    statusLabel = 'Syncing';
+                    tooltipText = 'Synchronizing pending changes...';
+                  } else if (syncInfo.pendingCount > 0 || isError) {
                     iconData = Icons.cloud_upload_rounded;
-                    iconColor = const Color(0xFFF59E0B);
-                    tooltipText = 'Sync: ${syncInfo.pendingCount} pending changes (Click to Sync)';
+                    statusColor = const Color(0xFFD97706);
+                    statusLabel = '${syncInfo.pendingCount} Pending';
+                    tooltipText = isError
+                        ? 'Sync Offline/Error: ${syncInfo.pendingCount} pending changes queued (Click to Retry)'
+                        : 'Pending Sync Queue: ${syncInfo.pendingCount} item(s) waiting (Click to Sync)';
                   } else {
                     iconData = Icons.cloud_done_rounded;
-                    iconColor = const Color(0xFF10B981);
-                    tooltipText = 'Sync: Fully Synchronized (Laravel / MySQL)';
+                    statusColor = const Color(0xFF10B981);
+                    statusLabel = 'Online';
+                    tooltipText = 'Online & Synchronized (Click to Verify)';
                   }
 
-                  return _squareBtn(
-                    icon: Icon(iconData, color: iconColor, size: 18),
-                    onTap: () async {
-                      if (isOffline) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Offline SQLite Database active. All data stored safely locally.'),
-                            duration: Duration(seconds: 2),
-                            behavior: SnackBarBehavior.floating,
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: Tooltip(
+                      message: tooltipText,
+                      child: InkWell(
+                        onTap: () async {
+                          if (isOffline) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Offline SQLite Database active. All sales & stock changes are safely queued locally.'),
+                                duration: Duration(seconds: 2),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Starting synchronization with Cloud/MySQL...'),
+                                duration: Duration(seconds: 1),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            await CloudSyncService.syncNow(widget.settings);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          height: 36,
+                          padding: EdgeInsets.symmetric(horizontal: showSyncLabel ? 10 : 8),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: statusColor.withValues(alpha: 0.45)),
                           ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Starting synchronization with Laravel/MySQL...'),
-                            duration: Duration(seconds: 1),
-                            behavior: SnackBarBehavior.floating,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(iconData, color: statusColor, size: 16),
+                              if (showSyncLabel) ...[
+                                const SizedBox(width: 6),
+                                Text(
+                                  statusLabel,
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 11.5,
+                                  ),
+                                ),
+                              ] else if (syncInfo.pendingCount > 0) ...[
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${syncInfo.pendingCount}',
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 10.5,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                        );
-                        await CloudSyncService.syncNow(widget.settings);
-                      }
-                    },
-                    tooltip: tooltipText,
+                        ),
+                      ),
+                    ),
                   );
                 },
               ),

@@ -92,6 +92,8 @@ class BusinessSettings {
   final int backupIntervalHours;
   final int backupRetentionCount;
   final String lastAutoBackupAt;
+  final bool touchFriendlyMode;
+  final String keyboardShortcutsJson;
 
   BusinessSettings({
     this.id = 1,
@@ -182,6 +184,8 @@ class BusinessSettings {
     this.backupIntervalHours = 24,
     this.backupRetentionCount = 10,
     this.lastAutoBackupAt = '',
+    this.touchFriendlyMode = false,
+    this.keyboardShortcutsJson = '',
   });
 
   String get effectiveLoginBanner {
@@ -624,6 +628,8 @@ class BusinessSettings {
     int? backupIntervalHours,
     int? backupRetentionCount,
     String? lastAutoBackupAt,
+    bool? touchFriendlyMode,
+    String? keyboardShortcutsJson,
   }) {
     return BusinessSettings(
       id: id ?? this.id,
@@ -723,6 +729,9 @@ class BusinessSettings {
       backupIntervalHours: backupIntervalHours ?? this.backupIntervalHours,
       backupRetentionCount: backupRetentionCount ?? this.backupRetentionCount,
       lastAutoBackupAt: lastAutoBackupAt ?? this.lastAutoBackupAt,
+      touchFriendlyMode: touchFriendlyMode ?? this.touchFriendlyMode,
+      keyboardShortcutsJson:
+          keyboardShortcutsJson ?? this.keyboardShortcutsJson,
     );
   }
 
@@ -815,6 +824,8 @@ class BusinessSettings {
         'backup_interval_hours': backupIntervalHours,
         'backup_retention_count': backupRetentionCount,
         'last_auto_backup_at': lastAutoBackupAt,
+        'touch_friendly_mode': touchFriendlyMode ? 1 : 0,
+        'keyboard_shortcuts_json': keyboardShortcutsJson,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
@@ -917,5 +928,8 @@ class BusinessSettings {
         backupIntervalHours: modelAsInt(map['backup_interval_hours'], 24),
         backupRetentionCount: modelAsInt(map['backup_retention_count'], 10),
         lastAutoBackupAt: modelAsString(map['last_auto_backup_at']),
+        touchFriendlyMode: modelAsBool(map['touch_friendly_mode'], false),
+        keyboardShortcutsJson:
+            modelAsString(map['keyboard_shortcuts_json']),
       );
 }

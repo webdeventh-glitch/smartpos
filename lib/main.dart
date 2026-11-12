@@ -45,14 +45,19 @@ class SmartPosApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeService.themeModeNotifier,
       builder: (context, currentMode, _) {
-        return MaterialApp(
-          title: 'Smart POS System - Advanced ERP & Retail Terminal',
-          debugShowCheckedModeBanner: false,
-          themeMode: currentMode,
-          theme: ThemeService.lightTheme,
-          darkTheme: ThemeService.darkTheme,
-          scrollBehavior: ThemeService.scrollBehavior,
-          home: const _DatabaseInitializer(),
+        return ValueListenableBuilder<bool>(
+          valueListenable: ThemeService.touchFriendlyNotifier,
+          builder: (context, _, __) {
+            return MaterialApp(
+              title: 'Smart POS System - Advanced ERP & Retail Terminal',
+              debugShowCheckedModeBanner: false,
+              themeMode: currentMode,
+              theme: ThemeService.lightTheme,
+              darkTheme: ThemeService.darkTheme,
+              scrollBehavior: ThemeService.scrollBehavior,
+              home: const _DatabaseInitializer(),
+            );
+          },
         );
       },
     );
@@ -78,6 +83,7 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
   Future<BusinessSettings> _bootstrap() async {
     final dbService = await DatabaseService.initialize();
     var settings = await dbService.getBusinessSettings();
+    ThemeService.setTouchFriendly(settings.touchFriendlyMode);
     AuthService.configureSessionTimeout(settings.sessionTimeoutMinutes);
 
     // Primary Database Sync:

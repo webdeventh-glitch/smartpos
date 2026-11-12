@@ -446,7 +446,7 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF10B981).withOpacity(0.2),
+                                      color: const Color(0xFF10B981).withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: const Color(0xFF10B981)),
                                     ),
@@ -636,7 +636,7 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : const Color(0xFF0F172A),
+          color: isSelected ? color.withValues(alpha: 0.2) : const Color(0xFF0F172A),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? color : const Color(0xFF334155),

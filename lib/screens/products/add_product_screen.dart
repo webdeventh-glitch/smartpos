@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p_path;
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
@@ -95,6 +96,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   ];
 
   bool _manageStock = true;
+  bool _isFeatured = false;
   final String _selectedLocation = 'Main Branch HQ';
   bool _isLoading = true;
   bool _isSaving = false;
@@ -177,6 +179,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _openingStockCtrl.text = p.stockQuantity.toString();
           _barcodeType = p.barcodeType;
           _productType = p.type;
+          _isFeatured = p.isFeatured;
           _selectedUnit = p.unit;
           if (!_units.contains(_selectedUnit)) {
             _units.add(_selectedUnit);
@@ -1131,6 +1134,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         packSize: packVal,
         taxRateId: _selectedTaxRateId,
         taxGroupId: _selectedTaxGroupId,
+        isFeatured: _isFeatured,
       );
 
       if (widget.productToEdit != null && widget.productToEdit!.id != null) {
@@ -1163,6 +1167,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           packSize: packVal,
           taxRateId: _selectedTaxRateId,
           taxGroupId: _selectedTaxGroupId,
+          isFeatured: _isFeatured,
         );
         if (_productType == 'variable' && _variations.isNotEmpty) {
           await db.updateProductWithVariations(toUpdate, _variations);
@@ -1301,9 +1306,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     final currency = widget.settings.currencySymbol;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SingleChildScrollView(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true): () async {
+          if (_isSaving) return;
+          final success = await _saveProduct();
+          if (success) widget.onProductCreated();
+        },
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        body: SingleChildScrollView(
         controller: _scrollController,
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -1932,6 +1945,26 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     color: Color(0xFF64748B)),
                               ),
                             ],
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        Checkbox(
+                          value: _isFeatured,
+                          activeColor: const Color(0xFF4F46E5),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4)),
+                          onChanged: (val) =>
+                              setState(() => _isFeatured = val ?? false),
+                        ),
+                        InkWell(
+                          onTap: () =>
+                              setState(() => _isFeatured = !_isFeatured),
+                          child: const Text(
+                            'Featured Product (POS)',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B)),
                           ),
                         ),
                         const SizedBox(width: 40),
@@ -2784,6 +2817,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

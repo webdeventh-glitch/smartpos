@@ -6,6 +6,7 @@ import '../../navigation/app_routes.dart';
 import '../../services/app_logger.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
+import '../../widgets/skeleton_loader.dart';
 import '../../widgets/status_pill.dart';
 import '../pos/receipt_dialog.dart';
 import '../pos/register_details_dialog.dart';
@@ -40,7 +41,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _loading = true;
   bool _refreshing = false;
   String _dateFilter = 'This Month';
+  DateTime? _customStartDate;
+  DateTime? _customEndDate;
   int _chartMode = 0; // 0 = Revenue, 1 = Orders Count
+
+  ({DateTime? start, DateTime? end}) _resolveDateRange() {
+    final now = DateTime.now();
+    switch (_dateFilter) {
+      case 'Today':
+        return (
+          start: DateTime(now.year, now.month, now.day),
+          end: DateTime(now.year, now.month, now.day, 23, 59, 59),
+        );
+      case 'This Week':
+        final weekStart = now.subtract(Duration(days: now.weekday - 1));
+        return (
+          start: DateTime(weekStart.year, weekStart.month, weekStart.day),
+          end: now,
+        );
+      case 'This Quarter':
+        final quarterStartMonth = ((now.month - 1) ~/ 3) * 3 + 1;
+        return (
+          start: DateTime(now.year, quarterStartMonth, 1),
+          end: now,
+        );
+      case 'This Year':
+        return (
+          start: DateTime(now.year, 1, 1),
+          end: DateTime(now.year, 12, 31, 23, 59, 59),
+        );
+      case 'Custom Range':
+        return (start: _customStartDate, end: _customEndDate);
+      case 'This Month':
+      default:
+        return (
+          start: DateTime(now.year, now.month, 1),
+          end: DateTime(now.year, now.month + 1, 0, 23, 59, 59),
+        );
+    }
+  }
 
   @override
   void initState() {
@@ -57,11 +96,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     try {
       final db = await DatabaseService.initialize();
-      final metrics = await db.getDashboardMetrics();
+      final range = _resolveDateRange();
+      final metrics = await db.getDashboardMetrics(
+        startDate: range.start,
+        endDate: range.end,
+        forceRefresh: isRefresh,
+      );
       final todayMetrics = await db.getTodaySalesMetrics();
-      final trend = await db.getDailySalesTrend(days: 30);
-      final paymentBreakdown = await db.getPaymentMethodBreakdown();
-      final topProducts = await db.getTopSellingProducts(limit: 5);
+      final trend = await db.getDailySalesTrend(
+        days: _dateFilter == 'Today' ? 7 : 30,
+        startDate: range.start,
+        endDate: range.end,
+      );
+      final paymentBreakdown = await db.getPaymentMethodBreakdown(
+        startDate: range.start,
+        endDate: range.end,
+      );
+      final topProducts = await db.getTopSellingProducts(
+        limit: 5,
+        startDate: range.start,
+        endDate: range.end,
+      );
       final lowStock = await db.getLowStockProducts();
       final sales = await db.getSales();
       final pendingSo = await db.getPendingSalesOrdersSummary(limit: 4);
@@ -484,23 +539,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_loading) {
       return Scaffold(
         backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(color: Color(0xFF4F46E5), strokeWidth: 3),
-              const SizedBox(height: 16),
-              Text(
-                'Loading Enterprise Dashboard...',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
+        body: const DashboardSkeletonView(),
       );
     }
 
@@ -585,11 +624,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF1E293B),
                             ),
-                            items: ['Today', 'This Week', 'This Month', 'This Quarter', 'This Year']
+                            items: [
+                              'Today',
+                              'This Week',
+                              'This Month',
+                              'This Quarter',
+                              'This Year',
+                              'Custom Range',
+                            ]
                                 .map((f) => DropdownMenuItem(value: f, child: Text(f)))
                                 .toList(),
-                            onChanged: (val) {
-                              if (val != null) setState(() => _dateFilter = val);
+                            onChanged: (val) async {
+                              if (val == null) return;
+                              if (val == 'Custom Range') {
+                                final picked = await showDateRangePicker(
+                                  context: context,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                                  initialDateRange: _customStartDate != null && _customEndDate != null
+                                      ? DateTimeRange(start: _customStartDate!, end: _customEndDate!)
+                                      : DateTimeRange(
+                                          start: DateTime.now().subtract(const Duration(days: 30)),
+                                          end: DateTime.now(),
+                                        ),
+                                );
+                                if (picked != null && mounted) {
+                                  setState(() {
+                                    _dateFilter = val;
+                                    _customStartDate = picked.start;
+                                    _customEndDate = DateTime(
+                                      picked.end.year,
+                                      picked.end.month,
+                                      picked.end.day,
+                                      23,
+                                      59,
+                                      59,
+                                    );
+                                  });
+                                  await _loadDashboardData(isRefresh: true);
+                                }
+                              } else {
+                                setState(() => _dateFilter = val);
+                                await _loadDashboardData(isRefresh: true);
+                              }
                             },
                           ),
                         ),

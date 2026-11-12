@@ -26,7 +26,7 @@ class CatalogState {
     return products.where((p) {
       if (categoryId != null && p.categoryId != categoryId) return false;
       if (brandId != null && p.brandId != brandId) return false;
-      if (featuredOnly && ((p.id ?? 0) % 5 != 0)) return false;
+      if (featuredOnly && !p.isFeatured) return false;
       if (q.isNotEmpty) {
         final nameMatch = p.name.toLowerCase().contains(q);
         final skuMatch = p.sku.toLowerCase().contains(q);

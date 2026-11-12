@@ -9,6 +9,7 @@ import '../../services/print_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../services/ai_assistant_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
+import '../../widgets/skeleton_loader.dart';
 import '../pos/pos_power_dialogs.dart';
 import '../products/product_detail_dialog.dart';
 
@@ -767,7 +768,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
             // 5. Tab Views
             _loading
-                ? const Padding(padding: EdgeInsets.all(60), child: Center(child: CircularProgressIndicator()))
+                ? const Padding(padding: EdgeInsets.all(16), child: TableSkeletonView(rowCount: 6))
                 : SizedBox(
                     height: 640,
                     child: TabBarView(

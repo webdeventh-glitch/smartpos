@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 
 class ThemeService {
   static final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.light);
+  static final ValueNotifier<bool> touchFriendlyNotifier = ValueNotifier(false);
 
   static bool get isDark => themeModeNotifier.value == ThemeMode.dark;
+  static bool get isTouchFriendly => touchFriendlyNotifier.value;
 
   static void toggleTheme() {
     themeModeNotifier.value = isDark ? ThemeMode.light : ThemeMode.dark;
@@ -12,6 +14,14 @@ class ThemeService {
 
   static void setMode(ThemeMode mode) {
     themeModeNotifier.value = mode;
+  }
+
+  static void setTouchFriendly(bool enabled) {
+    touchFriendlyNotifier.value = enabled;
+  }
+
+  static void toggleTouchFriendly() {
+    touchFriendlyNotifier.value = !touchFriendlyNotifier.value;
   }
 
   static ScrollBehavior get scrollBehavior => const MaterialScrollBehavior().copyWith(
@@ -28,6 +38,12 @@ class ThemeService {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      visualDensity: isTouchFriendly
+          ? VisualDensity.standard
+          : VisualDensity.compact,
+      materialTapTargetSize: isTouchFriendly
+          ? MaterialTapTargetSize.padded
+          : MaterialTapTargetSize.shrinkWrap,
       fontFamily: 'Segoe UI',
       scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       colorScheme: ColorScheme.fromSeed(
@@ -115,6 +131,12 @@ class ThemeService {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      visualDensity: isTouchFriendly
+          ? VisualDensity.standard
+          : VisualDensity.compact,
+      materialTapTargetSize: isTouchFriendly
+          ? MaterialTapTargetSize.padded
+          : MaterialTapTargetSize.shrinkWrap,
       fontFamily: 'Segoe UI',
       scaffoldBackgroundColor: darkBg,
       colorScheme: const ColorScheme.dark(

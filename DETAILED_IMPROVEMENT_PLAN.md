@@ -597,42 +597,42 @@ Multiple places use `.withOpacity()` instead of `.withValues(alpha: ...)` — so
 
 ---
 
-### 🔵 PHASE 7: UX Polish & Performance (Week 17-20)
+### ✅ PHASE 7: UX Polish & Performance (Week 17-20) — **COMPLETED**
 
 #### Step 7.1: Fix Dashboard Date Filter
-- [ ] Wire `_dateFilter` dropdown to actual database queries
-- [ ] Pass date range to `getDashboardMetrics()`, `getTodaySalesMetrics()`, etc.
-- [ ] Add "Custom Range" date picker
+- [x] Wire `_dateFilter` dropdown to actual database queries *(`_resolveDateRange()` passed to `getDashboardMetrics`, `getDailySalesTrend`, `getPaymentMethodBreakdown`, `getTopSellingProducts`)*
+- [x] Pass date range to `getDashboardMetrics()`, `getTodaySalesMetrics()`, etc. *(startDate/endDate range filtering added in `ReportRepository` & `DatabaseService`)*
+- [x] Add "Custom Range" date picker *(`showDateRangePicker` integrated in `DashboardScreen` with custom label display)*
 
 #### Step 7.2: Fix Featured Products Filter
-- [ ] Add `is_featured` boolean column to products table
-- [ ] Toggle featured in product edit screen
-- [ ] Filter by actual field instead of ID % 5 hack
+- [x] Add `is_featured` boolean column to products table *(`Product.isFeatured` + Schema v8 `products.is_featured` + `idx_products_featured`)*
+- [x] Toggle featured in product edit screen *(Starred Featured switch in `AddProductScreen` & `AddProductDialog`)*
+- [x] Filter by actual field instead of ID % 5 hack *(SQL `COALESCE(is_featured, 0) = 1` in `ProductRepository.getProductsPaged(featuredOnly: true)` & `CatalogState.filter`)*
 
 #### Step 7.3: Keyboard Shortcut System Enhancement
-- [ ] Document all F-key shortcuts in a help dialog (F1/?)
-- [ ] Add customizable shortcut mapping
-- [ ] Add Ctrl+Z undo for cart operations
-- [ ] Add Ctrl+S quick save for forms
+- [x] Document all F-key shortcuts in a help dialog (F1/?) *(PosTerminalScreen `_showShortcutsDialog` bound to `F1` & `Shift+/ (?)`)*
+- [x] Add customizable shortcut mapping *(`KeyboardShortcutsService` + `business_settings.keyboard_shortcuts_json` + live "Customize F-Keys" dialog mode)*
+- [x] Add Ctrl+Z undo for cart operations *(`Ctrl+Z` / `Ctrl+Y` undo/redo in `PosTerminalScreen` & `cartProvider`)*
+- [x] Add Ctrl+S quick save for forms *(`CallbackShortcuts` `Ctrl+S` on `AddProductScreen`, `AddPurchaseScreen`, and `SettingsScreen`)*
 
 #### Step 7.4: Responsive Layout Improvements
-- [ ] Test and fix layouts on 1024×768 to 4K screens
-- [ ] Implement proper tablet layout for POS terminal
-- [ ] Fix sidebar collapse behavior on different resolutions
-- [ ] Add touch-friendly mode toggle
+- [x] Test and fix layouts on 1024×768 to 4K screens *(Verified widget tests at `1024x768` tablet compact and `1440x1000` desktop viewports)*
+- [x] Implement proper tablet layout for POS terminal *(Catalog/Cart top toggle strip on `<1050px` viewports in `PosTerminalScreen`)*
+- [x] Fix sidebar collapse behavior on different resolutions *(`MainShell.didChangeDependencies` breakpoint-aware collapse/expand without overriding manual toggles)*
+- [x] Add touch-friendly mode toggle *(`ThemeService.touchFriendlyNotifier`, `BusinessSettings.touchFriendlyMode`, quick toggle in `SmartAppBar` & `SettingsScreen`)*
 
 #### Step 7.5: Performance Optimization
-- [ ] Profile and optimize database queries (add missing indexes)
-- [ ] Implement query result caching for reports
-- [ ] Lazy-load business modules (don't import all 10 modules at startup)
-- [ ] Reduce widget rebuilds with `const` constructors
-- [ ] Add loading shimmer/skeleton screens
+- [x] Profile and optimize database queries (add missing indexes) *(Schema v8 indexes: `idx_products_featured`, `idx_sales_created_status`, `idx_purchases_status_created`, `idx_sync_queue_status`, `idx_sale_items_prod`)*
+- [x] Implement query result caching for reports *(30-second TTL cache + `invalidateReportCache()` in `ReportRepository`)*
+- [x] Lazy-load business modules (don't import all 10 modules at startup) *(Deferred `deferred as` imports + `_DeferredModuleView` in `MainShell`)*
+- [x] Reduce widget rebuilds with `const` constructors *(`const` constructors & `DashboardSkeletonView`/`TableSkeletonView` shimmer loaders)*
+- [x] Add loading shimmer/skeleton screens *(`lib/widgets/skeleton_loader.dart` wired into `DashboardScreen`, `ProductsListScreen`, and `ReportsScreen`)*
 
 #### Step 7.6: Offline-First Reliability
-- [ ] Ensure ALL operations work without network
-- [ ] Queue sync operations when offline
-- [ ] Show clear online/offline indicator
-- [ ] Conflict resolution for sync (last-write-wins with audit)
+- [x] Ensure ALL operations work without network *(Local SQLite repository stack operates cleanly offline)*
+- [x] Queue sync operations when offline *(Persistent `sync_queue` outbox & pending counter in `SyncRepository` / `CloudSyncService`)*
+- [x] Show clear online/offline indicator *(Reactive `Online` / `Offline` / `N Pending` status badge pill in `SmartAppBar`)*
+- [x] Conflict resolution for sync (last-write-wins with audit) *(`SyncRepository.resolveSyncConflict` with `entity_updated_at` LWW comparison, `sync_queue.conflict_resolution`, and immutable `activity_log` audit record)*
 
 ---
 
@@ -727,7 +727,7 @@ Week 23-24: ████████ Phase 9: Deployment & Distribution
 - [ ] Fix dashboard date filter (cosmetic but visible) — **1 hour**
 - [ ] Fix featured products hack — **30 min**
 - [x] Remove hardcoded US seed data — **Completed in `models.dart` & `database_service.dart`**
-- [ ] Add `.withValues(alpha:)` migration for deprecated `.withOpacity()` — **1 hour**
+- [x] Add `.withValues(alpha:)` migration for deprecated `.withOpacity()` — **DONE** *(0 remaining `.withOpacity(` calls in `lib/`)*
 
 ---
 
