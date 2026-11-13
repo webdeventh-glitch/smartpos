@@ -111,172 +111,37 @@ class _LoginScreenState extends State<LoginScreen> {
     if (widget.settings.loginSideTitle.trim().isNotEmpty) {
       return widget.settings.loginSideTitle.trim();
     }
-    switch (widget.settings.businessType.toLowerCase()) {
-      case 'pharmacy':
-        return 'Next-Generation Pharmacy & Retail Agency Engine';
-      case 'supermarket':
-        return 'High-Volume Supermarket & Wholesale Hub';
-      case 'restaurant':
-      case 'cafe':
-        return 'Smart Restaurant & Cafe Management Suite';
-      case 'clothing':
-      case 'garments':
-        return 'Fashion Boutique & Apparel Retail Suite';
-      case 'gym':
-        return 'Fitness Club & Gym Membership Terminal';
-      case 'repair':
-      case 'service':
-        return 'Device Diagnostics & Repair Workstation';
-      case 'fruit_wholesale':
-        return 'Fruit & Sabzi Wholesale Mandi Arhat Suite';
-      case 'poultry':
-        return 'Poultry Farming & Feed Trade Management Engine';
-      default:
-        return 'Next-Generation Enterprise POS & Wholesale Engine';
-    }
+    return PosLocalization.tr('Enterprise Retail & Wholesale Workstation',
+        settings: widget.settings);
   }
 
   String _defaultSubtitle() {
     if (widget.settings.loginSideSubtitle.trim().isNotEmpty) {
       return widget.settings.loginSideSubtitle.trim();
     }
-    switch (widget.settings.businessType.toLowerCase()) {
-      case 'pharmacy':
-        return 'Ultra-fast SQLite local architecture designed to handle over 1.5 million transactions with zero lag, instant batch-expiry control, and seamless multi-branch management.';
-      case 'supermarket':
-        return 'Real-time barcode scanning, multi-cashier registers, instant FIFO batch stock tracking, and dynamic thermal label printing.';
-      case 'restaurant':
-      case 'cafe':
-        return 'Interactive visual table floor plans, Kitchen Order Tickets (KOT), waiter mobile dispatch, and precise recipe ingredient cost tracking.';
-      case 'gym':
-        return 'Biometric check-in attendance, member expiry notifications, locker lease management, and personal trainer scheduling.';
-      case 'repair':
-      case 'service':
-        return 'Job ticketing, customer tracking, technician assignment, spare parts consumption, and warranty tracking.';
-      default:
-        return 'Ultra-fast local SQLite storage guarantees zero billing lag during peak hours, with optional hybrid sync to remote MySQL/Laravel cloud.';
-    }
+    return PosLocalization.tr(
+        'Secure high-speed point of sale, inventory control, and transaction ledger.',
+        settings: widget.settings);
   }
 
   List<Map<String, dynamic>> _featureBadges() {
-    switch (widget.settings.businessType.toLowerCase()) {
-      case 'pharmacy':
-        return [
-          {
-            'icon': Icons.medical_services_rounded,
-            'text': 'Medicine & Pharmacy Agency Ready (Form 2A & 236H)'
-          },
-          {
-            'icon': Icons.bolt_rounded,
-            'text': 'Blazing Fast POS Terminal with [F1] Hotkeys'
-          },
-          {
-            'icon': Icons.inventory_2_rounded,
-            'text': 'Automated Sales & Purchase Returns Restocking'
-          },
-          {
-            'icon': Icons.calendar_month_rounded,
-            'text': 'Annual Financial Closing & Ledger Carry-Forward'
-          },
-        ];
-      case 'supermarket':
-        return [
-          {
-            'icon': Icons.qr_code_scanner_rounded,
-            'text': 'Barcode & Weight Scale Terminal Integration'
-          },
-          {
-            'icon': Icons.print_rounded,
-            'text': 'Dynamic Shelf Label & Barcode Sticker Printing'
-          },
-          {
-            'icon': Icons.local_offer_rounded,
-            'text': 'Selling Price Groups & Volume Wholesale Discounts'
-          },
-          {
-            'icon': Icons.point_of_sale_rounded,
-            'text': 'Parked Sales, Shift Registers & Fast Multi-Pay'
-          },
-        ];
-      case 'restaurant':
-      case 'cafe':
-        return [
-          {
-            'icon': Icons.table_restaurant_rounded,
-            'text': 'Visual Table Plan & Real-Time Floor Layout'
-          },
-          {
-            'icon': Icons.outdoor_grill_rounded,
-            'text': 'Instant Kitchen Order Tickets (KOT) Dispatch'
-          },
-          {
-            'icon': Icons.delivery_dining_rounded,
-            'text': 'Dine-In, Takeaway & Home Delivery Tracking'
-          },
-          {
-            'icon': Icons.receipt_long_rounded,
-            'text': 'Bill Splitting, Service Charges & Tips Management'
-          },
-        ];
-      case 'gym':
-        return [
-          {
-            'icon': Icons.fitness_center_rounded,
-            'text': 'Member Subscriptions & Auto-Expiry Alerts'
-          },
-          {
-            'icon': Icons.lock_clock_rounded,
-            'text': 'Smart Locker Allocation & Monthly Rentals'
-          },
-          {
-            'icon': Icons.sports_mma_rounded,
-            'text': 'Personal Trainer Packages & Performance Logs'
-          },
-          {
-            'icon': Icons.badge_rounded,
-            'text': 'Instant Check-in & Member Attendance Ledger'
-          },
-        ];
-      case 'repair':
-      case 'service':
-        return [
-          {
-            'icon': Icons.build_circle_rounded,
-            'text': 'Device Repair Job Sheets & Barcode Tracking'
-          },
-          {
-            'icon': Icons.sms_rounded,
-            'text': 'SMS Status Updates to Customers on Job Done'
-          },
-          {
-            'icon': Icons.precision_manufacturing_rounded,
-            'text': 'Spare Parts Consumption & Cost Auditing'
-          },
-          {
-            'icon': Icons.verified_user_rounded,
-            'text': 'Service Warranty & Defect Return Tracking'
-          },
-        ];
-      default:
-        return [
-          {
-            'icon': Icons.speed_rounded,
-            'text': 'Sub-Millisecond Offline SQLite Transactions'
-          },
-          {
-            'icon': Icons.sync_rounded,
-            'text': 'Hybrid Cloud Sync to MySQL / Laravel Web Portal'
-          },
-          {
-            'icon': Icons.menu_book_rounded,
-            'text': 'Customer & Supplier Double-Entry Ledgers'
-          },
-          {
-            'icon': Icons.analytics_rounded,
-            'text': 'Comprehensive Profit & Loss and Stock Auditing'
-          },
-        ];
-    }
+    return [
+      {
+        'icon': Icons.qr_code_scanner_rounded,
+        'text': PosLocalization.tr('Fast Counter Billing & Barcode Scanning',
+            settings: widget.settings),
+      },
+      {
+        'icon': Icons.point_of_sale_rounded,
+        'text': PosLocalization.tr('Multi-Cashier & Register Reconciliation',
+            settings: widget.settings),
+      },
+      {
+        'icon': Icons.inventory_2_rounded,
+        'text': PosLocalization.tr('Real-Time Inventory & Batch Tracking',
+            settings: widget.settings),
+      },
+    ];
   }
 
   Widget _buildSideBanner(bool isDark) {
@@ -379,7 +244,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     Text(
-                      'Enterprise ERP & Wholesale Suite',
+                      widget.settings.branchName.isNotEmpty
+                          ? widget.settings.branchName
+                          : 'Main Branch HQ',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
@@ -486,8 +353,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   Expanded(
                     child: Text(
                       widget.settings.isHybridSync
-                          ? 'Hybrid Engine Active (Local SQLite FFI + MySQL Cloud Sync)'
-                          : 'Offline Database Engine Connected (SQLite FFI)',
+                          ? PosLocalization.tr(
+                              'Hybrid Engine Active (Local SQLite FFI + MySQL Cloud Sync)',
+                              settings: widget.settings)
+                          : PosLocalization.tr(
+                              'Offline Database Engine Connected (SQLite FFI)',
+                              settings: widget.settings),
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -547,7 +418,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Workstation Sign In',
+                        PosLocalization.tr('Workstation Sign In',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
@@ -557,7 +429,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       Text(
-                        'Authenticate to open register & billing terminal',
+                        PosLocalization.tr(
+                            'Authenticate to open register & billing terminal',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark
@@ -644,7 +518,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
             // Username / Operator ID Input
             Text(
-              'Username or Operator ID',
+              PosLocalization.tr('Username or Operator ID',
+                  settings: widget.settings),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -662,7 +537,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 color: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
               decoration: InputDecoration(
-                hintText: 'e.g. admin, cashier1, or salesman',
+                hintText: PosLocalization.tr(
+                    'e.g. admin, cashier1, or salesman',
+                    settings: widget.settings),
                 hintStyle: TextStyle(
                   fontSize: 12,
                   color: isDark
@@ -699,7 +576,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               validator: (v) => v == null || v.trim().isEmpty
-                  ? 'Please enter username'
+                  ? PosLocalization.tr('Please enter username',
+                      settings: widget.settings)
                   : null,
               onFieldSubmitted: (_) => _handleLogin(),
             ),
@@ -707,7 +585,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             // Password Input
             Text(
-              'Password',
+              PosLocalization.tr('Password', settings: widget.settings),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -726,7 +604,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 color: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
               decoration: InputDecoration(
-                hintText: 'Enter account password',
+                hintText: PosLocalization.tr('Enter account password',
+                    settings: widget.settings),
                 hintStyle: TextStyle(
                   fontSize: 12,
                   color: isDark
@@ -773,8 +652,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
                 ),
               ),
-              validator: (v) =>
-                  v == null || v.isEmpty ? 'Please enter password' : null,
+              validator: (v) => v == null || v.isEmpty
+                  ? PosLocalization.tr('Please enter password',
+                      settings: widget.settings)
+                  : null,
               onFieldSubmitted: (_) => _handleLogin(),
             ),
             const SizedBox(height: 16),
@@ -788,10 +669,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      widget.settings.sessionTimeoutMinutes >= 60 &&
-                              widget.settings.sessionTimeoutMinutes % 60 == 0
-                          ? 'Workstation auto-locks after ${widget.settings.sessionTimeoutMinutes ~/ 60} hour(s) of inactivity'
-                          : 'Workstation auto-locks after ${widget.settings.sessionTimeoutMinutes} minute(s) of inactivity',
+                      PosLocalization.tr(
+                          'Workstation auto-locks after inactivity',
+                          settings: widget.settings),
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark
@@ -898,14 +778,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white),
                       )
-                    : const Row(
+                    : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.login_rounded, size: 18),
-                          SizedBox(width: 8),
+                          const Icon(Icons.login_rounded, size: 18),
+                          const SizedBox(width: 8),
                           Text(
-                            'Sign In to Terminal',
-                            style: TextStyle(
+                            PosLocalization.tr('Sign In to Terminal',
+                                settings: widget.settings),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                         ],
@@ -919,9 +800,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: () => _handleReconfigureDatabase(context),
                 icon: const Icon(Icons.settings_suggest_rounded,
                     size: 15, color: Color(0xFF64748B)),
-                label: const Text(
-                  'Run Installation & Database Setup Wizard',
-                  style: TextStyle(
+                label: Text(
+                  PosLocalization.tr('Run Installation & Database Setup Wizard',
+                      settings: widget.settings),
+                  style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF64748B),
                     fontWeight: FontWeight.w600,
@@ -934,7 +816,9 @@ class _LoginScreenState extends State<LoginScreen> {
             // Footer info
             Center(
               child: Text(
-                'Smart POS Enterprise Edition • 256-bit Local AES Encryption',
+                PosLocalization.tr(
+                    'Smart POS Enterprise Edition • 256-bit Local AES Encryption',
+                    settings: widget.settings),
                 style: TextStyle(
                   fontSize: 11,
                   color: isDark

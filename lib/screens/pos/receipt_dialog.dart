@@ -488,8 +488,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
     final isA4 = _paperSize == 'A4 Agency' || _paperSize == 'A4';
     final is58mm = _paperSize == '58mm Thermal' || _paperSize == '58mm';
     final double dialogWidth = isA4
-        ? math.min(screenWidth * 0.95, 920.0)
-        : math.min(screenWidth * 0.95, 760.0);
+        ? math.min(screenWidth * 0.95, 980.0)
+        : math.min(screenWidth * 0.95, 860.0);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
@@ -499,7 +499,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         child: Container(
           width: dialogWidth,
           constraints: BoxConstraints(
-            maxHeight: math.min(screenHeight * 0.92, 860.0),
+            maxHeight: math.min(screenHeight * 0.92, 880.0),
           ),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -535,7 +535,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Invoice Preview ($_paperSize)',
+                        '${PosLocalization.tr('Invoice Preview', settings: widget.settings)} ($_paperSize)',
                         style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -660,7 +660,10 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                       ),
                       icon: const Icon(Icons.print_rounded, size: 16),
                       label: Text(
-                        isUltraNarrow ? 'Print' : 'Print ($_paperSize)',
+                        isUltraNarrow
+                            ? PosLocalization.tr('Print',
+                                settings: widget.settings)
+                            : '${PosLocalization.tr('Print', settings: widget.settings)} ($_paperSize)',
                         maxLines: 1,
                         softWrap: false,
                         overflow: TextOverflow.ellipsis,
@@ -871,25 +874,36 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                       },
                     );
 
-                    return SizedBox(
-                      width: double.infinity,
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.spaceBetween,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [copyBtn, thermalBtn, pdfBtn, emailBtn],
-                          ),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [whatsappBtn, printBtn, completeBtn],
-                          ),
-                        ],
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                            minWidth: actionConstraints.maxWidth),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                copyBtn,
+                                thermalBtn,
+                                pdfBtn,
+                                emailBtn,
+                              ],
+                            ),
+                            const SizedBox(width: 12),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                whatsappBtn,
+                                const SizedBox(width: 8),
+                                printBtn,
+                                const SizedBox(width: 8),
+                                completeBtn,
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

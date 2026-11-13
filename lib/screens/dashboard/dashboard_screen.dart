@@ -653,7 +653,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Row(
                     children: [
                       Text(
-                        'Welcome $userName, $roleTitle',
+                        '${PosLocalization.tr('Welcome', settings: widget.settings)} $userName ($roleTitle)',
                         style: const TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
@@ -697,8 +697,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               'This Year',
                               'Custom Range',
                             ]
-                                .map((f) =>
-                                    DropdownMenuItem(value: f, child: Text(f)))
+                                .map((f) => DropdownMenuItem(
+                                    value: f,
+                                    child: Text(PosLocalization.tr(f,
+                                        settings: widget.settings))))
                                 .toList(),
                             onChanged: (val) async {
                               if (val == null) return;
@@ -803,8 +805,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.shopping_cart_outlined,
                       iconColor: const Color(0xFF0284C7),
                       iconBg: const Color(0xFFE0F2FE),
-                      title: 'Total Sales',
-                      subtitle: 'Total Sales Revenue',
+                      title: PosLocalization.tr('Total Sales',
+                          settings: widget.settings),
+                      subtitle: PosLocalization.tr('Total Sales Revenue',
+                          settings: widget.settings),
                       value: '$currency ${totalSales.toStringAsFixed(2)}',
                       onTap: () => widget.onNavigateToRoute(AppRoute.salesList),
                     ),
@@ -814,7 +818,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.payments_outlined,
                       iconColor: const Color(0xFF16A34A),
                       iconBg: const Color(0xFFDCFCE7),
-                      title: 'Net',
+                      title:
+                          PosLocalization.tr('Net', settings: widget.settings),
                       value: '$currency ${netProfit.toStringAsFixed(2)}',
                       showInfo: true,
                       tooltip:
@@ -827,7 +832,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.description_outlined,
                       iconColor: const Color(0xFFD97706),
                       iconBg: const Color(0xFFFEF3C7),
-                      title: 'Invoice due',
+                      title: PosLocalization.tr('Invoice due',
+                          settings: widget.settings),
                       value: '$currency ${invoiceDue.toStringAsFixed(2)}',
                       onTap: () => widget.onNavigateToRoute(AppRoute.customers),
                     ),
@@ -837,7 +843,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.swap_horiz_rounded,
                       iconColor: const Color(0xFFDC2626),
                       iconBg: const Color(0xFFFEE2E2),
-                      title: 'Total Sell Return',
+                      title: PosLocalization.tr('Total Sell Return',
+                          settings: widget.settings),
                       value: '$currency ${totalSellReturn.toStringAsFixed(2)}',
                       showInfo: true,
                       tooltip: 'Total customer product sales returns',
@@ -850,8 +857,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.arrow_circle_down_outlined,
                       iconColor: const Color(0xFF00ACC1),
                       iconBg: const Color(0xFFE0F7FA),
-                      title: 'Total purchase',
-                      subtitle: 'Total Purchases',
+                      title: PosLocalization.tr('Total purchase',
+                          settings: widget.settings),
+                      subtitle: PosLocalization.tr('Total Purchases',
+                          settings: widget.settings),
                       value: '$currency ${totalPurchases.toStringAsFixed(2)}',
                       onTap: () =>
                           widget.onNavigateToRoute(AppRoute.purchasesList),
@@ -862,7 +871,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.warning_amber_rounded,
                       iconColor: const Color(0xFFD97706),
                       iconBg: const Color(0xFFFEF3C7),
-                      title: 'Purchase due',
+                      title: PosLocalization.tr('Purchase due',
+                          settings: widget.settings),
                       value: '$currency ${purchaseDue.toStringAsFixed(2)}',
                       onTap: () => widget.onNavigateToRoute(AppRoute.suppliers),
                     ),
@@ -872,7 +882,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.assignment_return_outlined,
                       iconColor: const Color(0xFFDC2626),
                       iconBg: const Color(0xFFFEE2E2),
-                      title: 'Total Purchase Return',
+                      title: PosLocalization.tr('Total Purchase Return',
+                          settings: widget.settings),
                       value:
                           '$currency ${totalPurchaseReturn.toStringAsFixed(2)}',
                       showInfo: true,
@@ -886,7 +897,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.money_outlined,
                       iconColor: const Color(0xFFDC2626),
                       iconBg: const Color(0xFFFEE2E2),
-                      title: 'Expense',
+                      title: PosLocalization.tr('Expense',
+                          settings: widget.settings),
                       value: '$currency ${totalExpenses.toStringAsFixed(2)}',
                       onTap: () => widget.onNavigateToRoute(AppRoute.expenses),
                     ),
@@ -933,28 +945,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 _actionPill(
                   icon: Icons.point_of_sale_outlined,
-                  label: 'Cash Register (F2)',
+                  label: PosLocalization.tr('Cash Register (F2)',
+                      settings: widget.settings),
                   onTap: _openRegisterDialog,
                 ),
                 _actionPill(
                   icon: Icons.fact_check_outlined,
-                  label: 'Stock Audit',
+                  label: PosLocalization.tr('Stock Audit',
+                      settings: widget.settings),
                   onTap: () =>
                       widget.onNavigateToRoute(AppRoute.inventoryAudit),
                 ),
                 _actionPill(
                   icon: Icons.analytics_outlined,
-                  label: 'Reports',
+                  label:
+                      PosLocalization.tr('Reports', settings: widget.settings),
                   onTap: () => widget.onNavigateToRoute(AppRoute.reports),
                 ),
                 _actionPill(
                   icon: Icons.assignment_turned_in_outlined,
-                  label: 'Sales Orders',
+                  label: PosLocalization.tr('Sales Orders',
+                      settings: widget.settings),
                   onTap: () => widget.onNavigateToRoute(AppRoute.salesOrders),
                 ),
                 _actionPill(
                   icon: Icons.local_shipping_outlined,
-                  label: 'Purchase Orders',
+                  label: PosLocalization.tr('Purchase Orders',
+                      settings: widget.settings),
                   onTap: () =>
                       widget.onNavigateToRoute(AppRoute.purchaseOrders),
                 ),
@@ -1047,14 +1064,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.keyboard_outlined,
+                        const Icon(Icons.keyboard_outlined,
                             color: Colors.amberAccent, size: 18),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Text(
-                          'POWER SHORTCUTS',
-                          style: TextStyle(
+                          PosLocalization.tr('POWER SHORTCUTS',
+                              settings: widget.settings),
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
@@ -1067,11 +1085,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Wrap(
                       spacing: 16,
                       children: [
-                        _shortcutBadge('F1', 'POS Terminal'),
-                        _shortcutBadge('F2', 'Register'),
-                        _shortcutBadge('F3', 'New Product'),
-                        _shortcutBadge('F4', 'Sales List'),
-                        _shortcutBadge('Ctrl+R', 'Refresh Data'),
+                        _shortcutBadge(
+                            'F1',
+                            PosLocalization.tr('POS Terminal',
+                                settings: widget.settings)),
+                        _shortcutBadge(
+                            'F2',
+                            PosLocalization.tr('Register',
+                                settings: widget.settings)),
+                        _shortcutBadge(
+                            'F3',
+                            PosLocalization.tr('New Product',
+                                settings: widget.settings)),
+                        _shortcutBadge(
+                            'F4',
+                            PosLocalization.tr('Sales List',
+                                settings: widget.settings)),
+                        _shortcutBadge(
+                            'Ctrl+R',
+                            PosLocalization.tr('Refresh Data',
+                                settings: widget.settings)),
                       ],
                     ),
                   ],
@@ -1199,7 +1232,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Sales Last 30 Days',
+                        PosLocalization.tr('Sales Last 30 Days',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
@@ -1209,8 +1243,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       Text(
                         _chartMode == 0
-                            ? 'Daily sales turnover (Sales & Revenue Velocity)'
-                            : 'Daily completed transactions count',
+                            ? PosLocalization.tr(
+                                'Daily sales turnover (Sales & Revenue Velocity)',
+                                settings: widget.settings)
+                            : PosLocalization.tr(
+                                'Daily completed transactions count',
+                                settings: widget.settings),
                         style: TextStyle(
                             fontSize: 11,
                             color: isDark
@@ -1272,8 +1310,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _toggleBtn('Revenue', 0, isDark),
-                        _toggleBtn('Orders', 1, isDark),
+                        _toggleBtn(
+                            PosLocalization.tr('Revenue',
+                                settings: widget.settings),
+                            0,
+                            isDark),
+                        _toggleBtn(
+                            PosLocalization.tr('Orders',
+                                settings: widget.settings),
+                            1,
+                            isDark),
                       ],
                     ),
                   ),
@@ -1516,16 +1562,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Payment Breakdown',
+                    PosLocalization.tr('Payment Breakdown',
+                        settings: widget.settings),
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
                     ),
                   ),
-                  const Text(
-                    'Volume by tender method',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                  Text(
+                    PosLocalization.tr('Volume by tender method',
+                        settings: widget.settings),
+                    style:
+                        const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                   ),
                 ],
               ),
@@ -1552,16 +1601,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       totalAll > 0
                           ? '$currency${totalAll.toStringAsFixed(0)}'
-                          : 'No Sales',
+                          : PosLocalization.tr('No Sales',
+                              settings: widget.settings),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w900,
                         color: isDark ? Colors.white : const Color(0xFF0F172A),
                       ),
                     ),
-                    const Text('Total',
-                        style:
-                            TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                    Text(PosLocalization.tr('Total', settings: widget.settings),
+                        style: const TextStyle(
+                            fontSize: 10, color: Color(0xFF94A3B8))),
                   ],
                 ),
               ],
@@ -1588,7 +1638,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          e.key,
+                          PosLocalization.tr(e.key, settings: widget.settings),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -1621,11 +1671,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               }).toList(),
             )
           else
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('Complete POS sales to see payment breakdown.',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                    PosLocalization.tr(
+                        'Complete POS sales to see payment breakdown.',
+                        settings: widget.settings),
+                    style: const TextStyle(
+                        fontSize: 11, color: Color(0xFF94A3B8))),
               ),
             ),
         ],
@@ -2091,7 +2145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Inventory Reorder & Low Stock Alerts (${_lowStock.length})',
+                        '${PosLocalization.tr('Inventory Reorder & Low Stock Alerts', settings: widget.settings)} (${_lowStock.length})',
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 15,
@@ -2101,8 +2155,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       Text(
                         _lowStock.isEmpty
-                            ? 'All inventory items are currently at healthy stock levels.'
-                            : 'Items at or below minimum threshold requiring immediate restock.',
+                            ? PosLocalization.tr(
+                                'All inventory items are currently at healthy stock levels.',
+                                settings: widget.settings)
+                            : PosLocalization.tr(
+                                'Items at or below minimum threshold requiring immediate restock.',
+                                settings: widget.settings),
                         style: const TextStyle(
                             fontSize: 11, color: Color(0xFF94A3B8)),
                       ),
@@ -2124,9 +2182,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       borderRadius: BorderRadius.circular(8)),
                 ),
                 icon: const Icon(Icons.add_shopping_cart, size: 14),
-                label: const Text('Create Purchase Order',
-                    style:
-                        TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                label: Text(
+                    PosLocalization.tr('Create Purchase Order',
+                        settings: widget.settings),
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -2262,7 +2322,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Pending Sales Orders ($soCount)',
+                        '${PosLocalization.tr('Pending Sales Orders', settings: widget.settings)} ($soCount)',
                         style: const TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w800),
                       ),
@@ -2278,15 +2338,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     TextButton(
                       onPressed: () =>
                           widget.onNavigateToRoute(AppRoute.salesOrders),
-                      child: const Text('Manage'),
+                      child: Text(PosLocalization.tr('Manage',
+                          settings: widget.settings)),
                     ),
                   ],
                 ),
                 if (soList.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Text('No pending sales orders awaiting invoicing.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                        PosLocalization.tr(
+                            'No pending sales orders awaiting invoicing.',
+                            settings: widget.settings),
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey)),
                   )
                 else
                   ...soList.map((o) => Padding(
@@ -2331,7 +2396,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Pending Purchase Orders ($poCount)',
+                        '${PosLocalization.tr('Pending Purchase Orders', settings: widget.settings)} ($poCount)',
                         style: const TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w800),
                       ),
@@ -2347,15 +2412,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     TextButton(
                       onPressed: () =>
                           widget.onNavigateToRoute(AppRoute.purchaseOrders),
-                      child: const Text('Receive'),
+                      child: Text(PosLocalization.tr('Receive',
+                          settings: widget.settings)),
                     ),
                   ],
                 ),
                 if (poList.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Text('No pending supplier purchase orders.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                        PosLocalization.tr(
+                            'No pending supplier purchase orders.',
+                            settings: widget.settings),
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey)),
                   )
                 else
                   ...poList.map((p) => Padding(

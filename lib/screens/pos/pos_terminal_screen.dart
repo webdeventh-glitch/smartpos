@@ -5530,7 +5530,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Location: ',
+                          Text(
+                              '${PosLocalization.tr('Location', settings: widget.settings)}: ',
                               style: TextStyle(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.bold,
@@ -5973,7 +5974,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                     borderRadius: BorderRadius.circular(6)),
                               ),
                               icon: const Icon(Icons.add, size: 14),
-                              label: const Text('Add Expense',
+                              label: Text(
+                                  PosLocalization.tr('+ Add Expense',
+                                      settings: widget.settings),
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold)),
@@ -6000,7 +6003,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               ),
                               icon: const Icon(Icons.history_rounded,
                                   size: 15, color: Color(0xFF4F46E5)),
-                              label: const Text('Recent Sales [F9]',
+                              label: Text(
+                                  PosLocalization.tr('Recent Sales [F9]',
+                                      settings: widget.settings),
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold)),
@@ -6022,7 +6027,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                   Icons.account_balance_wallet_outlined,
                                   size: 15,
                                   color: Color(0xFF10B981)),
-                              label: const Text('Till [F10]',
+                              label: Text(
+                                  PosLocalization.tr('Till [F10]',
+                                      settings: widget.settings),
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold)),
@@ -6050,7 +6057,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               ),
                               icon:
                                   const Icon(Icons.keyboard_outlined, size: 14),
-                              label: const Text('Shortcuts [F1]',
+                              label: Text(
+                                  PosLocalization.tr('Shortcuts [F1]',
+                                      settings: widget.settings),
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold)),
@@ -6263,9 +6272,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                               width: 8),
                                                           Expanded(
                                                             child: Text(
-                                                              _selectedCustomer
-                                                                      ?.name ??
-                                                                  'Walk-in Customer',
+                                                              PosLocalization
+                                                                  .tr(
+                                                                _selectedCustomer
+                                                                        ?.name ??
+                                                                    'General Walk-in Shopper',
+                                                                settings: widget
+                                                                    .settings,
+                                                              ),
                                                               style: TextStyle(
                                                                   fontSize: 13,
                                                                   fontWeight:
@@ -6375,7 +6389,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                 const SizedBox(
                                                                     width: 4),
                                                                 Text(
-                                                                  'Search (F3)',
+                                                                  PosLocalization.tr(
+                                                                      'Search (F3)',
+                                                                      settings:
+                                                                          widget
+                                                                              .settings),
                                                                   style: TextStyle(
                                                                       fontSize:
                                                                           10.5,
@@ -6727,8 +6745,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                               const SizedBox(width: 6),
                                               Text(
                                                 _isWholesaleMode
-                                                    ? 'Wholesale Tier (Active)'
-                                                    : 'Retail Mode (F12)',
+                                                    ? PosLocalization.tr(
+                                                        'Wholesale Tier (Active)',
+                                                        settings:
+                                                            widget.settings)
+                                                    : PosLocalization.tr(
+                                                        'Retail Mode (F12)',
+                                                        settings:
+                                                            widget.settings),
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.bold,
@@ -6771,7 +6795,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                   color: Color(0xFF4F46E5)),
                                               const SizedBox(width: 5),
                                               Text(
-                                                '+ Custom Item',
+                                                PosLocalization.tr(
+                                                    '+ Custom Item',
+                                                    settings: widget.settings),
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.bold,
@@ -6827,7 +6853,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                 ),
                                                 const SizedBox(width: 3),
                                                 Text(
-                                                  'Undo',
+                                                  PosLocalization.tr('Undo',
+                                                      settings:
+                                                          widget.settings),
                                                   style: TextStyle(
                                                     fontSize: 10.5,
                                                     fontWeight: FontWeight.w600,
@@ -6883,7 +6911,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                 ),
                                                 const SizedBox(width: 3),
                                                 Text(
-                                                  'Redo',
+                                                  PosLocalization.tr('Redo',
+                                                      settings:
+                                                          widget.settings),
                                                   style: TextStyle(
                                                     fontSize: 10.5,
                                                     fontWeight: FontWeight.w600,
@@ -6904,7 +6934,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
                                       // Universal Tag / Flexible Units Hint
                                       Text(
-                                        'Multi-Unit & Decimal Scale Enabled',
+                                        PosLocalization.tr(
+                                            'Multi-Unit & Decimal Scale Enabled',
+                                            settings: widget.settings),
                                         style: TextStyle(
                                             fontSize: 10, color: textSecondary),
                                       ),
@@ -8266,8 +8298,11 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                             _filterBtn(
                                               icon: Icons.grid_view_outlined,
                                               label: _selectedCategoryId != null
-                                                  ? 'Category: ${_categories.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => Category(name: 'Category', code: '')).name}'
-                                                  : 'Category',
+                                                  ? '${PosLocalization.tr('Category', settings: widget.settings)}: ${_categories.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => Category(name: PosLocalization.tr('Category', settings: widget.settings), code: '')).name}'
+                                                  : PosLocalization.tr(
+                                                      'Category',
+                                                      settings:
+                                                          widget.settings),
                                               count: _selectedCategoryId != null
                                                   ? null
                                                   : _categories.length,
@@ -8290,8 +8325,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                               icon: Icons
                                                   .branding_watermark_outlined,
                                               label: _selectedBrandId != null
-                                                  ? 'Brand: ${_brands.firstWhere((b) => b.id == _selectedBrandId, orElse: () => Brand(name: 'Brand')).name}'
-                                                  : 'Brands',
+                                                  ? '${PosLocalization.tr('Brands', settings: widget.settings)}: ${_brands.firstWhere((b) => b.id == _selectedBrandId, orElse: () => Brand(name: 'Brand')).name}'
+                                                  : PosLocalization.tr('Brands',
+                                                      settings:
+                                                          widget.settings),
                                               count: _selectedBrandId != null
                                                   ? null
                                                   : _brands.length,
@@ -8311,7 +8348,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                             const SizedBox(width: 8),
                                             _filterBtn(
                                               icon: Icons.star_border,
-                                              label: 'Featured Products',
+                                              label: PosLocalization.tr(
+                                                  'Featured Products',
+                                                  settings: widget.settings),
                                               count: null,
                                               isSelected: _filterFeatured,
                                               onTap: () {
@@ -8375,7 +8414,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                     ),
                                                     const SizedBox(width: 4),
                                                     Text(
-                                                      'Grid',
+                                                      PosLocalization.tr('Grid',
+                                                          settings:
+                                                              widget.settings),
                                                       style: TextStyle(
                                                         fontSize: 11,
                                                         fontWeight:
@@ -8427,7 +8468,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                     ),
                                                     const SizedBox(width: 4),
                                                     Text(
-                                                      'List',
+                                                      PosLocalization.tr('List',
+                                                          settings:
+                                                              widget.settings),
                                                       style: TextStyle(
                                                         fontSize: 11,
                                                         fontWeight:
@@ -8704,7 +8747,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                           Text(
                                                                         isOutOfStock
                                                                             ? 'Out of stock'
-                                                                            : '${p.stockQuantity % 1 == 0 ? p.stockQuantity.toInt() : p.stockQuantity.toStringAsFixed(1)} in stock',
+                                                                            : '${p.stockQuantity % 1 == 0 ? p.stockQuantity.toInt() : p.stockQuantity.toStringAsFixed(1)} ${PosLocalization.tr('in stock', settings: widget.settings)}',
                                                                         style:
                                                                             TextStyle(
                                                                           fontSize:
@@ -9096,7 +9139,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                       if (p.unit
                                                                           .isNotEmpty)
                                                                         Text(
-                                                                            '• Unit: ${p.unit}',
+                                                                            '• ${PosLocalization.tr('Unit', settings: widget.settings)}: ${PosLocalization.tr(p.unit, settings: widget.settings)}',
                                                                             style:
                                                                                 TextStyle(fontSize: isSmallScreen ? 10 : 11, color: textSecondary)),
                                                                       if (p.batchNumber !=
@@ -9174,7 +9217,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                               child: Text(
                                                                 isOutOfStock
                                                                     ? 'Out'
-                                                                    : '${p.stockQuantity.toInt()} stk',
+                                                                    : '${p.stockQuantity.toInt()} ${PosLocalization.tr('stk', settings: widget.settings)}',
                                                                 style:
                                                                     TextStyle(
                                                                   fontSize:
@@ -9284,37 +9327,68 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _shortcutPill(_shortcutBindings['help'] ?? 'F1',
-                          'Shortcuts Help (?)', isDark),
+                      _shortcutPill(
+                          _shortcutBindings['help'] ?? 'F1',
+                          PosLocalization.tr('Shortcuts Help (?)',
+                              settings: widget.settings),
+                          isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['quickCash'] ?? 'F2',
-                          'Cash Checkout', isDark),
+                      _shortcutPill(
+                          _shortcutBindings['quickCash'] ?? 'F2',
+                          PosLocalization.tr('Cash Checkout',
+                              settings: widget.settings),
+                          isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['customerSearch'] ?? 'F3',
-                          'Customer', isDark),
+                      _shortcutPill(
+                          _shortcutBindings['customerSearch'] ?? 'F3',
+                          PosLocalization.tr('Customer',
+                              settings: widget.settings),
+                          isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['suspendSale'] ?? 'F4',
-                          'Hold Bill', isDark),
+                      _shortcutPill(
+                          _shortcutBindings['suspendSale'] ?? 'F4',
+                          PosLocalization.tr('Hold Bill',
+                              settings: widget.settings),
+                          isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['multiPay'] ?? 'F7',
-                          'Partial / Split Pay', isDark),
+                      _shortcutPill(
+                          _shortcutBindings['multiPay'] ?? 'F7',
+                          PosLocalization.tr('Partial / Split Pay',
+                              settings: widget.settings),
+                          isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill(_shortcutBindings['clearCart'] ?? 'F8',
-                          'Reset Order', isDark),
+                      _shortcutPill(
+                          _shortcutBindings['clearCart'] ?? 'F8',
+                          PosLocalization.tr('Reset Order',
+                              settings: widget.settings),
+                          isDark),
                       const SizedBox(width: 10),
                       _shortcutPill(
                           _shortcutBindings['registerDetails'] ?? 'F10',
-                          'Shift Reconciliation',
+                          PosLocalization.tr('Shift Reconciliation',
+                              settings: widget.settings),
                           isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill('Ctrl+Z', 'Undo Cart', isDark),
+                      _shortcutPill(
+                          'Ctrl+Z',
+                          PosLocalization.tr('Undo Cart',
+                              settings: widget.settings),
+                          isDark),
                       const SizedBox(width: 10),
-                      _shortcutPill('Esc', 'Search Focus', isDark),
+                      _shortcutPill(
+                          'Esc',
+                          PosLocalization.tr('Search Focus',
+                              settings: widget.settings),
+                          isDark),
                       const SizedBox(width: 24),
                       Text(
                         isTouchFriendly
-                            ? 'Smart POS • Touch Mode Active'
-                            : 'Smart POS Engine • Multi-Industry',
+                            ? PosLocalization.tr(
+                                'Smart POS • Touch Mode Active',
+                                settings: widget.settings)
+                            : PosLocalization.tr(
+                                'Smart POS Engine • Multi-Industry',
+                                settings: widget.settings),
                         style: TextStyle(
                             fontSize: 10,
                             color: textSecondary,
@@ -9570,7 +9644,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               onChanged: (val) => _applyProductFilter(),
               style: TextStyle(fontSize: 12.5, color: textPrimary),
               decoration: InputDecoration(
-                hintText: 'Scan barcode / search item / 2*SKU [Esc]',
+                hintText: PosLocalization.tr(
+                    'Scan barcode / search item / 2*SKU [Esc]',
+                    settings: widget.settings),
                 hintStyle: TextStyle(fontSize: 11.5, color: textSecondary),
                 prefixIcon: Icon(Icons.qr_code_scanner_rounded,
                     size: 17, color: textSecondary),
