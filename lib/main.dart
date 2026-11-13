@@ -17,7 +17,10 @@ import 'screens/auth/qulop_lockout_screen.dart';
 import 'screens/setup/setup_wizard_screen.dart';
 import 'screens/main_shell.dart';
 
-void main() {
+List<String> _appLaunchArgs = const [];
+
+void main([List<String> args = const []]) {
+  _appLaunchArgs = args;
   WidgetsFlutterBinding.ensureInitialized();
 
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -84,7 +87,26 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
 
   Future<BusinessSettings> _bootstrap() async {
     final dbService = await DatabaseService.initialize();
+
+    if (_appLaunchArgs.contains('--setup') ||
+        _appLaunchArgs.contains('--reset') ||
+        _appLaunchArgs.contains('--fresh-install')) {
+      AppLogger.info(
+          'Bootstrap', 'Forced setup requested via launch argument.');
+      await dbService.factoryResetForNewBusiness();
+    }
+
     var settings = await dbService.getBusinessSettings();
+    final users = await dbService.getUsers();
+
+    // If database has 0 users, force isConfigured to false so Setup Wizard runs to create initial Super Admin
+    if (users.isEmpty && settings.isConfigured) {
+      AppLogger.info('Bootstrap',
+          'No users detected in database. Routing to Setup Wizard.');
+      settings = settings.copyWith(isConfigured: false);
+      await dbService.updateBusinessSettings(settings);
+    }
+
     ThemeService.setTouchFriendly(settings.touchFriendlyMode);
     AuthService.configureSessionTimeout(settings.sessionTimeoutMinutes);
 

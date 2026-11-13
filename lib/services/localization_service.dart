@@ -607,6 +607,21 @@ class PosLocalization {
       'Sign In to Terminal': 'Sign In to Terminal',
       'Run Installation & Database Setup Wizard':
           'Run Installation & Database Setup Wizard',
+      'Setup Wizard & Database Management':
+          'Setup Wizard & Database Management',
+      'How would you like to launch the Setup Wizard?':
+          'How would you like to launch the Setup Wizard?',
+      'Reconfigure Settings (Keep Data)': 'Reconfigure Settings (Keep Data)',
+      'Re-run setup wizard to change business info, languages, currency, or credentials without deleting existing data.':
+          'Re-run setup wizard to change business info, languages, currency, or credentials without deleting existing data.',
+      'Reset to Fresh Installation': 'Reset to Fresh Installation',
+      'Wipe all local demo data, sales, and products to start with a completely fresh installation.':
+          'Wipe all local demo data, sales, and products to start with a completely fresh installation.',
+      'Confirm Database Reset': 'Confirm Database Reset',
+      'Are you sure you want to delete all local business data, products, and users to start a fresh setup? This cannot be undone.':
+          'Are you sure you want to delete all local business data, products, and users to start a fresh setup? This cannot be undone.',
+      'Reset & Start Setup': 'Reset & Start Setup',
+      'Launch Setup Wizard': 'Launch Setup Wizard',
       'Location': 'Location',
       'General Walk-in Shopper': 'General Walk-in Shopper',
       'Search (F3)': 'Search (F3)',
@@ -992,6 +1007,21 @@ class PosLocalization {
       'Sign In to Terminal': 'سسٹم میں داخل ہوں',
       'Run Installation & Database Setup Wizard':
           'انسٹالیشن و ڈیٹا بیس وزرڈ چلائیں',
+      'Setup Wizard & Database Management': 'سیٹ اپ وزرڈ اور ڈیٹا بیس سیٹنگز',
+      'How would you like to launch the Setup Wizard?':
+          'آپ سیٹ اپ وزرڈ کس طرح چلانا چاہتے ہیں؟',
+      'Reconfigure Settings (Keep Data)':
+          'سیٹنگز تبدیل کریں (ڈیٹا محفوظ رہے گا)',
+      'Re-run setup wizard to change business info, languages, currency, or credentials without deleting existing data.':
+          'کاروباری معلومات، زبان، کرنسی یا پاس ورڈ تبدیل کرنے کے لیے وزرڈ چلائیں (سابقہ ڈیٹا برقرار رہے گا)۔',
+      'Reset to Fresh Installation': 'نیا فریش انسٹالیشن (تمام ڈیٹا صاف کریں)',
+      'Wipe all local demo data, sales, and products to start with a completely fresh installation.':
+          'تمام آزمائشی ڈیٹا، پروڈکٹس، سیلز اور یوزرز صاف کر کے بالکل نیا سیٹ اپ شروع کریں۔',
+      'Confirm Database Reset': 'ڈیٹا بیس ری سیٹ کی تصدیق',
+      'Are you sure you want to delete all local business data, products, and users to start a fresh setup? This cannot be undone.':
+          'کیا آپ واقعی تمام مقامی ڈیٹا، پروڈکٹس اور یوزرز کو صاف کر کے نیا سیٹ اپ شروع کرنا چاہتے ہیں؟ یہ عمل واپس نہیں ہو سکتا۔',
+      'Reset & Start Setup': 'ڈیٹا صاف کریں اور سیٹ اپ شروع کریں',
+      'Launch Setup Wizard': 'سیٹ اپ وزرڈ کھولیں',
       'Location': 'برانچ / مقام',
       'General Walk-in Shopper': 'عام واک اِن گاہک',
       'Search (F3)': 'تلاش (F3)',

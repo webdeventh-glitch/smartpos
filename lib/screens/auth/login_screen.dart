@@ -836,170 +836,222 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleReconfigureDatabase(BuildContext context) async {
     final db = DatabaseService.instance;
-    final existingUsers = await db.getUsers();
     if (!context.mounted) return;
 
-    // Security check: once at least one user exists, require Super Admin authentication
-    // before launching the setup wizard to prevent unauthenticated account takeover.
-    if (existingUsers.isNotEmpty) {
-      final adminUserCtrl = TextEditingController();
-      final adminPassCtrl = TextEditingController();
-      String? dialogError;
-      bool verifying = false;
-
-      final authorized = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => StatefulBuilder(
-          builder: (ctx, setDlgState) => AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(
-              children: [
-                Icon(Icons.admin_panel_settings_rounded,
-                    color: Color(0xFF4F46E5), size: 24),
-                SizedBox(width: 8),
-                Expanded(child: Text('Super Admin Verification Required')),
-              ],
-            ),
-            content: SizedBox(
-              width: 380,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Enter an existing Owner / Super Admin account password to re-launch the Setup Wizard.',
-                    style: TextStyle(fontSize: 12, height: 1.4),
-                  ),
-                  if (dialogError != null) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      dialogError!,
-                      style: const TextStyle(
-                          color: Color(0xFFDC2626),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: adminUserCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Super Admin Username',
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: adminPassCtrl,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Super Admin Password',
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
+    final action = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.settings_suggest_rounded,
+                color: Color(0xFF4F46E5), size: 24),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                PosLocalization.tr('Setup Wizard & Database Management',
+                    settings: widget.settings),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: verifying ? null : () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+          ],
+        ),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                PosLocalization.tr(
+                    'How would you like to launch the Setup Wizard?',
+                    settings: widget.settings),
+                style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
               ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4F46E5),
-                  foregroundColor: Colors.white,
+              const SizedBox(height: 16),
+              // Option 1: Reconfigure settings (Keep existing data)
+              InkWell(
+                onTap: () => Navigator.pop(ctx, 'reconfigure'),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFFF8FAFC),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.tune_rounded,
+                            color: Color(0xFF4F46E5), size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              PosLocalization.tr(
+                                  'Reconfigure Settings (Keep Data)',
+                                  settings: widget.settings),
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              PosLocalization.tr(
+                                  'Re-run setup wizard to change business info, languages, currency, or credentials without deleting existing data.',
+                                  settings: widget.settings),
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFF64748B)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          color: Color(0xFF94A3B8)),
+                    ],
+                  ),
                 ),
-                onPressed: verifying
-                    ? null
-                    : () async {
-                        final u = adminUserCtrl.text.trim();
-                        final p = adminPassCtrl.text.trim();
-                        if (u.isEmpty || p.isEmpty) {
-                          setDlgState(() => dialogError =
-                              'Username and password are required.');
-                          return;
-                        }
-                        setDlgState(() {
-                          verifying = true;
-                          dialogError = null;
-                        });
-                        final res = await AuthService.loginDetailed(u, p);
-                        if (!res.success || res.user == null) {
-                          setDlgState(() {
-                            verifying = false;
-                            dialogError =
-                                res.errorMessage ?? 'Invalid credentials.';
-                          });
-                          return;
-                        }
-                        final isSuper = res.user!.isSuperAdmin;
-                        await AuthService.logout();
-                        if (!isSuper) {
-                          setDlgState(() {
-                            verifying = false;
-                            dialogError =
-                                'Only an Owner / Super Admin can reconfigure the database.';
-                          });
-                          return;
-                        }
-                        if (ctx.mounted) Navigator.pop(ctx, true);
-                      },
-                icon: const Icon(Icons.verified_user_rounded, size: 16),
-                label: Text(verifying ? 'Verifying...' : 'Authorize & Launch'),
+              ),
+              const SizedBox(height: 10),
+              // Option 2: Reset to Fresh Installation
+              InkWell(
+                onTap: () => Navigator.pop(ctx, 'fresh_reset'),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.2)),
+                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFFFEF2F2),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.restart_alt_rounded,
+                            color: Color(0xFFDC2626), size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              PosLocalization.tr('Reset to Fresh Installation',
+                                  settings: widget.settings),
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFDC2626)),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              PosLocalization.tr(
+                                  'Wipe all local demo data, sales, and products to start with a completely fresh installation.',
+                                  settings: widget.settings),
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFF991B1B)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          color: Color(0xFFDC2626)),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
         ),
-      );
-      adminUserCtrl.dispose();
-      adminPassCtrl.dispose();
-      if (authorized != true) return;
-    } else {
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              PosLocalization.tr('Cancel', settings: widget.settings),
+              style: const TextStyle(color: Color(0xFF64748B)),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (action == null || !context.mounted) return;
+
+    if (action == 'reconfigure') {
+      final current = await db.getBusinessSettings();
+      await db.updateBusinessSettings(current.copyWith(isConfigured: false));
+      if (widget.onReconfigureDatabase != null) {
+        widget.onReconfigureDatabase!();
+      }
+    } else if (action == 'fresh_reset') {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.tune_rounded, color: Color(0xFF4F46E5), size: 24),
-              SizedBox(width: 8),
-              Text('Database & Setup Wizard'),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Color(0xFFDC2626), size: 24),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  PosLocalization.tr('Confirm Database Reset',
+                      settings: widget.settings),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
-          content: const Text(
-            'Do you want to re-launch the Guided Setup Wizard to configure your database (MySQL / SQLite), business presets, and admin account?',
-            style: TextStyle(fontSize: 13, height: 1.4),
+          content: Text(
+            PosLocalization.tr(
+                'Are you sure you want to delete all local business data, products, and users to start a fresh setup? This cannot be undone.',
+                settings: widget.settings),
+            style: const TextStyle(fontSize: 13, height: 1.4),
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel')),
-            ElevatedButton.icon(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(
+                PosLocalization.tr('Cancel', settings: widget.settings),
+              ),
+            ),
+            ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4F46E5),
+                backgroundColor: const Color(0xFFDC2626),
                 foregroundColor: Colors.white,
               ),
               onPressed: () => Navigator.pop(ctx, true),
-              icon: const Icon(Icons.rocket_launch_rounded, size: 16),
-              label: const Text('Launch Setup Wizard'),
+              child: Text(
+                PosLocalization.tr('Reset & Start Setup',
+                    settings: widget.settings),
+              ),
             ),
           ],
         ),
       );
-      if (confirm != true) return;
-    }
 
-    if (context.mounted) {
-      final current = await db.getBusinessSettings();
-      await db.updateBusinessSettings(current.copyWith(isConfigured: false));
-      if (widget.onReconfigureDatabase != null) {
-        widget.onReconfigureDatabase!();
+      if (confirm == true && context.mounted) {
+        await db.factoryResetForNewBusiness();
+        if (widget.onReconfigureDatabase != null) {
+          widget.onReconfigureDatabase!();
+        }
       }
     }
   }
