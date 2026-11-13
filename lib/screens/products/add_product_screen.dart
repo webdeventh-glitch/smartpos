@@ -50,6 +50,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _expiryCtrl = TextEditingController();
   final _bonusQtyCtrl = TextEditingController(text: '0');
   final _packSizeCtrl = TextEditingController(text: '1');
+  final _rackLocationCtrl = TextEditingController();
 
   // Dropdown States
   String _barcodeType = 'Code 128 (C128)';
@@ -131,6 +132,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _expiryCtrl.dispose();
     _bonusQtyCtrl.dispose();
     _packSizeCtrl.dispose();
+    _rackLocationCtrl.dispose();
     super.dispose();
   }
 
@@ -205,6 +207,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _expiryCtrl.text = p.expiryDate ?? '';
           _bonusQtyCtrl.text = p.bonusQty.toString();
           _packSizeCtrl.text = p.packSize.toString();
+          _rackLocationCtrl.text = p.rackLocation ?? '';
           _selectedCategory =
               cats.where((c) => c.id == p.categoryId).firstOrNull ??
                   (cats.isNotEmpty ? cats.first : null);
@@ -1142,6 +1145,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
         expiryDate: expVal,
         bonusQty: bonusVal,
         packSize: packVal,
+        rackLocation: _rackLocationCtrl.text.trim().isNotEmpty
+            ? _rackLocationCtrl.text.trim()
+            : null,
         taxRateId: _selectedTaxRateId,
         taxGroupId: _selectedTaxGroupId,
         isFeatured: _isFeatured,
@@ -1175,6 +1181,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
           expiryDate: expVal,
           bonusQty: bonusVal,
           packSize: packVal,
+          rackLocation: _rackLocationCtrl.text.trim().isNotEmpty
+              ? _rackLocationCtrl.text.trim()
+              : null,
           taxRateId: _selectedTaxRateId,
           taxGroupId: _selectedTaxGroupId,
           isFeatured: _isFeatured,
@@ -2247,6 +2256,26 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                                     controller: _packSizeCtrl,
                                                     decoration:
                                                         _inputDecor('1')),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                _buildFieldLabel(
+                                                    'Rack / Shelf Location (الموقع في الرف)'),
+                                                TextFormField(
+                                                  controller: _rackLocationCtrl,
+                                                  decoration: _inputDecor(
+                                                      'e.g. Rack A, Shelf 3, Bin 12'),
+                                                ),
                                               ],
                                             ),
                                           ),

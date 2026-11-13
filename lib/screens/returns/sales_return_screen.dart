@@ -101,19 +101,48 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
                     ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDC2626),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                  ),
-                  icon: const Icon(Icons.add_circle_outline, size: 18),
-                  label: const Text('Add Sales Return',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  onPressed: _openAddReturnDialog,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: const BorderSide(color: Color(0xFFDC2626)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.flash_on_rounded, size: 18),
+                      label: const Text('Blind Return (No Invoice)',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => SalesReturnDialog(
+                            settings: widget.settings,
+                            isBlindReturn: true,
+                            onReturnSuccess: _load,
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                      label: const Text('Add Sales Return',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: _openAddReturnDialog,
+                    ),
+                  ],
                 ),
               ],
             ),

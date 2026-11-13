@@ -68,6 +68,11 @@ class KeyboardShortcutsService {
         defaultKeyLabel: 'Ctrl+S',
         isGlobalOrForm: true),
     ShortcutActionSpec(
+        id: 'toggleProductPanel',
+        label: 'Toggle Barcode Superstore Mode (Hide/Show Catalog)',
+        defaultKeyLabel: 'Ctrl+B',
+        isGlobalOrForm: true),
+    ShortcutActionSpec(
         id: 'focusSearch',
         label: 'Focus Barcode / Search Box',
         defaultKeyLabel: 'Esc',

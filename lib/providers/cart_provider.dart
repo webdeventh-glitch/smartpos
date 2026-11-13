@@ -48,20 +48,30 @@ class CartState {
       items.fold(0.0, (sum, item) => sum + item.calculatedDiscount);
   double get totalQuantity =>
       items.fold(0.0, (sum, item) => sum + item.quantity);
+  double get salesSubtotal => items
+      .where((item) => item.quantity > 0)
+      .fold(0.0, (sum, item) => sum + item.subtotal);
+  double get returnsSubtotal => items
+      .where((item) => item.quantity < 0)
+      .fold(0.0, (sum, item) => sum + item.subtotal.abs());
+  bool get hasReturns => items.any((item) => item.isReturnItem);
 
   double get calculatedDiscount {
+    final base = salesSubtotal > 0 ? salesSubtotal : subtotal;
+    if (base <= 0) return 0.0;
     final raw = discountType == 'percentage'
-        ? subtotal * (discountValue / 100.0)
+        ? base * (discountValue / 100.0)
         : discountValue;
-    return raw.clamp(0.0, subtotal);
+    return raw.clamp(0.0, base);
   }
 
   double get taxableSubtotal =>
-      (subtotal - calculatedDiscount).clamp(0.0, double.infinity);
+      (salesSubtotal - calculatedDiscount).clamp(0.0, double.infinity);
 
-  double get grandTotal =>
-      (subtotal - calculatedDiscount + orderTax + shippingCharge)
-          .clamp(0.0, double.infinity);
+  double get grandTotal {
+    final net = subtotal - calculatedDiscount + orderTax + shippingCharge;
+    return net;
+  }
 
   CartState _withHistory(int undoLen, int redoLen) => CartState(
         items: List<CartItem>.unmodifiable(items.map((e) => e.clone())),
@@ -281,13 +291,25 @@ class CartNotifier extends Notifier<CartState> {
     _commit(state.copyWith(items: updated));
   }
 
-  void setQuantity(int index, double quantity) {
+  void setQuantity(int index, double quantity, {bool allowNegative = true}) {
     if (index < 0 || index >= state.items.length) return;
     final updated = state.items.map((e) => e.clone()).toList();
-    if (quantity <= 0) {
+    if (quantity == 0 || (quantity < 0 && !allowNegative)) {
       updated.removeAt(index);
     } else {
       updated[index].quantity = quantity;
+    }
+    _commit(state.copyWith(items: updated));
+  }
+
+  void toggleItemAsReturn(int index) {
+    if (index < 0 || index >= state.items.length) return;
+    final updated = state.items.map((e) => e.clone()).toList();
+    final item = updated[index];
+    if (item.quantity > 0) {
+      item.quantity = -item.quantity.abs();
+    } else {
+      item.quantity = item.quantity.abs();
     }
     _commit(state.copyWith(items: updated));
   }

@@ -1007,3 +1007,29 @@ class BusinessSettings {
             modelAsBool(map['enable_counter_token_queue'], true),
       );
 }
+
+/// Canonical feature toggle registry matching UltimatePOS & SmartPOS modular SaaS tiers
+class ModuleRegistry {
+  ModuleRegistry._();
+
+  static const String corePos = 'core_pos';
+  static const String accounting = BusinessSettings.moduleAccountingCrm;
+  static const String restaurant = BusinessSettings.moduleRestaurant;
+  static const String pharmacy = BusinessSettings.moduleBatchExpiry;
+  static const String repair = BusinessSettings.moduleRepair;
+  static const String hotel = BusinessSettings.moduleHotel;
+  static const String gym = BusinessSettings.moduleGym;
+  static const String manufacturing = BusinessSettings.moduleManufacturing;
+  static const String hrm = BusinessSettings.moduleHrm;
+  static const String variations = BusinessSettings.moduleVariations;
+  static const String stockTransfers = BusinessSettings.moduleStockTransfers;
+  static const String returns = BusinessSettings.moduleReturns;
+  static const String expenses = BusinessSettings.moduleExpenses;
+  static const String stockAudit = BusinessSettings.moduleStockAudit;
+  static const String fiscalClosing = BusinessSettings.moduleFiscalClosing;
+  static const String wooCommerce = BusinessSettings.moduleWooCommerce;
+  static const String fruitMandi = BusinessSettings.moduleFruitMandi;
+  static const String poultry = BusinessSettings.modulePoultry;
+  static const String cloudSync = 'cloud_sync';
+  static const String lanMultiCounter = 'lan_counter';
+}

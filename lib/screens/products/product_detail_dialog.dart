@@ -172,6 +172,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                 ],
               ),
             ),
+            if (_loading) const LinearProgressIndicator(minHeight: 2),
 
             // Modal Scrollable Content
             Expanded(
@@ -236,6 +237,13 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                         _specField(
                                             'Alert quantity',
                                             p.alertQuantity.toStringAsFixed(4),
+                                            isDark),
+                                        const SizedBox(height: 8),
+                                        _specField(
+                                            'Rack / Shelf Location',
+                                            p.rackLocation?.isNotEmpty == true
+                                                ? p.rackLocation!
+                                                : 'Not Assigned',
                                             isDark),
                                       ],
                                     ),

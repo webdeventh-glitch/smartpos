@@ -93,6 +93,8 @@ class SaleReturnItem {
   final double unitMultiplier;
   final double unitPrice;
   final double subtotal;
+  final bool isDamaged;
+  final String destination; // 'active' or 'damaged'
 
   SaleReturnItem({
     this.id,
@@ -107,6 +109,8 @@ class SaleReturnItem {
     this.unitMultiplier = 1.0,
     required this.unitPrice,
     required this.subtotal,
+    this.isDamaged = false,
+    this.destination = 'active',
   });
 
   Map<String, dynamic> toMap() => {
@@ -123,6 +127,8 @@ class SaleReturnItem {
         'unit_multiplier': unitMultiplier,
         'unit_price': unitPrice,
         'subtotal': subtotal,
+        'is_damaged': isDamaged ? 1 : 0,
+        'destination': destination,
       };
 
   factory SaleReturnItem.fromMap(Map<String, dynamic> map) => SaleReturnItem(
@@ -140,5 +146,10 @@ class SaleReturnItem {
         unitMultiplier: (map['unit_multiplier'] as num?)?.toDouble() ?? 1.0,
         unitPrice: (map['unit_price'] as num?)?.toDouble() ?? 0.0,
         subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0.0,
+        isDamaged: (map['is_damaged'] == 1 || map['is_damaged'] == true),
+        destination: map['destination'] as String? ??
+            ((map['is_damaged'] == 1 || map['is_damaged'] == true)
+                ? 'damaged'
+                : 'active'),
       );
 }

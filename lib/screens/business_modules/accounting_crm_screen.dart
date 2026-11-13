@@ -21,6 +21,9 @@ class _AccountingCrmScreenState extends State<AccountingCrmScreen>
   List<Map<String, dynamic>> _chartOfAccounts = [];
   List<Map<String, dynamic>> _journalEntries = [];
   List<PaymentAccount> _paymentAccounts = [];
+  List<PaymentTransaction> _cheques = [];
+  Map<String, num> _chequeSummary = {};
+  String _chequeStatusFilter = 'all';
 
   final List<String> _commonDebitAccounts = [
     'Cash in Hand (Main Drawer)',
@@ -44,7 +47,7 @@ class _AccountingCrmScreenState extends State<AccountingCrmScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     _loadData();
   }
 
@@ -61,6 +64,9 @@ class _AccountingCrmScreenState extends State<AccountingCrmScreen>
       final tb = await db.getFinancialTrialBalance();
       final jvs = await db.getJournalVouchers();
       final pAccounts = await db.getPaymentAccounts();
+      final chqs = await db.getCheques(
+          status: _chequeStatusFilter == 'all' ? null : _chequeStatusFilter);
+      final chqSum = await db.getChequeSummary();
 
       final List<Map<String, dynamic>> coa = [];
 
@@ -149,6 +155,8 @@ class _AccountingCrmScreenState extends State<AccountingCrmScreen>
           _chartOfAccounts = coa;
           _journalEntries = jvs;
           _paymentAccounts = pAccounts;
+          _cheques = chqs;
+          _chequeSummary = chqSum;
           _loading = false;
         });
       }
@@ -159,6 +167,26 @@ class _AccountingCrmScreenState extends State<AccountingCrmScreen>
         setState(() => _loading = false);
       }
     }
+  }
+
+  Future<void> _updateCheque(PaymentTransaction txn, String newStatus) async {
+    if (txn.id == null) return;
+    final db = await DatabaseService.initialize();
+    await db.updateChequeStatus(transactionId: txn.id!, newStatus: newStatus);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Cheque #${txn.chequeNumber.isNotEmpty ? txn.chequeNumber : txn.refNo} marked as ${newStatus.toUpperCase()}'),
+          backgroundColor: newStatus == 'cleared'
+              ? const Color(0xFF10B981)
+              : (newStatus == 'bounced'
+                  ? const Color(0xFFDC2626)
+                  : Colors.orange),
+        ),
+      );
+    }
+    await _loadData();
   }
 
   void _showAddJournalModal() {
@@ -496,6 +524,9 @@ class _AccountingCrmScreenState extends State<AccountingCrmScreen>
             Tab(
                 icon: Icon(Icons.menu_book_rounded, size: 18),
                 text: 'Journal Vouchers Register'),
+            Tab(
+                icon: Icon(Icons.account_balance_wallet_outlined, size: 18),
+                text: 'Cheque Management (چیک مینجمنٹ)'),
           ],
         ),
         actions: [
@@ -830,11 +861,258 @@ class _AccountingCrmScreenState extends State<AccountingCrmScreen>
                                 },
                               ),
                             ),
+
+                      // Tab 3: Cheque Management & Clearance
+                      _buildChequeManagementTab(isDark, currency),
                     ],
                   ),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildChequeManagementTab(bool isDark, String currency) {
+    final pendingCount = _chequeSummary['pendingCount'] ?? 0;
+    final pendingAmt = _chequeSummary['pendingAmount'] ?? 0.0;
+    final overdueCount = _chequeSummary['overdueCount'] ?? 0;
+    final clearedCount = _chequeSummary['clearedCount'] ?? 0;
+    final bouncedCount = _chequeSummary['bouncedCount'] ?? 0;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // KPI strip
+          Row(
+            children: [
+              _kpiEquationCard(
+                  'PENDING CHEQUES',
+                  '$pendingCount ($currency${pendingAmt.toStringAsFixed(0)})',
+                  const Color(0xFFF59E0B),
+                  isDark),
+              const SizedBox(width: 12),
+              _kpiEquationCard('OVERDUE CHEQUES', '$overdueCount alerts',
+                  const Color(0xFFEF4444), isDark),
+              const SizedBox(width: 12),
+              _kpiEquationCard('CLEARED CHEQUES', '$clearedCount cheques',
+                  const Color(0xFF10B981), isDark),
+              const SizedBox(width: 12),
+              _kpiEquationCard('BOUNCED CHEQUES', '$bouncedCount cheques',
+                  const Color(0xFFDC2626), isDark),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Filter bar
+          Row(
+            children: [
+              Text(
+                'Status Filter:',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white70 : const Color(0xFF64748B)),
+              ),
+              const SizedBox(width: 8),
+              Wrap(
+                spacing: 8,
+                children: ['all', 'pending', 'overdue', 'cleared', 'bounced']
+                    .map((status) {
+                  final isSelected = _chequeStatusFilter == status;
+                  return ChoiceChip(
+                    label: Text(
+                      status.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected
+                            ? Colors.white
+                            : (isDark ? Colors.white70 : Colors.black87),
+                      ),
+                    ),
+                    selected: isSelected,
+                    selectedColor: const Color(0xFF4338CA),
+                    onSelected: (val) {
+                      if (val) {
+                        setState(() => _chequeStatusFilter = status);
+                        _loadData();
+                      }
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Cheques list container
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
+            ),
+            child: _cheques.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.check_circle_outline,
+                              size: 48,
+                              color:
+                                  isDark ? Colors.white24 : Colors.grey[300]),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No cheques found for status "$_chequeStatusFilter"',
+                            style: TextStyle(
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _cheques.length,
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFF1F5F9),
+                    ),
+                    itemBuilder: (ctx, idx) {
+                      final c = _cheques[idx];
+                      final status = c.chequeStatus.toLowerCase();
+                      final isOverdue = c.isOverdueCheque;
+                      final statusColor = status == 'cleared'
+                          ? const Color(0xFF10B981)
+                          : (status == 'bounced' || isOverdue
+                              ? const Color(0xFFEF4444)
+                              : const Color(0xFFF59E0B));
+
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: statusColor.withValues(alpha: 0.15),
+                          child: Icon(
+                            status == 'cleared'
+                                ? Icons.check_circle
+                                : (status == 'bounced'
+                                    ? Icons.cancel
+                                    : Icons.receipt_long),
+                            color: statusColor,
+                            size: 20,
+                          ),
+                        ),
+                        title: Row(
+                          children: [
+                            Text(
+                              c.contactName.isNotEmpty
+                                  ? c.contactName
+                                  : 'Walk-in Customer',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: statusColor),
+                              ),
+                              child: Text(
+                                isOverdue
+                                    ? 'OVERDUE'
+                                    : (c.chequeStatus.isNotEmpty
+                                        ? c.chequeStatus.toUpperCase()
+                                        : 'PENDING'),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: Text(
+                          'Cheque #${c.chequeNumber.isNotEmpty ? c.chequeNumber : (c.refNo.isNotEmpty ? c.refNo : "N/A")} • Bank: ${c.bankName.isNotEmpty ? c.bankName : "General"} • Due: ${c.chequeDueDate.isNotEmpty ? c.chequeDueDate : "Immediate"}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$currency ${c.amount.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            if (status == 'pending' || status == '') ...[
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF10B981),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 6),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: () => _updateCheque(c, 'cleared'),
+                                child: const Text('Clear',
+                                    style: TextStyle(fontSize: 11)),
+                              ),
+                              const SizedBox(width: 6),
+                              OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFFDC2626),
+                                  side: const BorderSide(
+                                      color: Color(0xFFDC2626)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 6),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: () => _updateCheque(c, 'bounced'),
+                                child: const Text('Bounce',
+                                    style: TextStyle(fontSize: 11)),
+                              ),
+                            ] else if (status == 'bounced') ...[
+                              TextButton(
+                                onPressed: () => _updateCheque(c, 'cleared'),
+                                child: const Text('Re-Clear',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF10B981))),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

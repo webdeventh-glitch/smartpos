@@ -127,21 +127,57 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         if (sale.saleStatus == 'final' && item.product.id != null) {
           final baseDeduction = item.quantity *
               (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
-          await adjustProductAndVariationStock(
-            txn,
-            productId: item.product.id!,
-            variationId: item.variationId,
-            delta: -baseDeduction,
-          );
-          await txn.rawUpdate(
-            'UPDATE product_locations SET qty_available = qty_available - ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
-            [
-              baseDeduction,
-              DateTime.now().toIso8601String(),
-              item.product.id!,
-              sale.locationId,
-            ],
-          );
+
+          // Check if item is a Combo / Bundle product and deduct underlying components
+          final isBundle = item.product.type == 'combo' ||
+              item.product.type == 'bundle' ||
+              item.product.type == 'composite';
+          List<Map<String, dynamic>> bundleComponents = [];
+          if (isBundle) {
+            bundleComponents = await txn.query(
+              'product_bundle_items',
+              where: 'parent_product_id = ?',
+              whereArgs: [item.product.id!],
+            );
+          }
+
+          if (bundleComponents.isNotEmpty) {
+            for (final comp in bundleComponents) {
+              final subProdId = comp['sub_product_id'] as int;
+              final compQty = (comp['quantity'] as num?)?.toDouble() ?? 1.0;
+              final compDeduction = baseDeduction * compQty;
+              await adjustProductAndVariationStock(
+                txn,
+                productId: subProdId,
+                delta: -compDeduction,
+              );
+              await txn.rawUpdate(
+                'UPDATE product_locations SET qty_available = qty_available - ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
+                [
+                  compDeduction,
+                  DateTime.now().toIso8601String(),
+                  subProdId,
+                  sale.locationId,
+                ],
+              );
+            }
+          } else {
+            await adjustProductAndVariationStock(
+              txn,
+              productId: item.product.id!,
+              variationId: item.variationId,
+              delta: -baseDeduction,
+            );
+            await txn.rawUpdate(
+              'UPDATE product_locations SET qty_available = qty_available - ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
+              [
+                baseDeduction,
+                DateTime.now().toIso8601String(),
+                item.product.id!,
+                sale.locationId,
+              ],
+            );
+          }
 
           // Automate FEFO batch / serial deduction when batches are tracked
           final batchRows = await txn.query(
@@ -458,12 +494,29 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           if (item.productId != null) {
             final restoreQty = item.quantity *
                 (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
-            await adjustProductAndVariationStock(
-              txn,
-              productId: item.productId!,
-              variationId: item.variationId,
-              delta: restoreQty,
+            final bundleComponents = await txn.query(
+              'product_bundle_items',
+              where: 'parent_product_id = ?',
+              whereArgs: [item.productId!],
             );
+            if (bundleComponents.isNotEmpty) {
+              for (final comp in bundleComponents) {
+                final subProdId = comp['sub_product_id'] as int;
+                final compQty = (comp['quantity'] as num?)?.toDouble() ?? 1.0;
+                await adjustProductAndVariationStock(
+                  txn,
+                  productId: subProdId,
+                  delta: restoreQty * compQty,
+                );
+              }
+            } else {
+              await adjustProductAndVariationStock(
+                txn,
+                productId: item.productId!,
+                variationId: item.variationId,
+                delta: restoreQty,
+              );
+            }
           }
         }
         if (oldSale.customerId != null && oldSale.dueAmount > 0) {
@@ -496,12 +549,54 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         if (isNowFinal && item.product.id != null) {
           final baseDeduction = item.quantity *
               (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
-          await adjustProductAndVariationStock(
-            txn,
-            productId: item.product.id!,
-            variationId: item.variationId,
-            delta: -baseDeduction,
-          );
+          final isCombo = item.product.type == 'combo' ||
+              item.product.type == 'bundle' ||
+              item.product.type == 'composite';
+          final bundleComponents = isCombo
+              ? await txn.query(
+                  'product_bundle_items',
+                  where: 'parent_product_id = ?',
+                  whereArgs: [item.product.id!],
+                )
+              : <Map<String, dynamic>>[];
+
+          if (bundleComponents.isNotEmpty) {
+            for (final comp in bundleComponents) {
+              final subProdId = comp['sub_product_id'] as int;
+              final compQty = (comp['quantity'] as num?)?.toDouble() ?? 1.0;
+              final compDeduction = baseDeduction * compQty;
+              await adjustProductAndVariationStock(
+                txn,
+                productId: subProdId,
+                delta: -compDeduction,
+              );
+              await txn.rawUpdate(
+                'UPDATE product_locations SET qty_available = qty_available - ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
+                [
+                  compDeduction,
+                  DateTime.now().toIso8601String(),
+                  subProdId,
+                  sale.locationId,
+                ],
+              );
+            }
+          } else {
+            await adjustProductAndVariationStock(
+              txn,
+              productId: item.product.id!,
+              variationId: item.variationId,
+              delta: -baseDeduction,
+            );
+            await txn.rawUpdate(
+              'UPDATE product_locations SET qty_available = qty_available - ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
+              [
+                baseDeduction,
+                DateTime.now().toIso8601String(),
+                item.product.id!,
+                sale.locationId,
+              ],
+            );
+          }
         }
       }
 
@@ -602,21 +697,48 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           if (item.productId != null) {
             final qtyToRestore = item.quantity *
                 (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
-            await adjustProductAndVariationStock(
-              txn,
-              productId: item.productId!,
-              variationId: item.variationId,
-              delta: qtyToRestore,
+            final bundleComponents = await txn.query(
+              'product_bundle_items',
+              where: 'parent_product_id = ?',
+              whereArgs: [item.productId!],
             );
-            await txn.rawUpdate(
-              'UPDATE product_locations SET qty_available = qty_available + ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
-              [
-                qtyToRestore,
-                DateTime.now().toIso8601String(),
-                item.productId!,
-                sale.locationId
-              ],
-            );
+            if (bundleComponents.isNotEmpty) {
+              for (final comp in bundleComponents) {
+                final subProdId = comp['sub_product_id'] as int;
+                final compQty = (comp['quantity'] as num?)?.toDouble() ?? 1.0;
+                final compRestore = qtyToRestore * compQty;
+                await adjustProductAndVariationStock(
+                  txn,
+                  productId: subProdId,
+                  delta: compRestore,
+                );
+                await txn.rawUpdate(
+                  'UPDATE product_locations SET qty_available = qty_available + ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
+                  [
+                    compRestore,
+                    DateTime.now().toIso8601String(),
+                    subProdId,
+                    sale.locationId,
+                  ],
+                );
+              }
+            } else {
+              await adjustProductAndVariationStock(
+                txn,
+                productId: item.productId!,
+                variationId: item.variationId,
+                delta: qtyToRestore,
+              );
+              await txn.rawUpdate(
+                'UPDATE product_locations SET qty_available = qty_available + ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
+                [
+                  qtyToRestore,
+                  DateTime.now().toIso8601String(),
+                  item.productId!,
+                  sale.locationId
+                ],
+              );
+            }
           }
         }
 
@@ -1567,28 +1689,58 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
 
         final mult = item.unitMultiplier > 0 ? item.unitMultiplier : 1.0;
         final restockQty = item.quantity * mult;
-        // Restock returned product (and specific variation if linked)
-        await adjustProductAndVariationStock(
-          txn,
-          productId: item.productId,
-          variationId: item.variationId,
-          delta: restockQty,
-        );
-        final updatedLoc = await txn.rawUpdate(
-          'UPDATE product_locations SET qty_available = qty_available + ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
-          [
-            restockQty,
-            DateTime.now().toIso8601String(),
-            item.productId,
-            targetLocId,
-          ],
-        );
-        if (updatedLoc == 0) {
-          await txn.insert('product_locations', {
-            'product_id': item.productId,
+
+        final isDamaged = item.isDamaged || item.destination == 'damaged';
+        if (!isDamaged) {
+          // Restock returned product into active inventory
+          await adjustProductAndVariationStock(
+            txn,
+            productId: item.productId,
+            variationId: item.variationId,
+            delta: restockQty,
+          );
+          final updatedLoc = await txn.rawUpdate(
+            'UPDATE product_locations SET qty_available = qty_available + ?, updated_at = ? WHERE product_id = ? AND location_id = ?',
+            [
+              restockQty,
+              DateTime.now().toIso8601String(),
+              item.productId,
+              targetLocId,
+            ],
+          );
+          if (updatedLoc == 0) {
+            await txn.insert('product_locations', {
+              'product_id': item.productId,
+              'location_id': targetLocId,
+              'qty_available': restockQty,
+              'updated_at': DateTime.now().toIso8601String(),
+            });
+          }
+        } else {
+          // Damaged/Defective stock: Do NOT add to active inventory.
+          // Route to damaged quarantine / stock adjustment log
+          final adjRef =
+              'ADJ-DMG-$id-${item.productId}-${DateTime.now().millisecondsSinceEpoch % 10000}';
+          await txn.insert('stock_adjustments', {
+            'ref_no': adjRef,
             'location_id': targetLocId,
-            'qty_available': restockQty,
-            'updated_at': DateTime.now().toIso8601String(),
+            'location_name': 'Damaged Stock Quarantine',
+            'adjustment_type': 'abnormal',
+            'total_amount': item.subtotal,
+            'recovered_amount': 0.0,
+            'reason':
+                'Returned Damaged Stock (Ref: ${sr.returnNo}, Item: ${item.productName})',
+            'date': DateTime.now().toIso8601String(),
+            'items_json': jsonEncode([
+              {
+                'product_id': item.productId,
+                'product_name': item.productName,
+                'quantity': item.quantity,
+                'unit_price': item.unitPrice,
+                'subtotal': item.subtotal,
+                'condition': 'damaged_quarantine',
+              }
+            ]),
           });
         }
       }

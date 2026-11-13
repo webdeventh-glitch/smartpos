@@ -1302,6 +1302,78 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                                             ),
                                                           ),
                                                         ],
+                                                        if (p.rackLocation !=
+                                                                null &&
+                                                            p.rackLocation!
+                                                                .trim()
+                                                                .isNotEmpty) ...[
+                                                          Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        5,
+                                                                    vertical:
+                                                                        1),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: isDark
+                                                                  ? const Color(
+                                                                          0xFF0F766E)
+                                                                      .withValues(
+                                                                          alpha:
+                                                                              0.3)
+                                                                  : const Color(
+                                                                      0xFFCCFBF1),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          4),
+                                                              border:
+                                                                  Border.all(
+                                                                color: isDark
+                                                                    ? const Color(
+                                                                        0xFF14B8A6)
+                                                                    : const Color(
+                                                                        0xFF5EEAD4),
+                                                              ),
+                                                            ),
+                                                            child: Row(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                Icon(
+                                                                    Icons
+                                                                        .shelves,
+                                                                    size: 11,
+                                                                    color: isDark
+                                                                        ? const Color(
+                                                                            0xFF5EEAD4)
+                                                                        : const Color(
+                                                                            0xFF0F766E)),
+                                                                const SizedBox(
+                                                                    width: 3),
+                                                                Text(
+                                                                  p.rackLocation!,
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontSize:
+                                                                        10,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: isDark
+                                                                        ? const Color(
+                                                                            0xFF5EEAD4)
+                                                                        : const Color(
+                                                                            0xFF0F766E),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ],
                                                     ),
                                                   ],

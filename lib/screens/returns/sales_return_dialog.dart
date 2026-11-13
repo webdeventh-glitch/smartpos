@@ -8,6 +8,7 @@ class SalesReturnDialog extends StatefulWidget {
   final Sale? initialSale;
   final int locationId;
   final VoidCallback onReturnSuccess;
+  final bool isBlindReturn;
 
   const SalesReturnDialog({
     super.key,
@@ -15,6 +16,7 @@ class SalesReturnDialog extends StatefulWidget {
     this.initialSale,
     this.locationId = 1,
     required this.onReturnSuccess,
+    this.isBlindReturn = false,
   });
 
   @override
@@ -27,6 +29,7 @@ class _ManualReturnEntry {
   final String variationName;
   double quantity;
   double unitPrice;
+  bool isDamaged = false;
 
   _ManualReturnEntry({
     required this.product,
@@ -44,6 +47,7 @@ class _ReturnItemSelection {
   final double maxReturnable;
   bool selected;
   double returnQty;
+  bool isDamaged = false;
 
   _ReturnItemSelection({
     required this.saleItem,
@@ -85,6 +89,9 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
   @override
   void initState() {
     super.initState();
+    if (widget.isBlindReturn) {
+      _mode = 1;
+    }
     _loadInitialData();
   }
 
@@ -305,6 +312,8 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
               unitMultiplier: sel.saleItem.unitMultiplier,
               unitPrice: sel.saleItem.unitPrice,
               subtotal: clampedQty * sel.saleItem.unitPrice,
+              isDamaged: sel.isDamaged,
+              destination: sel.isDamaged ? 'damaged' : 'active',
             ),
           );
         }
@@ -382,6 +391,8 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
             quantity: entry.quantity,
             unitPrice: entry.unitPrice,
             subtotal: entry.subtotal,
+            isDamaged: entry.isDamaged,
+            destination: entry.isDamaged ? 'damaged' : 'active',
           ),
         );
       }
@@ -1100,21 +1111,60 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                           ),
                         ),
                         Expanded(
-                          flex: 2,
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              sel.selected
-                                  ? '$currency ${sel.subtotal.toStringAsFixed(2)}'
-                                  : '$currency 0.00',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: sel.selected
-                                    ? const Color(0xFFDC2626)
-                                    : Colors.grey,
+                          flex: 3,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              InkWell(
+                                onTap: sel.selected
+                                    ? () => setState(
+                                        () => sel.isDamaged = !sel.isDamaged)
+                                    : null,
+                                borderRadius: BorderRadius.circular(4),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: sel.isDamaged
+                                        ? const Color(0xFFEF4444)
+                                            .withValues(alpha: 0.12)
+                                        : const Color(0xFF10B981)
+                                            .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: sel.isDamaged
+                                          ? const Color(0xFFEF4444)
+                                          : const Color(0xFF10B981),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    sel.isDamaged
+                                        ? 'Damaged (ضائع)'
+                                        : 'Good Stock',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: sel.isDamaged
+                                          ? const Color(0xFFEF4444)
+                                          : const Color(0xFF10B981),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              Text(
+                                sel.selected
+                                    ? '$currency ${sel.subtotal.toStringAsFixed(2)}'
+                                    : '$currency 0.00',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: sel.selected
+                                      ? const Color(0xFFDC2626)
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -1415,16 +1465,53 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                               ),
                             ),
                             Expanded(
-                              flex: 2,
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  '$currency ${entry.subtotal.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: Color(0xFFDC2626)),
-                                ),
+                              flex: 3,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  InkWell(
+                                    onTap: () => setState(() =>
+                                        entry.isDamaged = !entry.isDamaged),
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: entry.isDamaged
+                                            ? const Color(0xFFEF4444)
+                                                .withValues(alpha: 0.12)
+                                            : const Color(0xFF10B981)
+                                                .withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: entry.isDamaged
+                                              ? const Color(0xFFEF4444)
+                                              : const Color(0xFF10B981),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        entry.isDamaged
+                                            ? 'Damaged (ضائع)'
+                                            : 'Good Stock',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: entry.isDamaged
+                                              ? const Color(0xFFEF4444)
+                                              : const Color(0xFF10B981),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '$currency ${entry.subtotal.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: Color(0xFFDC2626)),
+                                  ),
+                                ],
                               ),
                             ),
                             IconButton(

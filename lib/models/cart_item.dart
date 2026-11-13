@@ -77,17 +77,21 @@ class CartItem {
     unitPrice = basePrice * unitMultiplier;
   }
 
+  bool get isReturnItem => quantity < 0;
+
   String get displayName =>
       (variationName != null && variationName!.trim().isNotEmpty)
           ? '${product.name} ($variationName)'
           : product.name;
 
-  double get subtotal =>
-      (packValue - calculatedDiscount).clamp(0.0, double.infinity);
+  double get subtotal => isReturnItem
+      ? (unitPrice * quantity)
+      : (packValue - calculatedDiscount).clamp(0.0, double.infinity);
 
   double get packValue => unitPrice * quantity;
 
   double get calculatedDiscount {
+    if (isReturnItem) return 0.0;
     final pct = discountType == 'percentage'
         ? (discountValue > 0 ? discountValue : packDiscount)
         : packDiscount;

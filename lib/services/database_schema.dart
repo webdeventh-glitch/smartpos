@@ -1714,6 +1714,10 @@ class DatabaseSchema {
 
     await _addColumnIfMissing(db, 'sale_items', 'batch_number', 'TEXT');
     await _addColumnIfMissing(db, 'sale_items', 'expiry_date', 'TEXT');
+    await _addColumnIfMissing(
+        db, 'sale_return_items', 'is_damaged', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'sale_return_items', 'destination', "TEXT DEFAULT 'active'");
     await _addColumnIfMissing(db, 'sync_queue', 'payload_json', 'TEXT');
     await _addColumnIfMissing(
         db, 'sync_queue', 'retry_count', 'INTEGER DEFAULT 0');

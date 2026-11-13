@@ -122,7 +122,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   String _diningMode = 'Dine-In'; // 'Dine-In', 'Takeaway', 'Delivery'
   String _selectedTable = 'Table 1';
   String _assignedWaiter = 'Waiter 1';
-  bool _isQuotationMode = false;
 
   // Search & Catalog (Cursor-Paged for 50,000+ SKU scale)
   static const int _posPageSize = 50;
@@ -3335,6 +3334,30 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       _showProductPanel = !_showProductPanel;
     });
     _refocusBarcodeIfEnabled();
+    _dbFuture.then((dbService) async {
+      try {
+        await dbService.db.rawUpdate(
+          'UPDATE business_settings SET show_pos_product_panel = ?',
+          [_showProductPanel ? 1 : 0],
+        );
+      } catch (_) {}
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _showProductPanel
+                ? 'Product Grid & Catalog Visible [Ctrl+B]'
+                : 'Superstore Barcode Mode: Full-Screen Cart & Quick Scan [Ctrl+B]',
+          ),
+          backgroundColor: _showProductPanel
+              ? const Color(0xFF4F46E5)
+              : const Color(0xFF0D9488),
+          duration: const Duration(milliseconds: 1400),
+        ),
+      );
+    }
   }
 
   double _cartBaseQtyFor(Product product, ProductVariation? variation) {
@@ -3456,6 +3479,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final parsedPrefix = PosTerminalScreen.parseBarcodeQuantityPrefix(raw);
     final qtyMultiplier = parsedPrefix.quantity;
     final cleanCode = parsedPrefix.code;
+
+    // 0. Superstore Multi-Counter Bill Token Recall (e.g. TKN-123456 or TK-123456)
+    if (cleanCode.toUpperCase().startsWith('TKN-') ||
+        cleanCode.toUpperCase().startsWith('TK-') ||
+        cleanCode.toUpperCase().startsWith('TOKEN-')) {
+      final tokenRecalled = await _recallTokenBillByCode(cleanCode);
+      if (tokenRecalled) {
+        _searchController.clear();
+        _applyProductFilter(immediate: true);
+        _refocusBarcodeIfEnabled();
+        return;
+      }
+    }
 
     // 0. Electronic Weight/Price-Scale Barcode Parsing (EAN-13 20/02 weight or 21..29 price)
     final scale = PosTerminalScreen.parseScaleBarcode(cleanCode);
@@ -4346,6 +4382,73 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     } catch (_) {}
   }
 
+  Future<bool> _recallTokenBillByCode(String tokenCode) async {
+    final clean = tokenCode.trim().toUpperCase();
+    final db = await _dbFuture;
+    final parkedList = await db.getParkedSales();
+
+    ParkedSale? match;
+    for (final p in parkedList) {
+      final noteUpper = p.note.toUpperCase();
+      if (noteUpper.contains(clean) ||
+          'TKN-${p.id}' == clean ||
+          'TK-${p.id}' == clean) {
+        match = p;
+        break;
+      }
+    }
+
+    if (match == null && widget.settings.isLanSecondaryTerminal) {
+      try {
+        final lanQueue = await LanRealtimeService.instance.fetchCounterDrafts();
+        for (final p in lanQueue) {
+          final noteUpper = p.note.toUpperCase();
+          if (noteUpper.contains(clean) || 'TKN-${p.id}' == clean) {
+            match = p;
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (match != null) {
+      ref.read(cartProvider.notifier).loadFromSaved(
+            items: match.getItems(),
+            discountType: match.discountType,
+            discountValue: match.discountValue,
+            orderTax: match.orderTax,
+            shippingCharge: match.shippingCharge,
+            isWholesaleMode: match.isWholesale,
+          );
+
+      final foundCust = match.customerId != null
+          ? _customers.where((c) => c.id == match!.customerId)
+          : _customers.where((c) => c.name == match!.customerName);
+      if (foundCust.isNotEmpty) {
+        setState(() => _selectedCustomer = foundCust.first);
+      }
+
+      if (match.id != null) {
+        await db.deleteParkedSale(match.id!);
+        await _refreshParkedCounterQueue();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Token Bill Loaded into Cash Counter: ${match.note} (${match.getItems().length} items, Total: ${widget.settings.currencySymbol} ${match.total.toStringAsFixed(2)})',
+            ),
+            backgroundColor: const Color(0xFF0D9488),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      return true;
+    }
+    return false;
+  }
+
   Future<void> _sendToCashCounterToken() async {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -4550,7 +4653,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     setState(() {
       _resumedSaleId = sale.id;
       _resumedInvoiceNo = sale.invoiceNo;
-      _isQuotationMode = (sale.saleStatus == 'quotation');
 
       if (matchedCustomer != null) {
         _selectedCustomer = matchedCustomer;
@@ -4786,6 +4888,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
   Map<ShortcutActivator, VoidCallback> _buildDynamicShortcuts() {
     final map = <ShortcutActivator, VoidCallback>{
+      const SingleActivator(LogicalKeyboardKey.keyB, control: true):
+          _toggleProductPanelVisibility,
       const SingleActivator(LogicalKeyboardKey.f11): _openCustomProductDialog,
       const SingleActivator(LogicalKeyboardKey.f12): _toggleWholesaleMode,
       const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () =>
@@ -7077,16 +7181,63 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                         CrossAxisAlignment
                                                             .start,
                                                     children: [
-                                                      Text(
-                                                        item.displayName,
-                                                        style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 13,
-                                                            color: textPrimary),
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
+                                                      Row(
+                                                        children: [
+                                                          if (item.isReturnItem)
+                                                            Container(
+                                                              margin:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                      right: 6),
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          5,
+                                                                      vertical:
+                                                                          1),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: const Color(
+                                                                    0xFFDC2626),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            4),
+                                                              ),
+                                                              child: const Text(
+                                                                'RETURN / واپسی',
+                                                                style:
+                                                                    TextStyle(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontSize: 9,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          Expanded(
+                                                            child: Text(
+                                                              item.displayName,
+                                                              style: TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  fontSize: 13,
+                                                                  color: item
+                                                                          .isReturnItem
+                                                                      ? const Color(
+                                                                          0xFFEF4444)
+                                                                      : textPrimary),
+                                                              maxLines: 1,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
                                                       const SizedBox(height: 2),
                                                       Wrap(
@@ -7716,8 +7867,35 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 13,
-                                                        color: textPrimary),
+                                                        color: item.isReturnItem
+                                                            ? const Color(
+                                                                0xFFEF4444)
+                                                            : textPrimary),
                                                   ),
+                                                ),
+
+                                                // Return / Exchange Item Toggle Button
+                                                IconButton(
+                                                  icon: Icon(
+                                                    item.isReturnItem
+                                                        ? Icons
+                                                            .assignment_return
+                                                        : Icons
+                                                            .assignment_return_outlined,
+                                                    size: 18,
+                                                    color: item.isReturnItem
+                                                        ? const Color(
+                                                            0xFFDC2626)
+                                                        : textSecondary,
+                                                  ),
+                                                  tooltip: item.isReturnItem
+                                                      ? 'Switch to Sale item'
+                                                      : 'Mark as Customer Return / Exchange item',
+                                                  onPressed: () => ref
+                                                      .read(
+                                                          cartProvider.notifier)
+                                                      .toggleItemAsReturn(
+                                                          index),
                                                 ),
 
                                                 // Trash Red button

@@ -121,12 +121,74 @@ class AdvancedFeaturesRepository extends BaseRepository {
       updates['note'] = note.trim();
     }
 
-    await db.update(
-      'payment_transactions',
-      updates,
-      where: 'id = ?',
-      whereArgs: [transactionId],
-    );
+    final txnRow = existing.first;
+    final oldStatus =
+        (txnRow['cheque_status'] as String? ?? 'pending').toLowerCase();
+    final amount = (txnRow['amount'] as num?)?.toDouble() ?? 0.0;
+    final contactId = txnRow['contact_id'] as int?;
+    final txnType = (txnRow['transaction_type'] as String? ?? '').toLowerCase();
+    final paymentAccountId = txnRow['payment_account_id'] as int?;
+
+    await db.transaction((txn) async {
+      await txn.update(
+        'payment_transactions',
+        updates,
+        where: 'id = ?',
+        whereArgs: [transactionId],
+      );
+
+      // Financial Ledger & Balance Reversal State Machine
+      if (oldStatus != normalized) {
+        if (normalized == 'bounced') {
+          // Cheque bounced:
+          // 1. If it was from a customer (sale / customer payment): Re-debit customer's balance
+          if (contactId != null &&
+              contactId > 0 &&
+              (txnType == 'sale' || txnType == 'contact_payment')) {
+            await txn.rawUpdate(
+              'UPDATE contacts SET balance = balance + ? WHERE id = ?',
+              [amount, contactId],
+            );
+          }
+          // 2. If it was issued to a supplier (purchase / supplier payment): Re-credit supplier balance
+          else if (contactId != null &&
+              contactId > 0 &&
+              (txnType == 'purchase' || txnType == 'supplier_payment')) {
+            await txn.rawUpdate(
+              'UPDATE contacts SET balance = balance + ? WHERE id = ?',
+              [amount, contactId],
+            );
+          }
+          // 3. Deduct from payment/bank account if it was previously deposited/cleared
+          if (paymentAccountId != null &&
+              paymentAccountId > 0 &&
+              oldStatus == 'cleared') {
+            await txn.rawUpdate(
+              'UPDATE payment_accounts SET current_balance = current_balance - ? WHERE id = ?',
+              [amount, paymentAccountId],
+            );
+          }
+        } else if (normalized == 'cleared') {
+          // Cheque cleared:
+          // Deposit into bank / payment account if designated
+          if (paymentAccountId != null &&
+              paymentAccountId > 0 &&
+              oldStatus != 'cleared') {
+            await txn.rawUpdate(
+              'UPDATE payment_accounts SET current_balance = current_balance + ? WHERE id = ?',
+              [amount, paymentAccountId],
+            );
+          }
+          // If recovering from previously bounced status, relieve the customer balance
+          if (oldStatus == 'bounced' && contactId != null && contactId > 0) {
+            await txn.rawUpdate(
+              'UPDATE contacts SET balance = balance - ? WHERE id = ?',
+              [amount, contactId],
+            );
+          }
+        }
+      }
+    });
 
     await recordActivity(
       action: 'updated',
