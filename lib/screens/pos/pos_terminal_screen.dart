@@ -3266,6 +3266,246 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     );
   }
 
+  Future<ProductSerialBatch?> _showFefoBatchSelectorDialog(
+    Product product,
+    List<ProductSerialBatch> batches,
+  ) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currency = widget.settings.currencySymbol.isNotEmpty
+        ? widget.settings.currencySymbol
+        : 'Rs';
+    return showDialog<ProductSerialBatch>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.medication_rounded,
+                  color: Color(0xFF10B981), size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Select Batch (FEFO Pick)',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                  ),
+                  Text(
+                    '${product.name} • First-Expiry-First-Out',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 480,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 380),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: batches.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, idx) {
+                final b = batches[idx];
+                final isFirst = idx == 0;
+                final expDays = _getDaysUntilExpiry(b.expiryDate);
+                final isExpired = expDays != null && expDays < 0;
+                final isNearExpiry =
+                    expDays != null && expDays <= 60 && !isExpired;
+
+                return InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () {
+                    if (isExpired) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Warning: Batch ${b.batchNumber} is EXPIRED (${b.expiryDate})!'),
+                          backgroundColor: const Color(0xFFEF4444),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                    Navigator.pop(ctx, b);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isFirst
+                          ? (isDark
+                              ? const Color(0xFF064E3B).withValues(alpha: 0.3)
+                              : const Color(0xFFECFDF5))
+                          : (isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF8FAFC)),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isFirst
+                            ? const Color(0xFF10B981)
+                            : isExpired
+                                ? const Color(0xFFEF4444)
+                                : (isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0)),
+                        width: isFirst ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    b.batchNumber.isNotEmpty
+                                        ? b.batchNumber
+                                        : 'Batch #${b.id}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  if (isFirst)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF10B981),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        'FEFO RECOMMENDED',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 9),
+                                      ),
+                                    ),
+                                  if (isExpired)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEF4444),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        'EXPIRED',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 9),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.event_outlined,
+                                      size: 13,
+                                      color: isExpired
+                                          ? const Color(0xFFEF4444)
+                                          : isNearExpiry
+                                              ? const Color(0xFFF59E0B)
+                                              : const Color(0xFF64748B)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    b.expiryDate.isNotEmpty
+                                        ? 'Expiry: ${b.expiryDate}'
+                                        : 'No Expiry Set',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: isExpired
+                                          ? const Color(0xFFEF4444)
+                                          : isNearExpiry
+                                              ? const Color(0xFFF59E0B)
+                                              : const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                  if (expDays != null && !isExpired) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '($expDays days left)',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isNearExpiry
+                                            ? const Color(0xFFF59E0B)
+                                            : const Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (b.sellingPrice > 0)
+                          Text(
+                            '$currency${b.sellingPrice.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF10B981),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 14,
+                          color: isDark
+                              ? const Color(0xFF64748B)
+                              : const Color(0xFF94A3B8),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Auto-Pick Earliest (FEFO)'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _addToCart(
     Product product, {
     ProductVariation? preselectedVariation,
@@ -3318,7 +3558,36 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       );
     }
 
-    ref.read(cartProvider.notifier).addProduct(product, variation: chosen);
+    String? selectedBatchNumber = product.batchNumber;
+    String? selectedExpiryDate = product.expiryDate;
+
+    if (product.id != null) {
+      final db = await _dbFuture;
+      final activeBatches = await db.getActiveBatchesForProduct(product.id!);
+      if (activeBatches.isNotEmpty && mounted) {
+        if (activeBatches.length > 1) {
+          final chosenBatch =
+              await _showFefoBatchSelectorDialog(product, activeBatches);
+          if (chosenBatch != null) {
+            selectedBatchNumber = chosenBatch.batchNumber;
+            selectedExpiryDate = chosenBatch.expiryDate;
+          } else {
+            selectedBatchNumber = activeBatches.first.batchNumber;
+            selectedExpiryDate = activeBatches.first.expiryDate;
+          }
+        } else {
+          selectedBatchNumber = activeBatches.first.batchNumber;
+          selectedExpiryDate = activeBatches.first.expiryDate;
+        }
+      }
+    }
+
+    ref.read(cartProvider.notifier).addProduct(
+          product,
+          variation: chosen,
+          batchNumber: selectedBatchNumber,
+          expiryDate: selectedExpiryDate,
+        );
     _applyProductTaxIfConfigured(product);
     _refocusBarcodeIfEnabled();
   }
@@ -3468,6 +3737,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           quantity: qty,
           variation: preselectedVariation,
           mergeByUnitPrice: true,
+          batchNumber: product.batchNumber,
+          expiryDate: product.expiryDate,
         );
     _applyProductTaxIfConfigured(product);
   }

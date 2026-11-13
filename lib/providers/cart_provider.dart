@@ -219,15 +219,20 @@ class CartNotifier extends Notifier<CartState> {
     double quantity = 1.0,
     bool mergeByUnitPrice = false,
     ProductVariation? variation,
+    String? batchNumber,
+    String? expiryDate,
   }) {
     final basePrice = variation?.sellingPrice ?? product.sellingPrice;
     final tieredPrice =
         state.activeCustomerGroup?.applyPricing(basePrice) ?? basePrice;
+    final targetBatch = batchNumber ?? product.batchNumber;
+    final targetExpiry = expiryDate ?? product.expiryDate;
     final updated = state.items.map((e) => e.clone()).toList();
     final idx = updated.indexWhere(
       (item) =>
           item.product.id == product.id &&
           item.variationId == variation?.id &&
+          item.batchNumber == targetBatch &&
           (!mergeByUnitPrice || item.unitPrice == tieredPrice),
     );
     if (idx >= 0) {
@@ -245,8 +250,8 @@ class CartNotifier extends Notifier<CartState> {
           basePrice: basePrice,
           quantity: quantity,
           unitPrice: tieredPrice,
-          batchNumber: product.batchNumber,
-          expiryDate: product.expiryDate,
+          batchNumber: targetBatch,
+          expiryDate: targetExpiry,
           packDiscount:
               state.isWholesaleMode ? state.wholesaleDiscountPercent : 0.0,
         ),

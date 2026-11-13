@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
@@ -500,15 +501,13 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                             visualDensity:
                                                 VisualDensity.compact),
                                         onPressed: () {
-                                          final html = '''
-                                            <h2>Service / Repair Job Slip ($jobNoVal)</h2>
-                                            <p><strong>Device:</strong> ${job['device'] ?? ''}<br>
-                                            <strong>Customer:</strong> ${job['customer'] ?? ''}<br>
-                                            <strong>IMEI/Serial:</strong> ${job['imei'] ?? 'N/A'}<br>
-                                            <strong>Fault:</strong> ${job['fault'] ?? ''}<br>
-                                            <strong>Status:</strong> $status<br>
-                                            <strong>Estimate:</strong> $currency${estCostVal.toStringAsFixed(2)} • <strong>Advance:</strong> $currency${advanceVal.toStringAsFixed(2)}</p>
-                                          ''';
+                                          final html = _buildJobSheetHtml(
+                                              job,
+                                              jobNoVal,
+                                              estCostVal,
+                                              advanceVal,
+                                              status,
+                                              currency);
                                           showDialog(
                                             context: context,
                                             builder: (_) =>
@@ -615,5 +614,112 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
               ),
             ),
     );
+  }
+
+  String _buildJobSheetHtml(
+    Map<String, dynamic> job,
+    String jobNoVal,
+    double estCostVal,
+    double advanceVal,
+    String status,
+    String currency,
+  ) {
+    final biz = widget.settings.businessName.isNotEmpty
+        ? widget.settings.businessName
+        : 'SmartPOS Service Center';
+    final phone = widget.settings.phone.isNotEmpty ? widget.settings.phone : '';
+    final address =
+        widget.settings.address.isNotEmpty ? widget.settings.address : '';
+    final dateStr = DateFormat('dd/MM/yyyy hh:mm a').format(DateTime.now());
+    final balanceDue = (estCostVal - advanceVal).clamp(0, double.infinity);
+
+    return '''
+    <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 800px; margin: 0 auto; line-height: 1.5;">
+      <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px;">
+        <h1 style="margin: 0 0 4px 0; font-size: 22px; color: #0f172a; text-transform: uppercase;">$biz</h1>
+        <div style="font-size: 12px; color: #64748b;">$address ${phone.isNotEmpty ? '• Tel: $phone' : ''}</div>
+        <div style="display: inline-block; margin-top: 8px; background: #0f172a; color: white; padding: 4px 16px; border-radius: 4px; font-weight: bold; font-size: 14px; letter-spacing: 1px;">
+          REPAIR & SERVICE INTAKE VOUCHER (جاب شیٹ)
+        </div>
+      </div>
+
+      <table style="width: 100%; margin-bottom: 16px; font-size: 13px; border-collapse: collapse;">
+        <tr>
+          <td style="width: 50%; padding: 4px 0;"><strong>Job Ticket #:</strong> <span style="font-size: 15px; color: #4f46e5; font-weight: bold;">$jobNoVal</span></td>
+          <td style="width: 50%; padding: 4px 0; text-align: right;"><strong>Intake Date:</strong> $dateStr</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 0;"><strong>Customer Name:</strong> ${job['customer'] ?? 'Walk-in'}</td>
+          <td style="padding: 4px 0; text-align: right;"><strong>Status:</strong> <span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 3px; font-weight: bold;">$status</span></td>
+        </tr>
+      </table>
+
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+        <div style="font-weight: bold; font-size: 13px; color: #334155; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Device & Hardware Specifications</div>
+        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+          <tr>
+            <td style="width: 25%; padding: 4px 0; color: #64748b;">Device Model:</td>
+            <td style="width: 25%; padding: 4px 0; font-weight: bold;">${job['device'] ?? 'Unknown'}</td>
+            <td style="width: 25%; padding: 4px 0; color: #64748b;">IMEI / Serial #:</td>
+            <td style="width: 25%; padding: 4px 0; font-weight: bold; font-family: monospace;">${job['imei'] ?? 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; color: #64748b;">Assigned Tech:</td>
+            <td style="padding: 4px 0; font-weight: bold;">${job['technician'] ?? 'General Lab'}</td>
+            <td style="padding: 4px 0; color: #64748b;">Lock / Passcode:</td>
+            <td style="padding: 4px 0; font-weight: bold;">Protected / Pattern</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+        <div style="font-weight: bold; font-size: 13px; color: #334155; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Intake Inspection & Condition Checklist</div>
+        <div style="font-size: 12px; color: #334155; line-height: 1.8;">
+          <strong>Accessories Received:</strong> [ &#10003; ] Device Body &nbsp;&nbsp; [ &nbsp; ] Charger / Adapter &nbsp;&nbsp; [ &nbsp; ] SIM / Memory Card &nbsp;&nbsp; [ &nbsp; ] Box / Bag<br>
+          <strong>Physical Condition:</strong> [ &#10003; ] Normal Scratch & Wear &nbsp;&nbsp; [ &nbsp; ] Screen Crack &nbsp;&nbsp; [ &nbsp; ] Dent / Bent Frame &nbsp;&nbsp; [ &nbsp; ] Water / Liquid Signs
+        </div>
+      </div>
+
+      <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
+        <div style="font-weight: bold; font-size: 13px; color: #334155; margin-bottom: 4px;">Customer Reported Defect / Problems:</div>
+        <div style="font-size: 13px; color: #0f172a; padding: 6px 0; min-height: 28px;">${job['fault'] ?? 'General hardware servicing'}</div>
+      </div>
+
+      <table style="width: 100%; border: 1px solid #cbd5e1; border-collapse: collapse; margin-bottom: 16px; font-size: 13px;">
+        <tr style="background: #0f172a; color: white;">
+          <th style="padding: 8px 12px; text-align: left;">Estimated Service Cost</th>
+          <th style="padding: 8px 12px; text-align: right;">Advance Deposit Paid</th>
+          <th style="padding: 8px 12px; text-align: right;">Remaining Due Balance</th>
+        </tr>
+        <tr>
+          <td style="padding: 8px 12px; border-top: 1px solid #cbd5e1; font-weight: bold; font-size: 14px;">$currency${estCostVal.toStringAsFixed(2)}</td>
+          <td style="padding: 8px 12px; border-top: 1px solid #cbd5e1; text-align: right; color: #10b981; font-weight: bold; font-size: 14px;">$currency${advanceVal.toStringAsFixed(2)}</td>
+          <td style="padding: 8px 12px; border-top: 1px solid #cbd5e1; text-align: right; color: #ef4444; font-weight: bold; font-size: 14px;">$currency${balanceDue.toStringAsFixed(2)}</td>
+        </tr>
+      </table>
+
+      <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 10px; color: #64748b; line-height: 1.4; margin-bottom: 24px;">
+        <strong>Terms & Conditions of Service (قوانین و شرائط):</strong><br>
+        1. <strong>Data Backup:</strong> The customer is solely responsible for creating a complete backup of all personal data, photos, and files prior to repair. The service center accepts no liability for data loss or operating system reinstalls.<br>
+        2. <strong>Diagnostic Changes:</strong> Repair cost estimates and turnaround times are provisional. If additional concealed defects (such as board corrosion or liquid damage) are found during internal inspection, a revised estimate will be provided before proceeding.<br>
+        3. <strong>Unclaimed Devices:</strong> Devices not collected within 30 days of completion notification will incur daily storage charges and may be disposed of to recover service and spare parts costs.<br>
+        4. <strong>Delivery:</strong> The original intake voucher or CNIC verification is mandatory for collecting the device.
+      </div>
+
+      <table style="width: 100%; margin-top: 30px; font-size: 12px;">
+        <tr>
+          <td style="width: 50%; text-align: center; padding-top: 25px; border-top: 1px dashed #94a3b8;">
+            <strong>Customer Signature</strong><br>
+            <span style="font-size: 10px; color: #64748b;">(I agree to the terms & reported faults)</span>
+          </td>
+          <td style="width: 10%;"></td>
+          <td style="width: 40%; text-align: center; padding-top: 25px; border-top: 1px dashed #94a3b8;">
+            <strong>Technician / Authorized Stamp</strong><br>
+            <span style="font-size: 10px; color: #64748b;">${job['technician'] ?? 'Service Center Desk'}</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+    ''';
   }
 }

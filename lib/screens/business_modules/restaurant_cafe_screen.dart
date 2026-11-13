@@ -3,6 +3,7 @@ import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/thermal_printer_service.dart';
+import 'kitchen_display_system_screen.dart';
 
 class RestaurantCafeScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -174,7 +175,32 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFF97316),
+                side: const BorderSide(color: Color(0xFFF97316)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => KitchenDisplaySystemScreen(
+                      settings: widget.settings,
+                    ),
+                  ),
+                ).then((_) => _loadData());
+              },
+              icon: const Icon(Icons.fullscreen, size: 16),
+              label: const Text('Live KDS Screen (کچن اسکرین)',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF97316),
@@ -695,13 +721,42 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Live Kitchen Order Tickets (KOT)',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Live Kitchen Order Tickets (KOT)',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        foregroundColor: const Color(0xFFF97316),
+                        side: const BorderSide(color: Color(0xFFF97316)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => KitchenDisplaySystemScreen(
+                              settings: widget.settings,
+                            ),
+                          ),
+                        ).then((_) => _loadData());
+                      },
+                      icon: const Icon(Icons.fullscreen, size: 16),
+                      label: const Text('Open Full-Screen KDS',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 if (_kotOrders.isEmpty)
@@ -834,20 +889,69 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                         fontSize: 11,
                                         color: Color(0xFF94A3B8))),
                                 const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF10B981)
-                                        .withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    k['status'] as String,
-                                    style: const TextStyle(
-                                        color: Color(0xFF10B981),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 11),
+                                PopupMenuButton<String>(
+                                  tooltip: 'Change KOT Status',
+                                  initialValue: k['status'] as String?,
+                                  onSelected: (newStatus) async {
+                                    final id = k['id'] as int? ?? 0;
+                                    final db =
+                                        await DatabaseService.initialize();
+                                    await db.updateRestaurantKotStatus(
+                                        id, newStatus);
+                                    _loadData();
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'Cooking',
+                                      child: Text('Cooking (تیار ہو رہا ہے)'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'Ready',
+                                      child: Text('Ready (تیار ہے)'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'Served',
+                                      child: Text('Served (پیش کر دیا)'),
+                                    ),
+                                  ],
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: ((k['status'] == 'Ready')
+                                              ? const Color(0xFF10B981)
+                                              : (k['status'] == 'Served')
+                                                  ? const Color(0xFF64748B)
+                                                  : const Color(0xFFF59E0B))
+                                          .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          k['status'] as String,
+                                          style: TextStyle(
+                                              color: (k['status'] == 'Ready')
+                                                  ? const Color(0xFF10B981)
+                                                  : (k['status'] == 'Served')
+                                                      ? const Color(0xFF64748B)
+                                                      : const Color(0xFFF59E0B),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.arrow_drop_down,
+                                          size: 14,
+                                          color: (k['status'] == 'Ready')
+                                              ? const Color(0xFF10B981)
+                                              : (k['status'] == 'Served')
+                                                  ? const Color(0xFF64748B)
+                                                  : const Color(0xFFF59E0B),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
