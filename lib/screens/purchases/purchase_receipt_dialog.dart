@@ -26,37 +26,56 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
     final items = p.getItems();
     final buffer = StringBuffer();
 
-    buffer.writeln('========================================================================');
-    buffer.writeln('                     PURCHASE VOUCHER / GOODS RECEIPT                   ');
+    buffer.writeln(
+        '========================================================================');
+    buffer.writeln(
+        '                     PURCHASE VOUCHER / GOODS RECEIPT                   ');
     buffer.writeln(widget.settings.businessName.toUpperCase());
     buffer.writeln('Branch: ${p.locationName}');
-    buffer.writeln('------------------------------------------------------------------------');
+    buffer.writeln(
+        '------------------------------------------------------------------------');
     buffer.writeln('PO NUMBER:   ${p.refNo}           DATE: ${p.createdAt}');
     buffer.writeln('SUPPLIER:    ${p.supplierName}');
-    buffer.writeln('STATUS:      ${p.status.toUpperCase()}      PAYMENT: ${p.paymentStatus.toUpperCase()}');
-    buffer.writeln('------------------------------------------------------------------------');
-    buffer.writeln('ITEM DESCRIPTION                     QTY       UNIT COST       SUBTOTAL');
-    buffer.writeln('------------------------------------------------------------------------');
+    buffer.writeln(
+        'STATUS:      ${p.status.toUpperCase()}      PAYMENT: ${p.paymentStatus.toUpperCase()}');
+    buffer.writeln(
+        '------------------------------------------------------------------------');
+    buffer.writeln(
+        'ITEM DESCRIPTION                     QTY       UNIT COST       SUBTOTAL');
+    buffer.writeln(
+        '------------------------------------------------------------------------');
 
     for (final item in items) {
       final name = (item['product_name'] ?? 'Product').toString();
-      final pName = name.length > 32 ? name.substring(0, 32) : name.padRight(32);
-      final qty = ((item['quantity'] as num?)?.toDouble() ?? 1.0).toStringAsFixed(1).padLeft(8);
-      final cost = '$currency${((item['purchase_price'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}'.padLeft(14);
-      final sub = '$currency${((item['subtotal'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}'.padLeft(14);
+      final pName =
+          name.length > 32 ? name.substring(0, 32) : name.padRight(32);
+      final qty = ((item['quantity'] as num?)?.toDouble() ?? 1.0)
+          .toStringAsFixed(1)
+          .padLeft(8);
+      final cost =
+          '$currency${((item['purchase_price'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}'
+              .padLeft(14);
+      final sub =
+          '$currency${((item['subtotal'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}'
+              .padLeft(14);
       buffer.writeln('$pName $qty $cost $sub');
     }
 
-    buffer.writeln('------------------------------------------------------------------------');
-    buffer.writeln('TOTAL PURCHASE AMOUNT:    $currency${p.totalAmount.toStringAsFixed(2)}');
-    buffer.writeln('AMOUNT PAID TO SUPPLIER:  $currency${p.paidAmount.toStringAsFixed(2)}');
+    buffer.writeln(
+        '------------------------------------------------------------------------');
+    buffer.writeln(
+        'TOTAL PURCHASE AMOUNT:    $currency${p.totalAmount.toStringAsFixed(2)}');
+    buffer.writeln(
+        'AMOUNT PAID TO SUPPLIER:  $currency${p.paidAmount.toStringAsFixed(2)}');
     if (p.dueAmount > 0) {
-      buffer.writeln('PAYABLE BALANCE DUE:      $currency${p.dueAmount.toStringAsFixed(2)}');
+      buffer.writeln(
+          'PAYABLE BALANCE DUE:      $currency${p.dueAmount.toStringAsFixed(2)}');
     }
     if (p.note.isNotEmpty) {
       buffer.writeln('NOTES: ${p.note}');
     }
-    buffer.writeln('========================================================================');
+    buffer.writeln(
+        '========================================================================');
     buffer.writeln('Authorized Store Receiving Officer: ___________________');
     return buffer.toString();
   }
@@ -93,18 +112,23 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
             children: [
               // Top control header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: const BoxDecoration(
                   color: Color(0xFF1E293B),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.receipt_long_rounded, color: Color(0xFF38BDF8), size: 20),
+                    const Icon(Icons.receipt_long_rounded,
+                        color: Color(0xFF38BDF8), size: 20),
                     const SizedBox(width: 10),
                     const Text(
                       'Purchase Order & Goods Receipt',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15),
                     ),
                     const Spacer(),
                     // Format selector
@@ -123,7 +147,8 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                     ),
                     const SizedBox(width: 12),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                      icon: const Icon(Icons.close,
+                          color: Colors.white70, size: 20),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -140,7 +165,9 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                       color: Colors.white,
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10),
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 10),
                       ],
                     ),
                     child: Column(
@@ -155,36 +182,52 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                               children: [
                                 Text(
                                   widget.settings.businessName.toUpperCase(),
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF0F172A)),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'INWARD STOCK RECEIPT / PURCHASE VOUCHER',
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0284C7), letterSpacing: 0.5),
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0284C7),
+                                      letterSpacing: 0.5),
                                 ),
                                 Text(
                                   'Receiving Location: ${p.locationName}',
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Color(0xFF64748B)),
                                 ),
                               ],
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF0FDF4),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFFBBF7D0)),
+                                border:
+                                    Border.all(color: const Color(0xFFBBF7D0)),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
                                     p.refNo,
-                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF166534)),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 16,
+                                        color: Color(0xFF166534)),
                                   ),
                                   Text(
                                     'Status: ${p.status.toUpperCase()}',
-                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF15803D)),
                                   ),
                                 ],
                               ),
@@ -209,9 +252,17 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('SUPPLIER / VENDOR:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                                    const Text('SUPPLIER / VENDOR:',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF64748B))),
                                     const SizedBox(height: 2),
-                                    Text(p.supplierName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                                    Text(p.supplierName,
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF0F172A))),
                                   ],
                                 ),
                               ),
@@ -219,9 +270,17 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('PURCHASE DATE:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                                    const Text('PURCHASE DATE:',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF64748B))),
                                     const SizedBox(height: 2),
-                                    Text(p.createdAt, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                                    Text(p.createdAt,
+                                        style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF334155))),
                                   ],
                                 ),
                               ),
@@ -229,14 +288,20 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('PAYMENT STATUS:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                                    const Text('PAYMENT STATUS:',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF64748B))),
                                     const SizedBox(height: 2),
                                     Text(
                                       p.paymentStatus.toUpperCase(),
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w800,
-                                        color: p.paymentStatus == 'paid' ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                        color: p.paymentStatus == 'paid'
+                                            ? const Color(0xFF16A34A)
+                                            : const Color(0xFFDC2626),
                                       ),
                                     ),
                                   ],
@@ -249,7 +314,8 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
 
                         // Purchased Line Items Table
                         Table(
-                          border: TableBorder.all(color: const Color(0xFFCBD5E1), width: 1),
+                          border: TableBorder.all(
+                              color: const Color(0xFFCBD5E1), width: 1),
                           columnWidths: const {
                             0: FlexColumnWidth(4),
                             1: FlexColumnWidth(1.5),
@@ -258,54 +324,140 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                           },
                           children: [
                             const TableRow(
-                              decoration: BoxDecoration(color: Color(0xFFF1F5F9)),
+                              decoration:
+                                  BoxDecoration(color: Color(0xFFF1F5F9)),
                               children: [
-                                Padding(padding: EdgeInsets.all(8), child: Text('Product Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                Padding(padding: EdgeInsets.all(8), child: Text('Qty Recv', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                Padding(padding: EdgeInsets.all(8), child: Text('Cost Price', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                Padding(padding: EdgeInsets.all(8), child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                                Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text('Product Description',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12))),
+                                Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text('Qty Recv',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12))),
+                                Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text('Cost Price',
+                                        textAlign: TextAlign.right,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12))),
+                                Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text('Total',
+                                        textAlign: TextAlign.right,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12))),
                               ],
                             ),
                             if (items.isNotEmpty)
                               ...items.map((item) {
-                                final name = (item['product_name'] ?? 'Product').toString();
-                                final batch = (item['batch_number'] ?? item['lot_number'])?.toString() ?? '';
-                                final exp = (item['expiry_date'] ?? item['exp_date'])?.toString() ?? '';
-                                final qty = ((item['quantity'] as num?)?.toDouble() ?? 1.0).toStringAsFixed(1);
-                                final cost = ((item['purchase_price'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2);
-                                final sub = ((item['subtotal'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2);
+                                final name = (item['product_name'] ?? 'Product')
+                                    .toString();
+                                final batch =
+                                    (item['batch_number'] ?? item['lot_number'])
+                                            ?.toString() ??
+                                        '';
+                                final exp =
+                                    (item['expiry_date'] ?? item['exp_date'])
+                                            ?.toString() ??
+                                        '';
+                                final qty =
+                                    ((item['quantity'] as num?)?.toDouble() ??
+                                            1.0)
+                                        .toStringAsFixed(1);
+                                final cost = ((item['purchase_price'] as num?)
+                                            ?.toDouble() ??
+                                        0.0)
+                                    .toStringAsFixed(2);
+                                final sub =
+                                    ((item['subtotal'] as num?)?.toDouble() ??
+                                            0.0)
+                                        .toStringAsFixed(2);
                                 return TableRow(
                                   children: [
                                     Padding(
                                       padding: const EdgeInsets.all(8),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-                                          if (batch.isNotEmpty || exp.isNotEmpty)
+                                          Text(name,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 12)),
+                                          if (batch.isNotEmpty ||
+                                              exp.isNotEmpty)
                                             Padding(
-                                              padding: const EdgeInsets.only(top: 2),
+                                              padding:
+                                                  const EdgeInsets.only(top: 2),
                                               child: Text(
                                                 '${batch.isNotEmpty ? "Batch: $batch " : ""}${exp.isNotEmpty ? "• Exp: $exp" : ""}',
-                                                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                                style: const TextStyle(
+                                                    fontSize: 10,
+                                                    color: Color(0xFF64748B)),
                                               ),
                                             ),
                                         ],
                                       ),
                                     ),
-                                    Padding(padding: const EdgeInsets.all(8), child: Text(qty, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
-                                    Padding(padding: const EdgeInsets.all(8), child: Text('$currency$cost', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12))),
-                                    Padding(padding: const EdgeInsets.all(8), child: Text('$currency$sub', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                                    Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Text(qty,
+                                            textAlign: TextAlign.center,
+                                            style:
+                                                const TextStyle(fontSize: 12))),
+                                    Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Text('$currency$cost',
+                                            textAlign: TextAlign.right,
+                                            style:
+                                                const TextStyle(fontSize: 12))),
+                                    Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Text('$currency$sub',
+                                            textAlign: TextAlign.right,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12))),
                                   ],
                                 );
                               })
                             else
                               TableRow(
                                 children: [
-                                  Padding(padding: const EdgeInsets.all(8), child: Text('Standard Restock Shipment', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-                                  const Padding(padding: EdgeInsets.all(8), child: Text('1.0', textAlign: TextAlign.center, style: TextStyle(fontSize: 12))),
-                                  Padding(padding: const EdgeInsets.all(8), child: Text('$currency${p.totalAmount.toStringAsFixed(2)}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12))),
-                                  Padding(padding: const EdgeInsets.all(8), child: Text('$currency${p.totalAmount.toStringAsFixed(2)}', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                                  Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text('Standard Restock Shipment',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 12))),
+                                  const Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child: Text('1.0',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(fontSize: 12))),
+                                  Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                          '$currency${p.totalAmount.toStringAsFixed(2)}',
+                                          textAlign: TextAlign.right,
+                                          style:
+                                              const TextStyle(fontSize: 12))),
+                                  Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                          '$currency${p.totalAmount.toStringAsFixed(2)}',
+                                          textAlign: TextAlign.right,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12))),
                                 ],
                               ),
                           ],
@@ -320,23 +472,36 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                             child: Column(
                               children: [
                                 if (p.discountAmount > 0) ...[
-                                  _sumRow('Order Discount (-):', '$currency${p.discountAmount.toStringAsFixed(2)}', color: const Color(0xFFDC2626)),
+                                  _sumRow('Order Discount (-):',
+                                      '$currency${p.discountAmount.toStringAsFixed(2)}',
+                                      color: const Color(0xFFDC2626)),
                                   const Divider(height: 12),
                                 ],
                                 if (p.taxAmount > 0) ...[
-                                  _sumRow('Purchase Tax (+):', '$currency${p.taxAmount.toStringAsFixed(2)}', color: const Color(0xFFD97706)),
+                                  _sumRow('Purchase Tax (+):',
+                                      '$currency${p.taxAmount.toStringAsFixed(2)}',
+                                      color: const Color(0xFFD97706)),
                                   const Divider(height: 12),
                                 ],
                                 if (p.shippingCharges > 0) ...[
-                                  _sumRow('Shipping / Freight (+):', '$currency${p.shippingCharges.toStringAsFixed(2)}', color: const Color(0xFF2563EB)),
+                                  _sumRow('Shipping / Freight (+):',
+                                      '$currency${p.shippingCharges.toStringAsFixed(2)}',
+                                      color: const Color(0xFF2563EB)),
                                   const Divider(height: 12),
                                 ],
-                                _sumRow('Grand Total Amount:', '$currency${p.totalAmount.toStringAsFixed(2)}', isBold: true),
+                                _sumRow('Grand Total Amount:',
+                                    '$currency${p.totalAmount.toStringAsFixed(2)}',
+                                    isBold: true),
                                 const Divider(height: 12),
-                                _sumRow('Paid to Supplier:', '$currency${p.paidAmount.toStringAsFixed(2)}', color: const Color(0xFF16A34A)),
+                                _sumRow('Paid to Supplier:',
+                                    '$currency${p.paidAmount.toStringAsFixed(2)}',
+                                    color: const Color(0xFF16A34A)),
                                 if (p.dueAmount > 0) ...[
                                   const Divider(height: 12),
-                                  _sumRow('Payable Balance Due:', '$currency${p.dueAmount.toStringAsFixed(2)}', isBold: true, color: const Color(0xFFDC2626)),
+                                  _sumRow('Payable Balance Due:',
+                                      '$currency${p.dueAmount.toStringAsFixed(2)}',
+                                      isBold: true,
+                                      color: const Color(0xFFDC2626)),
                                 ],
                               ],
                             ),
@@ -351,9 +516,12 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              border:
+                                  Border.all(color: const Color(0xFFE2E8F0)),
                             ),
-                            child: Text('Remarks / Note: ${p.note}', style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                            child: Text('Remarks / Note: ${p.note}',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Color(0xFF475569))),
                           ),
                           const SizedBox(height: 24),
                         ],
@@ -366,16 +534,30 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 SizedBox(height: 30),
-                                SizedBox(width: 180, child: Divider(color: Colors.black87, thickness: 1)),
-                                Text('Receiving Store Officer', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                                SizedBox(
+                                    width: 180,
+                                    child: Divider(
+                                        color: Colors.black87, thickness: 1)),
+                                Text('Receiving Store Officer',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF475569))),
                               ],
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 SizedBox(height: 30),
-                                SizedBox(width: 180, child: Divider(color: Colors.black87, thickness: 1)),
-                                Text('Supplier Delivery Signature', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569))),
+                                SizedBox(
+                                    width: 180,
+                                    child: Divider(
+                                        color: Colors.black87, thickness: 1)),
+                                Text('Supplier Delivery Signature',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF475569))),
                               ],
                             ),
                           ],
@@ -388,24 +570,41 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
 
               // Bottom Print Actions
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-                  border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                  color: isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(16)),
+                  border: Border(
+                      top: BorderSide(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0))),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
-                        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                        foregroundColor: isDark
+                            ? const Color(0xFFCBD5E1)
+                            : const Color(0xFF475569),
+                        side: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFCBD5E1)),
                       ),
                       onPressed: () {
-                        Clipboard.setData(ClipboardData(text: _generatePlainText()));
+                        Clipboard.setData(
+                            ClipboardData(text: _generatePlainText()));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Purchase Receipt text copied to clipboard!'), backgroundColor: Color(0xFF10B981)),
+                          const SnackBar(
+                              content: Text(
+                                  'Purchase Receipt text copied to clipboard!'),
+                              backgroundColor: Color(0xFF10B981)),
                         );
                       },
                       icon: const Icon(Icons.copy_rounded, size: 16),
@@ -419,7 +618,8 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                       ),
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
-                        final bytes = await PdfExportService.generatePurchasePdf(
+                        final bytes =
+                            await PdfExportService.generatePurchasePdf(
                           purchase: p,
                           settings: widget.settings,
                         );
@@ -443,11 +643,13 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0038B8),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
                       ),
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
-                        final bytes = await PdfExportService.generatePurchasePdf(
+                        final bytes =
+                            await PdfExportService.generatePurchasePdf(
                           purchase: p,
                           settings: widget.settings,
                         );
@@ -458,7 +660,8 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                         await PdfExportService.openPdfFile(file);
                         messenger.showSnackBar(
                           SnackBar(
-                            content: Text('Purchase voucher ${p.refNo} PDF opened for printing!'),
+                            content: Text(
+                                'Purchase voucher ${p.refNo} PDF opened for printing!'),
                             backgroundColor: const Color(0xFF10B981),
                           ),
                         );
@@ -500,12 +703,21 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
     );
   }
 
-  Widget _sumRow(String label, String val, {bool isBold = false, Color? color}) {
+  Widget _sumRow(String label, String val,
+      {bool isBold = false, Color? color}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: isBold ? FontWeight.bold : FontWeight.w500, color: const Color(0xFF475569))),
-        Text(val, style: TextStyle(fontSize: 14, fontWeight: isBold ? FontWeight.w900 : FontWeight.w700, color: color ?? const Color(0xFF0F172A))),
+        Text(label,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+                color: const Color(0xFF475569))),
+        Text(val,
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
+                color: color ?? const Color(0xFF0F172A))),
       ],
     );
   }

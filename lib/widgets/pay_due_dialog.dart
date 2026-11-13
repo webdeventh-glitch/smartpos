@@ -52,7 +52,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
   @override
   void initState() {
     super.initState();
-    _amountController = TextEditingController(text: widget.dueAmount.toStringAsFixed(2));
+    _amountController =
+        TextEditingController(text: widget.dueAmount.toStringAsFixed(2));
   }
 
   @override
@@ -63,7 +64,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
     super.dispose();
   }
 
-  double get _enteredAmount => double.tryParse(_amountController.text.trim()) ?? 0.0;
+  double get _enteredAmount =>
+      double.tryParse(_amountController.text.trim()) ?? 0.0;
   double get _remainingAfterPayment {
     final rem = widget.dueAmount - _enteredAmount;
     return rem > 0 ? rem : 0.0;
@@ -74,11 +76,13 @@ class _PayDueDialogState extends State<PayDueDialog> {
 
     final amt = _enteredAmount;
     if (amt <= 0) {
-      setState(() => _errorMessage = 'Please enter a valid payment amount greater than zero.');
+      setState(() => _errorMessage =
+          'Please enter a valid payment amount greater than zero.');
       return;
     }
     if (amt > widget.dueAmount) {
-      setState(() => _errorMessage = 'Entered amount exceeds the outstanding balance (${widget.settings.currencySymbol}${widget.dueAmount.toStringAsFixed(2)}).');
+      setState(() => _errorMessage =
+          'Entered amount exceeds the outstanding balance (${widget.settings.currencySymbol}${widget.dueAmount.toStringAsFixed(2)}).');
       return;
     }
 
@@ -115,7 +119,9 @@ class _PayDueDialogState extends State<PayDueDialog> {
               contactId: widget.contactId!,
               amount: amt,
               paymentMethod: _paymentMethod,
-              transactionType: widget.type == DuePaymentType.contactCustomer ? 'customer_payment' : 'supplier_payment',
+              transactionType: widget.type == DuePaymentType.contactCustomer
+                  ? 'customer_payment'
+                  : 'supplier_payment',
               accountName: _accountName,
               refNo: _refController.text.trim(),
               note: _noteController.text.trim(),
@@ -134,7 +140,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
               children: [
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 8),
-                Text('Successfully collected ${widget.settings.currencySymbol}${amt.toStringAsFixed(2)} for ${widget.contactName}!'),
+                Text(
+                    'Successfully collected ${widget.settings.currencySymbol}${amt.toStringAsFixed(2)} for ${widget.contactName}!'),
               ],
             ),
           ),
@@ -157,15 +164,19 @@ class _PayDueDialogState extends State<PayDueDialog> {
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+          side: BorderSide(
+              color:
+                  isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
         ),
         onPressed: () {
           setState(() {
-            _amountController.text = (widget.dueAmount * ratio).toStringAsFixed(2);
+            _amountController.text =
+                (widget.dueAmount * ratio).toStringAsFixed(2);
             _errorMessage = null;
           });
         },
-        child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+        child: Text(label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -195,10 +206,12 @@ class _PayDueDialogState extends State<PayDueDialog> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF059669).withValues(alpha: 0.15),
+                          color:
+                              const Color(0xFF059669).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.payments_rounded, color: Color(0xFF059669), size: 22),
+                        child: const Icon(Icons.payments_rounded,
+                            color: Color(0xFF059669), size: 22),
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -209,14 +222,18 @@ class _PayDueDialogState extends State<PayDueDialog> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
                             ),
                           ),
                           Text(
                             '${widget.contactName} • ${widget.reference}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B),
                             ),
                           ),
                         ],
@@ -224,21 +241,32 @@ class _PayDueDialogState extends State<PayDueDialog> {
                     ],
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    icon: Icon(Icons.close,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
-              Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              Divider(
+                  height: 24,
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
 
               // Outstanding Balance Box
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.25) : const Color(0xFFFEF2F2),
+                  color: isDark
+                      ? const Color(0xFF7F1D1D).withValues(alpha: 0.25)
+                      : const Color(0xFFFEF2F2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF991B1B) : const Color(0xFFFECACA),
+                    color: isDark
+                        ? const Color(0xFF991B1B)
+                        : const Color(0xFFFECACA),
                   ),
                 ),
                 child: Row(
@@ -253,7 +281,9 @@ class _PayDueDialogState extends State<PayDueDialog> {
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
-                            color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B),
+                            color: isDark
+                                ? const Color(0xFFFCA5A5)
+                                : const Color(0xFF991B1B),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -261,7 +291,9 @@ class _PayDueDialogState extends State<PayDueDialog> {
                           'Total: $currency${widget.totalAmount.toStringAsFixed(2)} | Paid: $currency${widget.paidAmount.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF64748B),
+                            color: isDark
+                                ? const Color(0xFFE2E8F0)
+                                : const Color(0xFF64748B),
                           ),
                         ),
                       ],
@@ -271,7 +303,9 @@ class _PayDueDialogState extends State<PayDueDialog> {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
+                        color: isDark
+                            ? const Color(0xFFF87171)
+                            : const Color(0xFFB91C1C),
                       ),
                     ),
                   ],
@@ -285,14 +319,18 @@ class _PayDueDialogState extends State<PayDueDialog> {
                   decoration: BoxDecoration(
                     color: Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    border:
+                        Border.all(color: Colors.red.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                      const Icon(Icons.error_outline,
+                          color: Colors.red, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                        child: Text(_errorMessage!,
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 12)),
                       ),
                     ],
                   ),
@@ -306,14 +344,17 @@ class _PayDueDialogState extends State<PayDueDialog> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  color: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF64748B),
                   letterSpacing: 0.8,
                 ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 onChanged: (_) => setState(() => _errorMessage = null),
                 style: TextStyle(
                   fontSize: 20,
@@ -329,10 +370,14 @@ class _PayDueDialogState extends State<PayDueDialog> {
                   ),
                   filled: true,
                   fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                    borderSide: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFCBD5E1)),
                   ),
                 ),
               ),
@@ -361,26 +406,37 @@ class _PayDueDialogState extends State<PayDueDialog> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
                           ),
                         ),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
                           value: _paymentMethod,
-                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          dropdownColor:
+                              isDark ? const Color(0xFF1E293B) : Colors.white,
                           decoration: InputDecoration(
                             isDense: true,
                             filled: true,
-                            fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            fillColor:
+                                isDark ? const Color(0xFF0F172A) : Colors.white,
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           items: const [
-                            DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                            DropdownMenuItem(value: 'card', child: Text('Card / POS')),
-                            DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer')),
-                            DropdownMenuItem(value: 'cheque', child: Text('Cheque')),
+                            DropdownMenuItem(
+                                value: 'cash', child: Text('Cash')),
+                            DropdownMenuItem(
+                                value: 'card', child: Text('Card / POS')),
+                            DropdownMenuItem(
+                                value: 'bank_transfer',
+                                child: Text('Bank Transfer')),
+                            DropdownMenuItem(
+                                value: 'cheque', child: Text('Cheque')),
                           ],
-                          onChanged: (val) => setState(() => _paymentMethod = val ?? 'cash'),
+                          onChanged: (val) =>
+                              setState(() => _paymentMethod = val ?? 'cash'),
                         ),
                       ],
                     ),
@@ -395,25 +451,36 @@ class _PayDueDialogState extends State<PayDueDialog> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
                           ),
                         ),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
                           value: _accountName,
-                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          dropdownColor:
+                              isDark ? const Color(0xFF1E293B) : Colors.white,
                           decoration: InputDecoration(
                             isDense: true,
                             filled: true,
-                            fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            fillColor:
+                                isDark ? const Color(0xFF0F172A) : Colors.white,
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           items: const [
-                            DropdownMenuItem(value: 'Cash Register', child: Text('Cash Register')),
-                            DropdownMenuItem(value: 'Main Bank Account', child: Text('Main Bank Account')),
-                            DropdownMenuItem(value: 'Petty Cash', child: Text('Petty Cash')),
+                            DropdownMenuItem(
+                                value: 'Cash Register',
+                                child: Text('Cash Register')),
+                            DropdownMenuItem(
+                                value: 'Main Bank Account',
+                                child: Text('Main Bank Account')),
+                            DropdownMenuItem(
+                                value: 'Petty Cash', child: Text('Petty Cash')),
                           ],
-                          onChanged: (val) => setState(() => _accountName = val ?? 'Cash Register'),
+                          onChanged: (val) => setState(
+                              () => _accountName = val ?? 'Cash Register'),
                         ),
                       ],
                     ),
@@ -428,7 +495,9 @@ class _PayDueDialogState extends State<PayDueDialog> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  color: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF64748B),
                 ),
               ),
               const SizedBox(height: 6),
@@ -439,32 +508,45 @@ class _PayDueDialogState extends State<PayDueDialog> {
                   isDense: true,
                   filled: true,
                   fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
               const SizedBox(height: 16),
 
               // Remaining Due Preview
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Remaining Balance After Payment:',
-                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                     ),
                     Text(
                       '$currency${_remainingAfterPayment.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: _remainingAfterPayment == 0 ? Colors.green : Colors.amber[700],
+                        color: _remainingAfterPayment == 0
+                            ? Colors.green
+                            : Colors.amber[700],
                       ),
                     ),
                   ],
@@ -477,10 +559,13 @@ class _PayDueDialogState extends State<PayDueDialog> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   OutlinedButton(
-                    onPressed: _submitting ? null : () => Navigator.of(context).pop(),
+                    onPressed:
+                        _submitting ? null : () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     child: const Text('Cancel'),
                   ),
@@ -489,11 +574,17 @@ class _PayDueDialogState extends State<PayDueDialog> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF059669),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: _submitting
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.check_circle_rounded, size: 18),
                     label: Text(
                       _submitting ? 'RECORDING...' : 'RECORD PAYMENT',

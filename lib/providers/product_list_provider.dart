@@ -69,4 +69,3 @@ final productListProvider =
     AsyncNotifierProvider<ProductListNotifier, CatalogState>(
   ProductListNotifier.new,
 );
-

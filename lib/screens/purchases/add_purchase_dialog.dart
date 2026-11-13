@@ -33,9 +33,12 @@ class _PurchaseLineItem {
     required this.profitMarginPercent,
     required this.sellingPrice,
   })  : qtyCtrl = TextEditingController(text: quantity.toInt().toString()),
-        costCtrl = TextEditingController(text: purchasePrice.toStringAsFixed(2)),
-        marginCtrl = TextEditingController(text: profitMarginPercent.toStringAsFixed(1)),
-        sellingCtrl = TextEditingController(text: sellingPrice.toStringAsFixed(2));
+        costCtrl =
+            TextEditingController(text: purchasePrice.toStringAsFixed(2)),
+        marginCtrl =
+            TextEditingController(text: profitMarginPercent.toStringAsFixed(1)),
+        sellingCtrl =
+            TextEditingController(text: sellingPrice.toStringAsFixed(2));
 
   double get subtotal => quantity * purchasePrice;
 
@@ -105,8 +108,10 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
     }
   }
 
-  double get _totalBillAmount => _lineItems.fold(0.0, (sum, it) => sum + it.subtotal);
-  double get _totalUnitsCount => _lineItems.fold(0.0, (sum, it) => sum + it.quantity);
+  double get _totalBillAmount =>
+      _lineItems.fold(0.0, (sum, it) => sum + it.subtotal);
+  double get _totalUnitsCount =>
+      _lineItems.fold(0.0, (sum, it) => sum + it.quantity);
 
   void _recalcPaidAmount({bool forceFull = false}) {
     if (forceFull || _paidController.text.trim().isEmpty) {
@@ -162,12 +167,12 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
     if (clean.isEmpty) return;
 
     final match = _allProducts.cast<Product?>().firstWhere(
-      (p) =>
-          p!.barcode.toLowerCase() == clean ||
-          p.sku.toLowerCase() == clean ||
-          p.name.toLowerCase().contains(clean),
-      orElse: () => null,
-    );
+          (p) =>
+              p!.barcode.toLowerCase() == clean ||
+              p.sku.toLowerCase() == clean ||
+              p.name.toLowerCase().contains(clean),
+          orElse: () => null,
+        );
     if (match != null) {
       _addProductToBill(match);
       _barcodeSearchCtrl.clear();
@@ -208,7 +213,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
     final selling = double.tryParse(val.trim()) ?? 0.0;
     item.sellingPrice = selling;
     if (item.purchasePrice > 0 && selling > item.purchasePrice) {
-      final margin = ((selling - item.purchasePrice) / item.purchasePrice) * 100;
+      final margin =
+          ((selling - item.purchasePrice) / item.purchasePrice) * 100;
       item.profitMarginPercent = margin;
       item.marginCtrl.text = margin.toStringAsFixed(1);
     }
@@ -224,14 +230,19 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
   Future<void> _savePurchase() async {
     if (_selectedSupplier == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a supplier.'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Please select a supplier.'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
 
     if (_lineItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one product item to the purchase bill.'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text(
+                'Please add at least one product item to the purchase bill.'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -245,7 +256,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
       final paid = double.tryParse(_paidController.text.trim()) ?? total;
       final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
 
-      final paymentStatus = paid >= total ? 'paid' : (paid > 0 ? 'partial' : 'due');
+      final paymentStatus =
+          paid >= total ? 'paid' : (paid > 0 ? 'partial' : 'due');
 
       final itemsPayload = _lineItems.map((it) {
         return {
@@ -281,7 +293,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Purchase Bill $refNo recorded successfully (${_lineItems.length} items restocked).'),
+            content: Text(
+                'Purchase Bill $refNo recorded successfully (${_lineItems.length} items restocked).'),
             backgroundColor: const Color(0xFF10B981),
           ),
         );
@@ -289,7 +302,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save purchase: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Failed to save purchase: $e'),
+              backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -304,17 +319,23 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
 
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final bgHeader = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     final inputDeco = InputDecoration(
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       filled: true,
       fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor)),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: borderColor)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: borderColor)),
     );
 
     final total = _totalBillAmount;
@@ -333,11 +354,15 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: borderColor),
             boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 24, offset: Offset(0, 10)),
+              BoxShadow(
+                  color: Colors.black26, blurRadius: 24, offset: Offset(0, 10)),
             ],
           ),
           child: _loading
-              ? const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+              ? const Center(
+                  child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: CircularProgressIndicator()))
               : Form(
                   key: _formKey,
                   child: Column(
@@ -345,24 +370,28 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                     children: [
                       // Header
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 16),
                         decoration: BoxDecoration(
                           color: bgHeader,
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(16),
                             topRight: Radius.circular(16),
                           ),
-                          border: Border(bottom: BorderSide(color: borderColor)),
+                          border:
+                              Border(bottom: BorderSide(color: borderColor)),
                         ),
                         child: Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                                color: const Color(0xFF4F46E5)
+                                    .withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(Icons.add_shopping_cart_rounded, color: Color(0xFF4F46E5), size: 22),
+                              child: const Icon(Icons.add_shopping_cart_rounded,
+                                  color: Color(0xFF4F46E5), size: 22),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -381,7 +410,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                   const SizedBox(height: 2),
                                   Text(
                                     'Add multiple products to restock, compute profit margins, and update supplier payable khata.',
-                                    style: TextStyle(fontSize: 12, color: textSecondary),
+                                    style: TextStyle(
+                                        fontSize: 12, color: textSecondary),
                                   ),
                                 ],
                               ),
@@ -396,10 +426,12 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
 
                       // Meta Information (Supplier, Location, Status)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 14),
                         decoration: BoxDecoration(
                           color: cardBg,
-                          border: Border(bottom: BorderSide(color: borderColor)),
+                          border:
+                              Border(bottom: BorderSide(color: borderColor)),
                         ),
                         child: Row(
                           children: [
@@ -409,21 +441,30 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Supplier *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                  Text('Supplier *',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: textPrimary)),
                                   const SizedBox(height: 4),
                                   DropdownButtonFormField<Contact>(
                                     dropdownColor: cardBg,
                                     decoration: inputDeco,
-                                    style: TextStyle(fontSize: 13, color: textPrimary),
+                                    style: TextStyle(
+                                        fontSize: 13, color: textPrimary),
                                     initialValue: _selectedSupplier,
                                     items: _suppliers
                                         .map((s) => DropdownMenuItem(
                                               value: s,
-                                              child: Text('${s.name} ${s.balance > 0 ? "(Due: $currency${s.balance.toStringAsFixed(0)})" : ""}',
-                                                  style: TextStyle(fontSize: 13, color: textPrimary)),
+                                              child: Text(
+                                                  '${s.name} ${s.balance > 0 ? "(Due: $currency${s.balance.toStringAsFixed(0)})" : ""}',
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: textPrimary)),
                                             ))
                                         .toList(),
-                                    onChanged: (val) => setState(() => _selectedSupplier = val),
+                                    onChanged: (val) =>
+                                        setState(() => _selectedSupplier = val),
                                   ),
                                 ],
                               ),
@@ -436,20 +477,29 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Receiving Location', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                  Text('Receiving Location',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: textPrimary)),
                                   const SizedBox(height: 4),
                                   DropdownButtonFormField<BusinessLocation>(
                                     dropdownColor: cardBg,
                                     decoration: inputDeco,
-                                    style: TextStyle(fontSize: 13, color: textPrimary),
+                                    style: TextStyle(
+                                        fontSize: 13, color: textPrimary),
                                     initialValue: _selectedLocation,
                                     items: _locations
                                         .map((loc) => DropdownMenuItem(
                                               value: loc,
-                                              child: Text(loc.name, style: TextStyle(fontSize: 13, color: textPrimary)),
+                                              child: Text(loc.name,
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: textPrimary)),
                                             ))
                                         .toList(),
-                                    onChanged: (val) => setState(() => _selectedLocation = val),
+                                    onChanged: (val) =>
+                                        setState(() => _selectedLocation = val),
                                   ),
                                 ],
                               ),
@@ -462,19 +512,31 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Status', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                  Text('Status',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: textPrimary)),
                                   const SizedBox(height: 4),
                                   DropdownButtonFormField<String>(
                                     dropdownColor: cardBg,
                                     decoration: inputDeco,
-                                    style: TextStyle(fontSize: 13, color: textPrimary),
+                                    style: TextStyle(
+                                        fontSize: 13, color: textPrimary),
                                     initialValue: _status,
                                     items: const [
-                                      DropdownMenuItem(value: 'received', child: Text('Received (Restock)')),
-                                      DropdownMenuItem(value: 'pending', child: Text('Pending Approval')),
-                                      DropdownMenuItem(value: 'ordered', child: Text('Ordered')),
+                                      DropdownMenuItem(
+                                          value: 'received',
+                                          child: Text('Received (Restock)')),
+                                      DropdownMenuItem(
+                                          value: 'pending',
+                                          child: Text('Pending Approval')),
+                                      DropdownMenuItem(
+                                          value: 'ordered',
+                                          child: Text('Ordered')),
                                     ],
-                                    onChanged: (val) => setState(() => _status = val ?? 'received'),
+                                    onChanged: (val) => setState(
+                                        () => _status = val ?? 'received'),
                                   ),
                                 ],
                               ),
@@ -485,10 +547,12 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
 
                       // Quick Product Search / Barcode Bar
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 10),
                         decoration: BoxDecoration(
                           color: bgHeader,
-                          border: Border(bottom: BorderSide(color: borderColor)),
+                          border:
+                              Border(bottom: BorderSide(color: borderColor)),
                         ),
                         child: Row(
                           children: [
@@ -496,17 +560,29 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               child: TextField(
                                 controller: _barcodeSearchCtrl,
                                 onSubmitted: _onQuickSearch,
-                                style: TextStyle(fontSize: 13, color: textPrimary),
+                                style:
+                                    TextStyle(fontSize: 13, color: textPrimary),
                                 decoration: InputDecoration(
-                                  hintText: 'Enter Product Name, SKU, or Scan Barcode to add to purchase...',
-                                  hintStyle: TextStyle(fontSize: 13, color: textSecondary),
-                                  prefixIcon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                                  hintText:
+                                      'Enter Product Name, SKU, or Scan Barcode to add to purchase...',
+                                  hintStyle: TextStyle(
+                                      fontSize: 13, color: textSecondary),
+                                  prefixIcon: const Icon(
+                                      Icons.qr_code_scanner_rounded,
+                                      size: 18),
                                   isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
                                   filled: true,
                                   fillColor: cardBg,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor)),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor)),
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide:
+                                          BorderSide(color: borderColor)),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide:
+                                          BorderSide(color: borderColor)),
                                 ),
                               ),
                             ),
@@ -515,11 +591,17 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF4F46E5),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8)),
                               ),
-                              icon: const Icon(Icons.list_alt_rounded, size: 16),
-                              label: const Text('Browse Products', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              icon:
+                                  const Icon(Icons.list_alt_rounded, size: 16),
+                              label: const Text('Browse Products',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold)),
                               onPressed: _openProductCatalog,
                             ),
                           ],
@@ -533,11 +615,22 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.inventory_2_outlined, size: 48, color: textSecondary.withValues(alpha: 0.5)),
+                                    Icon(Icons.inventory_2_outlined,
+                                        size: 48,
+                                        color: textSecondary.withValues(
+                                            alpha: 0.5)),
                                     const SizedBox(height: 12),
-                                    Text('No products added yet', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary)),
+                                    Text('No products added yet',
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: textPrimary)),
                                     const SizedBox(height: 4),
-                                    Text('Scan barcode or click "Browse Products" above to add items.', style: TextStyle(fontSize: 12, color: textSecondary)),
+                                    Text(
+                                        'Scan barcode or click "Browse Products" above to add items.',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: textSecondary)),
                                   ],
                                 ),
                               )
@@ -547,28 +640,53 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                   final it = _lineItems[index];
 
                                   return Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 8),
                                     decoration: BoxDecoration(
-                                      border: Border(bottom: BorderSide(color: borderColor)),
-                                      color: index % 2 == 0 ? Colors.transparent : (isDark ? const Color(0xFF0F172A).withValues(alpha: 0.5) : const Color(0xFFF8FAFC)),
+                                      border: Border(
+                                          bottom:
+                                              BorderSide(color: borderColor)),
+                                      color: index % 2 == 0
+                                          ? Colors.transparent
+                                          : (isDark
+                                              ? const Color(0xFF0F172A)
+                                                  .withValues(alpha: 0.5)
+                                              : const Color(0xFFF8FAFC)),
                                     ),
                                     child: Row(
                                       children: [
                                         // Index
                                         SizedBox(
                                           width: 26,
-                                          child: Text('${index + 1}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: textSecondary)),
+                                          child: Text('${index + 1}',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                  color: textSecondary)),
                                         ),
 
                                         // Product Details
                                         Expanded(
                                           flex: 4,
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text(it.product.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                              Text(it.product.name,
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 13,
+                                                      color: textPrimary),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis),
                                               const SizedBox(height: 2),
-                                              Text('SKU: ${it.product.sku} • Stock: ${it.product.stockQuantity.toInt()}', style: TextStyle(fontSize: 11, color: textSecondary)),
+                                              Text(
+                                                  'SKU: ${it.product.sku} • Stock: ${it.product.stockQuantity.toInt()}',
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: textSecondary)),
                                             ],
                                           ),
                                         ),
@@ -578,17 +696,32 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                         SizedBox(
                                           width: 100,
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text('Cost Price', style: TextStyle(fontSize: 10, color: textSecondary)),
+                                              Text('Cost Price',
+                                                  style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: textSecondary)),
                                               const SizedBox(height: 2),
                                               TextField(
                                                 controller: it.costCtrl,
-                                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                                onChanged: (val) => _onCostChanged(it, val),
-                                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textPrimary),
+                                                keyboardType:
+                                                    const TextInputType
+                                                        .numberWithOptions(
+                                                        decimal: true),
+                                                onChanged: (val) =>
+                                                    _onCostChanged(it, val),
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: textPrimary),
                                                 decoration: inputDeco.copyWith(
-                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                                  contentPadding:
+                                                      const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 8),
                                                 ),
                                               ),
                                             ],
@@ -600,17 +733,32 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                         SizedBox(
                                           width: 80,
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text('Margin %', style: TextStyle(fontSize: 10, color: textSecondary)),
+                                              Text('Margin %',
+                                                  style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: textSecondary)),
                                               const SizedBox(height: 2),
                                               TextField(
                                                 controller: it.marginCtrl,
-                                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                                onChanged: (val) => _onMarginChanged(it, val),
-                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                                                keyboardType:
+                                                    const TextInputType
+                                                        .numberWithOptions(
+                                                        decimal: true),
+                                                onChanged: (val) =>
+                                                    _onMarginChanged(it, val),
+                                                style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF10B981)),
                                                 decoration: inputDeco.copyWith(
-                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                                  contentPadding:
+                                                      const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 8),
                                                 ),
                                               ),
                                             ],
@@ -622,17 +770,32 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                         SizedBox(
                                           width: 100,
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text('Sale Price', style: TextStyle(fontSize: 10, color: textSecondary)),
+                                              Text('Sale Price',
+                                                  style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: textSecondary)),
                                               const SizedBox(height: 2),
                                               TextField(
                                                 controller: it.sellingCtrl,
-                                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                                onChanged: (val) => _onSellingChanged(it, val),
-                                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textPrimary),
+                                                keyboardType:
+                                                    const TextInputType
+                                                        .numberWithOptions(
+                                                        decimal: true),
+                                                onChanged: (val) =>
+                                                    _onSellingChanged(it, val),
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: textPrimary),
                                                 decoration: inputDeco.copyWith(
-                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                                  contentPadding:
+                                                      const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 8),
                                                 ),
                                               ),
                                             ],
@@ -644,17 +807,32 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                         SizedBox(
                                           width: 80,
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text('Restock Qty', style: TextStyle(fontSize: 10, color: textSecondary)),
+                                              Text('Restock Qty',
+                                                  style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: textSecondary)),
                                               const SizedBox(height: 2),
                                               TextField(
                                                 controller: it.qtyCtrl,
-                                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                                onChanged: (val) => _onQuantityChanged(it, val),
-                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                                keyboardType:
+                                                    const TextInputType
+                                                        .numberWithOptions(
+                                                        decimal: true),
+                                                onChanged: (val) =>
+                                                    _onQuantityChanged(it, val),
+                                                style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF4F46E5)),
                                                 decoration: inputDeco.copyWith(
-                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                                  contentPadding:
+                                                      const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 8),
                                                 ),
                                               ),
                                             ],
@@ -666,11 +844,21 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                         SizedBox(
                                           width: 100,
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
                                             children: [
-                                              Text('Line Total', style: TextStyle(fontSize: 10, color: textSecondary)),
+                                              Text('Line Total',
+                                                  style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: textSecondary)),
                                               const SizedBox(height: 4),
-                                              Text('$currency${it.subtotal.toStringAsFixed(2)}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: textPrimary)),
+                                              Text(
+                                                  '$currency${it.subtotal.toStringAsFixed(2)}',
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      color: textPrimary)),
                                             ],
                                           ),
                                         ),
@@ -678,12 +866,15 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
 
                                         // Delete Row
                                         IconButton(
-                                          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                                          icon: const Icon(Icons.delete_outline,
+                                              size: 18,
+                                              color: Colors.redAccent),
                                           onPressed: () {
                                             setState(() {
                                               it.dispose();
                                               _lineItems.removeAt(index);
-                                              _recalcPaidAmount(forceFull: true);
+                                              _recalcPaidAmount(
+                                                  forceFull: true);
                                             });
                                           },
                                         ),
@@ -696,7 +887,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
 
                       // Bottom Payment & Settlement Bar
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 14),
                         decoration: BoxDecoration(
                           color: bgHeader,
                           borderRadius: const BorderRadius.only(
@@ -713,14 +905,27 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               child: Row(
                                 children: [
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text('Total Items: ${_lineItems.length} (${_totalUnitsCount.toInt()} Units)', style: TextStyle(fontSize: 12, color: textSecondary)),
+                                      Text(
+                                          'Total Items: ${_lineItems.length} (${_totalUnitsCount.toInt()} Units)',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: textSecondary)),
                                       const SizedBox(height: 2),
                                       Row(
                                         children: [
-                                          const Text('BILL TOTAL: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                          Text('$currency${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF4F46E5))),
+                                          const Text('BILL TOTAL: ',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13)),
+                                          Text(
+                                              '$currency${total.toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w900,
+                                                  fontSize: 16,
+                                                  color: Color(0xFF4F46E5))),
                                         ],
                                       ),
                                     ],
@@ -739,12 +944,17 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                     width: 130,
                                     child: TextField(
                                       controller: _paidController,
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                              decimal: true),
                                       onChanged: (_) => setState(() {}),
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold),
                                       decoration: inputDeco.copyWith(
                                         labelText: 'Paid Amount',
-                                        labelStyle: TextStyle(fontSize: 11, color: textSecondary),
+                                        labelStyle: TextStyle(
+                                            fontSize: 11, color: textSecondary),
                                       ),
                                     ),
                                   ),
@@ -753,38 +963,58 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                   // Quick 0 / Full Paid Buttons
                                   OutlinedButton(
                                     style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 10),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(6)),
                                     ),
                                     onPressed: () {
-                                      setState(() => _paidController.text = total.toStringAsFixed(2));
+                                      setState(() => _paidController.text =
+                                          total.toStringAsFixed(2));
                                     },
-                                    child: const Text('Full Paid', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                    child: const Text('Full Paid',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold)),
                                   ),
                                   const SizedBox(width: 4),
                                   OutlinedButton(
                                     style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 10),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(6)),
                                     ),
                                     onPressed: () {
-                                      setState(() => _paidController.text = '0.00');
+                                      setState(
+                                          () => _paidController.text = '0.00');
                                     },
-                                    child: const Text('Full Due', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange)),
+                                    child: const Text('Full Due',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.orange)),
                                   ),
                                   const SizedBox(width: 12),
 
                                   // Due Indicator
                                   if (due > 0)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: Colors.red.withValues(alpha: 0.12),
+                                        color:
+                                            Colors.red.withValues(alpha: 0.12),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
                                         'Due: $currency${due.toStringAsFixed(2)}',
-                                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
+                                        style: const TextStyle(
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12),
                                       ),
                                     ),
                                 ],
@@ -796,13 +1026,23 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF10B981),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 22, vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8)),
                               ),
                               icon: _isSaving
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : const Icon(Icons.check_circle_rounded, size: 18),
-                              label: const Text('Save Purchase Bill', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white, strokeWidth: 2))
+                                  : const Icon(Icons.check_circle_rounded,
+                                      size: 18),
+                              label: const Text('Save Purchase Bill',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13)),
                               onPressed: _isSaving ? null : _savePurchase,
                             ),
                           ],

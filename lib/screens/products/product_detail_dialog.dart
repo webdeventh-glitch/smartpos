@@ -396,8 +396,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                       '$currency ${p.sellingPrice.toStringAsFixed(2)}',
                                       isDark: isDark,
                                     ),
-                                    _tableBodyImageCell(
-                                        p.resolvedImagePath, p.imageColor, isDark),
+                                    _tableBodyImageCell(p.resolvedImagePath,
+                                        p.imageColor, isDark),
                                   ],
                                 ),
                                 // Variation Rows (if variable product)
@@ -438,8 +438,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                           '$currency ${v.sellingPrice.toStringAsFixed(2)}',
                                           isDark: isDark,
                                         ),
-                                        _tableBodyImageCell(
-                                            p.resolvedImagePath, p.imageColor, isDark),
+                                        _tableBodyImageCell(p.resolvedImagePath,
+                                            p.imageColor, isDark),
                                       ],
                                     );
                                   }),
@@ -745,7 +745,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
     );
   }
 
-  Widget _tableBodyImageCell(String? imagePath, String? imageColor, bool isDark) {
+  Widget _tableBodyImageCell(
+      String? imagePath, String? imageColor, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Center(

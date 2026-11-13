@@ -3,6 +3,7 @@ import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/cloud_sync_service.dart';
+import '../../services/localization_service.dart';
 
 class CloudSyncScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -41,7 +42,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
     _syncMode = widget.settings.syncMode;
     _urlCtrl = TextEditingController(text: widget.settings.syncServerUrl);
     _apiKeyCtrl = TextEditingController(text: widget.settings.syncApiKey);
-    _branchIdCtrl = TextEditingController(text: widget.settings.syncBranchId.toString());
+    _branchIdCtrl =
+        TextEditingController(text: widget.settings.syncBranchId.toString());
     _intervalMinutes = widget.settings.syncAutoIntervalMinutes;
 
     _loadQueueData();
@@ -67,7 +69,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
         });
       }
     } catch (e, st) {
-      AppLogger.warning('CloudSyncScreen', 'Failed loading cloud sync queue', e, st);
+      AppLogger.warning(
+          'CloudSyncScreen', 'Failed loading cloud sync queue', e, st);
     }
   }
 
@@ -184,7 +187,9 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF4F46E5) : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            color: isSelected
+                ? const Color(0xFF4F46E5)
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             width: isSelected ? 2.0 : 1.0,
           ),
         ),
@@ -210,20 +215,26 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
                       ),
                       if (mode == 'hybrid')
                         Container(
                           margin: const EdgeInsets.only(left: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                            color:
+                                const Color(0xFF10B981).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
                             'RECOMMENDED',
-                            style: TextStyle(color: Color(0xFF10B981), fontSize: 9, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Color(0xFF10B981),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                     ],
@@ -231,13 +242,24 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    urduDesc,
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF0EA5E9), fontWeight: FontWeight.w500),
-                  ),
+                  if ((widget.settings.hasEffectiveSecondaryLanguage ||
+                          widget.settings.activePrimaryLanguage == 'ur') &&
+                      urduDesc.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      urduDesc,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF0EA5E9),
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -260,7 +282,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -275,7 +298,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                     color: const Color(0xFF0EA5E9).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.cloud_sync_rounded, color: Color(0xFF0EA5E9), size: 28),
+                  child: const Icon(Icons.cloud_sync_rounded,
+                      color: Color(0xFF0EA5E9), size: 28),
                 ),
                 const SizedBox(width: 14),
                 const Expanded(
@@ -284,12 +308,14 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                     children: [
                       Text(
                         'Cloud & MySQL Sync Engine',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 4),
                       Text(
                         'Hybrid Local SQLite + Laravel / MySQL Sync Architecture (آن لائن و آف لائن ڈیٹا سنک)',
-                        style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                        style:
+                            TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                       ),
                     ],
                   ),
@@ -300,8 +326,10 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: _saveSettings,
                 ),
@@ -319,7 +347,10 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                       : [const Color(0xFFEEF2FF), Colors.white],
                 ),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFC7D2FE)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFC7D2FE)),
               ),
               child: Row(
                 children: [
@@ -335,7 +366,9 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                       (_syncMode == 'offline')
                           ? Icons.cloud_off_rounded
                           : Icons.cloud_done_rounded,
-                      color: (_syncMode == 'offline') ? const Color(0xFF94A3B8) : const Color(0xFF10B981),
+                      color: (_syncMode == 'offline')
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF10B981),
                       size: 28,
                     ),
                   ),
@@ -348,18 +381,25 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                           children: [
                             Text(
                               'Sync Status: ${_syncMode.toUpperCase()}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 15),
                             ),
                             const SizedBox(width: 10),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: _pendingCount > 0 ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                                color: _pendingCount > 0
+                                    ? const Color(0xFFF59E0B)
+                                    : const Color(0xFF10B981),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
                                 '$_pendingCount Pending in Queue',
-                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
@@ -371,14 +411,19 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                               : 'Last Synced: Never (Never synchronized with online server)',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
                           ),
                         ),
                         if (_syncResult.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
                             _syncResult,
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF4F46E5), fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF4F46E5),
+                                fontWeight: FontWeight.bold),
                           ),
                         ],
                       ],
@@ -386,14 +431,20 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                   ),
                   ElevatedButton.icon(
                     icon: _isSyncing
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.sync_rounded, size: 18),
                     label: const Text('Sync Now (ابھی سنک کریں)'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF10B981),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: _isSyncing ? null : _triggerSyncNow,
                   ),
@@ -411,23 +462,29 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
             _buildModeOption(
               mode: 'offline',
               title: 'Offline Only (صرف آف لائن لوکل SQLite)',
-              subtitle: 'Runs 100% locally on this computer. Zero internet or external database connection needed.',
-              urduDesc: 'کوئی انٹرنیٹ درکار نہیں، سارا ڈیٹا اسی کمپیوٹر میں محفوظ رہتا ہے',
+              subtitle:
+                  'Runs 100% locally on this computer. Zero internet or external database connection needed.',
+              urduDesc:
+                  'کوئی انٹرنیٹ درکار نہیں، سارا ڈیٹا اسی کمپیوٹر میں محفوظ رہتا ہے',
               icon: Icons.computer_rounded,
               color: const Color(0xFF64748B),
             ),
             _buildModeOption(
               mode: 'hybrid',
-              title: 'Both Online & Offline - Hybrid Sync (آن لائن اور آف لائن دونوں)',
-              subtitle: 'Local SQLite guarantees instant billing without internet; automatically synchronizes with Laravel / MySQL server in the background.',
-              urduDesc: 'بلنگ تیز رفتار لوکل ڈیٹا بیس میں ہوتی ہے اور انٹرنیٹ ملنے پر ڈیٹا ویب سرور پر سنک ہو جاتا ہے',
+              title:
+                  'Both Online & Offline - Hybrid Sync (آن لائن اور آف لائن دونوں)',
+              subtitle:
+                  'Local SQLite guarantees instant billing without internet; automatically synchronizes with Laravel / MySQL server in the background.',
+              urduDesc:
+                  'بلنگ تیز رفتار لوکل ڈیٹا بیس میں ہوتی ہے اور انٹرنیٹ ملنے پر ڈیٹا ویب سرور پر سنک ہو جاتا ہے',
               icon: Icons.sync_alt_rounded,
               color: const Color(0xFF10B981),
             ),
             _buildModeOption(
               mode: 'online',
               title: '️ Online Cloud Server (ڈائریکٹ کلاؤڈ API)',
-              subtitle: 'Connected directly to centralized Laravel REST API with local offline caching fallback.',
+              subtitle:
+                  'Connected directly to centralized Laravel REST API with local offline caching fallback.',
               urduDesc: 'مرکزی کلاؤڈ سرور سے لائیو منسلک رہتا ہے',
               icon: Icons.cloud_rounded,
               color: const Color(0xFF0EA5E9),
@@ -447,7 +504,10 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,7 +516,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                       controller: _urlCtrl,
                       decoration: const InputDecoration(
                         labelText: 'Laravel REST API Base URL *',
-                        hintText: 'http://localhost:8000/api or https://pos.yourdomain.com/api',
+                        hintText:
+                            'http://localhost:8000/api or https://pos.yourdomain.com/api',
                         prefixIcon: Icon(Icons.link_rounded),
                         border: OutlineInputBorder(),
                         helperText: 'Endpoint where SyncController is hosted',
@@ -501,14 +562,20 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                               border: OutlineInputBorder(),
                             ),
                             items: const [
-                              DropdownMenuItem(value: 0, child: Text('Manual Only')),
-                              DropdownMenuItem(value: 1, child: Text('Every 1 min')),
-                              DropdownMenuItem(value: 5, child: Text('Every 5 mins')),
-                              DropdownMenuItem(value: 15, child: Text('Every 15 mins')),
-                              DropdownMenuItem(value: 30, child: Text('Every 30 mins')),
+                              DropdownMenuItem(
+                                  value: 0, child: Text('Manual Only')),
+                              DropdownMenuItem(
+                                  value: 1, child: Text('Every 1 min')),
+                              DropdownMenuItem(
+                                  value: 5, child: Text('Every 5 mins')),
+                              DropdownMenuItem(
+                                  value: 15, child: Text('Every 15 mins')),
+                              DropdownMenuItem(
+                                  value: 30, child: Text('Every 30 mins')),
                             ],
                             onChanged: (val) {
-                              if (val != null) setState(() => _intervalMinutes = val);
+                              if (val != null)
+                                setState(() => _intervalMinutes = val);
                             },
                           ),
                         ),
@@ -519,9 +586,15 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                       children: [
                         OutlinedButton.icon(
                           icon: _isTesting
-                              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Icon(Icons.network_check_rounded, size: 16),
-                          label: const Text('Test Connection (کنکشن چیک کریں)'),
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.network_check_rounded,
+                                  size: 16),
+                          label: Text(PosLocalization.tr('Test Connection',
+                              settings: widget.settings)),
                           onPressed: _isTesting ? null : _testConnection,
                         ),
                         const SizedBox(width: 12),
@@ -532,7 +605,9 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: _testSuccess ? const Color(0xFF10B981) : Colors.redAccent,
+                                color: _testSuccess
+                                    ? const Color(0xFF10B981)
+                                    : Colors.redAccent,
                               ),
                             ),
                           ),
@@ -548,13 +623,16 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4),
+                color:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                border: Border.all(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.4)),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.terminal_rounded, color: Color(0xFF10B981), size: 28),
+                  Icon(Icons.terminal_rounded,
+                      color: Color(0xFF10B981), size: 28),
                   SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -562,12 +640,16 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                       children: [
                         Text(
                           'Laravel / React / Next.js Backend Templates Ready!',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF10B981)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Color(0xFF10B981)),
                         ),
                         SizedBox(height: 2),
                         Text(
                           'We have generated mysql_schema.sql and SyncController.php in the backend_resources/ folder. You can directly import them into your Laravel/MySQL project when building your online web portal.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style:
+                              TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                         ),
                       ],
                     ),
@@ -598,7 +680,10 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               child: _logs.isEmpty
                   ? const Padding(
@@ -606,7 +691,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                       child: Center(
                         child: Text(
                           'No sync activity recorded yet. Items will appear here when saved in Hybrid mode.',
-                          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                          style:
+                              TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
                         ),
                       ),
                     )
@@ -616,7 +702,9 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                       itemCount: _logs.length,
                       separatorBuilder: (_, __) => Divider(
                         height: 1,
-                        color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0),
                       ),
                       itemBuilder: (context, idx) {
                         final log = _logs[idx];
@@ -626,24 +714,33 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                         return ListTile(
                           dense: true,
                           leading: Icon(
-                            isDone ? Icons.check_circle_outline : Icons.pending_outlined,
-                            color: isDone ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                            isDone
+                                ? Icons.check_circle_outline
+                                : Icons.pending_outlined,
+                            color: isDone
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFFF59E0B),
                             size: 20,
                           ),
                           title: Text(
                             '${(log['action'] as String? ?? '').toUpperCase()} ${(log['entity_type'] as String? ?? '').toUpperCase()} #${log['entity_id']}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                           subtitle: Text(
                             'Queued at: ${log['created_at'] ?? 'N/A'}${log['synced_at'] != null ? ' | Synced: ${log['synced_at']}' : ''}',
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                            style: const TextStyle(
+                                fontSize: 11, color: Color(0xFF94A3B8)),
                           ),
                           trailing: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: isDone
-                                  ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                                  : const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                  ? const Color(0xFF10B981)
+                                      .withValues(alpha: 0.15)
+                                  : const Color(0xFFF59E0B)
+                                      .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -651,7 +748,9 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: isDone ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                color: isDone
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFF59E0B),
                               ),
                             ),
                           ),

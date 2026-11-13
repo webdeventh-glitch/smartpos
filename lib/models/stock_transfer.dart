@@ -74,7 +74,8 @@ class StockTransfer {
           .map((e) => StockTransferItem.fromMap(e as Map<String, dynamic>))
           .toList();
     } catch (e, st) {
-      AppLogger.warning('Models', 'Failed parsing StockTransfer itemsJson', e, st);
+      AppLogger.warning(
+          'Models', 'Failed parsing StockTransfer itemsJson', e, st);
       return [];
     }
   }

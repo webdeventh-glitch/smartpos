@@ -56,7 +56,9 @@ class _PaymentReminderDialogState extends State<PaymentReminderDialog> {
   void _updateMessageText() {
     final cur = widget.settings.currencySymbol;
     final due = widget.specificDue ?? widget.contact.balance;
-    final bName = widget.settings.businessName.isNotEmpty ? widget.settings.businessName : 'Our Store';
+    final bName = widget.settings.businessName.isNotEmpty
+        ? widget.settings.businessName
+        : 'Our Store';
     final cName = widget.contact.name;
 
     String msg = '';
@@ -97,7 +99,9 @@ Thank you!''';
     final phone = _formatInternationalPhone(_phoneCtrl.text);
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid mobile number!'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Please enter a valid mobile number!'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -112,7 +116,8 @@ Thank you!''';
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Opening WhatsApp... Message also copied to clipboard!'),
+          content:
+              Text('Opening WhatsApp... Message also copied to clipboard!'),
           backgroundColor: Color(0xFF10B981),
         ),
       );
@@ -124,7 +129,9 @@ Thank you!''';
     final phone = _formatInternationalPhone(_phoneCtrl.text);
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid mobile number!'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Please enter a valid mobile number!'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -188,9 +195,15 @@ Thank you!''';
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                color:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
+                border: Border(
+                    bottom: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0))),
               ),
               child: Row(
                 children: [
@@ -200,7 +213,8 @@ Thank you!''';
                       color: const Color(0xFF10B981).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const FaIcon(FontAwesomeIcons.whatsapp, color: Color(0xFF10B981), size: 22),
+                    child: const FaIcon(FontAwesomeIcons.whatsapp,
+                        color: Color(0xFF10B981), size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -209,12 +223,14 @@ Thank you!''';
                       children: [
                         const Text(
                           'Send Payment Reminder (WhatsApp & SMS)',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Customer: ${widget.contact.name}  •  Due: $cur${due.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style: const TextStyle(
+                              fontSize: 12, color: Color(0xFF64748B)),
                         ),
                       ],
                     ),
@@ -234,32 +250,44 @@ Thank you!''';
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Phone input
-                  const Text('Customer Mobile / WhatsApp Number', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  const Text('Customer Mobile / WhatsApp Number',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _phoneCtrl,
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.phone_android_rounded, size: 18),
+                      prefixIcon:
+                          const Icon(Icons.phone_android_rounded, size: 18),
                       hintText: 'e.g. 03001234567 or +923001234567',
                       isDense: true,
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      fillColor: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                   const SizedBox(height: 14),
 
                   // Template selector chips
-                  const Text('Reminder Template', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  const Text('Reminder Template',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      _templateChip('friendly', 'Friendly Reminder', Icons.sentiment_satisfied_alt_rounded),
+                      _templateChip('friendly', 'Friendly Reminder',
+                          Icons.sentiment_satisfied_alt_rounded),
                       const SizedBox(width: 8),
-                      _templateChip('urgent', 'Urgent / Overdue', Icons.warning_amber_rounded, isUrgent: true),
+                      _templateChip('urgent', 'Urgent / Overdue',
+                          Icons.warning_amber_rounded,
+                          isUrgent: true),
                       const SizedBox(width: 8),
-                      _templateChip('detailed', 'Khata Statement', Icons.receipt_long_rounded),
+                      _templateChip('detailed', 'Khata Statement',
+                          Icons.receipt_long_rounded),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -268,14 +296,21 @@ Thank you!''';
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Message Preview & Customization', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      const Text('Message Preview & Customization',
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold)),
                       InkWell(
                         onTap: _copyToClipboard,
                         child: const Row(
                           children: [
-                            Icon(Icons.copy_rounded, size: 13, color: Color(0xFF4F46E5)),
+                            Icon(Icons.copy_rounded,
+                                size: 13, color: Color(0xFF4F46E5)),
                             SizedBox(width: 4),
-                            Text('Copy Text', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
+                            Text('Copy Text',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF4F46E5))),
                           ],
                         ),
                       ),
@@ -289,8 +324,11 @@ Thank you!''';
                     decoration: InputDecoration(
                       isDense: true,
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      fillColor: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ],
@@ -301,9 +339,15 @@ Thank you!''';
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-                border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                color:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(16)),
+                border: Border(
+                    top: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0))),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -312,11 +356,15 @@ Thank you!''';
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF0284C7),
                       side: const BorderSide(color: Color(0xFF0284C7)),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: const Icon(Icons.sms_rounded, size: 16),
-                    label: const Text('Send SMS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    label: const Text('Send SMS',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 12)),
                     onPressed: _sendViaSms,
                   ),
                   const SizedBox(width: 10),
@@ -325,11 +373,15 @@ Thank you!''';
                       backgroundColor: const Color(0xFF10B981),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 16),
-                    label: const Text('Send via WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    label: const Text('Send via WhatsApp',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
                     onPressed: _sendViaWhatsApp,
                   ),
                 ],
@@ -341,7 +393,8 @@ Thank you!''';
     );
   }
 
-  Widget _templateChip(String id, String label, IconData icon, {bool isUrgent = false}) {
+  Widget _templateChip(String id, String label, IconData icon,
+      {bool isUrgent = false}) {
     final isSelected = _selectedTemplate == id;
     final color = isUrgent ? const Color(0xFFEF4444) : const Color(0xFF4F46E5);
 
@@ -356,12 +409,19 @@ Thank you!''';
         decoration: BoxDecoration(
           color: isSelected ? color : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? color : const Color(0xFFCBD5E1)),
+          border:
+              Border.all(color: isSelected ? color : const Color(0xFFCBD5E1)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: isSelected ? Colors.white : (isUrgent ? const Color(0xFFEF4444) : const Color(0xFF64748B))),
+            Icon(icon,
+                size: 13,
+                color: isSelected
+                    ? Colors.white
+                    : (isUrgent
+                        ? const Color(0xFFEF4444)
+                        : const Color(0xFF64748B))),
             const SizedBox(width: 5),
             Text(
               label,

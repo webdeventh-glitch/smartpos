@@ -64,10 +64,12 @@ class RecordContactPaymentDialog extends StatefulWidget {
   }
 
   @override
-  State<RecordContactPaymentDialog> createState() => _RecordContactPaymentDialogState();
+  State<RecordContactPaymentDialog> createState() =>
+      _RecordContactPaymentDialogState();
 }
 
-class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog> {
+class _RecordContactPaymentDialogState
+    extends State<RecordContactPaymentDialog> {
   late final TextEditingController _amountCtrl;
   late final TextEditingController _noteCtrl;
   String _paymentMethod = 'cash';
@@ -86,8 +88,10 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
   @override
   void initState() {
     super.initState();
-    final defaultAmt = widget.initialAmount ?? (widget.contact.balance > 0 ? widget.contact.balance : 0.0);
-    _amountCtrl = TextEditingController(text: defaultAmt > 0 ? defaultAmt.toStringAsFixed(2) : '');
+    final defaultAmt = widget.initialAmount ??
+        (widget.contact.balance > 0 ? widget.contact.balance : 0.0);
+    _amountCtrl = TextEditingController(
+        text: defaultAmt > 0 ? defaultAmt.toStringAsFixed(2) : '');
     _noteCtrl = TextEditingController();
 
     _totalDebit = widget.totalDebit;
@@ -105,7 +109,9 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
       setState(() => _nextRefNo = ref);
     }
 
-    if (_totalDebit == null || _totalCredit == null || _openingBalance == null) {
+    if (_totalDebit == null ||
+        _totalCredit == null ||
+        _openingBalance == null) {
       setState(() => _loadingStats = true);
       try {
         final res = await db.getContactLedger(
@@ -116,8 +122,10 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
           setState(() {
             _totalDebit = (res['totalDebit'] as num?)?.toDouble() ?? 0.0;
             _totalCredit = (res['totalCredit'] as num?)?.toDouble() ?? 0.0;
-            _openingBalance = (res['openingBalance'] as num?)?.toDouble() ?? 0.0;
-            _closingBalance = (res['closingBalance'] as num?)?.toDouble() ?? widget.contact.balance;
+            _openingBalance =
+                (res['openingBalance'] as num?)?.toDouble() ?? 0.0;
+            _closingBalance = (res['closingBalance'] as num?)?.toDouble() ??
+                widget.contact.balance;
             _loadingStats = false;
           });
         }
@@ -135,8 +143,31 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
   }
 
   bool get _isCustomer => widget.contactType.toLowerCase() == 'customer';
-  bool get _hasSecondary => widget.settings.enableSecondaryLanguage;
+  bool get _hasSecondary => widget.settings.hasEffectiveSecondaryLanguage;
   String get _secLang => widget.settings.secondaryLanguage;
+
+  String _getTextForLang(String lang, {required bool isCustomer}) {
+    switch (lang.toLowerCase()) {
+      case 'ps':
+        return isCustomer
+            ? 'له پیرودونکي څخه پیسې ترلاسه کول'
+            : 'عرضه کونکي ته پیسې ورکول';
+      case 'fa':
+        return isCustomer ? 'دریافت وجه از مشتری' : 'پرداخت به تامین‌کننده';
+      case 'ar':
+        return isCustomer ? 'استلام دفعة من العميل' : 'سداد دفعة للمورد';
+      case 'es':
+        return isCustomer ? 'Recibir pago de cliente' : 'Pagar a proveedor';
+      case 'nl':
+        return isCustomer
+            ? 'Betaling ontvangen van klant'
+            : 'Leverancier betalen';
+      case 'ur':
+        return isCustomer ? 'گاہک سے رقم وصول کریں' : 'سپلائر کو ادائیگی کریں';
+      default:
+        return isCustomer ? 'Add Payment' : 'Pay Supplier';
+    }
+  }
 
   String _getSecondaryText({
     required String ur,
@@ -209,7 +240,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
     if (rawAmt <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid payment amount greater than zero.'),
+          content:
+              Text('Please enter a valid payment amount greater than zero.'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -219,7 +251,9 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
     setState(() => _isSaving = true);
     try {
       final db = await DatabaseService.initialize();
-      final ref = _nextRefNo.isNotEmpty ? _nextRefNo : await db.generateNextPaymentRef();
+      final ref = _nextRefNo.isNotEmpty
+          ? _nextRefNo
+          : await db.generateNextPaymentRef();
 
       final payment = ContactPayment(
         contactId: widget.contact.id!,
@@ -243,7 +277,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const Icon(Icons.check_circle_rounded,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -297,11 +332,14 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
     }
 
     final cardBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
-    final totalDebitVal = _totalDebit ?? (_isCustomer ? widget.contact.balance : 0.0);
+    final totalDebitVal =
+        _totalDebit ?? (_isCustomer ? widget.contact.balance : 0.0);
     final totalCreditVal = _totalCredit ?? 0.0;
     final totalDueVal = _closingBalance ?? widget.contact.balance;
     final openingBalVal = _openingBalance ?? 0.0;
@@ -338,7 +376,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                             children: [
                               Expanded(
                                 flex: 5,
-                                child: _buildCustomerCard(cardBg, borderColor, textPrimary, textSecondary),
+                                child: _buildCustomerCard(cardBg, borderColor,
+                                    textPrimary, textSecondary),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
@@ -361,7 +400,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                         } else {
                           return Column(
                             children: [
-                              _buildCustomerCard(cardBg, borderColor, textPrimary, textSecondary),
+                              _buildCustomerCard(cardBg, borderColor,
+                                  textPrimary, textSecondary),
                               const SizedBox(height: 12),
                               _buildFinancialOverviewCard(
                                 cur: cur,
@@ -391,22 +431,36 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(child: _buildPaymentMethodField(isDark, textPrimary, textSecondary, borderColor)),
+                              Expanded(
+                                  child: _buildPaymentMethodField(isDark,
+                                      textPrimary, textSecondary, borderColor)),
                               const SizedBox(width: 14),
-                              Expanded(child: _buildPaidOnField(isDark, textPrimary, textSecondary, borderColor)),
+                              Expanded(
+                                  child: _buildPaidOnField(isDark, textPrimary,
+                                      textSecondary, borderColor)),
                               const SizedBox(width: 14),
-                              Expanded(child: _buildAmountField(cur, totalDueVal, isDark, textPrimary, textSecondary, borderColor)),
+                              Expanded(
+                                  child: _buildAmountField(
+                                      cur,
+                                      totalDueVal,
+                                      isDark,
+                                      textPrimary,
+                                      textSecondary,
+                                      borderColor)),
                             ],
                           );
                         } else {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildPaymentMethodField(isDark, textPrimary, textSecondary, borderColor),
+                              _buildPaymentMethodField(isDark, textPrimary,
+                                  textSecondary, borderColor),
                               const SizedBox(height: 14),
-                              _buildPaidOnField(isDark, textPrimary, textSecondary, borderColor),
+                              _buildPaidOnField(isDark, textPrimary,
+                                  textSecondary, borderColor),
                               const SizedBox(height: 14),
-                              _buildAmountField(cur, totalDueVal, isDark, textPrimary, textSecondary, borderColor),
+                              _buildAmountField(cur, totalDueVal, isDark,
+                                  textPrimary, textSecondary, borderColor),
                             ],
                           );
                         }
@@ -429,12 +483,14 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                     const SizedBox(height: 20),
 
                     // Attach Document Section
-                    _buildAttachDocumentSection(isDark, textPrimary, textSecondary, borderColor),
+                    _buildAttachDocumentSection(
+                        isDark, textPrimary, textSecondary, borderColor),
 
                     const SizedBox(height: 20),
 
                     // Payment Note Multi-line Text Area
-                    _buildPaymentNoteField(isDark, textPrimary, textSecondary, borderColor),
+                    _buildPaymentNoteField(
+                        isDark, textPrimary, textSecondary, borderColor),
                   ],
                 ),
               ),
@@ -452,16 +508,23 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
 
   /// 1. Top Header
   Widget _buildHeader(bool isDark, Color textPrimary, Color textSecondary) {
-    String primaryTitle = _isCustomer ? 'Add Payment' : 'Pay Supplier';
+    final primLang = widget.settings.activePrimaryLanguage;
+    String primaryTitle = primLang == 'en'
+        ? (_isCustomer ? 'Add Payment' : 'Pay Supplier')
+        : _getTextForLang(primLang, isCustomer: _isCustomer);
     String? secondarySubtitle;
 
     if (_hasSecondary) {
       secondarySubtitle = _getSecondaryText(
         ur: _isCustomer ? 'گاہک سے رقم وصول کریں' : 'سپلائر کو ادائیگی کریں',
-        ps: _isCustomer ? 'له پیرودونکي څخه پیسې ترلاسه کول' : 'عرضه کونکي ته پیسې ورکول',
+        ps: _isCustomer
+            ? 'له پیرودونکي څخه پیسې ترلاسه کول'
+            : 'عرضه کونکي ته پیسې ورکول',
         fa: _isCustomer ? 'دریافت وجه از مشتری' : 'پرداخت به تامین‌کننده',
         es: _isCustomer ? 'Recibir pago de cliente' : 'Pagar a proveedor',
-        nl: _isCustomer ? 'Betaling ontvangen van klant' : 'Leverancier betalen',
+        nl: _isCustomer
+            ? 'Betaling ontvangen van klant'
+            : 'Leverancier betalen',
         en: _isCustomer ? 'Receive Customer Payment' : 'Supplier Payment',
       );
     }
@@ -479,7 +542,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                   color: const Color(0xFF059669).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.payments_rounded, color: Color(0xFF059669), size: 22),
+                child: const Icon(Icons.payments_rounded,
+                    color: Color(0xFF059669), size: 22),
               ),
               const SizedBox(width: 14),
               Column(
@@ -519,7 +583,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
   }
 
   /// Customer Info Card
-  Widget _buildCustomerCard(Color cardBg, Color borderColor, Color textPrimary, Color textSecondary) {
+  Widget _buildCustomerCard(
+      Color cardBg, Color borderColor, Color textPrimary, Color textSecondary) {
     final partyLabel = _isCustomer ? 'Customer name' : 'Supplier name';
     return Container(
       padding: const EdgeInsets.all(16),
@@ -535,24 +600,34 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
             children: [
               Text(
                 '$partyLabel: ',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: textPrimary),
               ),
               Expanded(
                 child: Text(
                   widget.contact.name,
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textPrimary),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: textPrimary),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          if (widget.contact.businessName != null && widget.contact.businessName!.isNotEmpty) ...[
+          if (widget.contact.businessName != null &&
+              widget.contact.businessName!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Row(
               children: [
                 Text(
                   'Business: ',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: textSecondary),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: textSecondary),
                 ),
                 Expanded(
                   child: Text(
@@ -570,7 +645,10 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
               children: [
                 Text(
                   'Phone: ',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: textSecondary),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: textSecondary),
                 ),
                 Expanded(
                   child: Text(
@@ -587,11 +665,18 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
             children: [
               Text(
                 'Khata Code: ',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: textSecondary),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: textSecondary),
               ),
               Text(
                 '#${_isCustomer ? "CUST" : "SUPP"}-${widget.contact.id}',
-                style: const TextStyle(fontSize: 12, fontFamily: 'monospace', fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0284C7)),
               ),
             ],
           ),
@@ -602,7 +687,10 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
               children: [
                 Text(
                   'Address: ',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: textSecondary),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: textSecondary),
                 ),
                 Expanded(
                   child: Text(
@@ -650,7 +738,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF059669)),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Color(0xFF059669)),
                 ),
               ),
             )
@@ -659,43 +748,49 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
               children: [
                 _financeRow(
                   label: _isCustomer ? 'Total Sale:' : 'Total Purchase:',
-            value: '$cur ${NumberFormat('#,##0.00').format(totalDebit)}',
-            textPrimary: textPrimary,
-            textSecondary: textSecondary,
-          ),
-          const SizedBox(height: 4),
-          _financeRow(
-            label: 'Total Paid:',
-            value: '$cur ${NumberFormat('#,##0.00').format(totalCredit)}',
-            textPrimary: textPrimary,
-            textSecondary: textSecondary,
-            valueColor: const Color(0xFF059669),
-          ),
-          const SizedBox(height: 4),
-          _financeRow(
-            label: _isCustomer ? 'Total Sale Due:' : 'Total Purchase Due:',
-            value: '$cur ${NumberFormat('#,##0.00').format(saleDue > 0 ? saleDue : totalDue)}',
-            textPrimary: textPrimary,
-            textSecondary: textSecondary,
-            valueColor: (saleDue > 0 || totalDue > 0) ? const Color(0xFFDC2626) : const Color(0xFF059669),
-            isBold: true,
-          ),
-          const SizedBox(height: 4),
-          _financeRow(
-            label: 'Opening Balance:',
-            value: '$cur ${NumberFormat('#,##0.00').format(openingBalance)}',
-            textPrimary: textPrimary,
-            textSecondary: textSecondary,
-          ),
-          const SizedBox(height: 4),
-          _financeRow(
-            label: 'Opening Balance Due:',
-            value: '$cur ${NumberFormat('#,##0.00').format(openingBalanceDue)}',
-            textPrimary: textPrimary,
-            textSecondary: textSecondary,
-          ),
-        ],
-      ),
+                  value: '$cur ${NumberFormat('#,##0.00').format(totalDebit)}',
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                ),
+                const SizedBox(height: 4),
+                _financeRow(
+                  label: 'Total Paid:',
+                  value: '$cur ${NumberFormat('#,##0.00').format(totalCredit)}',
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                  valueColor: const Color(0xFF059669),
+                ),
+                const SizedBox(height: 4),
+                _financeRow(
+                  label:
+                      _isCustomer ? 'Total Sale Due:' : 'Total Purchase Due:',
+                  value:
+                      '$cur ${NumberFormat('#,##0.00').format(saleDue > 0 ? saleDue : totalDue)}',
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                  valueColor: (saleDue > 0 || totalDue > 0)
+                      ? const Color(0xFFDC2626)
+                      : const Color(0xFF059669),
+                  isBold: true,
+                ),
+                const SizedBox(height: 4),
+                _financeRow(
+                  label: 'Opening Balance:',
+                  value:
+                      '$cur ${NumberFormat('#,##0.00').format(openingBalance)}',
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                ),
+                const SizedBox(height: 4),
+                _financeRow(
+                  label: 'Opening Balance Due:',
+                  value:
+                      '$cur ${NumberFormat('#,##0.00').format(openingBalanceDue)}',
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                ),
+              ],
+            ),
     );
   }
 
@@ -731,7 +826,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
   }
 
   /// Field 1: Payment Method Dropdown
-  Widget _buildPaymentMethodField(bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
+  Widget _buildPaymentMethodField(
+      bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
     String label = 'Payment Method:*';
     if (_hasSecondary) {
       final sub = _getSecondaryText(
@@ -748,7 +844,9 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
         const SizedBox(height: 6),
         Container(
           height: 44,
@@ -765,10 +863,50 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
               padding: const EdgeInsets.symmetric(horizontal: 10),
               icon: const Icon(Icons.arrow_drop_down, size: 20),
               items: [
-                _buildMethodItem('cash', Icons.money_rounded, 'Cash', _getSecondaryText(ur: 'نقد / کیش', ps: 'نغدې', fa: 'نقدی', es: 'Efectivo', nl: 'Contant', en: 'Cash')),
-                _buildMethodItem('bank_transfer', Icons.account_balance_rounded, 'Bank', _getSecondaryText(ur: 'بینک', ps: 'بانک', fa: 'حساب بانکی', es: 'Banco', nl: 'Bank', en: 'Bank')),
-                _buildMethodItem('card', Icons.credit_card_rounded, 'Card', _getSecondaryText(ur: 'کارڈ', ps: 'کارت', fa: 'کارت‌خوان', es: 'Tarjeta', nl: 'Kaart', en: 'Card')),
-                _buildMethodItem('cheque', Icons.receipt_long_rounded, 'Cheque', _getSecondaryText(ur: 'چیک', ps: 'چک', fa: 'چک', es: 'Cheque', nl: 'Cheque', en: 'Cheque')),
+                _buildMethodItem(
+                    'cash',
+                    Icons.money_rounded,
+                    'Cash',
+                    _getSecondaryText(
+                        ur: 'نقد / کیش',
+                        ps: 'نغدې',
+                        fa: 'نقدی',
+                        es: 'Efectivo',
+                        nl: 'Contant',
+                        en: 'Cash')),
+                _buildMethodItem(
+                    'bank_transfer',
+                    Icons.account_balance_rounded,
+                    'Bank',
+                    _getSecondaryText(
+                        ur: 'بینک',
+                        ps: 'بانک',
+                        fa: 'حساب بانکی',
+                        es: 'Banco',
+                        nl: 'Bank',
+                        en: 'Bank')),
+                _buildMethodItem(
+                    'card',
+                    Icons.credit_card_rounded,
+                    'Card',
+                    _getSecondaryText(
+                        ur: 'کارڈ',
+                        ps: 'کارت',
+                        fa: 'کارت‌خوان',
+                        es: 'Tarjeta',
+                        nl: 'Kaart',
+                        en: 'Card')),
+                _buildMethodItem(
+                    'cheque',
+                    Icons.receipt_long_rounded,
+                    'Cheque',
+                    _getSecondaryText(
+                        ur: 'چیک',
+                        ps: 'چک',
+                        fa: 'چک',
+                        es: 'Cheque',
+                        nl: 'Cheque',
+                        en: 'Cheque')),
               ],
               onChanged: (val) {
                 if (val != null) setState(() => _paymentMethod = val);
@@ -780,7 +918,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
     );
   }
 
-  DropdownMenuItem<String> _buildMethodItem(String value, IconData icon, String title, String sub) {
+  DropdownMenuItem<String> _buildMethodItem(
+      String value, IconData icon, String title, String sub) {
     return DropdownMenuItem<String>(
       value: value,
       child: Row(
@@ -797,7 +936,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
   }
 
   /// Field 2: Paid On Interactive Date & Time Picker
-  Widget _buildPaidOnField(bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
+  Widget _buildPaidOnField(
+      bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
     String label = 'Paid on:*';
     if (_hasSecondary) {
       final sub = _getSecondaryText(
@@ -816,7 +956,9 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
         const SizedBox(height: 6),
         InkWell(
           onTap: _pickDateTime,
@@ -837,7 +979,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                     color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
                     border: Border(right: BorderSide(color: borderColor)),
                   ),
-                  child: const Icon(Icons.calendar_month_outlined, size: 18, color: Color(0xFF0284C7)),
+                  child: const Icon(Icons.calendar_month_outlined,
+                      size: 18, color: Color(0xFF0284C7)),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -852,7 +995,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                 ),
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: Icon(Icons.edit_calendar_rounded, size: 16, color: textSecondary),
+                  child: Icon(Icons.edit_calendar_rounded,
+                      size: 16, color: textSecondary),
                 ),
               ],
             ),
@@ -863,7 +1007,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
   }
 
   /// Field 3: Amount Field with Quick Fill Chips
-  Widget _buildAmountField(String cur, double totalDue, bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
+  Widget _buildAmountField(String cur, double totalDue, bool isDark,
+      Color textPrimary, Color textSecondary, Color borderColor) {
     String label = 'Amount:*';
     if (_hasSecondary) {
       final sub = _getSecondaryText(
@@ -880,7 +1025,9 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
         const SizedBox(height: 6),
         Container(
           height: 44,
@@ -901,19 +1048,27 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                 child: Center(
                   child: Text(
                     cur,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF059669)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Color(0xFF059669)),
                   ),
                 ),
               ),
               Expanded(
                 child: TextField(
                   controller: _amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textPrimary),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: textPrimary),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                     hintText: '0.00',
                   ),
                   onChanged: (val) {
@@ -975,7 +1130,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: textColor ?? (isDark ? Colors.white70 : const Color(0xFF475569)),
+            color: textColor ??
+                (isDark ? Colors.white70 : const Color(0xFF475569)),
           ),
         ),
       ),
@@ -998,7 +1154,9 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: hasVal
-            ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.35) : const Color(0xFFF0FDF4))
+            ? (isDark
+                ? const Color(0xFF064E3B).withValues(alpha: 0.35)
+                : const Color(0xFFF0FDF4))
             : (isDark ? Colors.white10 : const Color(0xFFF8FAFC)),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
@@ -1013,7 +1171,9 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: hasVal ? const Color(0xFF10B981).withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.1),
+              color: hasVal
+                  ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                  : Colors.grey.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -1050,7 +1210,9 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  hasVal ? primaryWords : 'Enter payment amount above to view in words...',
+                  hasVal
+                      ? primaryWords
+                      : 'Enter payment amount above to view in words...',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: hasVal ? FontWeight.bold : FontWeight.normal,
@@ -1058,7 +1220,9 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                     fontStyle: hasVal ? FontStyle.normal : FontStyle.italic,
                   ),
                 ),
-                if (hasVal && secondaryWords != null && secondaryWords.isNotEmpty) ...[
+                if (hasVal &&
+                    secondaryWords != null &&
+                    secondaryWords.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     secondaryWords,
@@ -1078,7 +1242,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
   }
 
   /// Attach Document
-  Widget _buildAttachDocumentSection(bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
+  Widget _buildAttachDocumentSection(
+      bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
     String label = 'Attach Document:';
     if (_hasSecondary) {
       final sub = _getSecondaryText(
@@ -1092,41 +1257,53 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
       label = 'Attach Document ($sub):';
     }
 
-    final hasFile = _attachedDocumentPath != null && _attachedDocumentPath!.isNotEmpty;
-    final filename = hasFile ? p.basename(_attachedDocumentPath!) : 'No file chosen';
+    final hasFile =
+        _attachedDocumentPath != null && _attachedDocumentPath!.isNotEmpty;
+    final filename =
+        hasFile ? p.basename(_attachedDocumentPath!) : 'No file chosen';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
         const SizedBox(height: 8),
         Row(
           children: [
             ElevatedButton.icon(
               onPressed: _chooseDocument,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF475569),
+                backgroundColor:
+                    isDark ? const Color(0xFF334155) : const Color(0xFF475569),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6)),
                 elevation: 0,
               ),
               icon: const Icon(Icons.attach_file_rounded, size: 16),
-              label: const Text('Choose File', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              label: const Text('Choose File',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: hasFile
                   ? Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: const Color(0xFF059669).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                        border: Border.all(
+                            color:
+                                const Color(0xFF10B981).withValues(alpha: 0.4)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_circle_outline, size: 16, color: Color(0xFF059669)),
+                          const Icon(Icons.check_circle_outline,
+                              size: 16, color: Color(0xFF059669)),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
@@ -1134,16 +1311,20 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : const Color(0xFF065F46),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF065F46),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           InkWell(
-                            onTap: () => setState(() => _attachedDocumentPath = null),
+                            onTap: () =>
+                                setState(() => _attachedDocumentPath = null),
                             child: const Padding(
                               padding: EdgeInsets.all(2.0),
-                              child: Icon(Icons.close_rounded, size: 16, color: Colors.redAccent),
+                              child: Icon(Icons.close_rounded,
+                                  size: 16, color: Colors.redAccent),
                             ),
                           ),
                         ],
@@ -1166,7 +1347,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
   }
 
   /// Payment Note
-  Widget _buildPaymentNoteField(bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
+  Widget _buildPaymentNoteField(
+      bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
     String label = 'Payment Note:';
     if (_hasSecondary) {
       final sub = _getSecondaryText(
@@ -1183,7 +1365,9 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
         const SizedBox(height: 6),
         TextField(
           controller: _noteCtrl,
@@ -1191,8 +1375,10 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
           minLines: 3,
           style: TextStyle(fontSize: 13, color: textPrimary),
           decoration: InputDecoration(
-            hintText: 'Enter payment reference, bank slip number, cheque number, or transaction notes...',
-            hintStyle: TextStyle(fontSize: 12, color: textSecondary.withValues(alpha: 0.7)),
+            hintText:
+                'Enter payment reference, bank slip number, cheque number, or transaction notes...',
+            hintStyle: TextStyle(
+                fontSize: 12, color: textSecondary.withValues(alpha: 0.7)),
             filled: true,
             fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             border: OutlineInputBorder(
@@ -1205,7 +1391,8 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6),
-              borderSide: const BorderSide(color: Color(0xFF059669), width: 1.5),
+              borderSide:
+                  const BorderSide(color: Color(0xFF059669), width: 1.5),
             ),
             contentPadding: const EdgeInsets.all(12),
           ),
@@ -1250,11 +1437,17 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
             onPressed: _isSaving ? null : () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
               foregroundColor: textSecondary,
-              side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+              side: BorderSide(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFCBD5E1)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text(cancelLabel, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            child: Text(cancelLabel,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           ),
           const SizedBox(width: 14),
           ElevatedButton.icon(
@@ -1263,14 +1456,16 @@ class _RecordContactPaymentDialogState extends State<RecordContactPaymentDialog>
               backgroundColor: const Color(0xFF059669),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
               elevation: 1,
             ),
             icon: _isSaving
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.check_circle_rounded, size: 18),
             label: Text(

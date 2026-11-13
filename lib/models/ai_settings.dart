@@ -3,7 +3,8 @@ class AiSettings {
   final int? id;
   final String provider; // 'gemini' or 'openai'
   final String apiKey;
-  final String modelName; // 'gemini-1.5-flash', 'gemini-1.5-pro', 'gpt-4o-mini', 'gpt-4o'
+  final String
+      modelName; // 'gemini-1.5-flash', 'gemini-1.5-pro', 'gpt-4o-mini', 'gpt-4o'
   final bool isEnabled;
   final String preferredLanguage; // 'roman_urdu', 'urdu', 'english'
   final String systemPrompt;

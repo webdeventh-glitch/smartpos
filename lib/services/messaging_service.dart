@@ -69,12 +69,14 @@ class MessagingService {
       http.Response response;
 
       if (method == 'GET') {
-        response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+        response =
+            await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
       } else {
         // POST request
         Map<String, String> headers = {'Content-Type': 'application/json'};
         if (gateway.apiKey.isNotEmpty && gateway.provider == 'twilio') {
-          final credentials = base64Encode(utf8.encode('${gateway.apiKey}:${gateway.apiSecret}'));
+          final credentials = base64Encode(
+              utf8.encode('${gateway.apiKey}:${gateway.apiSecret}'));
           headers['Authorization'] = 'Basic $credentials';
         }
 
@@ -105,7 +107,9 @@ class MessagingService {
         messageBody: message,
         status: isSuccess ? 'sent' : 'failed',
         gatewayName: gateway.name,
-        errorDetails: isSuccess ? 'HTTP ${response.statusCode}' : 'Error ${response.statusCode}: ${response.body}',
+        errorDetails: isSuccess
+            ? 'HTTP ${response.statusCode}'
+            : 'Error ${response.statusCode}: ${response.body}',
         createdAt: DateTime.now().toIso8601String(),
       ));
 
@@ -226,7 +230,8 @@ class MessagingService {
     required BusinessSettings settings,
     List<SaleItem>? items,
   }) {
-    final currency = settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs';
+    final currency =
+        settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs';
     final buffer = StringBuffer();
 
     buffer.writeln('Receipt from ${settings.businessName}');
@@ -238,7 +243,8 @@ class MessagingService {
 
     if (items != null && items.isNotEmpty) {
       for (final item in items) {
-        buffer.writeln('${item.productName} x ${item.quantity.toStringAsFixed(0)} = $currency ${(item.unitPrice * item.quantity).toStringAsFixed(2)}');
+        buffer.writeln(
+            '${item.productName} x ${item.quantity.toStringAsFixed(0)} = $currency ${(item.unitPrice * item.quantity).toStringAsFixed(2)}');
       }
       buffer.writeln('--------------------------------');
     }
@@ -247,12 +253,16 @@ class MessagingService {
     if (sale.discount > 0) {
       buffer.writeln('Discount: $currency ${sale.discount.toStringAsFixed(2)}');
     }
-    buffer.writeln('Total Amount: $currency ${sale.totalAmount.toStringAsFixed(2)}');
-    buffer.writeln('Paid Amount: $currency ${sale.paidAmount.toStringAsFixed(2)}');
+    buffer.writeln(
+        'Total Amount: $currency ${sale.totalAmount.toStringAsFixed(2)}');
+    buffer.writeln(
+        'Paid Amount: $currency ${sale.paidAmount.toStringAsFixed(2)}');
     if (sale.dueAmount > 0) {
-      buffer.writeln('Pending Due: $currency ${sale.dueAmount.toStringAsFixed(2)}');
+      buffer.writeln(
+          'Pending Due: $currency ${sale.dueAmount.toStringAsFixed(2)}');
     }
-    buffer.writeln('Payment: ${sale.paymentMethod.toUpperCase()} (${sale.paymentStatus.toUpperCase()})');
+    buffer.writeln(
+        'Payment: ${sale.paymentMethod.toUpperCase()} (${sale.paymentStatus.toUpperCase()})');
     buffer.writeln('--------------------------------');
     buffer.writeln('Thank you for your business! ${settings.phone}');
 
@@ -266,7 +276,8 @@ class MessagingService {
     required BusinessSettings settings,
     String? invoiceNo,
   }) {
-    final currency = settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs';
+    final currency =
+        settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs';
     final invPart = invoiceNo != null ? ' regarding invoice #$invoiceNo' : '';
 
     return 'Dear $customerName, this is a gentle reminder from ${settings.businessName}$invPart. '
@@ -274,4 +285,3 @@ class MessagingService {
         'Kindly settle your payment at your earliest convenience. Thank you! Contact: ${settings.phone}';
   }
 }
-

@@ -111,44 +111,61 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 24),
+              decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8)),
+              child: const Icon(Icons.warning_amber_rounded,
+                  color: Color(0xFFD97706), size: 24),
             ),
             const SizedBox(width: 12),
-            const Text('Confirm Annual Year Closing', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            const Text('Confirm Annual Year Closing',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Are you sure you want to execute Annual Fiscal Closing for $yearTitle?'),
+            Text(
+                'Are you sure you want to execute Annual Fiscal Closing for $yearTitle?'),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8)),
               child: Column(
                 children: [
-                  _confirmRow('Annual Revenue:', '$currency${_currSales.toStringAsFixed(2)}'),
-                  _confirmRow('Operating Profit:', '$currency${netProfit.toStringAsFixed(2)}'),
-                  _confirmRow('Closing Stock Valuation:', '$currency${_currStockVal.toStringAsFixed(2)}'),
-                  _confirmRow('Receivables Carried Forward:', '$currency${_currReceivables.toStringAsFixed(2)}'),
+                  _confirmRow('Annual Revenue:',
+                      '$currency${_currSales.toStringAsFixed(2)}'),
+                  _confirmRow('Operating Profit:',
+                      '$currency${netProfit.toStringAsFixed(2)}'),
+                  _confirmRow('Closing Stock Valuation:',
+                      '$currency${_currStockVal.toStringAsFixed(2)}'),
+                  _confirmRow('Receivables Carried Forward:',
+                      '$currency${_currReceivables.toStringAsFixed(2)}'),
                 ],
               ),
             ),
             const SizedBox(height: 12),
             const Text(
               '• All ending balances will be locked and carried forward as opening balances for the new fiscal year.\n• A permanent audit certificate will be recorded in the system database.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+              style: TextStyle(
+                  fontSize: 12, color: Color(0xFF64748B), height: 1.4),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4F46E5),
+                foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Execute Closing', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Execute Closing',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -173,7 +190,8 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
       payables: _currPayables,
       closedBy: currentUser,
       status: 'closed',
-      notes: 'Formally closed by $currentUser. Balances successfully carried forward to FY ${currentYear + 1}.',
+      notes:
+          'Formally closed by $currentUser. Balances successfully carried forward to FY ${currentYear + 1}.',
     );
 
     await db.closeFinancialYear(fy);
@@ -182,7 +200,8 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Annual fiscal year closing for $yearTitle completed successfully!'),
+          content: Text(
+              'Annual fiscal year closing for $yearTitle completed successfully!'),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
@@ -195,8 +214,13 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
-          Text(val, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          Text(label,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+          Text(val,
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0F172A))),
         ],
       ),
     );
@@ -209,7 +233,8 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
     final netProfit = _currSales - _currPurchases - _currExpenses;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -233,7 +258,11 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Close fiscal years, snapshot balance sheets, carry forward ledgers, and audit agency books',
-                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                     ),
                   ],
                 ),
@@ -241,11 +270,14 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.lock_clock_rounded, size: 18),
-                  label: const Text('Execute Annual Closing', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text('Execute Annual Closing',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   onPressed: _performAnnualClosing,
                 ),
               ],
@@ -274,8 +306,11 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: const Color(0xFF4F46E5), borderRadius: BorderRadius.circular(8)),
-                            child: const Icon(Icons.account_balance_rounded, color: Colors.white, size: 20),
+                            decoration: BoxDecoration(
+                                color: const Color(0xFF4F46E5),
+                                borderRadius: BorderRadius.circular(8)),
+                            child: const Icon(Icons.account_balance_rounded,
+                                color: Colors.white, size: 20),
                           ),
                           const SizedBox(width: 12),
                           Column(
@@ -286,21 +321,33 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w900,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A),
                                 ),
                               ),
                               Text(
                                 'Fiscal Cycle: ${widget.settings.startDate} to ${DateFormat("dd/MM/yyyy").format(DateTime.now())} • Accounting Method: ${widget.settings.stockAccountingMethod}',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF4F46E5), fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF4F46E5),
+                                    fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: const Color(0xFFD1FAE5), borderRadius: BorderRadius.circular(20)),
-                        child: const Text('● LIVE LEDGER AUDIT', style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 11)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                            color: const Color(0xFFD1FAE5),
+                            borderRadius: BorderRadius.circular(20)),
+                        child: const Text('● LIVE LEDGER AUDIT',
+                            style: TextStyle(
+                                color: Color(0xFF059669),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11)),
                       ),
                     ],
                   ),
@@ -309,25 +356,56 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                   // 6 Core Metrics Grid
                   Row(
                     children: [
-                      _gridBox('ANNUAL REVENUE', '$currency${_currSales.toStringAsFixed(2)}', const Color(0xFF059669), isDark),
+                      _gridBox(
+                          'ANNUAL REVENUE',
+                          '$currency${_currSales.toStringAsFixed(2)}',
+                          const Color(0xFF059669),
+                          isDark),
                       const SizedBox(width: 12),
-                      _gridBox('PURCHASES & COGS', '$currency${_currPurchases.toStringAsFixed(2)}', const Color(0xFF2563EB), isDark),
+                      _gridBox(
+                          'PURCHASES & COGS',
+                          '$currency${_currPurchases.toStringAsFixed(2)}',
+                          const Color(0xFF2563EB),
+                          isDark),
                       const SizedBox(width: 12),
-                      _gridBox('OVERHEAD EXPENSES', '$currency${_currExpenses.toStringAsFixed(2)}', const Color(0xFFDC2626), isDark),
+                      _gridBox(
+                          'OVERHEAD EXPENSES',
+                          '$currency${_currExpenses.toStringAsFixed(2)}',
+                          const Color(0xFFDC2626),
+                          isDark),
                       const SizedBox(width: 12),
-                      _gridBox('NET OPERATING PROFIT', '$currency${netProfit.toStringAsFixed(2)}', netProfit >= 0 ? const Color(0xFF059669) : const Color(0xFFDC2626), isDark),
+                      _gridBox(
+                          'NET OPERATING PROFIT',
+                          '$currency${netProfit.toStringAsFixed(2)}',
+                          netProfit >= 0
+                              ? const Color(0xFF059669)
+                              : const Color(0xFFDC2626),
+                          isDark),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _gridBox('CLOSING INVENTORY VALUATION', '$currency${_currStockVal.toStringAsFixed(2)}', const Color(0xFF7C3AED), isDark),
+                      _gridBox(
+                          'CLOSING INVENTORY VALUATION',
+                          '$currency${_currStockVal.toStringAsFixed(2)}',
+                          const Color(0xFF7C3AED),
+                          isDark),
                       const SizedBox(width: 12),
-                      _gridBox('CUSTOMER RECEIVABLES', '$currency${_currReceivables.toStringAsFixed(2)}', const Color(0xFFD97706), isDark),
+                      _gridBox(
+                          'CUSTOMER RECEIVABLES',
+                          '$currency${_currReceivables.toStringAsFixed(2)}',
+                          const Color(0xFFD97706),
+                          isDark),
                       const SizedBox(width: 12),
-                      _gridBox('SUPPLIER PAYABLES', '$currency${_currPayables.toStringAsFixed(2)}', const Color(0xFFEA580C), isDark),
+                      _gridBox(
+                          'SUPPLIER PAYABLES',
+                          '$currency${_currPayables.toStringAsFixed(2)}',
+                          const Color(0xFFEA580C),
+                          isDark),
                       const SizedBox(width: 12),
-                      _gridBox('PROCESSED INVOICES', '$_ordersCount Invoices', const Color(0xFF475569), isDark),
+                      _gridBox('PROCESSED INVOICES', '$_ordersCount Invoices',
+                          const Color(0xFF475569), isDark),
                     ],
                   ),
                 ],
@@ -350,10 +428,15 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               child: _loading
-                  ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
+                  ? const Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Center(child: CircularProgressIndicator()))
                   : _closedYears.isEmpty
                       ? const Padding(
                           padding: EdgeInsets.all(40),
@@ -374,36 +457,85 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                             child: DataTable(
                               columnSpacing: 22,
                               horizontalMargin: 16,
-                              headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                              headingRowColor: WidgetStateProperty.all(isDark
+                                  ? const Color(0xFF0F172A)
+                                  : const Color(0xFFF8FAFC)),
                               columns: const [
-                                DataColumn(label: Text('FISCAL YEAR', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('START DATE', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('CLOSING DATE', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('FINAL SALES', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('NET PROFIT', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('STOCK VALUE', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('RECEIVABLES C/F', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('CLOSED BY', style: TextStyle(fontWeight: FontWeight.bold))),
-                                DataColumn(label: Text('STATUS', style: TextStyle(fontWeight: FontWeight.bold))),
+                                DataColumn(
+                                    label: Text('FISCAL YEAR',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold))),
+                                DataColumn(
+                                    label: Text('START DATE',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold))),
+                                DataColumn(
+                                    label: Text('CLOSING DATE',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold))),
+                                DataColumn(
+                                    label: Text('FINAL SALES',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold))),
+                                DataColumn(
+                                    label: Text('NET PROFIT',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold))),
+                                DataColumn(
+                                    label: Text('STOCK VALUE',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold))),
+                                DataColumn(
+                                    label: Text('RECEIVABLES C/F',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold))),
+                                DataColumn(
+                                    label: Text('CLOSED BY',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold))),
+                                DataColumn(
+                                    label: Text('STATUS',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold))),
                               ],
                               rows: _closedYears.map((fy) {
                                 return DataRow(cells: [
-                                  DataCell(Text(fy.yearTitle, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)))),
+                                  DataCell(Text(fy.yearTitle,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF4F46E5)))),
                                   DataCell(Text(fy.startDate)),
                                   DataCell(Text(fy.endDate)),
-                                  DataCell(Text('$currency${fy.totalSales.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                  DataCell(Text(
+                                      '$currency${fy.totalSales.toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold))),
                                   DataCell(Text(
                                     '$currency${fy.netProfit.toStringAsFixed(2)}',
-                                    style: TextStyle(fontWeight: FontWeight.w900, color: fy.netProfit >= 0 ? const Color(0xFF059669) : const Color(0xFFDC2626)),
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: fy.netProfit >= 0
+                                            ? const Color(0xFF059669)
+                                            : const Color(0xFFDC2626)),
                                   )),
-                                  DataCell(Text('$currency${fy.stockValuation.toStringAsFixed(2)}')),
-                                  DataCell(Text('$currency${fy.receivables.toStringAsFixed(2)}')),
+                                  DataCell(Text(
+                                      '$currency${fy.stockValuation.toStringAsFixed(2)}')),
+                                  DataCell(Text(
+                                      '$currency${fy.receivables.toStringAsFixed(2)}')),
                                   DataCell(Text(fy.closedBy)),
                                   DataCell(
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(4)),
-                                      child: const Text('LOCKED & CLOSED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                          color: const Color(0xFFDCFCE7),
+                                          borderRadius:
+                                              BorderRadius.circular(4)),
+                                      child: const Text('LOCKED & CLOSED',
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF16A34A))),
                                     ),
                                   ),
                                 ]);
@@ -425,14 +557,24 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF0F172A) : Colors.white,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          border: Border.all(
+              color:
+                  isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B))),
             const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color)),
+            Text(value,
+                style: TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w900, color: color)),
           ],
         ),
       ),

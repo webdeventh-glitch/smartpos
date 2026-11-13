@@ -44,7 +44,8 @@ void main() {
     }
   });
 
-  testWidgets('ProductsListScreen displays DatabaseService products cleanly', (tester) async {
+  testWidgets('ProductsListScreen displays DatabaseService products cleanly',
+      (tester) async {
     tester.view.physicalSize = const Size(1440, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);

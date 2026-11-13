@@ -9,7 +9,9 @@ void main() {
     sqfliteFfiInit();
   });
 
-  test('Phase 5: Customer & Supplier Ledgers, Due Payment Receipts, and Balance Reconciliation', () async {
+  test(
+      'Phase 5: Customer & Supplier Ledgers, Due Payment Receipts, and Balance Reconciliation',
+      () async {
     final tempDir = await Directory.systemTemp.createTemp('pos_phase5_test_');
     final dbPath = '${tempDir.path}/test_phase5.db';
 

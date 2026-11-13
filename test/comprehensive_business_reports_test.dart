@@ -17,7 +17,8 @@ void main() {
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('smartpos_reports_');
-      dbPath = path.join(tempDir.path, 'test_rep_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(
+          tempDir.path, 'test_rep_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -29,7 +30,9 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Multi-dimensional report correctly aggregates Sales, Purchases, Expenses, Taxes, and Margins', () async {
+    test(
+        '1. Multi-dimensional report correctly aggregates Sales, Purchases, Expenses, Taxes, and Margins',
+        () async {
       // 1. Add Product
       final prodId = await dbService.addProduct(Product(
         name: 'HP EliteBook Laptop',

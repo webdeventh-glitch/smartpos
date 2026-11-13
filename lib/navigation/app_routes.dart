@@ -88,4 +88,3 @@ enum AppRoute {
     }
   }
 }
-

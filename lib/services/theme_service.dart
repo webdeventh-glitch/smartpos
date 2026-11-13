@@ -2,7 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class ThemeService {
-  static final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.light);
+  static final ValueNotifier<ThemeMode> themeModeNotifier =
+      ValueNotifier(ThemeMode.light);
   static final ValueNotifier<bool> touchFriendlyNotifier = ValueNotifier(false);
 
   static bool get isDark => themeModeNotifier.value == ThemeMode.dark;
@@ -24,7 +25,8 @@ class ThemeService {
     touchFriendlyNotifier.value = !touchFriendlyNotifier.value;
   }
 
-  static ScrollBehavior get scrollBehavior => const MaterialScrollBehavior().copyWith(
+  static ScrollBehavior get scrollBehavior =>
+      const MaterialScrollBehavior().copyWith(
         dragDevices: {
           PointerDeviceKind.mouse,
           PointerDeviceKind.touch,
@@ -38,9 +40,8 @@ class ThemeService {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      visualDensity: isTouchFriendly
-          ? VisualDensity.standard
-          : VisualDensity.compact,
+      visualDensity:
+          isTouchFriendly ? VisualDensity.standard : VisualDensity.compact,
       materialTapTargetSize: isTouchFriendly
           ? MaterialTapTargetSize.padded
           : MaterialTapTargetSize.shrinkWrap,
@@ -94,7 +95,8 @@ class ThemeService {
         filled: true,
         fillColor: Colors.white,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
@@ -131,9 +133,8 @@ class ThemeService {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      visualDensity: isTouchFriendly
-          ? VisualDensity.standard
-          : VisualDensity.compact,
+      visualDensity:
+          isTouchFriendly ? VisualDensity.standard : VisualDensity.compact,
       materialTapTargetSize: isTouchFriendly
           ? MaterialTapTargetSize.padded
           : MaterialTapTargetSize.shrinkWrap,
@@ -168,7 +169,8 @@ class ThemeService {
         backgroundColor: darkSurface,
         elevation: 12,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titleTextStyle: const TextStyle(color: darkText, fontSize: 18, fontWeight: FontWeight.bold),
+        titleTextStyle: const TextStyle(
+            color: darkText, fontSize: 18, fontWeight: FontWeight.bold),
       ),
       dividerTheme: const DividerThemeData(
         color: darkBorder,
@@ -186,7 +188,8 @@ class ThemeService {
         filled: true,
         fillColor: const Color(0xFF0F172A),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         hintStyle: const TextStyle(color: darkSubtext, fontSize: 13),
         labelStyle: const TextStyle(color: darkSubtext, fontSize: 13),
         border: OutlineInputBorder(

@@ -80,7 +80,8 @@ void main() {
       expect(await db.getProductById(id), isNull);
     });
 
-    test('disambiguates duplicate SKU and barcode collisions automatically', () async {
+    test('disambiguates duplicate SKU and barcode collisions automatically',
+        () async {
       final firstId = await db.addProduct(
         Product(
           name: 'Original Soap',

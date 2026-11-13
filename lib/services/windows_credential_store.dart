@@ -101,17 +101,19 @@ class WindowsCredentialStore {
     if (_advapi32 != null) return true;
     try {
       final lib = DynamicLibrary.open('advapi32.dll');
-      _credWriteW = lib
-          .lookupFunction<_CredWriteWNative, _CredWriteWDart>('CredWriteW');
+      _credWriteW =
+          lib.lookupFunction<_CredWriteWNative, _CredWriteWDart>('CredWriteW');
       _credReadW =
           lib.lookupFunction<_CredReadWNative, _CredReadWDart>('CredReadW');
       _credDeleteW = lib
           .lookupFunction<_CredDeleteWNative, _CredDeleteWDart>('CredDeleteW');
-      _credFree = lib.lookupFunction<_CredFreeNative, _CredFreeDart>('CredFree');
+      _credFree =
+          lib.lookupFunction<_CredFreeNative, _CredFreeDart>('CredFree');
       _advapi32 = lib;
       return true;
     } catch (e, st) {
-      AppLogger.error('WindowsCredentialStore', 'Failed to bind advapi32.dll', e, st);
+      AppLogger.error(
+          'WindowsCredentialStore', 'Failed to bind advapi32.dll', e, st);
       return false;
     }
   }
@@ -169,7 +171,9 @@ class WindowsCredentialStore {
       return false;
     } finally {
       // Zero out secret buffer before freeing
-      blobPtr.asTypedList(secretBytes.length).fillRange(0, secretBytes.length, 0);
+      blobPtr
+          .asTypedList(secretBytes.length)
+          .fillRange(0, secretBytes.length, 0);
       calloc.free(targetPtr);
       calloc.free(userPtr);
       calloc.free(commentPtr);
@@ -238,4 +242,3 @@ class WindowsCredentialStore {
     }
   }
 }
-

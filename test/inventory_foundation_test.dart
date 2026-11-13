@@ -33,7 +33,8 @@ void main() {
     }
   });
 
-  test('purchase received increments stock, ordered waits until received', () async {
+  test('purchase received increments stock, ordered waits until received',
+      () async {
     final prodId = await db.addProduct(
       Product(
         name: 'Sugar 1kg',
@@ -108,6 +109,7 @@ void main() {
     expect(afterAdj!.stockQuantity, 10.0);
 
     final valuation = await db.getStockValuationReport();
-    expect((valuation['stockValueRetail'] as num).toDouble(), greaterThanOrEqualTo(25000.0));
+    expect((valuation['stockValueRetail'] as num).toDouble(),
+        greaterThanOrEqualTo(25000.0));
   });
 }

@@ -17,6 +17,7 @@ import '../../services/currency_rate_service.dart';
 import '../../services/print_service.dart';
 import '../../services/ai_assistant_service.dart';
 import '../../services/number_to_words_service.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import 'invoice_layouts_manager.dart';
 import 'printer_management_section.dart';
@@ -152,6 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _showSkuOnInvoice = true;
   bool _showWarrantyOnInvoice = true;
   bool _showTotalInWords = true;
+  String _primaryLanguage = 'en';
   String _totalInWordsLanguage = 'ur';
   bool _enableSecondaryLanguage = false;
   String _secondaryLanguage = 'ur';
@@ -265,11 +267,16 @@ class _SettingsScreenState extends State<SettingsScreen>
     _showSkuOnInvoice = s.showSkuOnInvoice;
     _showWarrantyOnInvoice = s.showWarrantyOnInvoice;
     _showTotalInWords = s.showTotalInWords;
-    _totalInWordsLanguage =
-        s.totalInWordsLanguage.isNotEmpty ? s.totalInWordsLanguage : 'ur';
-    _enableSecondaryLanguage = s.enableSecondaryLanguage;
+    _primaryLanguage = s.primaryLanguage.isNotEmpty ? s.primaryLanguage : 'en';
+    _totalInWordsLanguage = s.totalInWordsLanguage.isNotEmpty
+        ? s.totalInWordsLanguage
+        : (_primaryLanguage == 'en' ? 'en' : _primaryLanguage);
+    _enableSecondaryLanguage =
+        s.isSecondaryLanguageAllowed ? s.enableSecondaryLanguage : false;
     _secondaryLanguage =
-        s.secondaryLanguage.isNotEmpty ? s.secondaryLanguage : 'ur';
+        (s.secondaryLanguage.isNotEmpty && s.secondaryLanguage != 'en')
+            ? s.secondaryLanguage
+            : 'ur';
     _invoiceHeadingCtrl = TextEditingController(
         text: s.invoiceHeading.isNotEmpty ? s.invoiceHeading : 'TAX INVOICE');
 
@@ -1262,8 +1269,10 @@ class _SettingsScreenState extends State<SettingsScreen>
         showSkuOnInvoice: _showSkuOnInvoice,
         showWarrantyOnInvoice: _showWarrantyOnInvoice,
         showTotalInWords: _showTotalInWords,
+        primaryLanguage: _primaryLanguage,
         totalInWordsLanguage: _totalInWordsLanguage,
-        enableSecondaryLanguage: _enableSecondaryLanguage,
+        enableSecondaryLanguage:
+            _primaryLanguage == 'en' ? _enableSecondaryLanguage : false,
         secondaryLanguage: _secondaryLanguage,
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
         sessionTimeoutMinutes: _sessionTimeoutMinutes,
@@ -7728,14 +7737,17 @@ class _SettingsScreenState extends State<SettingsScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _enableSecondaryLanguage
+                              _primaryLanguage == 'en' &&
+                                      _enableSecondaryLanguage
                                   ? 'Primary Language (بنیادی زبان)'
                                   : 'Primary Language',
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                             Text(
-                              'Choose primary language for invoice totals in words (English, Urdu, Pashto, Farsi, Spanish, Dutch)',
+                              _primaryLanguage == 'en'
+                                  ? 'Default system language. Secondary language can optionally be enabled.'
+                                  : 'Pure single-language mode: 100% of menus, screens, and receipts run in this language.',
                               style: TextStyle(
                                   fontSize: 11,
                                   color:
@@ -7746,11 +7758,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ),
                       const SizedBox(width: 12),
                       DropdownButton<String>(
-                        value: _totalInWordsLanguage,
+                        value: _primaryLanguage,
                         underline: const SizedBox(),
                         dropdownColor:
                             isDark ? const Color(0xFF1E293B) : Colors.white,
-                        items: NumberToWordsService.supportedLanguages.map((l) {
+                        items: PosLocalization.supportedLanguages.map((l) {
                           return DropdownMenuItem<String>(
                             value: l.code,
                             child: Text('${l.name} (${l.nativeName})',
@@ -7760,7 +7772,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                         }).toList(),
                         onChanged: (val) {
                           if (val != null) {
-                            setState(() => _totalInWordsLanguage = val);
+                            setState(() {
+                              _primaryLanguage = val;
+                              _totalInWordsLanguage = val;
+                              if (_primaryLanguage != 'en') {
+                                _enableSecondaryLanguage = false;
+                              }
+                            });
                             _saveReceiptSettings(showSnackbar: true);
                           }
                         },
@@ -7771,111 +7789,154 @@ class _SettingsScreenState extends State<SettingsScreen>
                   const Divider(height: 1),
                   const SizedBox(height: 10),
 
-                  // Row 2: Secondary Language Toggle & Dropdown
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _enableSecondaryLanguage,
-                        activeColor: const Color(0xFF4F46E5),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4)),
-                        onChanged: (val) {
-                          setState(
-                              () => _enableSecondaryLanguage = val ?? false);
-                          _saveReceiptSettings(showSnackbar: true);
-                        },
+                  // Row 2: Secondary Language (Only active when Primary is English)
+                  if (_primaryLanguage != 'en') ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF0F172A).withValues(alpha: 0.5)
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0),
+                        ),
                       ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() => _enableSecondaryLanguage =
-                                !_enableSecondaryLanguage);
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Secondary language is not needed because Primary Language is set to ${_primaryLanguage.toUpperCase()}. The entire software runs purely in this language.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontStyle: FontStyle.italic,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _enableSecondaryLanguage,
+                          activeColor: const Color(0xFF4F46E5),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4)),
+                          onChanged: (val) {
+                            setState(
+                                () => _enableSecondaryLanguage = val ?? false);
                             _saveReceiptSettings(showSnackbar: true);
                           },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    _enableSecondaryLanguage
-                                        ? 'Enable Secondary Language (ثانوی زبان - اختیاری)'
-                                        : 'Enable Secondary Language (Optional)',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 1.5),
-                                    decoration: BoxDecoration(
-                                      color: _enableSecondaryLanguage
-                                          ? const Color(0xFF4F46E5)
-                                              .withValues(alpha: 0.12)
-                                          : (isDark
-                                              ? Colors.white10
-                                              : const Color(0xFFF1F5F9)),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      _enableSecondaryLanguage
-                                          ? 'Active'
-                                          : 'Disabled (Clean UI)',
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() => _enableSecondaryLanguage =
+                                  !_enableSecondaryLanguage);
+                              _saveReceiptSettings(showSnackbar: true);
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      'Enable Secondary Language (Optional)',
                                       style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 1.5),
+                                      decoration: BoxDecoration(
                                         color: _enableSecondaryLanguage
                                             ? const Color(0xFF4F46E5)
+                                                .withValues(alpha: 0.12)
                                             : (isDark
-                                                ? Colors.white54
-                                                : Colors.black45),
+                                                ? Colors.white10
+                                                : const Color(0xFFF1F5F9)),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        _enableSecondaryLanguage
+                                            ? 'Active'
+                                            : 'Disabled (Clean UI)',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: _enableSecondaryLanguage
+                                              ? const Color(0xFF4F46E5)
+                                              : (isDark
+                                                  ? Colors.white54
+                                                  : Colors.black45),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                _enableSecondaryLanguage
-                                    ? 'Show bilingual subtitles on navigation sidebar and secondary receipt translations'
-                                    : 'When disabled, only primary language is displayed across the entire app with zero clutter',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark
-                                        ? Colors.white60
-                                        : Colors.black54),
-                              ),
-                            ],
+                                  ],
+                                ),
+                                Text(
+                                  _enableSecondaryLanguage
+                                      ? 'Show bilingual subtitles on navigation sidebar and secondary receipt translations'
+                                      : 'When disabled, only primary language is displayed across the entire app with zero clutter',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark
+                                          ? Colors.white60
+                                          : Colors.black54),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      if (_enableSecondaryLanguage) ...[
-                        const SizedBox(width: 12),
-                        DropdownButton<String>(
-                          value: _secondaryLanguage,
-                          underline: const SizedBox(),
-                          dropdownColor:
-                              isDark ? const Color(0xFF1E293B) : Colors.white,
-                          items:
-                              NumberToWordsService.supportedLanguages.map((l) {
-                            return DropdownMenuItem<String>(
-                              value: l.code,
-                              child: Text('${l.name} (${l.nativeName})',
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600)),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _secondaryLanguage = val);
-                              _saveReceiptSettings(showSnackbar: true);
-                            }
-                          },
-                        ),
+                        if (_enableSecondaryLanguage) ...[
+                          const SizedBox(width: 12),
+                          DropdownButton<String>(
+                            value: _secondaryLanguage != 'en'
+                                ? _secondaryLanguage
+                                : 'ur',
+                            underline: const SizedBox(),
+                            dropdownColor:
+                                isDark ? const Color(0xFF1E293B) : Colors.white,
+                            // English is strictly excluded from secondary options!
+                            items: PosLocalization.secondaryLanguageOptions
+                                .map((l) {
+                              return DropdownMenuItem<String>(
+                                value: l.code,
+                                child: Text('${l.name} (${l.nativeName})',
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600)),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _secondaryLanguage = val);
+                                _saveReceiptSettings(showSnackbar: true);
+                              }
+                            },
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
+                  ],
 
                   // Row 3: Live Preview Banner
                   const SizedBox(height: 10),
@@ -8152,8 +8213,10 @@ class _SettingsScreenState extends State<SettingsScreen>
         showSkuOnInvoice: _showSkuOnInvoice,
         showWarrantyOnInvoice: _showWarrantyOnInvoice,
         showTotalInWords: _showTotalInWords,
+        primaryLanguage: _primaryLanguage,
         totalInWordsLanguage: _totalInWordsLanguage,
-        enableSecondaryLanguage: _enableSecondaryLanguage,
+        enableSecondaryLanguage:
+            _primaryLanguage == 'en' ? _enableSecondaryLanguage : false,
         secondaryLanguage: _secondaryLanguage,
         invoiceHeading: _invoiceHeadingCtrl.text.trim(),
         sessionTimeoutMinutes: _sessionTimeoutMinutes,
@@ -8269,8 +8332,10 @@ class _SettingsScreenState extends State<SettingsScreen>
       showSkuOnInvoice: _showSkuOnInvoice,
       showWarrantyOnInvoice: _showWarrantyOnInvoice,
       showTotalInWords: _showTotalInWords,
+      primaryLanguage: _primaryLanguage,
       totalInWordsLanguage: _totalInWordsLanguage,
-      enableSecondaryLanguage: _enableSecondaryLanguage,
+      enableSecondaryLanguage:
+          _primaryLanguage == 'en' ? _enableSecondaryLanguage : false,
       secondaryLanguage: _secondaryLanguage,
       invoiceHeading: _invoiceHeadingCtrl.text.trim(),
     );
@@ -8310,8 +8375,10 @@ class _SettingsScreenState extends State<SettingsScreen>
       showSkuOnInvoice: _showSkuOnInvoice,
       showWarrantyOnInvoice: _showWarrantyOnInvoice,
       showTotalInWords: _showTotalInWords,
+      primaryLanguage: _primaryLanguage,
       totalInWordsLanguage: _totalInWordsLanguage,
-      enableSecondaryLanguage: _enableSecondaryLanguage,
+      enableSecondaryLanguage:
+          _primaryLanguage == 'en' ? _enableSecondaryLanguage : false,
       secondaryLanguage: _secondaryLanguage,
       invoiceHeading: _invoiceHeadingCtrl.text.trim(),
     );

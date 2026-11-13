@@ -9,14 +9,17 @@ import 'database_service.dart';
 
 class MySqlService {
   static final ValueNotifier<bool> isMySqlOnline = ValueNotifier<bool>(false);
-  static final ValueNotifier<String> connectionStatus = ValueNotifier<String>('Disconnected');
+  static final ValueNotifier<String> connectionStatus =
+      ValueNotifier<String>('Disconnected');
 
-  static Future<void> _closeQuietly(MySQLConnection? conn, String context) async {
+  static Future<void> _closeQuietly(
+      MySQLConnection? conn, String context) async {
     if (conn == null) return;
     try {
       await conn.close();
     } catch (e, st) {
-      AppLogger.warning('MySqlService', 'Failed closing connection ($context)', e, st);
+      AppLogger.warning(
+          'MySqlService', 'Failed closing connection ($context)', e, st);
     }
   }
 
@@ -27,13 +30,16 @@ class MySqlService {
     String columnDef,
   ) async {
     try {
-      final cols = await conn.execute("SHOW COLUMNS FROM `$table` LIKE '$column'");
+      final cols =
+          await conn.execute("SHOW COLUMNS FROM `$table` LIKE '$column'");
       if (cols.rows.isEmpty) {
-        await conn.execute("ALTER TABLE `$table` ADD COLUMN `$column` $columnDef");
+        await conn
+            .execute("ALTER TABLE `$table` ADD COLUMN `$column` $columnDef");
         AppLogger.info('MySqlService', 'Added MySQL column $table.$column');
       }
     } catch (e, st) {
-      AppLogger.warning('MySqlService', 'Failed ensuring MySQL column $table.$column', e, st);
+      AppLogger.warning(
+          'MySqlService', 'Failed ensuring MySQL column $table.$column', e, st);
     }
   }
 
@@ -53,7 +59,8 @@ class MySqlService {
 
     // 1. Quick probe to see if port 3306 is already actively listening
     try {
-      final socket = await Socket.connect('127.0.0.1', 3306, timeout: const Duration(milliseconds: 350));
+      final socket = await Socket.connect('127.0.0.1', 3306,
+          timeout: const Duration(milliseconds: 350));
       await socket.close();
       return true; // MySQL is already online and responding!
     } catch (e) {
@@ -75,7 +82,8 @@ class MySqlService {
             }
           }
         } catch (e, st) {
-          AppLogger.warning('MySqlService', 'Error scanning ${laragonMysql.path}', e, st);
+          AppLogger.warning(
+              'MySqlService', 'Error scanning ${laragonMysql.path}', e, st);
         }
       }
 
@@ -90,12 +98,14 @@ class MySqlService {
       if (progFiles.existsSync()) {
         try {
           for (final entity in progFiles.listSync()) {
-            if (entity is Directory && entity.path.toLowerCase().contains('server')) {
+            if (entity is Directory &&
+                entity.path.toLowerCase().contains('server')) {
               candidateDirs.add(entity);
             }
           }
         } catch (e, st) {
-          AppLogger.warning('MySqlService', 'Error scanning ${progFiles.path}', e, st);
+          AppLogger.warning(
+              'MySqlService', 'Error scanning ${progFiles.path}', e, st);
         }
       }
 
@@ -118,7 +128,8 @@ class MySqlService {
         args.add('--standalone');
 
         try {
-          debugPrint('[SmartPOS] Auto-starting MySQL engine from ${mysqld.path}...');
+          debugPrint(
+              '[SmartPOS] Auto-starting MySQL engine from ${mysqld.path}...');
           await Process.start(
             mysqld.path,
             args,
@@ -129,12 +140,15 @@ class MySqlService {
           for (int i = 0; i < 7; i++) {
             await Future.delayed(const Duration(milliseconds: 500));
             try {
-              final testSocket = await Socket.connect('127.0.0.1', 3306, timeout: const Duration(milliseconds: 400));
+              final testSocket = await Socket.connect('127.0.0.1', 3306,
+                  timeout: const Duration(milliseconds: 400));
               await testSocket.close();
-              debugPrint('[SmartPOS] MySQL successfully started and responding on port 3306!');
+              debugPrint(
+                  '[SmartPOS] MySQL successfully started and responding on port 3306!');
               return true;
             } catch (e) {
-              AppLogger.debug('MySqlService', 'Waiting for mysqld on 3306 (attempt ${i + 1}): $e');
+              AppLogger.debug('MySqlService',
+                  'Waiting for mysqld on 3306 (attempt ${i + 1}): $e');
             }
           }
         } catch (e) {
@@ -168,13 +182,24 @@ class MySqlService {
 
       // Auto-fallback: If user is root, try empty password, common local passwords, and smartpos credentials
       if (user.toLowerCase() == 'root') {
-        const commonPasswords = ['', 'root', 'admin', '123456', 'password', 'toor', '1234', 'smartpos123'];
+        const commonPasswords = [
+          '',
+          'root',
+          'admin',
+          '123456',
+          'password',
+          'toor',
+          '1234',
+          'smartpos123'
+        ];
         for (final p in commonPasswords) {
-          if (!candidateCredentials.any((c) => c['user'] == 'root' && c['password'] == p)) {
+          if (!candidateCredentials
+              .any((c) => c['user'] == 'root' && c['password'] == p)) {
             candidateCredentials.add({'user': 'root', 'password': p});
           }
         }
-        candidateCredentials.add({'user': 'smartpos', 'password': 'smartpos123'});
+        candidateCredentials
+            .add({'user': 'smartpos', 'password': 'smartpos123'});
       }
 
       dynamic firstAuthError;
@@ -189,7 +214,9 @@ class MySqlService {
             port: port,
             userName: currUser,
             password: currPass,
-            databaseName: (databaseName != null && databaseName.isNotEmpty) ? databaseName : null,
+            databaseName: (databaseName != null && databaseName.isNotEmpty)
+                ? databaseName
+                : null,
             secure: false,
           );
           await conn.connect();
@@ -207,7 +234,8 @@ class MySqlService {
             'latencyMs': sw.elapsedMilliseconds,
             'resolvedUser': currUser,
             'resolvedPassword': currPass,
-            'message': 'Connected to MySQL server successfully (${sw.elapsedMilliseconds}ms)!$extraNote',
+            'message':
+                'Connected to MySQL server successfully (${sw.elapsedMilliseconds}ms)!$extraNote',
           };
         } catch (e) {
           if (i == 0) firstAuthError = e;
@@ -227,9 +255,11 @@ class MySqlService {
       String errorMsg = e.toString();
       if (errorMsg.contains('1045')) {
         if (password.isNotEmpty) {
-          errorMsg += '\nHint: Laragon/XAMPP users: Default "root" user has NO password. Clear/empty the DB Password field and try again. Alternatively, use username "smartpos" with password "smartpos123".';
+          errorMsg +=
+              '\nHint: Laragon/XAMPP users: Default "root" user has NO password. Clear/empty the DB Password field and try again. Alternatively, use username "smartpos" with password "smartpos123".';
         } else {
-          errorMsg += '\nHint: Access denied with empty password. If you have set a MySQL root password, please enter it in the DB Password field. Or use username "smartpos" with password "smartpos123".';
+          errorMsg +=
+              '\nHint: Access denied with empty password. If you have set a MySQL root password, please enter it in the DB Password field. Or use username "smartpos" with password "smartpos123".';
         }
       }
       return {
@@ -255,7 +285,8 @@ class MySqlService {
   }) async {
     MySQLConnection? conn;
     try {
-      final safeDbName = databaseName.trim().isEmpty ? 'smartpos' : databaseName.trim();
+      final safeDbName =
+          databaseName.trim().isEmpty ? 'smartpos' : databaseName.trim();
       final targetHost = normalizeHost(host);
       if (targetHost == '127.0.0.1') {
         await tryAutoStartLocalMySql();
@@ -266,13 +297,24 @@ class MySqlService {
       ];
       // Auto-fallback: If user is root, try empty password, common local passwords, and smartpos credentials
       if (user.toLowerCase() == 'root') {
-        const commonPasswords = ['', 'root', 'admin', '123456', 'password', 'toor', '1234', 'smartpos123'];
+        const commonPasswords = [
+          '',
+          'root',
+          'admin',
+          '123456',
+          'password',
+          'toor',
+          '1234',
+          'smartpos123'
+        ];
         for (final p in commonPasswords) {
-          if (!candidateCredentials.any((c) => c['user'] == 'root' && c['password'] == p)) {
+          if (!candidateCredentials
+              .any((c) => c['user'] == 'root' && c['password'] == p)) {
             candidateCredentials.add({'user': 'root', 'password': p});
           }
         }
-        candidateCredentials.add({'user': 'smartpos', 'password': 'smartpos123'});
+        candidateCredentials
+            .add({'user': 'smartpos', 'password': 'smartpos123'});
       }
 
       String activeUser = user;
@@ -308,7 +350,9 @@ class MySqlService {
       }
 
       if (!connected) {
-        throw firstAuthError ?? lastAuthError ?? Exception('Could not connect to MySQL server');
+        throw firstAuthError ??
+            lastAuthError ??
+            Exception('Could not connect to MySQL server');
       }
 
       await conn!.execute(
@@ -349,7 +393,8 @@ class MySqlService {
         'success': true,
         'resolvedUser': activeUser,
         'resolvedPassword': activePassword,
-        'message': 'Database "$safeDbName" and all tables successfully initialized in MySQL!',
+        'message':
+            'Database "$safeDbName" and all tables successfully initialized in MySQL!',
       };
     } catch (e) {
       isMySqlOnline.value = false;
@@ -358,9 +403,11 @@ class MySqlService {
       String errorMsg = e.toString();
       if (errorMsg.contains('1045')) {
         if (password.isNotEmpty) {
-          errorMsg += '\nHint: Laragon/XAMPP users: Default "root" user has NO password. Clear/empty the DB Password field and try again. Alternatively, use username "smartpos" with password "smartpos123".';
+          errorMsg +=
+              '\nHint: Laragon/XAMPP users: Default "root" user has NO password. Clear/empty the DB Password field and try again. Alternatively, use username "smartpos" with password "smartpos123".';
         } else {
-          errorMsg += '\nHint: Access denied with empty password. If you have set a MySQL root password, please enter it in the DB Password field. Or use username "smartpos" with password "smartpos123".';
+          errorMsg +=
+              '\nHint: Access denied with empty password. If you have set a MySQL root password, please enter it in the DB Password field. Or use username "smartpos" with password "smartpos123".';
         }
       }
       return {
@@ -432,7 +479,9 @@ class MySqlService {
 
     MySQLConnection? conn;
     try {
-      final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
+      final safeDbName = settings.dbName.trim().isNotEmpty
+          ? settings.dbName.trim()
+          : 'smartpos';
       conn = await _connectWithFallback(
         host: targetHost,
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
@@ -469,7 +518,8 @@ class MySqlService {
   /// Checks whether the selected MySQL database has been provisioned and configured.
   /// If tables are dropped (e.g. by user in phpMyAdmin), this returns false so the app
   /// immediately detects the uninitialized state and triggers the setup wizard.
-  static Future<bool> isMySqlDatabaseConfigured(BusinessSettings settings) async {
+  static Future<bool> isMySqlDatabaseConfigured(
+      BusinessSettings settings) async {
     if (!settings.isMySql) return true;
 
     final targetHost = normalizeHost(settings.dbHost);
@@ -479,7 +529,9 @@ class MySqlService {
 
     MySQLConnection? conn;
     try {
-      final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
+      final safeDbName = settings.dbName.trim().isNotEmpty
+          ? settings.dbName.trim()
+          : 'smartpos';
       // Connect to server without database first so missing DB doesn't trigger handshake error
       conn = await _connectWithFallback(
         host: targetHost,
@@ -498,7 +550,8 @@ class MySqlService {
         if (aliasCheck.rows.isNotEmpty) {
           activeDb = alias;
         } else {
-          connectionStatus.value = 'Uninitialized (Database $safeDbName missing)';
+          connectionStatus.value =
+              'Uninitialized (Database $safeDbName missing)';
           return false;
         }
       }
@@ -512,7 +565,8 @@ class MySqlService {
         return false;
       }
 
-      final countRows = await conn.execute("SELECT id FROM `business_settings` LIMIT 1");
+      final countRows =
+          await conn.execute("SELECT id FROM `business_settings` LIMIT 1");
       if (countRows.rows.isEmpty) {
         return false;
       }
@@ -546,7 +600,9 @@ class MySqlService {
     MySQLConnection? conn;
     DatabaseService.suppressSync = true;
     try {
-      final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
+      final safeDbName = settings.dbName.trim().isNotEmpty
+          ? settings.dbName.trim()
+          : 'smartpos';
       conn = await _connectWithFallback(
         host: targetHost,
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
@@ -574,7 +630,8 @@ class MySqlService {
           final barcode = m['barcode'] ?? '';
           if (sku.isEmpty && barcode.isEmpty) continue;
 
-          final existing = await localDb.getProductByCode(sku.isNotEmpty ? sku : barcode);
+          final existing =
+              await localDb.getProductByCode(sku.isNotEmpty ? sku : barcode);
           final p = Product(
             id: existing?.id,
             sku: sku,
@@ -583,10 +640,14 @@ class MySqlService {
             categoryName: m['category_name'] ?? 'General',
             brandName: m['brand_name'] ?? 'Standard',
             unit: m['unit'] ?? 'Pc',
-            purchasePrice: double.tryParse(m['purchase_price']?.toString() ?? '0') ?? 0.0,
-            sellingPrice: double.tryParse(m['selling_price']?.toString() ?? '0') ?? 0.0,
-            stockQuantity: double.tryParse(m['stock_quantity']?.toString() ?? '0') ?? 0.0,
-            alertQuantity: double.tryParse(m['alert_quantity']?.toString() ?? '5') ?? 5.0,
+            purchasePrice:
+                double.tryParse(m['purchase_price']?.toString() ?? '0') ?? 0.0,
+            sellingPrice:
+                double.tryParse(m['selling_price']?.toString() ?? '0') ?? 0.0,
+            stockQuantity:
+                double.tryParse(m['stock_quantity']?.toString() ?? '0') ?? 0.0,
+            alertQuantity:
+                double.tryParse(m['alert_quantity']?.toString() ?? '5') ?? 5.0,
             batchNumber: m['batch_number'] ?? '',
             expiryDate: m['expiry_date'] ?? '',
           );
@@ -597,7 +658,8 @@ class MySqlService {
           }
         }
       } catch (e, st) {
-        AppLogger.warning('MySqlService', 'Failed pulling products from MySQL', e, st);
+        AppLogger.warning(
+            'MySqlService', 'Failed pulling products from MySQL', e, st);
       }
 
       // Pull contacts
@@ -608,20 +670,23 @@ class MySqlService {
           final name = m['name'] ?? '';
           if (name.isNotEmpty) {
             final existingContacts = await localDb.getContacts();
-            if (!existingContacts.any((c) => c.name.toLowerCase() == name.toLowerCase())) {
+            if (!existingContacts
+                .any((c) => c.name.toLowerCase() == name.toLowerCase())) {
               await localDb.addContact(Contact(
                 name: name,
                 type: m['type'] ?? 'customer',
                 phone: m['phone'] ?? '',
                 email: m['email'] ?? '',
                 address: m['address'] ?? '',
-                balance: double.tryParse(m['balance']?.toString() ?? '0') ?? 0.0,
+                balance:
+                    double.tryParse(m['balance']?.toString() ?? '0') ?? 0.0,
               ));
             }
           }
         }
       } catch (e, st) {
-        AppLogger.warning('MySqlService', 'Failed pulling contacts from MySQL', e, st);
+        AppLogger.warning(
+            'MySqlService', 'Failed pulling contacts from MySQL', e, st);
       }
 
       // Pull categories
@@ -632,13 +697,18 @@ class MySqlService {
           final name = m['name'] ?? '';
           if (name.isNotEmpty) {
             final existingCats = await localDb.getCategories();
-            if (!existingCats.any((c) => c.name.toLowerCase() == name.toLowerCase())) {
-              await localDb.addCategory(Category(name: name, code: m['code'] ?? '', description: m['description'] ?? ''));
+            if (!existingCats
+                .any((c) => c.name.toLowerCase() == name.toLowerCase())) {
+              await localDb.addCategory(Category(
+                  name: name,
+                  code: m['code'] ?? '',
+                  description: m['description'] ?? ''));
             }
           }
         }
       } catch (e, st) {
-        AppLogger.warning('MySqlService', 'Failed pulling categories from MySQL', e, st);
+        AppLogger.warning(
+            'MySqlService', 'Failed pulling categories from MySQL', e, st);
       }
 
       // Pull users
@@ -649,7 +719,8 @@ class MySqlService {
           final username = m['username'] ?? '';
           if (username.isNotEmpty) {
             final existingUsers = await localDb.getUsers();
-            if (!existingUsers.any((u) => u.username.toLowerCase() == username.toLowerCase())) {
+            if (!existingUsers.any(
+                (u) => u.username.toLowerCase() == username.toLowerCase())) {
               await localDb.addUser(User(
                 name: m['name'] ?? 'User',
                 username: username,
@@ -665,7 +736,8 @@ class MySqlService {
           }
         }
       } catch (e, st) {
-        AppLogger.warning('MySqlService', 'Failed pulling users from MySQL', e, st);
+        AppLogger.warning(
+            'MySqlService', 'Failed pulling users from MySQL', e, st);
       }
     } catch (e) {
       debugPrint('MySqlService pullDataFromMySql error: $e');
@@ -676,7 +748,8 @@ class MySqlService {
   }
 
   /// Pushes any pending sync queue items from SQLite into MySQL
-  static Future<int> flushPendingQueue(MySQLConnection conn, DatabaseService localDb) async {
+  static Future<int> flushPendingQueue(
+      MySQLConnection conn, DatabaseService localDb) async {
     final pendingItems = await localDb.getPendingSyncItems(limit: 100);
     if (pendingItems.isEmpty) return 0;
 
@@ -711,7 +784,9 @@ class MySqlService {
 
     MySQLConnection? conn;
     try {
-      final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
+      final safeDbName = settings.dbName.trim().isNotEmpty
+          ? settings.dbName.trim()
+          : 'smartpos';
       conn = await MySQLConnection.createConnection(
         host: settings.dbHost.isNotEmpty ? settings.dbHost : '127.0.0.1',
         port: settings.dbPort > 0 ? settings.dbPort : 3306,
@@ -724,7 +799,8 @@ class MySqlService {
       await _applyPayloadToMySql(conn, entityType, payload);
       isMySqlOnline.value = true;
     } catch (e) {
-      debugPrint('Direct MySQL push for $entityType queued to offline buffer: $e');
+      debugPrint(
+          'Direct MySQL push for $entityType queued to offline buffer: $e');
       isMySqlOnline.value = false;
     } finally {
       DatabaseService.suppressSync = false;
@@ -765,7 +841,8 @@ class MySqlService {
           'category': payload['category_name'] ?? 'General',
           'brand': payload['brand_name'] ?? 'Standard',
           'unit': payload['unit'] ?? 'Pc',
-          'purchasePrice': (payload['purchase_price'] as num?)?.toDouble() ?? 0.0,
+          'purchasePrice':
+              (payload['purchase_price'] as num?)?.toDouble() ?? 0.0,
           'sellingPrice': (payload['selling_price'] as num?)?.toDouble() ?? 0.0,
           'stockQty': (payload['stock_quantity'] as num?)?.toDouble() ?? 0.0,
           'alertQty': (payload['alert_quantity'] as num?)?.toDouble() ?? 5.0,
@@ -804,7 +881,9 @@ class MySqlService {
           'note': saleData['note'] ?? '',
         });
 
-        final saleId = res.lastInsertID > BigInt.zero ? res.lastInsertID.toInt() : (saleData['id'] ?? 1);
+        final saleId = res.lastInsertID > BigInt.zero
+            ? res.lastInsertID.toInt()
+            : (saleData['id'] ?? 1);
         final items = payload['items'] as List<dynamic>?;
         if (items != null) {
           for (final rawItem in items) {
@@ -862,7 +941,8 @@ class MySqlService {
         break;
 
       case 'purchase':
-        final purchaseData = payload['purchase'] as Map<String, dynamic>? ?? payload;
+        final purchaseData =
+            payload['purchase'] as Map<String, dynamic>? ?? payload;
         await conn.execute('''
           INSERT INTO `purchases` (
             `ref_no`, `supplier_name`, `status`, `payment_status`, `total_amount`, `paid_amount`, `notes`
@@ -897,7 +977,9 @@ class MySqlService {
     MySQLConnection? conn;
     DatabaseService.suppressSync = true;
     try {
-      final safeDbName = settings.dbName.trim().isNotEmpty ? settings.dbName.trim() : 'smartpos';
+      final safeDbName = settings.dbName.trim().isNotEmpty
+          ? settings.dbName.trim()
+          : 'smartpos';
       final targetHost = normalizeHost(settings.dbHost);
       conn = await _connectWithFallback(
         host: targetHost,
@@ -983,7 +1065,9 @@ class MySqlService {
         final contacts = await localDb.getContacts();
         for (final c in contacts) {
           try {
-            final cType = (c.type == 'supplier' || c.type == 'both') ? c.type : 'customer';
+            final cType = (c.type == 'supplier' || c.type == 'both')
+                ? c.type
+                : 'customer';
             final existing = await conn.execute(
               "SELECT id FROM `contacts` WHERE `name` = :name AND `type` = :type LIMIT 1",
               {'name': c.name, 'type': cType},
@@ -1062,7 +1146,8 @@ class MySqlService {
             debugPrint('Notice syncing product ${p.name} to MySQL: $e');
           }
         }
-        debugPrint('MySqlService syncAllLocalCatalogToMySql completed: ${products.length} products synced to MySQL.');
+        debugPrint(
+            'MySqlService syncAllLocalCatalogToMySql completed: ${products.length} products synced to MySQL.');
       } catch (e) {
         debugPrint('Product query failed during MySQL seed: $e');
       }
@@ -1085,7 +1170,8 @@ class MySqlService {
   }) async {
     MySQLConnection? conn;
     try {
-      final safeDbName = databaseName.trim().isEmpty ? 'smartpos' : databaseName.trim();
+      final safeDbName =
+          databaseName.trim().isEmpty ? 'smartpos' : databaseName.trim();
       conn = await _connectWithFallback(
         host: normalizeHost(host),
         port: port,
@@ -1104,7 +1190,8 @@ class MySqlService {
           ON DUPLICATE KEY UPDATE `code` = VALUES(`code`)
         ''');
       } catch (e, st) {
-        AppLogger.warning('MySqlService', 'Starter categories seed notice', e, st);
+        AppLogger.warning(
+            'MySqlService', 'Starter categories seed notice', e, st);
       }
 
       // Seed brands
@@ -1147,7 +1234,8 @@ class MySqlService {
           ON DUPLICATE KEY UPDATE `name` = VALUES(`name`)
         ''');
       } catch (e, st) {
-        AppLogger.warning('MySqlService', 'Starter products seed notice', e, st);
+        AppLogger.warning(
+            'MySqlService', 'Starter products seed notice', e, st);
       }
 
       // Seed starter walk-in customer
@@ -1157,7 +1245,8 @@ class MySqlService {
           VALUES ('customer', 'Walk-in Customer', 'Cash Retail Customer', '+92 300 0000000', 'walkin@smartpos.com', 0.00)
         ''');
       } catch (e, st) {
-        AppLogger.warning('MySqlService', 'Starter walk-in customer seed notice', e, st);
+        AppLogger.warning(
+            'MySqlService', 'Starter walk-in customer seed notice', e, st);
       }
 
       debugPrint('MySqlService starter catalog seeded successfully!');
@@ -1225,6 +1314,7 @@ class MySqlService {
         `show_sku_on_invoice` TINYINT(1) DEFAULT 1,
         `show_warranty_on_invoice` TINYINT(1) DEFAULT 1,
         `show_total_in_words` TINYINT(1) DEFAULT 1,
+        `primary_language` VARCHAR(20) DEFAULT 'en',
         `total_in_words_language` VARCHAR(20) DEFAULT 'ur',
         `enable_secondary_language` TINYINT(1) DEFAULT 0,
         `secondary_language` VARCHAR(20) DEFAULT 'ur',
@@ -1617,7 +1707,8 @@ class MySqlService {
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB;
     ''');
-    await _addMySqlColumnIfMissing(conn, 'contact_payments', 'document_path', 'VARCHAR(500) NULL');
+    await _addMySqlColumnIfMissing(
+        conn, 'contact_payments', 'document_path', 'VARCHAR(500) NULL');
 
     // 27. payment_accounts
     await conn.execute('''
@@ -2004,14 +2095,22 @@ class MySqlService {
       ) ENGINE=InnoDB;
     ''');
     // Safe schema checks for newly added columns
-    await _addMySqlColumnIfMissing(conn, 'contacts', 'loyalty_points', 'DECIMAL(12,2) DEFAULT 0.00');
-    await _addMySqlColumnIfMissing(conn, 'business_settings', 'enable_secondary_language', 'TINYINT(1) DEFAULT 0');
-    await _addMySqlColumnIfMissing(conn, 'business_settings', 'secondary_language', "VARCHAR(20) DEFAULT 'ur'");
-    await _addMySqlColumnIfMissing(conn, 'business_settings', 'total_in_words_language', "VARCHAR(20) DEFAULT 'en'");
-    await _addMySqlColumnIfMissing(conn, 'business_settings', 'show_total_in_words', 'TINYINT(1) DEFAULT 1');
+    await _addMySqlColumnIfMissing(
+        conn, 'contacts', 'loyalty_points', 'DECIMAL(12,2) DEFAULT 0.00');
+    await _addMySqlColumnIfMissing(conn, 'business_settings',
+        'primary_language', "VARCHAR(20) DEFAULT 'en'");
+    await _addMySqlColumnIfMissing(conn, 'business_settings',
+        'enable_secondary_language', 'TINYINT(1) DEFAULT 0');
+    await _addMySqlColumnIfMissing(conn, 'business_settings',
+        'secondary_language', "VARCHAR(20) DEFAULT 'ur'");
+    await _addMySqlColumnIfMissing(conn, 'business_settings',
+        'total_in_words_language', "VARCHAR(20) DEFAULT 'en'");
+    await _addMySqlColumnIfMissing(conn, 'business_settings',
+        'show_total_in_words', 'TINYINT(1) DEFAULT 1');
   }
 
-  static Future<void> _seedSettings(MySQLConnection conn, BusinessSettings s) async {
+  static Future<void> _seedSettings(
+      MySQLConnection conn, BusinessSettings s) async {
     try {
       await conn.execute('''
         INSERT INTO `business_settings` (

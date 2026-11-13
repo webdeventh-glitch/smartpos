@@ -11,6 +11,7 @@ import 'add_product_dialog.dart';
 import 'product_detail_dialog.dart';
 import 'print_labels_screen.dart';
 import '../../services/print_service.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../purchases/add_purchase_screen.dart';
 
@@ -232,9 +233,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.settings.enableSecondaryLanguage
-                          ? 'Quick Stock In / سٹاک شامل کریں'
-                          : 'Quick Stock In',
+                      PosLocalization.tr('Quick Stock In',
+                          settings: widget.settings),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -286,9 +286,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                    widget.settings.enableSecondaryLanguage
-                        ? 'Quantity to Add / شامل کرنے والی تعداد (${product.unit})*'
-                        : 'Quantity to Add (${product.unit})*',
+                    '${PosLocalization.tr("Quantity to Add", settings: widget.settings)} (${product.unit})*',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 12)),
                 const SizedBox(height: 6),
@@ -312,9 +310,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                    widget.settings.enableSecondaryLanguage
-                        ? 'Purchase Cost per Unit / فی یونٹ خریداری قیمت ($currency)'
-                        : 'Purchase Cost per Unit ($currency)',
+                    '${PosLocalization.tr("Purchase Cost per Unit", settings: widget.settings)} ($currency)',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 12)),
                 const SizedBox(height: 6),
@@ -339,9 +335,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 const SizedBox(height: 14),
                 if (suppliers.isNotEmpty) ...[
                   Text(
-                      widget.settings.enableSecondaryLanguage
-                          ? 'Supplier / سپلائر (اختیاری)'
-                          : 'Supplier (Optional)',
+                      PosLocalization.tr('Supplier (Optional)',
+                          settings: widget.settings),
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 12)),
                   const SizedBox(height: 6),
@@ -388,9 +383,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
               ),
               icon: const Icon(Icons.check, size: 16),
               label: Text(
-                  widget.settings.enableSecondaryLanguage
-                      ? 'Add Stock / سٹاک شامل کریں'
-                      : 'Add Stock',
+                  PosLocalization.tr('Add Stock', settings: widget.settings),
                   style: const TextStyle(fontWeight: FontWeight.bold)),
               onPressed: () async {
                 final qty = double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
@@ -619,7 +612,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           icon: const Icon(Icons.qr_code_2_rounded, size: 18),
                           label: const Text('Print Labels'),
                           onPressed: () {
-                            final prod = _products.isNotEmpty ? _products.first : null;
+                            final prod =
+                                _products.isNotEmpty ? _products.first : null;
                             if (widget.onNavigateToPrintLabels != null) {
                               widget.onNavigateToPrintLabels!(prod);
                             } else {
@@ -662,9 +656,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           icon: const Icon(Icons.add_shopping_cart_rounded,
                               size: 18),
                           label: Text(
-                              widget.settings.enableSecondaryLanguage
-                                  ? 'Stock In / Purchase (خریداری)'
-                                  : 'Stock In / Purchase',
+                              PosLocalization.tr('Stock In / Purchase',
+                                  settings: widget.settings),
                               style:
                                   const TextStyle(fontWeight: FontWeight.w700)),
                           onPressed: () {
@@ -1119,7 +1112,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                                 imageColor: p.imageColor,
                                                 size: 38,
                                                 borderRadius: 8,
-                                                fallbackIcon: Icons.shopping_bag_outlined,
+                                                fallbackIcon:
+                                                    Icons.shopping_bag_outlined,
                                               ),
                                               const SizedBox(width: 10),
                                               Expanded(
@@ -1472,10 +1466,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                                         horizontal: 6,
                                                         vertical: 3),
                                                     decoration: BoxDecoration(
-                                                      color:
-                                                          const Color(0xFF059669)
-                                                              .withValues(
-                                                                  alpha: 0.12),
+                                                      color: const Color(
+                                                              0xFF059669)
+                                                          .withValues(
+                                                              alpha: 0.12),
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               4),
@@ -1527,12 +1521,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                                       const BoxConstraints(
                                                           minWidth: 28,
                                                           minHeight: 28),
-                                                  tooltip: widget.settings
-                                                          .enableSecondaryLanguage
-                                                      ? 'Quick Stock In / سٹاک شامل کریں'
-                                                      : 'Quick Stock In',
+                                                  tooltip: PosLocalization.tr(
+                                                      'Quick Stock In',
+                                                      settings:
+                                                          widget.settings),
                                                   icon: const Icon(
-                                                      Icons.add_business_rounded,
+                                                      Icons
+                                                          .add_business_rounded,
                                                       size: 17,
                                                       color: Color(0xFF059669)),
                                                   onPressed: () =>
@@ -1565,7 +1560,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                                       const BoxConstraints(
                                                           minWidth: 28,
                                                           minHeight: 28),
-                                                  tooltip: 'Print Barcode Label',
+                                                  tooltip:
+                                                      'Print Barcode Label',
                                                   icon: Icon(
                                                       Icons.qr_code_2_rounded,
                                                       size: 17,
@@ -1604,7 +1600,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                                                           minWidth: 28,
                                                           minHeight: 28),
                                                   tooltip: 'Edit Product',
-                                                  icon: Icon(Icons.edit_outlined,
+                                                  icon: Icon(
+                                                      Icons.edit_outlined,
                                                       size: 17,
                                                       color: isDark
                                                           ? const Color(

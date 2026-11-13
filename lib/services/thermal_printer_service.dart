@@ -127,7 +127,8 @@ class ThermalPrinterService {
     final generator = Generator(paperSize, profile);
     final is58 = paperSize == PaperSize.mm58;
     final chars = is58 ? 32 : 48;
-    final cur = _asciiSafe(settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs');
+    final cur = _asciiSafe(
+        settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs');
     final activeLayout = layout ?? InvoiceLayout.fromBusinessSettings(settings);
 
     final List<int> bytes = [];
@@ -212,7 +213,8 @@ class ThermalPrinterService {
     }
     bytes.addAll(
       generator.text(
-        _asciiSafe('Payment : ${sale.paymentMethod.toUpperCase()} (${sale.paymentStatus.toUpperCase()})'),
+        _asciiSafe(
+            'Payment : ${sale.paymentMethod.toUpperCase()} (${sale.paymentStatus.toUpperCase()})'),
       ),
     );
     bytes.addAll(generator.hr(ch: '-', len: chars));
@@ -284,7 +286,8 @@ class ThermalPrinterService {
 
     bytes.addAll(generator.hr(ch: '-', len: chars));
 
-    void addSummaryLine(String label, String value, {bool bold = false, bool large = false}) {
+    void addSummaryLine(String label, String value,
+        {bool bold = false, bool large = false}) {
       bytes.addAll(
         generator.row([
           PosColumn(
@@ -308,17 +311,21 @@ class ThermalPrinterService {
       );
     }
 
-    addSummaryLine(activeLayout.subTotalLabel, '$cur ${sale.subtotal.toStringAsFixed(2)}');
+    addSummaryLine(
+        activeLayout.subTotalLabel, '$cur ${sale.subtotal.toStringAsFixed(2)}');
     if (sale.discount > 0) {
-      addSummaryLine(activeLayout.discountLabel, '-$cur ${sale.discount.toStringAsFixed(2)}');
+      addSummaryLine(activeLayout.discountLabel,
+          '-$cur ${sale.discount.toStringAsFixed(2)}');
     }
     if (sale.taxAmount > 0) {
-      if (settings.showTaxBreakdownOnReceipt && sale.taxBreakdownMap.isNotEmpty) {
+      if (settings.showTaxBreakdownOnReceipt &&
+          sale.taxBreakdownMap.isNotEmpty) {
         for (final entry in sale.taxBreakdownMap.entries) {
           addSummaryLine(entry.key, '+$cur ${entry.value.toStringAsFixed(2)}');
         }
       }
-      addSummaryLine(activeLayout.taxLabel, '+$cur ${sale.taxAmount.toStringAsFixed(2)}');
+      addSummaryLine(
+          activeLayout.taxLabel, '+$cur ${sale.taxAmount.toStringAsFixed(2)}');
     }
 
     bytes.addAll(generator.hr(ch: '=', len: chars));
@@ -335,10 +342,12 @@ class ThermalPrinterService {
       addSummaryLine('Tendered', '$cur ${tenderedAmount.toStringAsFixed(2)}');
     }
     if (changeReturn > 0) {
-      addSummaryLine('Change Return', '$cur ${changeReturn.toStringAsFixed(2)}');
+      addSummaryLine(
+          'Change Return', '$cur ${changeReturn.toStringAsFixed(2)}');
     }
     if (sale.dueAmount > 0) {
-      addSummaryLine('Balance Due', '$cur ${sale.dueAmount.toStringAsFixed(2)}', bold: true);
+      addSummaryLine('Balance Due', '$cur ${sale.dueAmount.toStringAsFixed(2)}',
+          bold: true);
     }
     if (activeLayout.showCustomerBalance &&
         customerPreviousBalance != null &&
@@ -351,12 +360,16 @@ class ThermalPrinterService {
 
     // Barcode / QR Verification
     final cleanCode = sale.invoiceNo.replaceAll(RegExp(r'[^0-9A-Za-z\-]'), '');
-    if (activeLayout.showBarcode && cleanCode.length >= 2 && cleanCode.length <= 24) {
+    if (activeLayout.showBarcode &&
+        cleanCode.length >= 2 &&
+        cleanCode.length <= 24) {
       try {
         bytes.addAll(generator.feed(1));
-        bytes.addAll(generator.barcode(Barcode.code128('{B$cleanCode'.split(''))));
+        bytes.addAll(
+            generator.barcode(Barcode.code128('{B$cleanCode'.split(''))));
       } catch (e, st) {
-        AppLogger.warning('ThermalPrinterService', 'Skipped ESC/POS barcode', e, st);
+        AppLogger.warning(
+            'ThermalPrinterService', 'Skipped ESC/POS barcode', e, st);
       }
     }
     if (activeLayout.showQrCode) {
@@ -369,7 +382,8 @@ class ThermalPrinterService {
           ),
         );
       } catch (e, st) {
-        AppLogger.warning('ThermalPrinterService', 'Skipped ESC/POS QR code', e, st);
+        AppLogger.warning(
+            'ThermalPrinterService', 'Skipped ESC/POS QR code', e, st);
       }
     }
 
@@ -378,7 +392,8 @@ class ThermalPrinterService {
       bytes.addAll(
         generator.text(
           _asciiSafe(activeLayout.termsText),
-          styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB),
+          styles: const PosStyles(
+              align: PosAlign.center, fontType: PosFontType.fontB),
         ),
       );
     }
@@ -442,7 +457,8 @@ class ThermalPrinterService {
     bytes.addAll(generator.hr(ch: '=', len: chars));
 
     if (kotNumber != null && kotNumber.isNotEmpty) {
-      bytes.addAll(generator.text(_asciiSafe('KOT #  : $kotNumber'), styles: const PosStyles(bold: true)));
+      bytes.addAll(generator.text(_asciiSafe('KOT #  : $kotNumber'),
+          styles: const PosStyles(bold: true)));
     }
     bytes.addAll(
       generator.text(
@@ -452,14 +468,18 @@ class ThermalPrinterService {
     );
     bytes.addAll(generator.text(_asciiSafe('Waiter : $waiter')));
     bytes.addAll(
-      generator.text(_asciiSafe('Time   : ${DateTime.now().toString().substring(0, 16)}')),
+      generator.text(
+          _asciiSafe('Time   : ${DateTime.now().toString().substring(0, 16)}')),
     );
     bytes.addAll(generator.hr(ch: '-', len: chars));
 
     bytes.addAll(
       generator.row([
         PosColumn(text: 'QTY', width: 3, styles: const PosStyles(bold: true)),
-        PosColumn(text: 'ITEM / INSTRUCTIONS', width: 9, styles: const PosStyles(bold: true)),
+        PosColumn(
+            text: 'ITEM / INSTRUCTIONS',
+            width: 9,
+            styles: const PosStyles(bold: true)),
       ]),
     );
     bytes.addAll(generator.hr(ch: '-', len: chars));
@@ -486,7 +506,8 @@ class ThermalPrinterService {
 
     if (orderNote != null && orderNote.trim().isNotEmpty) {
       bytes.addAll(generator.hr(ch: '-', len: chars));
-      bytes.addAll(generator.text(_asciiSafe('Note: $orderNote'), styles: const PosStyles(bold: true)));
+      bytes.addAll(generator.text(_asciiSafe('Note: $orderNote'),
+          styles: const PosStyles(bold: true)));
     }
 
     bytes.addAll(generator.hr(ch: '=', len: chars));
@@ -516,11 +537,15 @@ class ThermalPrinterService {
       ),
     );
     bytes.addAll(generator.hr(ch: '=', len: chars));
-    bytes.addAll(generator.text(_asciiSafe('Store   : ${settings.businessName}')));
+    bytes.addAll(
+        generator.text(_asciiSafe('Store   : ${settings.businessName}')));
     bytes.addAll(generator.text(_asciiSafe('Printer : ${printer.name}')));
-    bytes.addAll(generator.text(_asciiSafe('Mode    : ${printer.connectionType.toUpperCase()}')));
-    bytes.addAll(generator.text(_asciiSafe('Target  : ${printer.endpointLabel}')));
-    bytes.addAll(generator.text(_asciiSafe('Width   : ${printer.paperWidth} (${printer.charPerLine} chars)')));
+    bytes.addAll(generator
+        .text(_asciiSafe('Mode    : ${printer.connectionType.toUpperCase()}')));
+    bytes.addAll(
+        generator.text(_asciiSafe('Target  : ${printer.endpointLabel}')));
+    bytes.addAll(generator.text(_asciiSafe(
+        'Width   : ${printer.paperWidth} (${printer.charPerLine} chars)')));
     bytes.addAll(generator.hr(ch: '-', len: chars));
     bytes.addAll(
       generator.text(
@@ -567,7 +592,8 @@ class ThermalPrinterService {
     if (!Platform.isWindows) return '';
     return using((arena) {
       final winspool = ffi.DynamicLibrary.open('winspool.drv');
-      final getDefault = winspool.lookupFunction<_GetDefaultPrinterNative, _GetDefaultPrinterDart>(
+      final getDefault = winspool
+          .lookupFunction<_GetDefaultPrinterNative, _GetDefaultPrinterDart>(
         'GetDefaultPrinterW',
       );
       final sizePtr = arena<ffi.Uint32>();
@@ -587,24 +613,39 @@ class ThermalPrinterService {
     List<int> bytes,
   ) async {
     if (!Platform.isWindows) {
-      throw UnsupportedError('Windows RAW printer spooling is only supported on Windows.');
+      throw UnsupportedError(
+          'Windows RAW printer spooling is only supported on Windows.');
     }
     final printerName = configuredName.trim().isNotEmpty
         ? configuredName.trim()
         : getDefaultWindowsPrinterName();
     if (printerName.isEmpty) {
-      throw StateError('No Windows printer path provided and no Windows default printer found.');
+      throw StateError(
+          'No Windows printer path provided and no Windows default printer found.');
     }
 
     using((arena) {
       final winspool = ffi.DynamicLibrary.open('winspool.drv');
-      final openPrinter = winspool.lookupFunction<_OpenPrinterNative, _OpenPrinterDart>('OpenPrinterW');
-      final startDoc = winspool.lookupFunction<_StartDocPrinterNative, _StartDocPrinterDart>('StartDocPrinterW');
-      final startPage = winspool.lookupFunction<_StartEndPageNative, _StartEndPageDart>('StartPagePrinter');
-      final writePrinter = winspool.lookupFunction<_WritePrinterNative, _WritePrinterDart>('WritePrinter');
-      final endPage = winspool.lookupFunction<_StartEndPageNative, _StartEndPageDart>('EndPagePrinter');
-      final endDoc = winspool.lookupFunction<_StartEndPageNative, _StartEndPageDart>('EndDocPrinter');
-      final closePrinter = winspool.lookupFunction<_ClosePrinterNative, _ClosePrinterDart>('ClosePrinter');
+      final openPrinter = winspool
+          .lookupFunction<_OpenPrinterNative, _OpenPrinterDart>('OpenPrinterW');
+      final startDoc =
+          winspool.lookupFunction<_StartDocPrinterNative, _StartDocPrinterDart>(
+              'StartDocPrinterW');
+      final startPage =
+          winspool.lookupFunction<_StartEndPageNative, _StartEndPageDart>(
+              'StartPagePrinter');
+      final writePrinter =
+          winspool.lookupFunction<_WritePrinterNative, _WritePrinterDart>(
+              'WritePrinter');
+      final endPage =
+          winspool.lookupFunction<_StartEndPageNative, _StartEndPageDart>(
+              'EndPagePrinter');
+      final endDoc =
+          winspool.lookupFunction<_StartEndPageNative, _StartEndPageDart>(
+              'EndDocPrinter');
+      final closePrinter =
+          winspool.lookupFunction<_ClosePrinterNative, _ClosePrinterDart>(
+              'ClosePrinter');
 
       final pName = printerName.toNativeUtf16(allocator: arena);
       final hPrinterPtr = arena<ffi.IntPtr>();
@@ -615,7 +656,8 @@ class ThermalPrinterService {
 
       try {
         final docInfo = arena<_DocInfo1W>();
-        docInfo.ref.pDocName = 'SmartPOS ESC/POS Receipt'.toNativeUtf16(allocator: arena);
+        docInfo.ref.pDocName =
+            'SmartPOS ESC/POS Receipt'.toNativeUtf16(allocator: arena);
         docInfo.ref.pOutputFile = ffi.nullptr.cast<Utf16>();
         docInfo.ref.pDatatype = 'RAW'.toNativeUtf16(allocator: arena);
 
@@ -629,9 +671,12 @@ class ThermalPrinterService {
           }
           try {
             final nativeBuf = arena<ffi.Uint8>(bytes.length);
-            nativeBuf.asTypedList(bytes.length).setAll(0, Uint8List.fromList(bytes));
+            nativeBuf
+                .asTypedList(bytes.length)
+                .setAll(0, Uint8List.fromList(bytes));
             final writtenPtr = arena<ffi.Uint32>();
-            if (writePrinter(hPrinter, nativeBuf, bytes.length, writtenPtr) == 0) {
+            if (writePrinter(hPrinter, nativeBuf, bytes.length, writtenPtr) ==
+                0) {
               throw StateError('WritePrinter failed for "$printerName".');
             }
           } finally {

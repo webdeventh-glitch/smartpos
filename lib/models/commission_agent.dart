@@ -70,4 +70,3 @@ class CommissionAgent {
         createdAt: map['created_at'] as String? ?? '',
       );
 }
-

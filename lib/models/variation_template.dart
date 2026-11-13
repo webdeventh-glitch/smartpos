@@ -24,7 +24,8 @@ class VariationTemplate {
           parsedValues = decoded.map((e) => e.toString()).toList();
         }
       } catch (e, st) {
-        AppLogger.warning('Models', 'Failed parsing VariationTemplate values_json', e, st);
+        AppLogger.warning(
+            'Models', 'Failed parsing VariationTemplate values_json', e, st);
       }
     }
     return VariationTemplate(

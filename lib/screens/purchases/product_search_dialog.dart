@@ -41,7 +41,8 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
     final q = _searchCtrl.text.trim().toLowerCase();
     setState(() {
       _filtered = widget.products.where((p) {
-        final matchesCat = _selectedCategory == null || p.categoryName == _selectedCategory;
+        final matchesCat =
+            _selectedCategory == null || p.categoryName == _selectedCategory;
         if (!matchesCat) return false;
         if (q.isEmpty) return true;
 
@@ -50,9 +51,15 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
         final barcodeMatch = p.barcode.toLowerCase().contains(q);
         final brandMatch = p.brandName.toLowerCase().contains(q);
         final catMatch = p.categoryName.toLowerCase().contains(q);
-        final batchMatch = p.batchNumber != null && p.batchNumber!.toLowerCase().contains(q);
+        final batchMatch =
+            p.batchNumber != null && p.batchNumber!.toLowerCase().contains(q);
 
-        return nameMatch || skuMatch || barcodeMatch || brandMatch || catMatch || batchMatch;
+        return nameMatch ||
+            skuMatch ||
+            barcodeMatch ||
+            brandMatch ||
+            catMatch ||
+            batchMatch;
       }).toList();
     });
   }
@@ -62,11 +69,14 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final headerBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
-    final categories = widget.products.map((p) => p.categoryName).toSet().toList();
+    final categories =
+        widget.products.map((p) => p.categoryName).toSet().toList();
 
     return Dialog(
       backgroundColor: cardBg,
@@ -84,7 +94,8 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
                 color: headerBg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
                 border: Border(bottom: BorderSide(color: borderColor)),
               ),
               child: Row(
@@ -95,7 +106,8 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                       color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.search_rounded, color: Color(0xFF4F46E5), size: 20),
+                    child: const Icon(Icons.search_rounded,
+                        color: Color(0xFF4F46E5), size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -137,7 +149,8 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                     decoration: InputDecoration(
                       hintText: 'Search by name, SKU, barcode, formula...',
                       hintStyle: TextStyle(color: textSecondary, fontSize: 13),
-                      prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF4F46E5)),
+                      prefixIcon: const Icon(Icons.search,
+                          size: 20, color: Color(0xFF4F46E5)),
                       suffixIcon: _searchCtrl.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear, size: 18),
@@ -148,8 +161,11 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                             )
                           : null,
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      fillColor: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(color: borderColor),
@@ -160,7 +176,8 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF4F46E5), width: 1.5),
                       ),
                     ),
                     onChanged: (_) => _filter(),
@@ -173,7 +190,8 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                         scrollDirection: Axis.horizontal,
                         children: [
                           ChoiceChip(
-                            label: const Text('All Categories', style: TextStyle(fontSize: 11)),
+                            label: const Text('All Categories',
+                                style: TextStyle(fontSize: 11)),
                             selected: _selectedCategory == null,
                             onSelected: (val) {
                               setState(() {
@@ -187,7 +205,8 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                             (cat) => Padding(
                               padding: const EdgeInsets.only(right: 6),
                               child: ChoiceChip(
-                                label: Text(cat, style: const TextStyle(fontSize: 11)),
+                                label: Text(cat,
+                                    style: const TextStyle(fontSize: 11)),
                                 selected: _selectedCategory == cat,
                                 onSelected: (val) {
                                   setState(() {
@@ -215,11 +234,20 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.inventory_2_outlined, size: 48, color: textSecondary.withValues(alpha: 0.5)),
+                          Icon(Icons.inventory_2_outlined,
+                              size: 48,
+                              color: textSecondary.withValues(alpha: 0.5)),
                           const SizedBox(height: 12),
-                          Text('No matching products found', style: TextStyle(fontWeight: FontWeight.bold, color: textSecondary)),
+                          Text('No matching products found',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: textSecondary)),
                           const SizedBox(height: 4),
-                          Text('Try searching with a different keyword or barcode', style: TextStyle(fontSize: 12, color: textSecondary.withValues(alpha: 0.7))),
+                          Text(
+                              'Try searching with a different keyword or barcode',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: textSecondary.withValues(alpha: 0.7))),
                         ],
                       ),
                     )
@@ -250,11 +278,17 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? const Color(0xFF4F46E5).withValues(alpha: isDark ? 0.25 : 0.08)
-                                  : (isDark ? const Color(0xFF0F172A).withValues(alpha: 0.5) : const Color(0xFFF8FAFC)),
+                                  ? const Color(0xFF4F46E5)
+                                      .withValues(alpha: isDark ? 0.25 : 0.08)
+                                  : (isDark
+                                      ? const Color(0xFF0F172A)
+                                          .withValues(alpha: 0.5)
+                                      : const Color(0xFFF8FAFC)),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: isSelected ? const Color(0xFF4F46E5) : borderColor,
+                                color: isSelected
+                                    ? const Color(0xFF4F46E5)
+                                    : borderColor,
                                 width: isSelected ? 1.5 : 1,
                               ),
                             ),
@@ -265,7 +299,8 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                                     final img = p.imageColor;
                                     final hasImg = img != null &&
                                         img.isNotEmpty &&
-                                        (img.contains(Platform.pathSeparator) || img.contains('/')) &&
+                                        (img.contains(Platform.pathSeparator) ||
+                                            img.contains('/')) &&
                                         File(img).existsSync();
                                     if (hasImg) {
                                       return ClipRRect(
@@ -275,14 +310,20 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                                           width: 40,
                                           height: 40,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => Container(
+                                          errorBuilder: (_, __, ___) =>
+                                              Container(
                                             width: 40,
                                             height: 40,
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
-                                              borderRadius: BorderRadius.circular(8),
+                                              color: const Color(0xFF4F46E5)
+                                                  .withValues(alpha: 0.12),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
-                                            child: const Icon(Icons.medication_liquid_rounded, color: Color(0xFF4F46E5), size: 22),
+                                            child: const Icon(
+                                                Icons.medication_liquid_rounded,
+                                                color: Color(0xFF4F46E5),
+                                                size: 22),
                                           ),
                                         ),
                                       );
@@ -291,17 +332,22 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                                       width: 40,
                                       height: 40,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                                        color: const Color(0xFF4F46E5)
+                                            .withValues(alpha: 0.12),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(Icons.medication_liquid_rounded, color: Color(0xFF4F46E5), size: 22),
+                                      child: const Icon(
+                                          Icons.medication_liquid_rounded,
+                                          color: Color(0xFF4F46E5),
+                                          size: 22),
                                     );
                                   },
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
@@ -318,7 +364,9 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                                           ),
                                           if (isSelected) ...[
                                             const SizedBox(width: 6),
-                                            const Icon(Icons.check_circle, size: 16, color: Color(0xFF4F46E5)),
+                                            const Icon(Icons.check_circle,
+                                                size: 16,
+                                                color: Color(0xFF4F46E5)),
                                           ],
                                         ],
                                       ),
@@ -327,16 +375,40 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                                         spacing: 8,
                                         runSpacing: 2,
                                         children: [
-                                          Text('SKU: ${p.sku}', style: TextStyle(fontSize: 11, color: textSecondary)),
-                                          Text('•', style: TextStyle(fontSize: 11, color: textSecondary)),
-                                          Text(p.categoryName, style: TextStyle(fontSize: 11, color: textSecondary)),
-                                          if (p.batchNumber != null && p.batchNumber!.isNotEmpty) ...[
-                                            Text('•', style: TextStyle(fontSize: 11, color: textSecondary)),
-                                            Text('Batch: ${p.batchNumber}', style: TextStyle(fontSize: 11, color: textSecondary)),
+                                          Text('SKU: ${p.sku}',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: textSecondary)),
+                                          Text('•',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: textSecondary)),
+                                          Text(p.categoryName,
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: textSecondary)),
+                                          if (p.batchNumber != null &&
+                                              p.batchNumber!.isNotEmpty) ...[
+                                            Text('•',
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: textSecondary)),
+                                            Text('Batch: ${p.batchNumber}',
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: textSecondary)),
                                           ],
-                                          if (p.expiryDate != null && p.expiryDate!.isNotEmpty) ...[
-                                            Text('•', style: TextStyle(fontSize: 11, color: textSecondary)),
-                                            Text('Exp: ${p.expiryDate}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
+                                          if (p.expiryDate != null &&
+                                              p.expiryDate!.isNotEmpty) ...[
+                                            Text('•',
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: textSecondary)),
+                                            Text('Exp: ${p.expiryDate}',
+                                                style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFFD97706))),
                                           ],
                                         ],
                                       ),
@@ -352,16 +424,22 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
-                                        color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                                        color: isDark
+                                            ? const Color(0xFF38BDF8)
+                                            : const Color(0xFF0284C7),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: stockColor.withValues(alpha: 0.12),
+                                        color:
+                                            stockColor.withValues(alpha: 0.12),
                                         borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: stockColor.withValues(alpha: 0.3)),
+                                        border: Border.all(
+                                            color: stockColor.withValues(
+                                                alpha: 0.3)),
                                       ),
                                       child: Text(
                                         'Stock: ${p.stockQuantity.toInt()} ${p.unit}',

@@ -25,10 +25,12 @@ class UniversalPrintPreviewDialog extends StatefulWidget {
   });
 
   @override
-  State<UniversalPrintPreviewDialog> createState() => _UniversalPrintPreviewDialogState();
+  State<UniversalPrintPreviewDialog> createState() =>
+      _UniversalPrintPreviewDialogState();
 }
 
-class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialog> {
+class _UniversalPrintPreviewDialogState
+    extends State<UniversalPrintPreviewDialog> {
   late String _selectedPaperSize;
   bool _isPrinting = false;
 
@@ -48,7 +50,8 @@ class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialo
   Future<void> _handlePrint() async {
     setState(() => _isPrinting = true);
     final html = _getHtml(_selectedPaperSize);
-    final success = await PrintService.openPrintWindow(htmlContent: html, title: widget.title);
+    final success = await PrintService.openPrintWindow(
+        htmlContent: html, title: widget.title);
     if (mounted) {
       setState(() => _isPrinting = false);
       if (success) {
@@ -87,9 +90,12 @@ class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialo
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            border: Border.all(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 28, offset: Offset(0, 10)),
+              BoxShadow(
+                  color: Colors.black26, blurRadius: 28, offset: Offset(0, 10)),
             ],
           ),
           child: Column(
@@ -97,21 +103,28 @@ class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialo
             children: [
               // Header Controls Bar
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: const BoxDecoration(
                   color: Color(0xFF0F172A),
-                  borderRadius: BorderRadius.only(topLeft: Radius.circular(15), topRight: Radius.circular(15)),
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(15),
+                      topRight: Radius.circular(15)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.print_rounded, color: Colors.white, size: 20),
+                        const Icon(Icons.print_rounded,
+                            color: Colors.white, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           widget.title,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14),
                         ),
                       ],
                     ),
@@ -129,21 +142,32 @@ class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialo
                             child: DropdownButton<String>(
                               value: _selectedPaperSize,
                               dropdownColor: const Color(0xFF0F172A),
-                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold),
                               items: const [
-                                DropdownMenuItem(value: '80mm', child: Text('80mm Thermal (POS)')),
-                                DropdownMenuItem(value: '58mm', child: Text('58mm Thermal (Mini)')),
-                                DropdownMenuItem(value: 'a4', child: Text('A4 Standard Sheet')),
+                                DropdownMenuItem(
+                                    value: '80mm',
+                                    child: Text('80mm Thermal (POS)')),
+                                DropdownMenuItem(
+                                    value: '58mm',
+                                    child: Text('58mm Thermal (Mini)')),
+                                DropdownMenuItem(
+                                    value: 'a4',
+                                    child: Text('A4 Standard Sheet')),
                               ],
                               onChanged: (val) {
-                                if (val != null) setState(() => _selectedPaperSize = val);
+                                if (val != null)
+                                  setState(() => _selectedPaperSize = val);
                               },
                             ),
                           ),
                         ),
                         const SizedBox(width: 10),
                         IconButton(
-                          icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                          icon: const Icon(Icons.close_rounded,
+                              color: Colors.white70, size: 20),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ],
@@ -163,7 +187,9 @@ class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialo
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.grey.shade300),
-                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black12, blurRadius: 8)
+                      ],
                     ),
                     child: SelectableText(
                       widget.plainTextContent,
@@ -180,11 +206,20 @@ class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialo
 
               // Bottom Action Buttons
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                  borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(15), bottomRight: Radius.circular(15)),
-                  border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(15),
+                      bottomRight: Radius.circular(15)),
+                  border: Border(
+                      top: BorderSide(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0))),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -193,24 +228,30 @@ class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialo
                       children: [
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           icon: const Icon(Icons.copy_rounded, size: 16),
                           label: const Text('Copy Text'),
-                          onPressed: () => PrintService.copyToClipboard(widget.plainTextContent, context),
+                          onPressed: () => PrintService.copyToClipboard(
+                              widget.plainTextContent, context),
                         ),
                         const SizedBox(width: 8),
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           icon: const Icon(Icons.save_alt_rounded, size: 16),
                           label: const Text('Save HTML'),
                           onPressed: () {
                             final html = _getHtml(_selectedPaperSize);
-                            PrintService.saveHtmlToFile(html, 'smartpos_doc', context);
+                            PrintService.saveHtmlToFile(
+                                html, 'smartpos_doc', context);
                           },
                         ),
                         if (widget.pdfGenerator != null) ...[
@@ -219,19 +260,25 @@ class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialo
                             style: OutlinedButton.styleFrom(
                               foregroundColor: const Color(0xFFDC2626),
                               side: const BorderSide(color: Color(0xFFDC2626)),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
-                            icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                            icon: const Icon(Icons.picture_as_pdf_rounded,
+                                size: 16),
                             label: const Text('Export PDF'),
                             onPressed: () async {
                               final messenger = ScaffoldMessenger.of(context);
-                              final bytes = await widget.pdfGenerator!(_selectedPaperSize);
-                              final file = await PdfExportService.savePdfFile(bytes, widget.title);
+                              final bytes = await widget
+                                  .pdfGenerator!(_selectedPaperSize);
+                              final file = await PdfExportService.savePdfFile(
+                                  bytes, widget.title);
                               await PdfExportService.openPdfFile(file);
                               messenger.showSnackBar(
                                 SnackBar(
-                                  content: Text('PDF saved & opened: ${file.path}'),
+                                  content:
+                                      Text('PDF saved & opened: ${file.path}'),
                                   backgroundColor: const Color(0xFF10B981),
                                 ),
                               );
@@ -244,14 +291,22 @@ class _UniversalPrintPreviewDialogState extends State<UniversalPrintPreviewDialo
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4F46E5),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                         elevation: 2,
                       ),
                       icon: _isPrinting
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
                           : const Icon(Icons.print_rounded, size: 18),
-                      label: Text(_isPrinting ? 'Printing...' : 'Print to Windows Printer ($_selectedPaperSize)'),
+                      label: Text(_isPrinting
+                          ? 'Printing...'
+                          : 'Print to Windows Printer ($_selectedPaperSize)'),
                       onPressed: _isPrinting ? null : _handlePrint,
                     ),
                   ],

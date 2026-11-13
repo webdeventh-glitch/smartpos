@@ -25,7 +25,10 @@ class TaxGroup {
   /// Computes total tax rate (%) across [subTaxIds] in [availableRates].
   /// Additive: r1 + r2. Compound: ((1 + r1/100) * (1 + r2/100) - 1) * 100.
   double computeEffectiveRate(List<TaxRate> availableRates) {
-    final byId = {for (final r in availableRates) if (r.id != null) r.id!: r};
+    final byId = {
+      for (final r in availableRates)
+        if (r.id != null) r.id!: r
+    };
     if (!isCompound) {
       double sum = 0.0;
       for (final tid in subTaxIds) {
@@ -47,14 +50,18 @@ class TaxGroup {
     List<TaxRate> availableRates,
   ) {
     if (taxableAmount <= 0 || subTaxIds.isEmpty) return {};
-    final byId = {for (final r in availableRates) if (r.id != null) r.id!: r};
+    final byId = {
+      for (final r in availableRates)
+        if (r.id != null) r.id!: r
+    };
     final result = <String, double>{};
     double runningBase = taxableAmount;
 
     for (final tid in subTaxIds) {
       final rate = byId[tid];
       if (rate == null) continue;
-      final amt = double.parse((runningBase * (rate.amount / 100.0)).toStringAsFixed(2));
+      final amt = double.parse(
+          (runningBase * (rate.amount / 100.0)).toStringAsFixed(2));
       result[rate.name] = (result[rate.name] ?? 0.0) + amt;
       if (isCompound) {
         runningBase += amt;
@@ -69,7 +76,8 @@ class TaxGroup {
   ) {
     if (taxableAmount <= 0) return 0.0;
     if (subTaxIds.isEmpty) {
-      return double.parse((taxableAmount * (effectiveRate / 100.0)).toStringAsFixed(2));
+      return double.parse(
+          (taxableAmount * (effectiveRate / 100.0)).toStringAsFixed(2));
     }
     final breakdown = calculateBreakdown(taxableAmount, availableRates);
     return breakdown.values.fold(0.0, (sum, v) => sum + v);
@@ -93,7 +101,8 @@ class TaxGroup {
         final decoded = jsonDecode(raw) as List<dynamic>;
         parsedIds = decoded.map((e) => (e as num).toInt()).toList();
       } catch (e, st) {
-        AppLogger.warning('TaxGroup', 'Falling back to CSV parse for sub_tax_ids', e, st);
+        AppLogger.warning(
+            'TaxGroup', 'Falling back to CSV parse for sub_tax_ids', e, st);
         parsedIds = raw
             .split(',')
             .map((e) => int.tryParse(e.trim()))
@@ -112,4 +121,3 @@ class TaxGroup {
     );
   }
 }
-

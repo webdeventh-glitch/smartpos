@@ -63,7 +63,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -74,7 +75,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
               color: isDark ? const Color(0xFF1E293B) : Colors.white,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
               ),
               boxShadow: const [
                 BoxShadow(
@@ -96,7 +98,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
+                          color:
+                              const Color(0xFFF59E0B).withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
@@ -115,7 +118,9 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                               style: TextStyle(
                                 fontSize: 19,
                                 fontWeight: FontWeight.w900,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
                               ),
                             ),
                             Text(
@@ -175,7 +180,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                     enabled: !_submitting,
                     decoration: InputDecoration(
                       labelText: 'Current Password',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18),
+                      prefixIcon:
+                          const Icon(Icons.lock_outline_rounded, size: 18),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureCurrent
@@ -189,8 +195,9 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                       border: const OutlineInputBorder(),
                       isDense: true,
                     ),
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Enter your current password' : null,
+                    validator: (v) => v == null || v.isEmpty
+                        ? 'Enter your current password'
+                        : null,
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
@@ -198,7 +205,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                     obscureText: _obscureNew,
                     enabled: !_submitting,
                     decoration: InputDecoration(
-                      labelText: 'New Password (min 8 chars, letters + numbers)',
+                      labelText:
+                          'New Password (min 8 chars, letters + numbers)',
                       prefixIcon: const Icon(Icons.vpn_key_outlined, size: 18),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -207,7 +215,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                               : Icons.visibility_outlined,
                           size: 18,
                         ),
-                        onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                        onPressed: () =>
+                            setState(() => _obscureNew = !_obscureNew),
                       ),
                       border: const OutlineInputBorder(),
                       isDense: true,
@@ -224,7 +233,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                     enabled: !_submitting,
                     decoration: InputDecoration(
                       labelText: 'Confirm New Password',
-                      prefixIcon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                      prefixIcon: const Icon(Icons.check_circle_outline_rounded,
+                          size: 18),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirm
@@ -239,7 +249,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                       isDense: true,
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Please confirm new password';
+                      if (v == null || v.isEmpty)
+                        return 'Please confirm new password';
                       if (v.trim() != _newCtrl.text.trim()) {
                         return 'Passwords do not match';
                       }
@@ -251,7 +262,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                   Row(
                     children: [
                       TextButton.icon(
-                        onPressed: _submitting ? null : () => AuthService.logout(),
+                        onPressed:
+                            _submitting ? null : () => AuthService.logout(),
                         icon: const Icon(Icons.logout_rounded, size: 16),
                         label: const Text('Sign Out'),
                       ),
@@ -295,4 +307,3 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
     );
   }
 }
-

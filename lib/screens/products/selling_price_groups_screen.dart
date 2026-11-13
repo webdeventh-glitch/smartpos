@@ -10,7 +10,8 @@ class SellingPriceGroupsScreen extends StatefulWidget {
   const SellingPriceGroupsScreen({super.key, required this.settings});
 
   @override
-  State<SellingPriceGroupsScreen> createState() => _SellingPriceGroupsScreenState();
+  State<SellingPriceGroupsScreen> createState() =>
+      _SellingPriceGroupsScreenState();
 }
 
 class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
@@ -61,7 +62,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
         builder: (context, setModalState) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
           return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             child: Container(
               width: 480,
@@ -76,28 +78,42 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          group != null ? 'Edit Selling Price Group' : 'Add Selling Price Group',
+                          group != null
+                              ? 'Edit Selling Price Group'
+                              : 'Add Selling Price Group',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color:
+                                isDark ? Colors.white : const Color(0xFF0F172A),
                           ),
                         ),
                         IconButton(
                           onPressed: () => Navigator.pop(ctx),
-                          icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                          icon: Icon(Icons.close,
+                              size: 20,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 18),
 
                     // Name
-                    _buildFieldLabel('Group Name', isRequired: true, isDark: isDark),
+                    _buildFieldLabel('Group Name',
+                        isRequired: true, isDark: isDark),
                     TextFormField(
                       controller: nameCtrl,
-                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                      decoration: _inputDecor('e.g. Wholesale, Distributor, VIP Customer', isDark: isDark),
-                      validator: (val) => val == null || val.trim().isEmpty ? 'Please enter a name' : null,
+                      style: TextStyle(
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A)),
+                      decoration: _inputDecor(
+                          'e.g. Wholesale, Distributor, VIP Customer',
+                          isDark: isDark),
+                      validator: (val) => val == null || val.trim().isEmpty
+                          ? 'Please enter a name'
+                          : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -106,18 +122,28 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                     TextFormField(
                       controller: descCtrl,
                       maxLines: 2,
-                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                      decoration: _inputDecor('e.g. Standard wholesale pricing with 15% discount', isDark: isDark),
+                      style: TextStyle(
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A)),
+                      decoration: _inputDecor(
+                          'e.g. Standard wholesale pricing with 15% discount',
+                          isDark: isDark),
                     ),
                     const SizedBox(height: 16),
 
                     // Active Switch
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -130,14 +156,18 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1E293B),
                                 ),
                               ),
                               Text(
                                 'Enable this price group during billing',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B),
                                 ),
                               ),
                             ],
@@ -145,7 +175,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                           Switch(
                             value: isActive,
                             activeThumbColor: const Color(0xFF6366F1),
-                            onChanged: (val) => setModalState(() => isActive = val),
+                            onChanged: (val) =>
+                                setModalState(() => isActive = val),
                           ),
                         ],
                       ),
@@ -158,10 +189,17 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                       children: [
                         OutlinedButton(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                            side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            foregroundColor: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
+                            side: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFCBD5E1)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           onPressed: () => Navigator.pop(ctx),
                           child: const Text('Cancel'),
@@ -171,8 +209,10 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4F46E5),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                             elevation: 0,
                           ),
                           onPressed: () async {
@@ -198,7 +238,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                             _loadGroups();
                           },
                           icon: const Icon(Icons.check, size: 16),
-                          label: Text(group != null ? 'Update Group' : 'Save Group'),
+                          label: Text(
+                              group != null ? 'Update Group' : 'Save Group'),
                         ),
                       ],
                     ),
@@ -218,15 +259,27 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        title: Text('Delete Price Group', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A))),
-        content: Text('Are you sure you want to delete "${group.name}"?', style: TextStyle(color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155))),
+        title: Text('Delete Price Group',
+            style: TextStyle(
+                color: isDark ? Colors.white : const Color(0xFF0F172A))),
+        content: Text('Are you sure you want to delete "${group.name}"?',
+            style: TextStyle(
+                color: isDark
+                    ? const Color(0xFFCBD5E1)
+                    : const Color(0xFF334155))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+            child: Text('Cancel',
+                style: TextStyle(
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B))),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -241,7 +294,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
     }
   }
 
-  Widget _buildFieldLabel(String label, {bool isRequired = false, bool isDark = false}) {
+  Widget _buildFieldLabel(String label,
+      {bool isRequired = false, bool isDark = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
@@ -258,7 +312,10 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
           if (isRequired)
             const Text(
               ' *',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFEF4444)),
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFEF4444)),
             ),
         ],
       ),
@@ -268,17 +325,21 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
   InputDecoration _inputDecor(String hint, {bool isDark = false}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+      hintStyle: TextStyle(
+          fontSize: 13,
+          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
       filled: true,
       fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(6),
-        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+        borderSide: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(6),
-        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+        borderSide: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
       ),
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(6)),
@@ -303,12 +364,15 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
     final currentPage = totalPages == 0 ? 1 : _currentPage.clamp(1, totalPages);
     final startIndex = (currentPage - 1) * _pageSize;
     final endIndex = min(startIndex + _pageSize, totalFiltered);
-    final paginatedGroups = (startIndex < totalFiltered) ? filtered.sublist(startIndex, endIndex) : <SellingPriceGroup>[];
+    final paginatedGroups = (startIndex < totalFiltered)
+        ? filtered.sublist(startIndex, endIndex)
+        : <SellingPriceGroup>[];
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -327,7 +391,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -335,7 +400,9 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                         'Manage tiered pricing rules (Retail, Wholesale, VIP, Franchise)',
                         style: TextStyle(
                           fontSize: 13,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
                         ),
                       ),
                     ],
@@ -346,13 +413,16 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                     elevation: 0,
                   ),
                   onPressed: () => _showAddEditDialog(),
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add Price Group', style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: const Text('Add Price Group',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ],
             ),
@@ -399,7 +469,10 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -407,15 +480,25 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                   Expanded(
                     child: TextField(
                       controller: _searchCtrl,
-                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                      style: TextStyle(
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A)),
                       onChanged: (val) => setState(() {
                         _searchQuery = val.trim();
                         _currentPage = 1;
                       }),
                       decoration: InputDecoration(
                         hintText: 'Search by group name or description...',
-                        hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
-                        prefixIcon: Icon(Icons.search, size: 18, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                        hintStyle: TextStyle(
+                            fontSize: 13,
+                            color: isDark
+                                ? const Color(0xFF64748B)
+                                : const Color(0xFF94A3B8)),
+                        prefixIcon: Icon(Icons.search,
+                            size: 18,
+                            color: isDark
+                                ? const Color(0xFF64748B)
+                                : const Color(0xFF94A3B8)),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(vertical: 8),
@@ -424,7 +507,11 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                   ),
                   if (_searchQuery.isNotEmpty)
                     IconButton(
-                      icon: Icon(Icons.clear, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8)),
+                      icon: Icon(Icons.clear,
+                          size: 18,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF94A3B8)),
                       onPressed: () {
                         _searchCtrl.clear();
                         setState(() {
@@ -443,9 +530,16 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02), blurRadius: 8, offset: const Offset(0, 2)),
+                  BoxShadow(
+                      color:
+                          Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2)),
                 ],
               ),
               child: _isLoading
@@ -459,20 +553,32 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(Icons.price_change_outlined, size: 48, color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
+                                Icon(Icons.price_change_outlined,
+                                    size: 48,
+                                    color: isDark
+                                        ? const Color(0xFF475569)
+                                        : const Color(0xFFCBD5E1)),
                                 const SizedBox(height: 12),
                                 Text(
-                                  _searchQuery.isEmpty ? 'No price groups found' : 'No matching price groups found',
+                                  _searchQuery.isEmpty
+                                      ? 'No price groups found'
+                                      : 'No matching price groups found',
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
-                                    color: isDark ? Colors.white : const Color(0xFF475569),
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF475569),
                                   ),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
                                   'Click "Add Price Group" to configure tiered prices.',
-                                  style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8)),
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF94A3B8)),
                                 ),
                               ],
                             ),
@@ -482,49 +588,136 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(10)),
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
-                                  final minWidth = max(constraints.maxWidth, 720.0);
+                                  final minWidth =
+                                      max(constraints.maxWidth, 720.0);
                                   return SingleChildScrollView(
                                     scrollDirection: Axis.horizontal,
                                     child: ConstrainedBox(
-                                      constraints: BoxConstraints(minWidth: minWidth),
+                                      constraints:
+                                          BoxConstraints(minWidth: minWidth),
                                       child: DataTable(
-                                        headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                                        headingRowColor:
+                                            WidgetStateProperty.all(isDark
+                                                ? const Color(0xFF0F172A)
+                                                : const Color(0xFFF8FAFC)),
                                         columnSpacing: 24,
                                         horizontalMargin: 20,
                                         columns: [
-                                          DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
-                                          DataColumn(label: Text('GROUP NAME', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
-                                          DataColumn(label: Text('DESCRIPTION', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
-                                          DataColumn(label: Text('STATUS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
-                                          DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)))),
+                                          DataColumn(
+                                              label: Text('#',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 12,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF94A3B8)
+                                                          : const Color(
+                                                              0xFF475569)))),
+                                          DataColumn(
+                                              label: Text('GROUP NAME',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 12,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF94A3B8)
+                                                          : const Color(
+                                                              0xFF475569)))),
+                                          DataColumn(
+                                              label: Text('DESCRIPTION',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 12,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF94A3B8)
+                                                          : const Color(
+                                                              0xFF475569)))),
+                                          DataColumn(
+                                              label: Text('STATUS',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 12,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF94A3B8)
+                                                          : const Color(
+                                                              0xFF475569)))),
+                                          DataColumn(
+                                              label: Text('ACTIONS',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 12,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF94A3B8)
+                                                          : const Color(
+                                                              0xFF475569)))),
                                         ],
-                                        rows: List.generate(paginatedGroups.length, (index) {
+                                        rows: List.generate(
+                                            paginatedGroups.length, (index) {
                                           final g = paginatedGroups[index];
-                                          final itemNum = startIndex + index + 1;
+                                          final itemNum =
+                                              startIndex + index + 1;
                                           return DataRow(
                                             cells: [
-                                              DataCell(Text('$itemNum', style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)))),
+                                              DataCell(Text('$itemNum',
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF94A3B8)
+                                                          : const Color(
+                                                              0xFF64748B)))),
                                               DataCell(
                                                 Row(
                                                   children: [
                                                     Container(
-                                                      padding: const EdgeInsets.all(6),
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              6),
                                                       decoration: BoxDecoration(
-                                                        color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
-                                                        borderRadius: BorderRadius.circular(6),
+                                                        color: isDark
+                                                            ? const Color(
+                                                                    0xFF312E81)
+                                                                .withValues(
+                                                                    alpha: 0.4)
+                                                            : const Color(
+                                                                0xFFEEF2FF),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(6),
                                                       ),
-                                                      child: Icon(Icons.price_change_outlined, size: 16, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
+                                                      child: Icon(
+                                                          Icons
+                                                              .price_change_outlined,
+                                                          size: 16,
+                                                          color: isDark
+                                                              ? const Color(
+                                                                  0xFF818CF8)
+                                                              : const Color(
+                                                                  0xFF4F46E5)),
                                                     ),
                                                     const SizedBox(width: 10),
                                                     Text(
                                                       g.name,
                                                       style: TextStyle(
                                                         fontSize: 13,
-                                                        fontWeight: FontWeight.w700,
-                                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color: isDark
+                                                            ? Colors.white
+                                                            : const Color(
+                                                                0xFF0F172A),
                                                       ),
                                                     ),
                                                   ],
@@ -532,27 +725,63 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                               ),
                                               DataCell(
                                                 Text(
-                                                  g.description.isNotEmpty ? g.description : '-',
-                                                  style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                                  g.description.isNotEmpty
+                                                      ? g.description
+                                                      : '-',
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF94A3B8)
+                                                          : const Color(
+                                                              0xFF64748B)),
                                                 ),
                                               ),
                                               DataCell(
                                                 Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 3),
                                                   decoration: BoxDecoration(
                                                     color: g.isActive
-                                                        ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.5) : const Color(0xFFDEF7EC))
-                                                        : (isDark ? const Color(0xFF450A0A).withValues(alpha: 0.5) : const Color(0xFFFEE2E2)),
-                                                    borderRadius: BorderRadius.circular(12),
+                                                        ? (isDark
+                                                            ? const Color(
+                                                                    0xFF064E3B)
+                                                                .withValues(
+                                                                    alpha: 0.5)
+                                                            : const Color(
+                                                                0xFFDEF7EC))
+                                                        : (isDark
+                                                            ? const Color(
+                                                                    0xFF450A0A)
+                                                                .withValues(
+                                                                    alpha: 0.5)
+                                                            : const Color(
+                                                                0xFFFEE2E2)),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
                                                   ),
                                                   child: Text(
-                                                    g.isActive ? 'Active' : 'Inactive',
+                                                    g.isActive
+                                                        ? 'Active'
+                                                        : 'Inactive',
                                                     style: TextStyle(
                                                       fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
+                                                      fontWeight:
+                                                          FontWeight.w700,
                                                       color: g.isActive
-                                                          ? (isDark ? const Color(0xFF34D399) : const Color(0xFF03543F))
-                                                          : (isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B)),
+                                                          ? (isDark
+                                                              ? const Color(
+                                                                  0xFF34D399)
+                                                              : const Color(
+                                                                  0xFF03543F))
+                                                          : (isDark
+                                                              ? const Color(
+                                                                  0xFFF87171)
+                                                              : const Color(
+                                                                  0xFF991B1B)),
                                                     ),
                                                   ),
                                                 ),
@@ -561,14 +790,27 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                                 Row(
                                                   children: [
                                                     IconButton(
-                                                      icon: Icon(Icons.edit_outlined, size: 16, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
+                                                      icon: Icon(
+                                                          Icons.edit_outlined,
+                                                          size: 16,
+                                                          color: isDark
+                                                              ? const Color(
+                                                                  0xFF818CF8)
+                                                              : const Color(
+                                                                  0xFF4F46E5)),
                                                       tooltip: 'Edit Group',
-                                                      onPressed: () => _showAddEditDialog(g),
+                                                      onPressed: () =>
+                                                          _showAddEditDialog(g),
                                                     ),
                                                     IconButton(
-                                                      icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
+                                                      icon: const Icon(
+                                                          Icons.delete_outline,
+                                                          size: 16,
+                                                          color: Color(
+                                                              0xFFEF4444)),
                                                       tooltip: 'Delete Group',
-                                                      onPressed: () => _deleteGroup(g),
+                                                      onPressed: () =>
+                                                          _deleteGroup(g),
                                                     ),
                                                   ],
                                                 ),
@@ -586,7 +828,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                               currentPage: currentPage,
                               pageSize: _pageSize,
                               totalItems: totalFiltered,
-                              onPageChanged: (newPage) => setState(() => _currentPage = newPage),
+                              onPageChanged: (newPage) =>
+                                  setState(() => _currentPage = newPage),
                               onPageSizeChanged: (newSize) => setState(() {
                                 _pageSize = newSize;
                                 _currentPage = 1;
@@ -613,9 +856,13 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02), blurRadius: 6, offset: const Offset(0, 2)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2)),
         ],
       ),
       child: Row(
@@ -634,12 +881,20 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
             children: [
               Text(
                 title,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B)),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
               ),
             ],
           ),

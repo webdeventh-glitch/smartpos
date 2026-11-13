@@ -47,7 +47,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
   Future<void> _activateLicense() async {
     final key = _keyController.text.trim();
     if (key.isEmpty) {
-      setState(() => _errorMessage = 'Please enter or paste your Software License Key.');
+      setState(() =>
+          _errorMessage = 'Please enter or paste your Software License Key.');
       return;
     }
 
@@ -131,7 +132,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Dark slate premium security screen
+      backgroundColor:
+          const Color(0xFF0F172A), // Dark slate premium security screen
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -168,7 +170,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.35),
+                          color:
+                              const Color(0xFFEF4444).withValues(alpha: 0.35),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -223,7 +226,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.memory_rounded, size: 16, color: Color(0xFF38BDF8)),
+                              Icon(Icons.memory_rounded,
+                                  size: 16, color: Color(0xFF38BDF8)),
                               SizedBox(width: 8),
                               Text(
                                 'Hardware Machine ID (MAC Address)',
@@ -237,22 +241,28 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                           ),
                           InkWell(
                             onTap: () {
-                              Clipboard.setData(ClipboardData(text: _deviceMac));
+                              Clipboard.setData(
+                                  ClipboardData(text: _deviceMac));
                               setState(() => _copiedMac = true);
                               Future.delayed(const Duration(seconds: 2), () {
                                 if (mounted) setState(() => _copiedMac = false);
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: _copiedMac ? const Color(0xFF16A34A) : const Color(0xFF334155),
+                                color: _copiedMac
+                                    ? const Color(0xFF16A34A)
+                                    : const Color(0xFF334155),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
                                 children: [
                                   Icon(
-                                    _copiedMac ? Icons.check_rounded : Icons.copy_rounded,
+                                    _copiedMac
+                                        ? Icons.check_rounded
+                                        : Icons.copy_rounded,
                                     size: 13,
                                     color: Colors.white,
                                   ),
@@ -285,7 +295,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                       const SizedBox(height: 6),
                       const Text(
                         'Send this Machine ID to the software vendor via WhatsApp to receive your signed activation key.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                        style:
+                            TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                       ),
                     ],
                   ),
@@ -313,7 +324,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                   ),
                   decoration: InputDecoration(
                     hintText: 'Paste key here (e.g. QULOP-YRL-XXXX-ey...)',
-                    hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                    hintStyle:
+                        const TextStyle(color: Color(0xFF64748B), fontSize: 12),
                     filled: true,
                     fillColor: const Color(0xFF0F172A),
                     border: OutlineInputBorder(
@@ -326,10 +338,12 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6366F1), width: 1.5),
                     ),
                     suffixIcon: IconButton(
-                      icon: const Icon(Icons.paste_rounded, color: Color(0xFF94A3B8)),
+                      icon: const Icon(Icons.paste_rounded,
+                          color: Color(0xFF94A3B8)),
                       tooltip: 'Paste from clipboard',
                       onPressed: () async {
                         final data = await Clipboard.getData('text/plain');
@@ -344,7 +358,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: const Color(0xFF450A0A),
                       borderRadius: BorderRadius.circular(8),
@@ -352,7 +367,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded, size: 18, color: Color(0xFFF87171)),
+                        const Icon(Icons.error_outline_rounded,
+                            size: 18, color: Color(0xFFF87171)),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -379,13 +395,15 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                   child: _isVerifying
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
                         )
                       : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -394,7 +412,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                             SizedBox(width: 8),
                             Text(
                               'Verify & Activate Software',
-                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 14),
                             ),
                           ],
                         ),

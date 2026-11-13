@@ -32,7 +32,9 @@ void main() {
     }
   });
 
-  test('sales & purchase documents persist line items and filter by status/search', () async {
+  test(
+      'sales & purchase documents persist line items and filter by status/search',
+      () async {
     final prodId = await db.addProduct(
       Product(
         name: 'Basmati Rice 5kg',

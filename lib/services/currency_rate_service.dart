@@ -10,7 +10,8 @@ class CurrencyRate {
   final String name; // US Dollar, Saudi Riyal, UAE Dirham, etc.
   final String country; // United States, Saudi Arabia, etc.
   final double liveRate; // Live interbank rate (1 Foreign Unit = X Base Units)
-  final double? customRate; // Merchant custom counter rate (e.g. cash market rate)
+  final double?
+      customRate; // Merchant custom counter rate (e.g. cash market rate)
   final bool isEnabled; // Active for POS checkout tender
 
   const CurrencyRate({
@@ -77,7 +78,8 @@ class CurrencyRate {
 class CurrencyRateService {
   /// Completely free open exchange rate API endpoints (No API key required, 100% free)
   static const String openErApiUrl = 'https://open.er-api.com/v6/latest/USD';
-  static const String fallbackApiUrl = 'https://api.exchangerate-api.com/v4/latest/USD';
+  static const String fallbackApiUrl =
+      'https://api.exchangerate-api.com/v4/latest/USD';
 
   /// Standard curated trade currencies for cash counter checkout
   static List<CurrencyRate> defaultRatesForBase(String baseCurrency) {
@@ -162,14 +164,18 @@ class CurrencyRateService {
   }
 
   /// Parses saved JSON into list of CurrencyRates with fallback to defaults
-  static List<CurrencyRate> parseRatesJson(String? jsonStr, String baseCurrency) {
+  static List<CurrencyRate> parseRatesJson(
+      String? jsonStr, String baseCurrency) {
     if (jsonStr == null || jsonStr.trim().isEmpty) {
       return defaultRatesForBase(baseCurrency);
     }
     try {
       final decoded = jsonDecode(jsonStr);
       if (decoded is List) {
-        final list = decoded.map((e) => CurrencyRate.fromMap(Map<String, dynamic>.from(e as Map))).toList();
+        final list = decoded
+            .map((e) =>
+                CurrencyRate.fromMap(Map<String, dynamic>.from(e as Map)))
+            .toList();
         if (list.isNotEmpty) return list;
       }
     } catch (e) {
@@ -202,7 +208,8 @@ class CurrencyRateService {
             .get(Uri.parse(openErApiUrl))
             .timeout(const Duration(seconds: 8));
       } catch (e, st) {
-        AppLogger.warning('CurrencyRateService', 'Primary rate endpoint failed, using fallback mirror', e, st);
+        AppLogger.warning('CurrencyRateService',
+            'Primary rate endpoint failed, using fallback mirror', e, st);
         // Fallback to secondary mirror
         response = await httpClient
             .get(Uri.parse(fallbackApiUrl))
@@ -225,7 +232,8 @@ class CurrencyRateService {
           double computedRate = item.liveRate;
           if (targetRatePerUsd != null && targetRatePerUsd > 0) {
             // 1 Unit of Target = (baseRatePerUsd / targetRatePerUsd) Units of Base
-            computedRate = double.parse((baseRatePerUsd / targetRatePerUsd).toStringAsFixed(4));
+            computedRate = double.parse(
+                (baseRatePerUsd / targetRatePerUsd).toStringAsFixed(4));
           }
 
           updatedList.add(item.copyWith(liveRate: computedRate));
@@ -236,14 +244,16 @@ class CurrencyRateService {
           success: true,
           rates: updatedList,
           timestamp: nowIso,
-          message: 'Live exchange rates successfully synchronized from open API.',
+          message:
+              'Live exchange rates successfully synchronized from open API.',
         );
       } else {
         return LiveRateSyncResult(
           success: false,
           rates: currentList,
           timestamp: DateTime.now().toIso8601String(),
-          message: 'HTTP ${response.statusCode}: Failed to fetch live exchange rates.',
+          message:
+              'HTTP ${response.statusCode}: Failed to fetch live exchange rates.',
         );
       }
     } catch (e) {
@@ -277,18 +287,21 @@ class CurrencyRateService {
     required double effectiveRate,
   }) {
     final rate = effectiveRate > 0 ? effectiveRate : 1.0;
-    final baseEquivalentTendered = double.parse((foreignTendered * rate).toStringAsFixed(2));
-    final foreignGrandTotal = double.parse((baseGrandTotal / rate).toStringAsFixed(2));
+    final baseEquivalentTendered =
+        double.parse((foreignTendered * rate).toStringAsFixed(2));
+    final foreignGrandTotal =
+        double.parse((baseGrandTotal / rate).toStringAsFixed(2));
 
     final baseChange = baseEquivalentTendered > baseGrandTotal
-        ? double.parse((baseEquivalentTendered - baseGrandTotal).toStringAsFixed(2))
+        ? double.parse(
+            (baseEquivalentTendered - baseGrandTotal).toStringAsFixed(2))
         : 0.0;
-    final foreignChange = rate > 0
-        ? double.parse((baseChange / rate).toStringAsFixed(2))
-        : 0.0;
+    final foreignChange =
+        rate > 0 ? double.parse((baseChange / rate).toStringAsFixed(2)) : 0.0;
 
     final baseBalanceDue = baseGrandTotal > baseEquivalentTendered
-        ? double.parse((baseGrandTotal - baseEquivalentTendered).toStringAsFixed(2))
+        ? double.parse(
+            (baseGrandTotal - baseEquivalentTendered).toStringAsFixed(2))
         : 0.0;
     final foreignBalanceDue = rate > 0
         ? double.parse((baseBalanceDue / rate).toStringAsFixed(2))

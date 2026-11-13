@@ -12,7 +12,8 @@ class RecentTransactionsDialog extends StatefulWidget {
   const RecentTransactionsDialog({super.key, required this.settings});
 
   @override
-  State<RecentTransactionsDialog> createState() => _RecentTransactionsDialogState();
+  State<RecentTransactionsDialog> createState() =>
+      _RecentTransactionsDialogState();
 }
 
 class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
@@ -57,7 +58,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
         if (_selectedStatus != 'all' && s.saleStatus != _selectedStatus) {
           return false;
         }
-        if (_selectedMethod != 'all' && s.paymentMethod.toLowerCase() != _selectedMethod) {
+        if (_selectedMethod != 'all' &&
+            s.paymentMethod.toLowerCase() != _selectedMethod) {
           return false;
         }
         if (query.isNotEmpty) {
@@ -77,7 +79,9 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
 
     if (fullSale == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not load sale details for printing.'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Could not load sale details for printing.'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -101,7 +105,9 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
 
     if (fullSale == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not load sale items for return processing.'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Could not load sale items for return processing.'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -114,7 +120,9 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
         onReturnSuccess: () {
           _loadRecentSales();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Return processed successfully!'), backgroundColor: Colors.green),
+            const SnackBar(
+                content: Text('Return processed successfully!'),
+                backgroundColor: Colors.green),
           );
         },
       ),
@@ -128,9 +136,11 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
 
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final bgHeader = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -156,7 +166,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
             children: [
               // Top Bar
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 decoration: BoxDecoration(
                   color: bgHeader,
                   borderRadius: const BorderRadius.only(
@@ -173,7 +184,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                         color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.history_rounded, color: Color(0xFF4F46E5), size: 22),
+                      child: const Icon(Icons.history_rounded,
+                          color: Color(0xFF4F46E5), size: 22),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -192,7 +204,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                           const SizedBox(height: 2),
                           Text(
                             'Review recent customer sales, reprint 80mm/58mm/A4 invoices, or initiate returns.',
-                            style: TextStyle(fontSize: 12, color: textSecondary),
+                            style:
+                                TextStyle(fontSize: 12, color: textSecondary),
                           ),
                         ],
                       ),
@@ -214,9 +227,12 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
 
               // Status Tabs (All / Final / Drafts / Quotations)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF1F5F9),
                   border: Border(bottom: BorderSide(color: borderColor)),
                 ),
                 child: SingleChildScrollView(
@@ -225,11 +241,16 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                     children: [
                       _buildStatusChip('all', 'All (${_allSales.length})'),
                       const SizedBox(width: 8),
-                      _buildStatusChip('final', 'Final Sales (${_allSales.where((s) => s.saleStatus == 'final').length})'),
+                      _buildStatusChip('final',
+                          'Final Sales (${_allSales.where((s) => s.saleStatus == 'final').length})'),
                       const SizedBox(width: 8),
-                      _buildStatusChip('draft', 'Drafts (${_allSales.where((s) => s.saleStatus == 'draft').length})', color: const Color(0xFF0284C7)),
+                      _buildStatusChip('draft',
+                          'Drafts (${_allSales.where((s) => s.saleStatus == 'draft').length})',
+                          color: const Color(0xFF0284C7)),
                       const SizedBox(width: 8),
-                      _buildStatusChip('quotation', 'Quotations (${_allSales.where((s) => s.saleStatus == 'quotation').length})', color: const Color(0xFF8B5CF6)),
+                      _buildStatusChip('quotation',
+                          'Quotations (${_allSales.where((s) => s.saleStatus == 'quotation').length})',
+                          color: const Color(0xFF8B5CF6)),
                     ],
                   ),
                 ),
@@ -237,7 +258,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
 
               // Filter & Search Toolbar
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
                   color: cardBg,
                   border: Border(bottom: BorderSide(color: borderColor)),
@@ -252,13 +274,18 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                         onChanged: (val) => _applyFilter(),
                         style: TextStyle(fontSize: 13, color: textPrimary),
                         decoration: InputDecoration(
-                          hintText: 'Search by Invoice No (e.g. INV-1001) or Customer Name...',
-                          hintStyle: TextStyle(fontSize: 13, color: textSecondary),
+                          hintText:
+                              'Search by Invoice No (e.g. INV-1001) or Customer Name...',
+                          hintStyle:
+                              TextStyle(fontSize: 13, color: textSecondary),
                           prefixIcon: const Icon(Icons.search, size: 18),
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                          fillColor: isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF8FAFC),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(color: borderColor),
@@ -296,29 +323,38 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.receipt_long_outlined, size: 48, color: textSecondary.withValues(alpha: 0.5)),
+                                Icon(Icons.receipt_long_outlined,
+                                    size: 48,
+                                    color:
+                                        textSecondary.withValues(alpha: 0.5)),
                                 const SizedBox(height: 12),
                                 Text(
                                   'No transactions found',
-                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: textPrimary),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'Completed sales made in the POS terminal will appear here.',
-                                  style: TextStyle(fontSize: 12, color: textSecondary),
+                                  style: TextStyle(
+                                      fontSize: 12, color: textSecondary),
                                 ),
                               ],
                             ),
                           )
                         : ListView.separated(
                             itemCount: _filteredSales.length,
-                            separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+                            separatorBuilder: (_, __) =>
+                                Divider(height: 1, color: borderColor),
                             itemBuilder: (context, index) {
                               final sale = _filteredSales[index];
                               final isDue = sale.dueAmount > 0;
 
                               return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 10),
                                 child: Row(
                                   children: [
                                     // Invoice Icon & No
@@ -326,10 +362,12 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                       width: 40,
                                       height: 40,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF5B6DF0).withValues(alpha: 0.1),
+                                        color: const Color(0xFF5B6DF0)
+                                            .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(Icons.receipt_rounded, color: Color(0xFF5B6DF0), size: 20),
+                                      child: const Icon(Icons.receipt_rounded,
+                                          color: Color(0xFF5B6DF0), size: 20),
                                     ),
                                     const SizedBox(width: 14),
 
@@ -337,7 +375,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                     Expanded(
                                       flex: 3,
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
@@ -352,22 +391,32 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                               const SizedBox(width: 6),
                                               InkWell(
                                                 onTap: () {
-                                                  Clipboard.setData(ClipboardData(text: sale.invoiceNo));
-                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                  Clipboard.setData(
+                                                      ClipboardData(
+                                                          text:
+                                                              sale.invoiceNo));
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
                                                     const SnackBar(
-                                                      content: Text('Invoice copied to clipboard'),
-                                                      duration: Duration(seconds: 1),
+                                                      content: Text(
+                                                          'Invoice copied to clipboard'),
+                                                      duration:
+                                                          Duration(seconds: 1),
                                                     ),
                                                   );
                                                 },
-                                                child: Icon(Icons.copy_rounded, size: 13, color: textSecondary),
+                                                child: Icon(Icons.copy_rounded,
+                                                    size: 13,
+                                                    color: textSecondary),
                                               ),
                                             ],
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
                                             sale.createdAt,
-                                            style: TextStyle(fontSize: 11, color: textSecondary),
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color: textSecondary),
                                           ),
                                         ],
                                       ),
@@ -377,7 +426,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                     Expanded(
                                       flex: 3,
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             sale.customerName,
@@ -399,7 +449,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                     Expanded(
                                       flex: 3,
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
                                           Text(
                                             '$currency${sale.totalAmount.toStringAsFixed(2)}',
@@ -439,28 +490,53 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                         if (sale.saleStatus != 'final') ...[
                                           ElevatedButton.icon(
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF10B981),
+                                              backgroundColor:
+                                                  const Color(0xFF10B981),
                                               foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 8),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
                                               elevation: 0,
                                             ),
-                                            icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 15),
-                                            label: Text(sale.saleStatus == 'draft' ? 'Resume Draft' : 'Load Quotation', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                            icon: const Icon(
+                                                Icons
+                                                    .shopping_cart_checkout_rounded,
+                                                size: 15),
+                                            label: Text(
+                                                sale.saleStatus == 'draft'
+                                                    ? 'Resume Draft'
+                                                    : 'Load Quotation',
+                                                style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight:
+                                                        FontWeight.bold)),
                                             onPressed: () async {
-                                              final db = await DatabaseService.initialize();
-                                              final fullSale = await db.getSaleByInvoiceNo(sale.invoiceNo);
+                                              final db = await DatabaseService
+                                                  .initialize();
+                                              final fullSale =
+                                                  await db.getSaleByInvoiceNo(
+                                                      sale.invoiceNo);
                                               if (context.mounted) {
-                                                Navigator.pop(context, fullSale ?? sale);
+                                                Navigator.pop(
+                                                    context, fullSale ?? sale);
                                               }
                                             },
                                           ),
                                           const SizedBox(width: 8),
                                           IconButton(
-                                            icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF4444)),
-                                            tooltip: 'Delete ${sale.saleStatus.toUpperCase()}',
+                                            icon: const Icon(
+                                                Icons.delete_outline,
+                                                size: 18,
+                                                color: Color(0xFFEF4444)),
+                                            tooltip:
+                                                'Delete ${sale.saleStatus.toUpperCase()}',
                                             onPressed: () async {
-                                              final db = await DatabaseService.initialize();
+                                              final db = await DatabaseService
+                                                  .initialize();
                                               await db.deleteSale(sale.id!);
                                               _loadRecentSales();
                                             },
@@ -469,32 +545,60 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                           // Reprint Button
                                           OutlinedButton.icon(
                                             style: OutlinedButton.styleFrom(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                              side: BorderSide(color: const Color(0xFF4F46E5).withValues(alpha: 0.5)),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 8),
+                                              side: BorderSide(
+                                                  color: const Color(0xFF4F46E5)
+                                                      .withValues(alpha: 0.5)),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
                                             ),
-                                            icon: const Icon(Icons.print_outlined, size: 15, color: Color(0xFF4F46E5)),
+                                            icon: const Icon(
+                                                Icons.print_outlined,
+                                                size: 15,
+                                                color: Color(0xFF4F46E5)),
                                             label: const Text(
                                               'Reprint',
-                                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF4F46E5)),
                                             ),
-                                            onPressed: () => _reprintReceipt(sale),
+                                            onPressed: () =>
+                                                _reprintReceipt(sale),
                                           ),
                                           const SizedBox(width: 8),
 
                                           // Return Button
                                           OutlinedButton.icon(
                                             style: OutlinedButton.styleFrom(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                              side: BorderSide(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 8),
+                                              side: BorderSide(
+                                                  color: const Color(0xFFF59E0B)
+                                                      .withValues(alpha: 0.5)),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
                                             ),
-                                            icon: const Icon(Icons.keyboard_return_rounded, size: 15, color: Color(0xFFD97706)),
+                                            icon: const Icon(
+                                                Icons.keyboard_return_rounded,
+                                                size: 15,
+                                                color: Color(0xFFD97706)),
                                             label: const Text(
                                               'Refund',
-                                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD97706)),
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFFD97706)),
                                             ),
-                                            onPressed: () => _initiateReturn(sale),
+                                            onPressed: () =>
+                                                _initiateReturn(sale),
                                           ),
                                         ],
                                       ],
@@ -508,7 +612,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
 
               // Bottom Stats Summary
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
                   color: bgHeader,
                   borderRadius: const BorderRadius.only(
@@ -532,7 +637,10 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                         ),
                         Text(
                           '$currency${_filteredSales.fold(0.0, (sum, s) => sum + s.totalAmount).toStringAsFixed(2)}',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary),
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: textPrimary),
                         ),
                       ],
                     ),
@@ -546,10 +654,14 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
     );
   }
 
-  Widget _buildStatusChip(String status, String label, {Color color = const Color(0xFF4F46E5)}) {
+  Widget _buildStatusChip(String status, String label,
+      {Color color = const Color(0xFF4F46E5)}) {
     final isSelected = _selectedStatus == status;
     return ChoiceChip(
-      label: Text(label, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+      label: Text(label,
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
       selected: isSelected,
       onSelected: (_) {
         setState(() {
@@ -567,7 +679,10 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
   Widget _buildFilterChip(String method, String label) {
     final isSelected = _selectedMethod == method;
     return ChoiceChip(
-      label: Text(label, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+      label: Text(label,
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
       selected: isSelected,
       onSelected: (_) {
         setState(() {
@@ -613,7 +728,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
       child: Text(
         label,
         style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: fg),
@@ -621,4 +737,3 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
     );
   }
 }
-

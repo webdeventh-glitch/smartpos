@@ -43,6 +43,7 @@ class MessageLog {
         status: map['status'] as String? ?? 'sent',
         gatewayName: map['gateway_name'] as String? ?? '',
         errorDetails: map['error_details'] as String? ?? '',
-        createdAt: map['created_at'] as String? ?? DateTime.now().toIso8601String(),
+        createdAt:
+            map['created_at'] as String? ?? DateTime.now().toIso8601String(),
       );
 }

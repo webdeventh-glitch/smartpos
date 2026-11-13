@@ -9,7 +9,8 @@ void main() {
     sqfliteFfiInit();
   });
 
-  test('Phase 2: Variable Products, Variations, Units, and Sub-SKU Lookup', () async {
+  test('Phase 2: Variable Products, Variations, Units, and Sub-SKU Lookup',
+      () async {
     final tempDir = await Directory.systemTemp.createTemp('pos_phase2_test_');
     final dbPath = '${tempDir.path}/test_phase2.db';
 
@@ -18,7 +19,8 @@ void main() {
     // 1. Units verification
     final units = await dbService.getUnits();
     expect(units.isNotEmpty, isTrue);
-    expect(units.any((u) => u.shortName == 'Pc' || u.shortName == 'Box'), isTrue);
+    expect(
+        units.any((u) => u.shortName == 'Pc' || u.shortName == 'Box'), isTrue);
 
     // 2. Warranties verification
     final warranties = await dbService.getWarranties();
@@ -69,7 +71,8 @@ void main() {
       ),
     ];
 
-    final createdProdId = await dbService.addProductWithVariations(varProduct, variations);
+    final createdProdId =
+        await dbService.addProductWithVariations(varProduct, variations);
     expect(createdProdId, greaterThan(0));
 
     // 5. Verify variations retrieval

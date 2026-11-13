@@ -9,7 +9,9 @@ void main() {
     sqfliteFfiInit();
   });
 
-  test('Phase 6: Payment Accounts, Double-Entry Fund Transfers, and Expense Logging', () async {
+  test(
+      'Phase 6: Payment Accounts, Double-Entry Fund Transfers, and Expense Logging',
+      () async {
     final tempDir = await Directory.systemTemp.createTemp('pos_phase6_test_');
     final dbPath = '${tempDir.path}/test_phase6.db';
 
@@ -55,8 +57,10 @@ void main() {
 
     // 4. Verify Atomic Balance Updates
     final updatedAccounts = await dbService.getPaymentAccounts();
-    final updatedCash = updatedAccounts.firstWhere((a) => a.id == cashAccount.id);
-    final updatedBank = updatedAccounts.firstWhere((a) => a.id == bankAccount.id);
+    final updatedCash =
+        updatedAccounts.firstWhere((a) => a.id == cashAccount.id);
+    final updatedBank =
+        updatedAccounts.firstWhere((a) => a.id == bankAccount.id);
 
     expect(updatedCash.currentBalance, equals(initialCashBal - 400.0));
     expect(updatedBank.currentBalance, equals(initialBankBal + 400.0));
@@ -77,7 +81,8 @@ void main() {
 
     final allExpenses = await dbService.getExpenses();
     expect(allExpenses.any((e) => e.refNo == 'EXP-RENT-OCT'), isTrue);
-    expect(allExpenses.firstWhere((e) => e.refNo == 'EXP-RENT-OCT').amount, equals(1200.0));
+    expect(allExpenses.firstWhere((e) => e.refNo == 'EXP-RENT-OCT').amount,
+        equals(1200.0));
 
     // Cleanup SQLite lock on Windows
     await dbService.db.close();

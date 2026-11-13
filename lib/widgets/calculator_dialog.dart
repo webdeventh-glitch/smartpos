@@ -63,7 +63,9 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
     }
 
     setState(() {
-      _display = result % 1 == 0 ? result.toInt().toString() : result.toStringAsFixed(2);
+      _display = result % 1 == 0
+          ? result.toInt().toString()
+          : result.toStringAsFixed(2);
       _firstOperand = null;
       _operator = null;
       _shouldResetDisplay = true;
@@ -89,17 +91,21 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
     });
   }
 
-  Widget _btn(String label, {Color? bg, Color? fg, VoidCallback? onPressed, bool isDark = false}) {
+  Widget _btn(String label,
+      {Color? bg, Color? fg, VoidCallback? onPressed, bool isDark = false}) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: bg ?? (isDark ? const Color(0xFF334155) : Colors.grey.shade100),
-            foregroundColor: fg ?? (isDark ? Colors.white : const Color(0xFF1E293B)),
+            backgroundColor:
+                bg ?? (isDark ? const Color(0xFF334155) : Colors.grey.shade100),
+            foregroundColor:
+                fg ?? (isDark ? Colors.white : const Color(0xFF1E293B)),
             elevation: 0,
             padding: const EdgeInsets.symmetric(vertical: 18),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
           onPressed: onPressed,
           child: Text(
@@ -133,7 +139,10 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.calculate_rounded, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5)),
+                    Icon(Icons.calculate_rounded,
+                        color: isDark
+                            ? const Color(0xFFA5B4FC)
+                            : const Color(0xFF4F46E5)),
                     const SizedBox(width: 8),
                     Text(
                       'Calculator',
@@ -146,7 +155,11 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                   ],
                 ),
                 IconButton(
-                  icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  icon: Icon(Icons.close,
+                      size: 20,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B)),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -156,9 +169,13 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                color:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               alignment: Alignment.centerRight,
               child: Text(
@@ -178,22 +195,34 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
               children: [
                 _btn(
                   'C',
-                  bg: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2),
-                  fg: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFEF4444),
+                  bg: isDark
+                      ? const Color(0xFF450A0A)
+                      : const Color(0xFFFEE2E2),
+                  fg: isDark
+                      ? const Color(0xFFFCA5A5)
+                      : const Color(0xFFEF4444),
                   onPressed: _onClear,
                   isDark: isDark,
                 ),
                 _btn(
                   '⌫',
-                  bg: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                  fg: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                  bg: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF1F5F9),
+                  fg: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF475569),
                   onPressed: _onBackspace,
                   isDark: isDark,
                 ),
                 _btn(
                   '%',
-                  bg: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                  fg: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                  bg: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF1F5F9),
+                  fg: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF475569),
                   onPressed: () {
                     final val = (double.tryParse(_display) ?? 0) / 100;
                     setState(() => _display = val.toString());
@@ -202,8 +231,12 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                 ),
                 _btn(
                   '÷',
-                  bg: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                  fg: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                  bg: isDark
+                      ? const Color(0xFF312E81)
+                      : const Color(0xFFEEF2FF),
+                  fg: isDark
+                      ? const Color(0xFFA5B4FC)
+                      : const Color(0xFF4F46E5),
                   onPressed: () => _onOperator('÷'),
                   isDark: isDark,
                 ),
@@ -216,8 +249,12 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                 _btn('9', onPressed: () => _onDigit('9'), isDark: isDark),
                 _btn(
                   '×',
-                  bg: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                  fg: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                  bg: isDark
+                      ? const Color(0xFF312E81)
+                      : const Color(0xFFEEF2FF),
+                  fg: isDark
+                      ? const Color(0xFFA5B4FC)
+                      : const Color(0xFF4F46E5),
                   onPressed: () => _onOperator('×'),
                   isDark: isDark,
                 ),
@@ -230,8 +267,12 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                 _btn('6', onPressed: () => _onDigit('6'), isDark: isDark),
                 _btn(
                   '-',
-                  bg: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                  fg: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                  bg: isDark
+                      ? const Color(0xFF312E81)
+                      : const Color(0xFFEEF2FF),
+                  fg: isDark
+                      ? const Color(0xFFA5B4FC)
+                      : const Color(0xFF4F46E5),
                   onPressed: () => _onOperator('-'),
                   isDark: isDark,
                 ),
@@ -244,8 +285,12 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                 _btn('3', onPressed: () => _onDigit('3'), isDark: isDark),
                 _btn(
                   '+',
-                  bg: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
-                  fg: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
+                  bg: isDark
+                      ? const Color(0xFF312E81)
+                      : const Color(0xFFEEF2FF),
+                  fg: isDark
+                      ? const Color(0xFFA5B4FC)
+                      : const Color(0xFF4F46E5),
                   onPressed: () => _onOperator('+'),
                   isDark: isDark,
                 ),
@@ -256,7 +301,11 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                 _btn('0', onPressed: () => _onDigit('0'), isDark: isDark),
                 _btn('00', onPressed: () => _onDigit('00'), isDark: isDark),
                 _btn('.', onPressed: _onDecimal, isDark: isDark),
-                _btn('=', bg: const Color(0xFF4F46E5), fg: Colors.white, onPressed: _onEquals, isDark: isDark),
+                _btn('=',
+                    bg: const Color(0xFF4F46E5),
+                    fg: Colors.white,
+                    onPressed: _onEquals,
+                    isDark: isDark),
               ],
             ),
           ],

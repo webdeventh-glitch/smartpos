@@ -47,7 +47,9 @@ void main() {
   });
 
   group('Step 3.1: Item-Level Discounts', () {
-    test('CartItem calculates fixed & percentage discounts and persists in SQLite sale_items', () async {
+    test(
+        'CartItem calculates fixed & percentage discounts and persists in SQLite sale_items',
+        () async {
       final prodA = Product(
         id: 1,
         name: 'Surgical Mask Box',
@@ -113,7 +115,9 @@ void main() {
       expect(loadedItems[1].subtotal, closeTo(450.0, 0.01));
     });
 
-    testWidgets('ReceiptDialog displays per-item discount labels and tax breakdown', (tester) async {
+    testWidgets(
+        'ReceiptDialog displays per-item discount labels and tax breakdown',
+        (tester) async {
       tester.view.physicalSize = const Size(1280, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -148,7 +152,8 @@ void main() {
 
       final html = PrintService.generateSaleInvoiceHtml(
         sale: sale,
-        settings: BusinessSettings(businessName: 'Test Mart', currencySymbol: 'Rs '),
+        settings:
+            BusinessSettings(businessName: 'Test Mart', currencySymbol: 'Rs '),
         paperSizeOverride: '80mm',
       );
       expect(html, contains('-10%'));
@@ -218,9 +223,13 @@ void main() {
   });
 
   group('Step 3.2: Group Taxes (Compound & Additive)', () {
-    test('TaxGroup computes additive vs compound rates accurately and persists CRUD + Sale breakdown', () async {
-      final gstId = await dbService.addTaxRate(TaxRate(name: 'GST', amount: 5.0));
-      final pstId = await dbService.addTaxRate(TaxRate(name: 'PST', amount: 3.0));
+    test(
+        'TaxGroup computes additive vs compound rates accurately and persists CRUD + Sale breakdown',
+        () async {
+      final gstId =
+          await dbService.addTaxRate(TaxRate(name: 'GST', amount: 5.0));
+      final pstId =
+          await dbService.addTaxRate(TaxRate(name: 'PST', amount: 3.0));
       final rates = await dbService.getTaxRates();
 
       final additiveGroup = TaxGroup(
@@ -275,20 +284,29 @@ void main() {
 
       // Update & delete group
       await dbService.updateTaxGroup(
-        TaxGroup(id: savedGroup.id, name: 'Additive Updated', subTaxIds: [gstId, pstId], isCompound: false),
+        TaxGroup(
+            id: savedGroup.id,
+            name: 'Additive Updated',
+            subTaxIds: [gstId, pstId],
+            isCompound: false),
       );
-      final afterUpd = (await dbService.getTaxGroups()).firstWhere((g) => g.id == compoundId);
+      final afterUpd = (await dbService.getTaxGroups())
+          .firstWhere((g) => g.id == compoundId);
       expect(afterUpd.effectiveRate, closeTo(8.0, 0.001));
 
       await dbService.deleteTaxGroup(compoundId);
-      expect((await dbService.getTaxGroups()).any((g) => g.id == compoundId), isFalse);
+      expect((await dbService.getTaxGroups()).any((g) => g.id == compoundId),
+          isFalse);
     });
   });
 
   group('Step 3.3: Customer Groups & Tiered Pricing', () {
-    test('CustomerGroup SQLite CRUD + Contact join + CartNotifier tiered repricing work seamlessly', () async {
+    test(
+        'CustomerGroup SQLite CRUD + Contact join + CartNotifier tiered repricing work seamlessly',
+        () async {
       final groups = await dbService.getCustomerGroups();
-      expect(groups.any((g) => g.name.toLowerCase().contains('wholesale')), isTrue);
+      expect(groups.any((g) => g.name.toLowerCase().contains('wholesale')),
+          isTrue);
 
       final vipId = await dbService.addCustomerGroup(
         const CustomerGroup(
@@ -313,7 +331,8 @@ void main() {
       expect(fetched.customerGroupName, 'Platinum VIP');
 
       // Phone search should match via fixed c.phone LIKE ? query
-      final phoneMatches = await dbService.getContacts(type: 'customer', search: '0300-123');
+      final phoneMatches =
+          await dbService.getContacts(type: 'customer', search: '0300-123');
       expect(phoneMatches.any((c) => c.id == custId), isTrue);
 
       final container = ProviderContainer();
@@ -334,7 +353,8 @@ void main() {
 
       final vipGroup = await dbService.getCustomerGroupById(vipId);
       notifier.applyCustomerGroup(vipGroup);
-      expect(container.read(cartProvider).items.first.unitPrice, closeTo(1700.0, 0.01));
+      expect(container.read(cartProvider).items.first.unitPrice,
+          closeTo(1700.0, 0.01));
 
       // Newly added item also gets tier price immediately
       final glucometer = Product(
@@ -347,12 +367,15 @@ void main() {
         stockQuantity: 10.0,
       );
       notifier.addProduct(glucometer);
-      expect(container.read(cartProvider).items[1].unitPrice, closeTo(850.0, 0.01));
+      expect(container.read(cartProvider).items[1].unitPrice,
+          closeTo(850.0, 0.01));
 
       // Reverting to Walk-in (null group) restores retail base price
       notifier.applyCustomerGroup(null);
-      expect(container.read(cartProvider).items[0].unitPrice, closeTo(2000.0, 0.01));
-      expect(container.read(cartProvider).items[1].unitPrice, closeTo(1000.0, 0.01));
+      expect(container.read(cartProvider).items[0].unitPrice,
+          closeTo(2000.0, 0.01));
+      expect(container.read(cartProvider).items[1].unitPrice,
+          closeTo(1000.0, 0.01));
 
       // Deleting group clears contact FK cleanly
       await dbService.deleteCustomerGroup(vipId);
@@ -362,7 +385,9 @@ void main() {
   });
 
   group('Step 3.4: Quotation to Invoice Workflow & Funnel Metrics', () {
-    test('Converts quotation atomically to final invoice, deducts stock, prevents re-conversion, and updates KPIs', () async {
+    test(
+        'Converts quotation atomically to final invoice, deducts stock, prevents re-conversion, and updates KPIs',
+        () async {
       final prodId = await dbService.insertProduct(
         Product(
           name: 'Inverter Battery 180Ah',
@@ -374,7 +399,10 @@ void main() {
         ),
       );
       final custId = await dbService.addContact(
-        Contact(type: 'customer', name: 'Solar Tech Builders', phone: '0321-0001112'),
+        Contact(
+            type: 'customer',
+            name: 'Solar Tech Builders',
+            phone: '0321-0001112'),
       );
       final prod = (await dbService.getProduct(prodId))!;
 
@@ -395,7 +423,9 @@ void main() {
 
       // Quotation must NOT deduct stock
       expect((await dbService.getProduct(prodId))!.stockQuantity, 10.0);
-      expect((await dbService.getQuotations(conversionFilter: 'pending')).length, 1);
+      expect(
+          (await dbService.getQuotations(conversionFilter: 'pending')).length,
+          1);
 
       // Convert quotation atomically with partial payment (40,000 paid, 20,000 due)
       final invoice = await dbService.convertQuotationToInvoice(
@@ -408,11 +438,14 @@ void main() {
       expect(invoice.paymentStatus, 'partial');
       expect(invoice.convertedFromQuotationId, quote.id);
       expect((await dbService.getProduct(prodId))!.stockQuantity, 8.0);
-      expect((await dbService.getContactById(custId))!.balance, closeTo(20000.0, 0.01));
+      expect((await dbService.getContactById(custId))!.balance,
+          closeTo(20000.0, 0.01));
 
       // Pending quotes should now be empty; converted should list QT-2026-01
-      expect((await dbService.getQuotations(conversionFilter: 'pending')), isEmpty);
-      final convertedQuotes = await dbService.getQuotations(conversionFilter: 'converted');
+      expect((await dbService.getQuotations(conversionFilter: 'pending')),
+          isEmpty);
+      final convertedQuotes =
+          await dbService.getQuotations(conversionFilter: 'converted');
       expect(convertedQuotes.length, 1);
       expect(convertedQuotes.first.convertedToSaleId, invoice.id);
 
@@ -447,7 +480,9 @@ void main() {
   });
 
   group('Step 3.5: Full RBAC Permissions & Role Editor', () {
-    test('Custom DB role permissions load at AuthService.login and enforce granular PermissionCatalog keys', () async {
+    test(
+        'Custom DB role permissions load at AuthService.login and enforce granular PermissionCatalog keys',
+        () async {
       expect(PermissionCatalog.all.length, 41);
 
       final roles = await dbService.getRoles();
@@ -457,7 +492,8 @@ void main() {
         const AppRole(
           name: 'stock_auditor',
           displayName: 'Stock Auditor',
-          description: 'Can inspect inventory audits & activity logs, cannot delete sales.',
+          description:
+              'Can inspect inventory audits & activity logs, cannot delete sales.',
           permissions: [
             'product.view',
             'inventory.audit',
@@ -477,7 +513,8 @@ void main() {
         ),
       );
 
-      final loggedIn = await AuthService.login('auditor_zainab', 'AuditPass123!');
+      final loggedIn =
+          await AuthService.login('auditor_zainab', 'AuditPass123!');
       expect(loggedIn, isTrue);
 
       final effective = AuthService.currentUser!;
@@ -488,7 +525,9 @@ void main() {
       expect(effective.hasPermission('pos.edit_price'), isFalse);
     });
 
-    testWidgets('UserManagementScreen Roles & Permissions Matrix tab displays DB roles and opens editor', (tester) async {
+    testWidgets(
+        'UserManagementScreen Roles & Permissions Matrix tab displays DB roles and opens editor',
+        (tester) async {
       tester.view.physicalSize = const Size(1400, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -501,7 +540,8 @@ void main() {
           ),
         ),
       );
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 250)));
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 250)));
       await tester.pump();
 
       await tester.tap(find.text('Roles & Permissions Matrix'));
@@ -509,7 +549,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Create Custom Role'), findsOneWidget);
-      expect(find.textContaining('Granular Role-Based Access Control'), findsOneWidget);
+      expect(find.textContaining('Granular Role-Based Access Control'),
+          findsOneWidget);
 
       await tester.tap(find.text('Create Custom Role'));
       await tester.pump();
@@ -519,9 +560,16 @@ void main() {
   });
 
   group('Step 3.6: Activity Log / Audit Trail & ReportsScreen Tab', () {
-    test('Repository CRUD actions automatically populate filterable activity_log entries', () async {
+    test(
+        'Repository CRUD actions automatically populate filterable activity_log entries',
+        () async {
       AuthService.switchUser(
-        User(id: 1, name: 'Owner Tariq', username: 'owner', password: 'x', role: 'superadmin'),
+        User(
+            id: 1,
+            name: 'Owner Tariq',
+            username: 'owner',
+            password: 'x',
+            role: 'superadmin'),
       );
 
       final prodId = await dbService.insertProduct(
@@ -549,12 +597,21 @@ void main() {
 
       final logs = await dbService.getActivityLogs(entityType: 'product');
       expect(logs.length, greaterThanOrEqualTo(3));
-      expect(logs.any((l) => l.action == 'created' && l.userName == 'Owner Tariq'), isTrue);
-      expect(logs.any((l) => l.action == 'updated' && l.oldValues.isNotEmpty && l.newValues.isNotEmpty), isTrue);
+      expect(
+          logs.any((l) => l.action == 'created' && l.userName == 'Owner Tariq'),
+          isTrue);
+      expect(
+          logs.any((l) =>
+              l.action == 'updated' &&
+              l.oldValues.isNotEmpty &&
+              l.newValues.isNotEmpty),
+          isTrue);
       expect(logs.any((l) => l.action == 'deleted'), isTrue);
     });
 
-    testWidgets('ReportsScreen exposes Activity Log tab and Quotation conversion funnel', (tester) async {
+    testWidgets(
+        'ReportsScreen exposes Activity Log tab and Quotation conversion funnel',
+        (tester) async {
       tester.view.physicalSize = const Size(1440, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -577,7 +634,8 @@ void main() {
           ),
         ),
       );
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 500)));
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 500)));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
@@ -587,7 +645,8 @@ void main() {
       await tester.tap(find.text('Purchase & Sale Report'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.textContaining('QUOTATION -> INVOICE CONVERSION FUNNEL'), findsOneWidget);
+      expect(find.textContaining('QUOTATION -> INVOICE CONVERSION FUNNEL'),
+          findsOneWidget);
 
       await tester.ensureVisible(activityTab);
       await tester.tap(activityTab);
@@ -599,7 +658,9 @@ void main() {
   });
 
   group('Phase 3 Audit Regression Guards', () {
-    test('RBAC role revocations survive failed attempts & re-login without DB cache pollution', () async {
+    test(
+        'RBAC role revocations survive failed attempts & re-login without DB cache pollution',
+        () async {
       final managerRole = await dbService.authRepo.getRoleByName('manager');
       expect(managerRole, isNotNull);
 
@@ -613,7 +674,8 @@ void main() {
       ));
 
       // Trigger failed_login_attempts > 0 so next login executes db.updateUser(baseUser)
-      final failRes = await AuthService.loginDetailed('mgr_audit', 'WrongPass1!');
+      final failRes =
+          await AuthService.loginDetailed('mgr_audit', 'WrongPass1!');
       expect(failRes.success, isFalse);
 
       final login1 = await AuthService.loginDetailed('mgr_audit', 'Mgr@12345');
@@ -632,7 +694,8 @@ void main() {
         displayName: managerRole.displayName,
         description: managerRole.description,
         isSystem: managerRole.isSystem,
-        permissions: managerRole.permissions.where((p) => p != 'sale.delete').toList(),
+        permissions:
+            managerRole.permissions.where((p) => p != 'sale.delete').toList(),
       ));
 
       await AuthService.logout();
@@ -643,7 +706,9 @@ void main() {
       expect(AuthService.currentUser!.hasPermission('pos.access'), isTrue);
     });
 
-    test('Default customer groups use discount signs and clearing product tax / contact group persists NULL', () async {
+    test(
+        'Default customer groups use discount signs and clearing product tax / contact group persists NULL',
+        () async {
       final groups = await dbService.getCustomerGroups();
       expect(groups.length, greaterThanOrEqualTo(3));
       expect(groups.every((g) => g.amount <= 0.0), isTrue);
@@ -657,7 +722,8 @@ void main() {
         stockQuantity: 10,
         taxRateId: 1,
       ));
-      final loadedProd = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final loadedProd =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
       expect(loadedProd.taxRateId, 1);
 
       await dbService.updateProduct(Product(
@@ -671,7 +737,8 @@ void main() {
         taxRateId: null,
         taxGroupId: null,
       ));
-      final clearedProd = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final clearedProd =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
       expect(clearedProd.taxRateId, isNull);
       expect(clearedProd.taxGroupId, isNull);
 
@@ -697,7 +764,9 @@ void main() {
       expect(clearedCust.customerGroupId, isNull);
     });
 
-    test('getProfitAndLossReport excludes quotation & draft COGS and updateSale credits total_sales_other', () async {
+    test(
+        'getProfitAndLossReport excludes quotation & draft COGS and updateSale credits total_sales_other',
+        () async {
       await dbService.openRegister('Cashier One', 1000.0);
 
       final prod = Product(
@@ -768,8 +837,11 @@ void main() {
       expect(reg!.totalSalesOther, closeTo(600.0, 0.01));
     });
 
-    test('deleteTaxRate rejects deletion while referenced by a TaxGroup and succeeds afterwards', () async {
-      final taxId = await dbService.addTaxRate(TaxRate(name: 'FED Audit', amount: 3.0));
+    test(
+        'deleteTaxRate rejects deletion while referenced by a TaxGroup and succeeds afterwards',
+        () async {
+      final taxId =
+          await dbService.addTaxRate(TaxRate(name: 'FED Audit', amount: 3.0));
       final groupId = await dbService.addTaxGroup(TaxGroup(
         name: 'Composite Tax',
         subTaxIds: [taxId],
@@ -784,10 +856,13 @@ void main() {
       await dbService.deleteTaxRate(taxId);
 
       final logs = await dbService.getActivityLogs(entityType: 'tax_rate');
-      expect(logs.any((l) => l.action == 'deleted' && l.entityId == taxId), isTrue);
+      expect(logs.any((l) => l.action == 'deleted' && l.entityId == taxId),
+          isTrue);
     });
 
-    testWidgets('ReportsScreen hides Net Profit and Cost figures when RBAC lacks report.view_profit and report.view_cost_price', (tester) async {
+    testWidgets(
+        'ReportsScreen hides Net Profit and Cost figures when RBAC lacks report.view_profit and report.view_cost_price',
+        (tester) async {
       tester.view.physicalSize = const Size(1440, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -810,13 +885,15 @@ void main() {
           ),
         ),
       );
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 500)));
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 500)));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('Restricted'), findsWidgets);
       expect(
-        find.text('Profit & Loss Statement is restricted. Requires "report.view_profit" permission.'),
+        find.text(
+            'Profit & Loss Statement is restricted. Requires "report.view_profit" permission.'),
         findsOneWidget,
       );
     });

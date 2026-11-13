@@ -44,7 +44,8 @@ class ContactPayment {
         'date': date,
         'ref_no': refNo,
         'note': note,
-        if (documentPath != null && documentPath!.isNotEmpty) 'document_path': documentPath,
+        if (documentPath != null && documentPath!.isNotEmpty)
+          'document_path': documentPath,
         'cheque_number': chequeNumber,
         'bank_name': bankName,
         'cheque_due_date': chequeDueDate,

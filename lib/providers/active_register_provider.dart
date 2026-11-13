@@ -33,4 +33,3 @@ final activeRegisterProvider =
     AsyncNotifierProvider<ActiveRegisterNotifier, CashRegister?>(
   ActiveRegisterNotifier.new,
 );
-

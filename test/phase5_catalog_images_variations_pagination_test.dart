@@ -47,7 +47,8 @@ void main() {
     }
   });
 
-  File writeSamplePng(String name, int width, int height, {bool transparent = false}) {
+  File writeSamplePng(String name, int width, int height,
+      {bool transparent = false}) {
     final canvas = img.Image(
       width: width,
       height: height,
@@ -58,7 +59,8 @@ void main() {
         if (transparent && x < width ~/ 2) {
           canvas.setPixelRgba(x, y, 0, 0, 0, 0);
         } else {
-          canvas.setPixelRgba(x, y, (x * 255) ~/ width, (y * 255) ~/ height, 180, 255);
+          canvas.setPixelRgba(
+              x, y, (x * 255) ~/ width, (y * 255) ~/ height, 180, 255);
         }
       }
     }
@@ -68,7 +70,9 @@ void main() {
   }
 
   group('Phase 5 Step 5.1 - Product Images & Compression', () {
-    test('resizes oversized opaque images to 512px max JPEG and cleans superseded managed image', () async {
+    test(
+        'resizes oversized opaque images to 512px max JPEG and cleans superseded managed image',
+        () async {
       final imgDir = Directory(p.join(tempDir.path, 'product_images'));
       final source = writeSamplePng('oversized_product.png', 1600, 1200);
 
@@ -86,7 +90,8 @@ void main() {
       expect(decoded1!.width, 512);
       expect(decoded1.height, 384);
 
-      final source2 = writeSamplePng('transparent_cutout.png', 800, 600, transparent: true);
+      final source2 =
+          writeSamplePng('transparent_cutout.png', 800, 600, transparent: true);
       final savedPath2 = await ProductImageService.saveCompressedProductImage(
         source2.path,
         existingImagePath: savedPath1,
@@ -137,7 +142,8 @@ void main() {
             ),
           ],
         ),
-        settings: BusinessSettings(businessName: 'Photo Shop', currencySymbol: 'Rs'),
+        settings:
+            BusinessSettings(businessName: 'Photo Shop', currencySymbol: 'Rs'),
         layout: InvoiceLayout(name: 'With Images', showImage: true),
         productImagePathsById: pathMap,
       );
@@ -145,7 +151,9 @@ void main() {
       expect(String.fromCharCodes(pdfBytes.take(4)), '%PDF');
     });
 
-    test('v5 to v6 migration adds products.image_path, sale_items variation columns, and migrates legacy image_color paths', () async {
+    test(
+        'v5 to v6 migration adds products.image_path, sale_items variation columns, and migrates legacy image_color paths',
+        () async {
       await db.db.close();
       final v5DbPath = p.join(tempDir.path, 'legacy_v5.db');
       final legacyImg = writeSamplePng('legacy_img.png', 200, 200);
@@ -334,20 +342,24 @@ void main() {
       expect(hexProd.imageColor, '#10B981');
       expect(hexProd.resolvedImagePath, isNull);
 
-      final saleItemCols = await db.db.rawQuery('PRAGMA table_info(sale_items)');
+      final saleItemCols =
+          await db.db.rawQuery('PRAGMA table_info(sale_items)');
       final colNames = saleItemCols.map((r) => r['name']).toSet();
       expect(colNames.containsAll(['variation_id', 'variation_name']), isTrue);
 
       final returnItemCols =
           await db.db.rawQuery('PRAGMA table_info(sale_return_items)');
       final returnColNames = returnItemCols.map((r) => r['name']).toSet();
-      expect(
-          returnColNames.containsAll(['variation_id', 'variation_name']), isTrue);
+      expect(returnColNames.containsAll(['variation_id', 'variation_name']),
+          isTrue);
     });
   });
 
-  group('Phase 5 Step 5.2 - Product Variations, Cart Lines & Variation Stock', () {
-    test('separates variations in CartNotifier and updates variations.stock_quantity on sales, returns, and purchases', () async {
+  group('Phase 5 Step 5.2 - Product Variations, Cart Lines & Variation Stock',
+      () {
+    test(
+        'separates variations in CartNotifier and updates variations.stock_quantity on sales, returns, and purchases',
+        () async {
       final prodId = await db.addProductWithVariations(
         Product(
           name: 'Cotton Polo Shirt',
@@ -384,7 +396,8 @@ void main() {
       final large = variations.firstWhere((v) => v.subSku == 'POLO-01-L');
 
       // Direct variation sub_sku lookup returns parent Product + exact ProductVariation
-      final scanMatch = await db.getProductWithMatchedVariationByCode('POLO-01-L');
+      final scanMatch =
+          await db.getProductWithMatchedVariationByCode('POLO-01-L');
       expect(scanMatch, isNotNull);
       expect(scanMatch!.$1.id, prodId);
       expect(scanMatch.$2?.id, large.id);
@@ -395,7 +408,8 @@ void main() {
       final cartNotifier = container.read(cartProvider.notifier);
       cartNotifier.addProduct(product, quantity: 2, variation: medium);
       cartNotifier.addProduct(product, quantity: 3, variation: large);
-      cartNotifier.addProduct(product, quantity: 1, variation: medium); // merges with Medium only
+      cartNotifier.addProduct(product,
+          quantity: 1, variation: medium); // merges with Medium only
 
       var cart = container.read(cartProvider);
       expect(cart.items.length, 2);
@@ -408,7 +422,8 @@ void main() {
       expect(cart.items[1].unitPrice, 1500);
       expect(cart.items[1].displayName, 'Cotton Polo Shirt (Size: Large)');
 
-      cartNotifier.applyCustomerGroup(const CustomerGroup(name: 'VIP', amount: -10.0));
+      cartNotifier
+          .applyCustomerGroup(const CustomerGroup(name: 'VIP', amount: -10.0));
       cart = container.read(cartProvider);
       expect(cart.items[0].unitPrice, 1080.0);
       expect(cart.items[1].unitPrice, 1350.0);
@@ -431,8 +446,10 @@ void main() {
       expect(saleItems[1].variationId, large.id);
 
       final afterSaleVars = await db.getProductVariations(prodId);
-      expect(afterSaleVars.firstWhere((v) => v.id == medium.id).stockQuantity, 12.0); // 15 - 3
-      expect(afterSaleVars.firstWhere((v) => v.id == large.id).stockQuantity, 5.0); // 8 - 3
+      expect(afterSaleVars.firstWhere((v) => v.id == medium.id).stockQuantity,
+          12.0); // 15 - 3
+      expect(afterSaleVars.firstWhere((v) => v.id == large.id).stockQuantity,
+          5.0); // 8 - 3
       expect((await db.getProductById(prodId))!.stockQuantity, 17.0); // 12 + 5
 
       // Sale Return restores specific variation stock
@@ -461,7 +478,8 @@ void main() {
         ),
       );
       final afterReturnVars = await db.getProductVariations(prodId);
-      expect(afterReturnVars.firstWhere((v) => v.id == large.id).stockQuantity, 7.0); // 5 + 2
+      expect(afterReturnVars.firstWhere((v) => v.id == large.id).stockQuantity,
+          7.0); // 5 + 2
       expect((await db.getProductById(prodId))!.stockQuantity, 19.0);
 
       // Purchase increments variation stock when received and reverses when status changed to pending
@@ -485,18 +503,24 @@ void main() {
         ],
       );
       final afterPurchaseVars = await db.getProductVariations(prodId);
-      expect(afterPurchaseVars.firstWhere((v) => v.id == medium.id).stockQuantity, 17.0); // 12 + 5
+      expect(
+          afterPurchaseVars.firstWhere((v) => v.id == medium.id).stockQuantity,
+          17.0); // 12 + 5
       expect((await db.getProductById(prodId))!.stockQuantity, 24.0);
 
       await db.updatePurchaseStatus(purchaseId, 'pending');
       final afterRevertVars = await db.getProductVariations(prodId);
-      expect(afterRevertVars.firstWhere((v) => v.id == medium.id).stockQuantity, 12.0);
+      expect(afterRevertVars.firstWhere((v) => v.id == medium.id).stockQuantity,
+          12.0);
       expect((await db.getProductById(prodId))!.stockQuantity, 19.0);
     });
   });
 
-  group('Phase 5 Step 5.3 - Server-Side Pagination & 50,000-Product Benchmark', () {
-    test('handles 50,000 products with fast cursor paging, page queries, and SQL aggregate stats', () async {
+  group('Phase 5 Step 5.3 - Server-Side Pagination & 50,000-Product Benchmark',
+      () {
+    test(
+        'handles 50,000 products with fast cursor paging, page queries, and SQL aggregate stats',
+        () async {
       await db.db.transaction((txn) async {
         final batch = txn.batch();
         for (var i = 1; i <= 50000; i++) {
@@ -583,7 +607,9 @@ void main() {
       expect(outPage.totalCount, 500);
     });
 
-    test('getSalesPaged, getPurchasesPaged, and getContactsPaged slice accurately on the server', () async {
+    test(
+        'getSalesPaged, getPurchasesPaged, and getContactsPaged slice accurately on the server',
+        () async {
       final now = DateTime.now().toIso8601String();
       for (var i = 1; i <= 15; i++) {
         await db.db.insert('sales', {
@@ -613,7 +639,8 @@ void main() {
         });
       }
 
-      final salesPage = await db.getSalesPaged(status: 'final', page: 2, pageSize: 5);
+      final salesPage =
+          await db.getSalesPaged(status: 'final', page: 2, pageSize: 5);
       expect(salesPage.totalCount, 12);
       expect(salesPage.totalPages, 3);
       expect(salesPage.items.length, 5);
@@ -647,8 +674,12 @@ void main() {
     });
   });
 
-  group('Phase 5 Widget Tests - Thumbnails, Variation Popup & Server-Side Paging UI', () {
-    testWidgets('ProductsListScreen renders ProductThumbnail and loads next DB page on pagination tap', (tester) async {
+  group(
+      'Phase 5 Widget Tests - Thumbnails, Variation Popup & Server-Side Paging UI',
+      () {
+    testWidgets(
+        'ProductsListScreen renders ProductThumbnail and loads next DB page on pagination tap',
+        (tester) async {
       tester.view.physicalSize = const Size(1440, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -657,7 +688,8 @@ void main() {
       await tester.runAsync(() async {
         final imgDir = Directory(p.join(tempDir.path, 'ui_images'));
         final src = writeSamplePng('thumb_src.png', 160, 160);
-        final compressedPath = await ProductImageService.saveCompressedProductImage(
+        final compressedPath =
+            await ProductImageService.saveCompressedProductImage(
           src.path,
           directoryOverride: imgDir,
         );
@@ -681,7 +713,8 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: ProductsListScreen(
-              settings: BusinessSettings(businessName: 'Catalog Test', currencySymbol: 'Rs'),
+              settings: BusinessSettings(
+                  businessName: 'Catalog Test', currencySymbol: 'Rs'),
             ),
           ),
         ),
@@ -707,7 +740,9 @@ void main() {
       expect(find.text('Catalog Item 01'), findsNothing);
     });
 
-    testWidgets('PosTerminalScreen opens variation selector modal for variable products and adds selected variant', (tester) async {
+    testWidgets(
+        'PosTerminalScreen opens variation selector modal for variable products and adds selected variant',
+        (tester) async {
       tester.view.physicalSize = const Size(1440, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -754,7 +789,8 @@ void main() {
           child: MaterialApp(
             home: Scaffold(
               body: PosTerminalScreen(
-                settings: BusinessSettings(businessName: 'POS Var Test', currencySymbol: 'Rs'),
+                settings: BusinessSettings(
+                    businessName: 'POS Var Test', currencySymbol: 'Rs'),
               ),
             ),
           ),

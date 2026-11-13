@@ -85,13 +85,15 @@ class InvoiceLayout {
     String? createdAt,
   }) : createdAt = createdAt ?? DateTime.now().toIso8601String();
 
-  factory InvoiceLayout.fromBusinessSettings(BusinessSettings s) => InvoiceLayout(
+  factory InvoiceLayout.fromBusinessSettings(BusinessSettings s) =>
+      InvoiceLayout(
         name: 'Store Default Layout',
         design: s.invoiceLayoutDesign,
         paperSize: s.receiptPaperSize,
         paperOrientation: 'portrait',
         fontSize: s.receiptPaperSize == '58mm' ? 8.5 : 10.0,
-        invoiceHeading: s.invoiceHeading.isNotEmpty ? s.invoiceHeading : 'TAX INVOICE',
+        invoiceHeading:
+            s.invoiceHeading.isNotEmpty ? s.invoiceHeading : 'TAX INVOICE',
         headerText: s.receiptHeaderNote,
         footerText: s.receiptFooter,
         termsText: s.receiptReturnPolicy,
@@ -236,8 +238,8 @@ class InvoiceLayout {
         discountLabel: modelAsString(map['discount_label'], 'Discount'),
         taxLabel: modelAsString(map['tax_label'], 'Tax'),
         totalLabel: modelAsString(map['total_label'], 'Grand Total'),
-        footerText:
-            modelAsString(map['footer_text'], 'Thank you for shopping with us!'),
+        footerText: modelAsString(
+            map['footer_text'], 'Thank you for shopping with us!'),
         termsText: modelAsString(
           map['terms_text'],
           'Goods once sold can only be exchanged within 7 days with original receipt.',
@@ -262,7 +264,7 @@ class InvoiceLayout {
         showSignature: modelAsBool(map['show_signature'], true),
         showTotalInWords: modelAsBool(map['show_total_in_words'], true),
         isDefault: modelAsBool(map['is_default'], false),
-        createdAt: modelAsString(map['created_at'], DateTime.now().toIso8601String()),
+        createdAt:
+            modelAsString(map['created_at'], DateTime.now().toIso8601String()),
       );
 }
-

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 import '../../services/print_service.dart';
 import '../../widgets/record_contact_payment_dialog.dart';
 import 'payment_reminder_dialog.dart';
@@ -119,27 +120,32 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
       lastDate: DateTime(2035),
       initialDateRange: _startDate != null && _endDate != null
           ? DateTimeRange(start: _startDate!, end: _endDate!)
-          : DateTimeRange(start: DateTime.now().subtract(const Duration(days: 30)), end: DateTime.now()),
+          : DateTimeRange(
+              start: DateTime.now().subtract(const Duration(days: 30)),
+              end: DateTime.now()),
     );
     if (picked != null) {
       setState(() {
         _dateFilter = 'custom';
         _startDate = picked.start;
-        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
+        _endDate = DateTime(
+            picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
       });
       _loadLedger();
     }
   }
 
   String _getPeriodLabel() {
-    final enSec = widget.settings.enableSecondaryLanguage;
-    if (_dateFilter == 'today') return enSec ? 'Today (آج کا کھاتہ)' : 'Today';
-    if (_dateFilter == 'month') return enSec ? 'This Month (موجودہ مہینہ)' : 'This Month';
-    if (_dateFilter == '30days') return enSec ? 'Last 30 Days (گزشتہ 30 دن)' : 'Last 30 Days';
+    if (_dateFilter == 'today')
+      return PosLocalization.tr('Today', settings: widget.settings);
+    if (_dateFilter == 'month')
+      return PosLocalization.tr('This Month', settings: widget.settings);
+    if (_dateFilter == '30days')
+      return PosLocalization.tr('Last 30 Days', settings: widget.settings);
     if (_dateFilter == 'custom' && _startDate != null && _endDate != null) {
       return '${DateFormat("dd MMM yyyy").format(_startDate!)} to ${DateFormat("dd MMM yyyy").format(_endDate!)}';
     }
-    return enSec ? 'All Time (مکمل ریکارڈ)' : 'All Time';
+    return PosLocalization.tr('All Time', settings: widget.settings);
   }
 
   void _printOfficialLedger() {
@@ -164,38 +170,54 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
 
   void _copyStatementToClipboard() {
     final cur = widget.settings.currencySymbol;
-    final enSec = widget.settings.enableSecondaryLanguage;
     final buffer = StringBuffer();
     final isCustomer = widget.contactType.toLowerCase() == 'customer';
     final contact = _updatedContact ?? widget.contact;
 
     buffer.writeln('========================================');
-    buffer.writeln('${widget.settings.businessName.toUpperCase()} - OFFICIAL KHATA STATEMENT');
+    buffer.writeln(
+        '${widget.settings.businessName.toUpperCase()} - OFFICIAL KHATA STATEMENT');
     buffer.writeln('========================================');
-    buffer.writeln('${isCustomer ? (enSec ? "Customer (گاہک)" : "Customer") : (enSec ? "Supplier (سپلائر)" : "Supplier")}: ${contact.name}');
+    final contactLabel = isCustomer
+        ? PosLocalization.tr('Customer', settings: widget.settings)
+        : PosLocalization.tr('Supplier', settings: widget.settings);
+    buffer.writeln('$contactLabel: ${contact.name}');
     if (contact.phone.isNotEmpty) buffer.writeln('Phone: ${contact.phone}');
     buffer.writeln('Period: ${_getPeriodLabel()}');
-    buffer.writeln('Generated: ${DateFormat("dd-MMM-yyyy HH:mm").format(DateTime.now())}');
+    buffer.writeln(
+        'Generated: ${DateFormat("dd-MMM-yyyy HH:mm").format(DateTime.now())}');
     buffer.writeln('----------------------------------------');
-    buffer.writeln('${enSec ? "Opening Balance (سابقہ بقایا)" : "Opening Balance"}: $cur${_openingBalance.toStringAsFixed(2)}');
-    buffer.writeln('${enSec ? "Total Billed / Debit (بنام کل مال Dr)" : "Total Billed / Debit (Dr)"}: $cur${_totalDebit.toStringAsFixed(2)}');
-    buffer.writeln('${enSec ? "Total Paid / Credit (جمع کل وصولیاں Cr)" : "Total Paid / Credit (Cr)"}: $cur${_totalCredit.toStringAsFixed(2)}');
+    buffer.writeln(
+        '${PosLocalization.tr("Opening Balance", settings: widget.settings)}: $cur${_openingBalance.toStringAsFixed(2)}');
+    buffer.writeln(
+        '${PosLocalization.tr("Total Billed / Debit (Dr)", settings: widget.settings)}: $cur${_totalDebit.toStringAsFixed(2)}');
+    buffer.writeln(
+        '${PosLocalization.tr("Total Paid / Credit (Cr)", settings: widget.settings)}: $cur${_totalCredit.toStringAsFixed(2)}');
     buffer.writeln('----------------------------------------');
-    buffer.writeln('${enSec ? "NET CLOSING KHATA (خالص بقیہ رقم)" : "NET CLOSING KHATA"}: $cur${_closingBalance.toStringAsFixed(2)} ${_closingBalance > 0 ? (enSec ? "(واجب الادا)" : "(Due)") : (enSec ? "(کلیئر)" : "(Cleared)")}');
+    final statusText = _closingBalance > 0
+        ? PosLocalization.tr("Due", settings: widget.settings)
+        : PosLocalization.tr("Cleared", settings: widget.settings);
+    buffer.writeln(
+        '${PosLocalization.tr("NET CLOSING KHATA", settings: widget.settings)}: $cur${_closingBalance.toStringAsFixed(2)} ($statusText)');
     buffer.writeln('========================================');
-    buffer.writeln(enSec ? 'TRANSACTIONS / تفصیل کھاتہ:' : 'TRANSACTIONS:');
+    buffer.writeln(
+        '${PosLocalization.tr("TRANSACTIONS", settings: widget.settings)}:');
     for (final e in _filteredEntries) {
       final drStr = e.debit > 0 ? "Dr: $cur${e.debit.toStringAsFixed(2)}" : "";
-      final crStr = e.credit > 0 ? "Cr: $cur${e.credit.toStringAsFixed(2)}" : "";
-      buffer.writeln('${e.date.split(" ").first} | ${e.refNo} | ${e.description} | $drStr $crStr | Bal: $cur${e.runningBalance.toStringAsFixed(2)}');
+      final crStr =
+          e.credit > 0 ? "Cr: $cur${e.credit.toStringAsFixed(2)}" : "";
+      buffer.writeln(
+          '${e.date.split(" ").first} | ${e.refNo} | ${e.description} | $drStr $crStr | Bal: $cur${e.runningBalance.toStringAsFixed(2)}');
     }
     buffer.writeln('========================================');
-    buffer.writeln('Thank you for your business! شکریہ');
+    buffer.writeln(PosLocalization.tr('Thank you for your business!',
+        settings: widget.settings));
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Account statement copied to clipboard! Ready to share via WhatsApp or SMS.'),
+        content: Text(
+            'Account statement copied to clipboard! Ready to share via WhatsApp or SMS.'),
         backgroundColor: Color(0xFF059669),
       ),
     );
@@ -228,7 +250,9 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
 
     if (sale == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Details for invoice $invoiceNo could not be loaded.')),
+        SnackBar(
+            content:
+                Text('Details for invoice $invoiceNo could not be loaded.')),
       );
       return;
     }
@@ -245,11 +269,20 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
           children: [
             Text(
               'Invoice: ${sale.invoiceNo}',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A)),
             ),
             Text(
-              sale.createdAt.length > 16 ? sale.createdAt.substring(0, 16) : sale.createdAt,
-              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              sale.createdAt.length > 16
+                  ? sale.createdAt.substring(0, 16)
+                  : sale.createdAt,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF64748B)),
             ),
           ],
         ),
@@ -259,7 +292,9 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Customer: ${sale.customerName}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text('Customer: ${sale.customerName}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13)),
               const Divider(height: 20),
               Container(
                 constraints: const BoxConstraints(maxHeight: 300),
@@ -273,20 +308,59 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                     },
                     children: [
                       TableRow(
-                        decoration: BoxDecoration(color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
+                        decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF1F5F9)),
                         children: const [
-                          Padding(padding: EdgeInsets.all(6), child: Text('ITEM', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          Padding(padding: EdgeInsets.all(6), child: Text('QTY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          Padding(padding: EdgeInsets.all(6), child: Text('PRICE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          Padding(padding: EdgeInsets.all(6), child: Text('TOTAL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                          Padding(
+                              padding: EdgeInsets.all(6),
+                              child: Text('ITEM',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          Padding(
+                              padding: EdgeInsets.all(6),
+                              child: Text('QTY',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          Padding(
+                              padding: EdgeInsets.all(6),
+                              child: Text('PRICE',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          Padding(
+                              padding: EdgeInsets.all(6),
+                              child: Text('TOTAL',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
                         ],
                       ),
                       ...items.map((it) => TableRow(
                             children: [
-                              Padding(padding: const EdgeInsets.all(6), child: Text(it.productName, style: const TextStyle(fontSize: 11))),
-                              Padding(padding: const EdgeInsets.all(6), child: Text(it.quantity.toString(), style: const TextStyle(fontSize: 11))),
-                              Padding(padding: const EdgeInsets.all(6), child: Text('$cur${it.unitPrice.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
-                              Padding(padding: const EdgeInsets.all(6), child: Text('$cur${it.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                              Padding(
+                                  padding: const EdgeInsets.all(6),
+                                  child: Text(it.productName,
+                                      style: const TextStyle(fontSize: 11))),
+                              Padding(
+                                  padding: const EdgeInsets.all(6),
+                                  child: Text(it.quantity.toString(),
+                                      style: const TextStyle(fontSize: 11))),
+                              Padding(
+                                  padding: const EdgeInsets.all(6),
+                                  child: Text(
+                                      '$cur${it.unitPrice.toStringAsFixed(2)}',
+                                      style: const TextStyle(fontSize: 11))),
+                              Padding(
+                                  padding: const EdgeInsets.all(6),
+                                  child: Text(
+                                      '$cur${it.subtotal.toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11))),
                             ],
                           )),
                     ],
@@ -297,8 +371,13 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Payment Method: ${sale.paymentMethod.toUpperCase()}', style: const TextStyle(fontSize: 12)),
-                  Text('Total: $cur${sale.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF4F46E5))),
+                  Text('Payment Method: ${sale.paymentMethod.toUpperCase()}',
+                      style: const TextStyle(fontSize: 12)),
+                  Text('Total: $cur${sale.totalAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Color(0xFF4F46E5))),
                 ],
               ),
             ],
@@ -323,7 +402,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                 settings: widget.settings,
                 customerPreviousBalance: _closingBalance,
               );
-              PrintService.openPrintWindow(htmlContent: invoiceHtml, title: 'Invoice_${sale.invoiceNo}');
+              PrintService.openPrintWindow(
+                  htmlContent: invoiceHtml, title: 'Invoice_${sale.invoiceNo}');
             },
           ),
         ],
@@ -350,9 +430,11 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
 
     final bgColor = isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC);
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -375,12 +457,18 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
             Container(
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: isCustomer ? const Color(0xFFEDE9FE) : const Color(0xFFFEF3C7),
+                color: isCustomer
+                    ? const Color(0xFFEDE9FE)
+                    : const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                isCustomer ? Icons.account_box_rounded : Icons.local_shipping_rounded,
-                color: isCustomer ? const Color(0xFF4F46E5) : const Color(0xFFD97706),
+                isCustomer
+                    ? Icons.account_box_rounded
+                    : Icons.local_shipping_rounded,
+                color: isCustomer
+                    ? const Color(0xFF4F46E5)
+                    : const Color(0xFFD97706),
                 size: 20,
               ),
             ),
@@ -395,15 +483,21 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                       Flexible(
                         child: Text(
                           '${contact.name} - Official Account Ledger',
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textPrimary),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              color: textPrimary),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: isCustomer ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
+                          color: isCustomer
+                              ? const Color(0xFFD1FAE5)
+                              : const Color(0xFFFEF3C7),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -411,14 +505,16 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: isCustomer ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                            color: isCustomer
+                                ? const Color(0xFF065F46)
+                                : const Color(0xFF92400E),
                           ),
                         ),
                       ),
                     ],
                   ),
                   Text(
-                    '${widget.settings.businessName} • ${widget.settings.enableSecondaryLanguage ? "Official Financial Ledger Book (سرکاری کھاتہ رجسٹر)" : "Official Financial Ledger Book"}',
+                    '${widget.settings.businessName} • ${PosLocalization.tr("Official Financial Ledger Book", settings: widget.settings)}',
                     style: TextStyle(fontSize: 11, color: textSecondary),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -430,15 +526,18 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
         actions: [
           // Copy Statement
           IconButton(
-            tooltip: widget.settings.enableSecondaryLanguage ? 'Copy Statement / کھاتہ کاپی کریں' : 'Copy Statement',
+            tooltip:
+                PosLocalization.tr('Copy Statement', settings: widget.settings),
             icon: const Icon(Icons.content_copy_rounded, size: 20),
             onPressed: _copyStatementToClipboard,
           ),
           // WhatsApp Statement
           if (isCustomer && (_closingBalance > 0 || contact.balance > 0))
             IconButton(
-              tooltip: widget.settings.enableSecondaryLanguage ? 'Send WhatsApp Reminder / واٹس ایپ میسج' : 'Send WhatsApp Reminder',
-              icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 20, color: Color(0xFF10B981)),
+              tooltip: PosLocalization.tr('Send WhatsApp Reminder',
+                  settings: widget.settings),
+              icon: const FaIcon(FontAwesomeIcons.whatsapp,
+                  size: 20, color: Color(0xFF10B981)),
               onPressed: () {
                 showDialog(
                   context: context,
@@ -464,34 +563,46 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: textPrimary,
                   side: BorderSide(color: borderColor),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 icon: const Icon(Icons.print_rounded, size: 17),
                 label: Text(
                   screenWidth < 1180 ? 'Print A4' : 'Print Official A4 Ledger',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 12),
                 ),
                 onPressed: _printOfficialLedger,
               ),
             ),
           // Receive Payment / Pay Supplier (Responsive)
           Padding(
-            padding: const EdgeInsets.only(left: 4, right: 16, top: 8, bottom: 8),
+            padding:
+                const EdgeInsets.only(left: 4, right: 16, top: 8, bottom: 8),
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF059669),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: EdgeInsets.symmetric(horizontal: screenWidth < 1000 ? 10 : 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth < 1000 ? 10 : 14),
               ),
               icon: const Icon(Icons.payments_rounded, size: 17),
               label: Text(
                 screenWidth < 850
-                    ? (isCustomer ? '+ Receive' : '+ Pay')
-                    : (screenWidth < 1180 || !widget.settings.enableSecondaryLanguage
-                        ? (isCustomer ? '+ Receive Payment' : '+ Pay Supplier')
-                        : (isCustomer ? '+ Receive Payment (رقم وصول کریں)' : '+ Pay Supplier (ادائیگی کریں)')),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    ? (isCustomer
+                        ? PosLocalization.tr('+ Receive',
+                            settings: widget.settings)
+                        : PosLocalization.tr('+ Pay',
+                            settings: widget.settings))
+                    : (isCustomer
+                        ? PosLocalization.tr('+ Receive Payment',
+                            settings: widget.settings)
+                        : PosLocalization.tr('+ Pay Supplier',
+                            settings: widget.settings)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
               ),
               onPressed: _openQuickPaymentModal,
             ),
@@ -504,7 +615,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Party Profile & Khata Status Banner Card
-            _buildPartyProfileBanner(contact, isCustomer, isDark, cur, textPrimary, textSecondary, borderColor),
+            _buildPartyProfileBanner(contact, isCustomer, isDark, cur,
+                textPrimary, textSecondary, borderColor),
             const SizedBox(height: 16),
 
             // 2. Summary 4 Big KPI Cards (Full Width)
@@ -512,11 +624,13 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
             const SizedBox(height: 16),
 
             // 3. Official Date Filter & Live Search Toolbar
-            _buildFilterAndSearchToolbar(isDark, borderColor, textPrimary, textSecondary),
+            _buildFilterAndSearchToolbar(
+                isDark, borderColor, textPrimary, textSecondary),
             const SizedBox(height: 16),
 
             // 4. Official Full-Width Ledger Table
-            _buildLedgerDataTable(isCustomer, isDark, cur, textPrimary, textSecondary, borderColor),
+            _buildLedgerDataTable(isCustomer, isDark, cur, textPrimary,
+                textSecondary, borderColor),
           ],
         ),
       ),
@@ -551,22 +665,27 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
         ? const Color(0xFFDC2626)
         : (isClear ? const Color(0xFF059669) : const Color(0xFF4F46E5));
 
-    final enSec = widget.settings.enableSecondaryLanguage;
     final statusHeading = isDue
         ? (isCustomer
-            ? (enSec ? 'واجب الادا رقم (Customer Due Balance): $cur${_closingBalance.toStringAsFixed(2)}' : 'Customer Due Balance: $cur${_closingBalance.toStringAsFixed(2)}')
-            : (enSec ? 'واجب الادا ادائیگی (Supplier Payable): $cur${_closingBalance.toStringAsFixed(2)}' : 'Supplier Payable: $cur${_closingBalance.toStringAsFixed(2)}'))
+            ? '${PosLocalization.tr("Customer Due Balance", settings: widget.settings)}: $cur${_closingBalance.toStringAsFixed(2)}'
+            : '${PosLocalization.tr("Supplier Payable", settings: widget.settings)}: $cur${_closingBalance.toStringAsFixed(2)}')
         : (isClear
-            ? (enSec ? 'کھاتہ بالکل بے باق ہے (Zero Balance / Account Completely Cleared)' : 'Account Completely Cleared (Zero Balance)')
-            : (enSec ? 'پیشگی رقم جمع ہے (Advance Credit Balance): $cur${_closingBalance.abs().toStringAsFixed(2)}' : 'Advance Credit Balance: $cur${_closingBalance.abs().toStringAsFixed(2)}'));
+            ? PosLocalization.tr('Account Completely Cleared (Zero Balance)',
+                settings: widget.settings)
+            : '${PosLocalization.tr("Advance Credit Balance", settings: widget.settings)}: $cur${_closingBalance.abs().toStringAsFixed(2)}');
 
     final statusDesc = isDue
         ? (isCustomer
-            ? (enSec ? 'یہ رقم گاہک کے ذمہ واجب الادا ہے، فوری وصولی کریں۔' : 'Outstanding amount owed by customer.')
-            : (enSec ? 'یہ رقم سپلائر کو ادا کرنی ہے۔' : 'Outstanding amount owed to supplier.'))
+            ? PosLocalization.tr('Outstanding amount owed by customer.',
+                settings: widget.settings)
+            : PosLocalization.tr('Outstanding amount owed to supplier.',
+                settings: widget.settings))
         : (isClear
-            ? (enSec ? 'تمام بل اور وصولیاں برابر ہیں، کوئی رقم واجب الادا نہیں۔' : 'All invoices and payments are fully reconciled.')
-            : (enSec ? 'پارٹی کے پاس پیشگی رقم جمع ہے۔ آئندہ خریداری پر ایڈجسٹ ہوگی۔' : 'Party has advance balance on account.'));
+            ? PosLocalization.tr(
+                'All invoices and payments are fully reconciled.',
+                settings: widget.settings)
+            : PosLocalization.tr('Party has advance balance on account.',
+                settings: widget.settings));
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -590,10 +709,17 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
               // Avatar
               CircleAvatar(
                 radius: 26,
-                backgroundColor: isCustomer ? const Color(0xFF4F46E5) : const Color(0xFFD97706),
+                backgroundColor: isCustomer
+                    ? const Color(0xFF4F46E5)
+                    : const Color(0xFFD97706),
                 child: Text(
-                  contact.name.isNotEmpty ? contact.name.substring(0, 1).toUpperCase() : 'C',
-                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  contact.name.isNotEmpty
+                      ? contact.name.substring(0, 1).toUpperCase()
+                      : 'C',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 16),
@@ -606,19 +732,29 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                       children: [
                         Text(
                           contact.name,
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textPrimary),
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: textPrimary),
                         ),
-                        if (contact.businessName != null && contact.businessName!.isNotEmpty) ...[
+                        if (contact.businessName != null &&
+                            contact.businessName!.isNotEmpty) ...[
                           const SizedBox(width: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               contact.businessName!,
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textSecondary),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: textSecondary),
                             ),
                           ),
                         ],
@@ -632,42 +768,57 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.phone_outlined, size: 15, color: textSecondary),
+                            Icon(Icons.phone_outlined,
+                                size: 15, color: textSecondary),
                             const SizedBox(width: 4),
                             Text(
-                              contact.phone.isNotEmpty ? contact.phone : 'No Phone Recorded',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary),
+                              contact.phone.isNotEmpty
+                                  ? contact.phone
+                                  : 'No Phone Recorded',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: textPrimary),
                             ),
                           ],
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.location_on_outlined, size: 15, color: textSecondary),
+                            Icon(Icons.location_on_outlined,
+                                size: 15, color: textSecondary),
                             const SizedBox(width: 4),
                             Text(
-                              contact.address.isNotEmpty ? contact.address : 'Main City Market',
-                              style: TextStyle(fontSize: 12, color: textSecondary),
+                              contact.address.isNotEmpty
+                                  ? contact.address
+                                  : 'Main City Market',
+                              style:
+                                  TextStyle(fontSize: 12, color: textSecondary),
                             ),
                           ],
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.credit_card_outlined, size: 15, color: textSecondary),
+                            Icon(Icons.credit_card_outlined,
+                                size: 15, color: textSecondary),
                             const SizedBox(width: 4),
                             Text(
                               '${widget.settings.enableSecondaryLanguage ? "Credit Limit (حد قرضہ)" : "Credit Limit"}: $cur${contact.creditLimit.toStringAsFixed(2)}',
-                              style: TextStyle(fontSize: 12, color: textSecondary),
+                              style:
+                                  TextStyle(fontSize: 12, color: textSecondary),
                             ),
                           ],
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.tag_rounded, size: 15, color: textSecondary),
+                            Icon(Icons.tag_rounded,
+                                size: 15, color: textSecondary),
                             const SizedBox(width: 4),
-                            Text('Code: #CON-${contact.id ?? 1}', style: TextStyle(fontSize: 12, color: textSecondary)),
+                            Text('Code: #CON-${contact.id ?? 1}',
+                                style: TextStyle(
+                                    fontSize: 12, color: textSecondary)),
                           ],
                         ),
                       ],
@@ -687,8 +838,10 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                   backgroundColor: statusColor,
                   foregroundColor: Colors.white,
                   visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6)),
                 ),
                 icon: const Icon(Icons.history_edu_rounded, size: 15),
                 label: const Text('Copy WhatsApp Statement'),
@@ -701,7 +854,11 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                   Row(
                     children: [
                       Icon(
-                        isDue ? Icons.warning_amber_rounded : (isClear ? Icons.check_circle_rounded : Icons.account_balance_wallet_rounded),
+                        isDue
+                            ? Icons.warning_amber_rounded
+                            : (isClear
+                                ? Icons.check_circle_rounded
+                                : Icons.account_balance_wallet_rounded),
                         size: 16,
                         color: statusColor,
                       ),
@@ -709,7 +866,10 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                       Expanded(
                         child: Text(
                           statusHeading,
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: statusColor),
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor),
                         ),
                       ),
                     ],
@@ -717,14 +877,19 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                   const SizedBox(height: 2),
                   Text(
                     statusDesc,
-                    style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: isDark
+                            ? const Color(0xFFCBD5E1)
+                            : const Color(0xFF334155)),
                   ),
                 ],
               );
 
               return Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: statusBg,
                   borderRadius: BorderRadius.circular(8),
@@ -766,27 +931,49 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
           titleEng: 'Opening Balance',
           amount: _openingBalance,
           cur: cur,
-          subtitle: enSec ? 'Carried forward from previous period (سابقہ ادوار کا بقیہ)' : 'Carried forward from previous period',
+          subtitle: enSec
+              ? 'Carried forward from previous period (سابقہ ادوار کا بقیہ)'
+              : 'Carried forward from previous period',
           icon: Icons.account_balance_wallet_outlined,
           color: const Color(0xFF64748B),
           isDark: isDark,
         );
         final card2 = _kpiStatCard(
-          titleUrdu: enSec ? (isCustomer ? 'بنام / کل مالیت (انوائسز)' : 'کل مال خریداری (انوائسز)') : '',
-          titleEng: isCustomer ? 'Total Invoices / Billed (Dr)' : 'Total Purchases (Cr)',
+          titleUrdu: enSec
+              ? (isCustomer
+                  ? 'بنام / کل مالیت (انوائسز)'
+                  : 'کل مال خریداری (انوائسز)')
+              : '',
+          titleEng: isCustomer
+              ? 'Total Invoices / Billed (Dr)'
+              : 'Total Purchases (Cr)',
           amount: isCustomer ? _totalDebit : _totalCredit,
           cur: cur,
-          subtitle: enSec ? (isCustomer ? 'Total merchandise billed (کل مال کی قیمت)' : 'Total inventory received') : (isCustomer ? 'Total merchandise billed' : 'Total inventory received'),
+          subtitle: enSec
+              ? (isCustomer
+                  ? 'Total merchandise billed (کل مال کی قیمت)'
+                  : 'Total inventory received')
+              : (isCustomer
+                  ? 'Total merchandise billed'
+                  : 'Total inventory received'),
           icon: Icons.receipt_long_rounded,
           color: const Color(0xFF3B82F6),
           isDark: isDark,
         );
         final card3 = _kpiStatCard(
-          titleUrdu: enSec ? (isCustomer ? 'جمع / کل موصول شدہ رقم' : 'کل ادا شدہ رقم') : '',
-          titleEng: isCustomer ? 'Total Paid / Recoveries (Cr)' : 'Total Payments Made (Dr)',
+          titleUrdu: enSec
+              ? (isCustomer ? 'جمع / کل موصول شدہ رقم' : 'کل ادا شدہ رقم')
+              : '',
+          titleEng: isCustomer
+              ? 'Total Paid / Recoveries (Cr)'
+              : 'Total Payments Made (Dr)',
           amount: isCustomer ? _totalCredit : _totalDebit,
           cur: cur,
-          subtitle: enSec ? (isCustomer ? 'Cash & bank settlements (موصول شدہ نقد و بینک)' : 'Payments disbursed') : (isCustomer ? 'Cash & bank settlements' : 'Payments disbursed'),
+          subtitle: enSec
+              ? (isCustomer
+                  ? 'Cash & bank settlements (موصول شدہ نقد و بینک)'
+                  : 'Payments disbursed')
+              : (isCustomer ? 'Cash & bank settlements' : 'Payments disbursed'),
           icon: Icons.price_check_rounded,
           color: const Color(0xFF10B981),
           isDark: isDark,
@@ -797,10 +984,18 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
           amount: _closingBalance,
           cur: cur,
           subtitle: _closingBalance > 0
-              ? (isCustomer ? (enSec ? 'Amount Customer Owes You (واجب الوصول)' : 'Amount Customer Owes You') : (enSec ? 'Amount You Owe Supplier (واجب الادا)' : 'Amount You Owe Supplier'))
+              ? (isCustomer
+                  ? (enSec
+                      ? 'Amount Customer Owes You (واجب الوصول)'
+                      : 'Amount Customer Owes You')
+                  : (enSec
+                      ? 'Amount You Owe Supplier (واجب الادا)'
+                      : 'Amount You Owe Supplier'))
               : (enSec ? 'Account Cleared (کھاتہ بے باق)' : 'Account Cleared'),
           icon: Icons.account_balance_rounded,
-          color: _closingBalance > 0 ? const Color(0xFFEF4444) : const Color(0xFF059669),
+          color: _closingBalance > 0
+              ? const Color(0xFFEF4444)
+              : const Color(0xFF059669),
           isDark: isDark,
           isHighlight: true,
         );
@@ -866,12 +1061,14 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
     bool isHighlight = false,
   }) {
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: isHighlight ? color.withValues(alpha: isDark ? 0.2 : 0.08) : cardBg,
+        color:
+            isHighlight ? color.withValues(alpha: isDark ? 0.2 : 0.08) : cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isHighlight ? color : borderColor,
@@ -895,13 +1092,18 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (widget.settings.enableSecondaryLanguage && titleUrdu.isNotEmpty) ...[
+                    if (widget.settings.enableSecondaryLanguage &&
+                        titleUrdu.isNotEmpty) ...[
                       Text(
                         titleUrdu,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: isHighlight ? color : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+                          color: isHighlight
+                              ? color
+                              : (isDark
+                                  ? const Color(0xFFCBD5E1)
+                                  : const Color(0xFF334155)),
                         ),
                       ),
                       Text(
@@ -909,7 +1111,9 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
                         ),
                       ),
                     ] else ...[
@@ -918,7 +1122,11 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                         style: TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.bold,
-                          color: isHighlight ? color : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                          color: isHighlight
+                              ? color
+                              : (isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
                         ),
                       ),
                     ],
@@ -941,7 +1149,9 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
-              color: isHighlight ? color : (isDark ? Colors.white : const Color(0xFF0F172A)),
+              color: isHighlight
+                  ? color
+                  : (isDark ? Colors.white : const Color(0xFF0F172A)),
             ),
           ),
           const SizedBox(height: 3),
@@ -975,25 +1185,35 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
           runSpacing: 6,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(enSec ? 'Period (مدت):' : 'Period:', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(enSec ? 'Period (مدت):' : 'Period:',
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
             const SizedBox(width: 4),
-            _filterChoiceChip(enSec ? 'All Time (مکمل)' : 'All Time', 'all', isDark),
+            _filterChoiceChip(
+                enSec ? 'All Time (مکمل)' : 'All Time', 'all', isDark),
             _filterChoiceChip(enSec ? 'Today (آج)' : 'Today', 'today', isDark),
-            _filterChoiceChip(enSec ? 'This Month (یہ مہینہ)' : 'This Month', 'month', isDark),
-            _filterChoiceChip(enSec ? 'Last 30 Days (30 دن)' : 'Last 30 Days', '30days', isDark),
+            _filterChoiceChip(enSec ? 'This Month (یہ مہینہ)' : 'This Month',
+                'month', isDark),
+            _filterChoiceChip(enSec ? 'Last 30 Days (30 دن)' : 'Last 30 Days',
+                '30days', isDark),
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 visualDensity: VisualDensity.compact,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
                 side: BorderSide(
-                  color: _dateFilter == 'custom' ? const Color(0xFF4F46E5) : borderColor,
+                  color: _dateFilter == 'custom'
+                      ? const Color(0xFF4F46E5)
+                      : borderColor,
                 ),
               ),
               icon: const Icon(Icons.date_range_rounded, size: 14),
               label: Text(
                 _dateFilter == 'custom' && _startDate != null
                     ? '${DateFormat("dd MMM").format(_startDate!)} - ${DateFormat("dd MMM").format(_endDate!)}'
-                    : (enSec ? 'Custom Range (تاریخ منتخب کریں)' : 'Custom Range'),
+                    : (enSec
+                        ? 'Custom Range (تاریخ منتخب کریں)'
+                        : 'Custom Range'),
                 style: const TextStyle(fontSize: 11),
               ),
               onPressed: _selectCustomDateRange,
@@ -1021,9 +1241,11 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                       },
                     )
                   : null,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
               isDense: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
         );
@@ -1036,7 +1258,10 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
           ),
           child: Text(
             '${_filteredEntries.length} Transactions',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondary),
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: textSecondary),
           ),
         );
 
@@ -1094,11 +1319,18 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
   Widget _filterChoiceChip(String label, String value, bool isDark) {
     final selected = _dateFilter == value;
     return ChoiceChip(
-      label: Text(label, style: TextStyle(fontSize: 11, fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+      label: Text(label,
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
       selected: selected,
       selectedColor: const Color(0xFF4F46E5),
-      labelStyle: TextStyle(color: selected ? Colors.white : (isDark ? Colors.white : const Color(0xFF0F172A))),
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+      labelStyle: TextStyle(
+          color: selected
+              ? Colors.white
+              : (isDark ? Colors.white : const Color(0xFF0F172A))),
+      backgroundColor:
+          isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       onSelected: (_) => _applyDateFilter(value),
     );
   }
@@ -1116,7 +1348,10 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
     if (_loading) {
       return Container(
         height: 350,
-        decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor)),
+        decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor)),
         alignment: Alignment.center,
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1134,16 +1369,23 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
     if (entries.isEmpty) {
       return Container(
         height: 350,
-        decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor)),
+        decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor)),
         alignment: Alignment.center,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history_toggle_off_rounded, size: 48, color: textSecondary),
+            Icon(Icons.history_toggle_off_rounded,
+                size: 48, color: textSecondary),
             const SizedBox(height: 12),
             Text(
               'No ledger entries found for this period.',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimary),
             ),
             if (widget.settings.enableSecondaryLanguage) ...[
               const SizedBox(height: 4),
@@ -1154,9 +1396,13 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
             ],
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF059669),
+                  foregroundColor: Colors.white),
               icon: const Icon(Icons.add, size: 16),
-              label: Text(widget.settings.enableSecondaryLanguage ? 'Record Payment / نئی وصولی درج کریں' : 'Record Payment'),
+              label: Text(widget.settings.enableSecondaryLanguage
+                  ? 'Record Payment / نئی وصولی درج کریں'
+                  : 'Record Payment'),
               onPressed: _openQuickPaymentModal,
             ),
           ],
@@ -1187,7 +1433,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
               color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEDE9FE),
               child: Row(
                 children: [
-                  const Icon(Icons.account_tree_outlined, size: 16, color: Color(0xFF4F46E5)),
+                  const Icon(Icons.account_tree_outlined,
+                      size: 16, color: Color(0xFF4F46E5)),
                   const SizedBox(width: 8),
                   Text(
                     widget.settings.enableSecondaryLanguage
@@ -1212,7 +1459,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
             // Responsive Full-Width Table
             LayoutBuilder(
               builder: (context, constraints) {
-                final double tableWidth = math.max(constraints.maxWidth, 1050.0);
+                final double tableWidth =
+                    math.max(constraints.maxWidth, 1050.0);
                 final enSec = widget.settings.enableSecondaryLanguage;
                 return Scrollbar(
                   controller: _tableHorizontalScroll,
@@ -1239,23 +1487,41 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                           7: FlexColumnWidth(1.6), // RUNNING BALANCE
                           8: FlexColumnWidth(0.8), // ACTION
                         },
-                        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                        defaultVerticalAlignment:
+                            TableCellVerticalAlignment.middle,
                         children: [
                           // Header TableRow
                           TableRow(
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                              border: Border(bottom: BorderSide(color: borderColor, width: 1.2)),
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFFF1F5F9),
+                              border: Border(
+                                  bottom: BorderSide(
+                                      color: borderColor, width: 1.2)),
                             ),
                             children: [
                               _tableHeaderCell('#', isDark),
-                              _tableHeaderCell(enSec ? 'DATE & TIME / تاریخ' : 'DATE & TIME', isDark),
-                              _tableHeaderCell(enSec ? 'TYPE / قسم' : 'TYPE', isDark),
+                              _tableHeaderCell(
+                                  enSec ? 'DATE & TIME / تاریخ' : 'DATE & TIME',
+                                  isDark),
+                              _tableHeaderCell(
+                                  enSec ? 'TYPE / قسم' : 'TYPE', isDark),
                               _tableHeaderCell('REF / INVOICE #', isDark),
-                              _tableHeaderCell(enSec ? 'NARRATION & DETAILS / تفصیل' : 'NARRATION & DETAILS', isDark),
-                              _tableHeaderCell(enSec ? 'DEBIT / بنام Dr' : 'DEBIT (Dr)', isDark),
-                              _tableHeaderCell(enSec ? 'CREDIT / جمع Cr' : 'CREDIT (Cr)', isDark),
-                              _tableHeaderCell(enSec ? 'RUNNING BAL / بقیہ' : 'RUNNING BAL', isDark),
+                              _tableHeaderCell(
+                                  enSec
+                                      ? 'NARRATION & DETAILS / تفصیل'
+                                      : 'NARRATION & DETAILS',
+                                  isDark),
+                              _tableHeaderCell(
+                                  enSec ? 'DEBIT / بنام Dr' : 'DEBIT (Dr)',
+                                  isDark),
+                              _tableHeaderCell(
+                                  enSec ? 'CREDIT / جمع Cr' : 'CREDIT (Cr)',
+                                  isDark),
+                              _tableHeaderCell(
+                                  enSec ? 'RUNNING BAL / بقیہ' : 'RUNNING BAL',
+                                  isDark),
                               _tableHeaderCell('ACTION', isDark),
                             ],
                           ),
@@ -1265,37 +1531,59 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                             final e = entry.value;
                             final isDebit = e.debit > 0;
                             final isCredit = e.credit > 0;
-                            final isInvoice = e.transactionType.contains('sale') || e.transactionType.contains('purchase');
+                            final isInvoice =
+                                e.transactionType.contains('sale') ||
+                                    e.transactionType.contains('purchase');
 
                             final balType = e.runningBalance > 0
                                 ? (isCustomer ? "Dr (واجب)" : "Cr (واجب)")
-                                : (e.runningBalance < 0 ? "Adv (جمع)" : "Cleared");
+                                : (e.runningBalance < 0
+                                    ? "Adv (جمع)"
+                                    : "Cleared");
 
                             final balColor = e.runningBalance > 0
                                 ? const Color(0xFFDC2626)
-                                : (e.runningBalance < 0 ? const Color(0xFF059669) : textSecondary);
+                                : (e.runningBalance < 0
+                                    ? const Color(0xFF059669)
+                                    : textSecondary);
 
                             final rowBg = idx.isOdd
-                                ? (isDark ? const Color(0xFF1E293B) : Colors.white)
-                                : (isDark ? const Color(0xFF172033) : const Color(0xFFF8FAFC));
+                                ? (isDark
+                                    ? const Color(0xFF1E293B)
+                                    : Colors.white)
+                                : (isDark
+                                    ? const Color(0xFF172033)
+                                    : const Color(0xFFF8FAFC));
 
                             return TableRow(
                               decoration: BoxDecoration(
                                 color: rowBg,
-                                border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.6), width: 0.8)),
+                                border: Border(
+                                    bottom: BorderSide(
+                                        color:
+                                            borderColor.withValues(alpha: 0.6),
+                                        width: 0.8)),
                               ),
                               children: [
-                                _tableCell(Text(idx.toString(), style: TextStyle(fontSize: 11, color: textSecondary))),
+                                _tableCell(Text(idx.toString(),
+                                    style: TextStyle(
+                                        fontSize: 11, color: textSecondary))),
                                 _tableCell(
                                   Text(
-                                    e.date.length > 16 ? e.date.substring(0, 16) : e.date,
-                                    style: TextStyle(fontSize: 11, color: textPrimary),
+                                    e.date.length > 16
+                                        ? e.date.substring(0, 16)
+                                        : e.date,
+                                    style: TextStyle(
+                                        fontSize: 11, color: textPrimary),
                                   ),
                                 ),
-                                _tableCell(_typeBadge(e.transactionType, isDark)),
+                                _tableCell(
+                                    _typeBadge(e.transactionType, isDark)),
                                 _tableCell(
                                   InkWell(
-                                    onTap: isInvoice ? () => _viewInvoiceDetails(e.refNo) : null,
+                                    onTap: isInvoice
+                                        ? () => _viewInvoiceDetails(e.refNo)
+                                        : null,
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
@@ -1305,15 +1593,21 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 11,
-                                              color: isInvoice ? const Color(0xFF4F46E5) : textPrimary,
-                                              decoration: isInvoice ? TextDecoration.underline : TextDecoration.none,
+                                              color: isInvoice
+                                                  ? const Color(0xFF4F46E5)
+                                                  : textPrimary,
+                                              decoration: isInvoice
+                                                  ? TextDecoration.underline
+                                                  : TextDecoration.none,
                                             ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                         if (isInvoice) ...[
                                           const SizedBox(width: 3),
-                                          const Icon(Icons.open_in_new_rounded, size: 12, color: Color(0xFF4F46E5)),
+                                          const Icon(Icons.open_in_new_rounded,
+                                              size: 12,
+                                              color: Color(0xFF4F46E5)),
                                         ],
                                       ],
                                     ),
@@ -1322,28 +1616,41 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                                 _tableCell(
                                   Text(
                                     e.description,
-                                    style: TextStyle(fontSize: 11, color: textPrimary),
+                                    style: TextStyle(
+                                        fontSize: 11, color: textPrimary),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 _tableCell(
                                   Text(
-                                    isDebit ? '$cur${e.debit.toStringAsFixed(2)}' : '-',
+                                    isDebit
+                                        ? '$cur${e.debit.toStringAsFixed(2)}'
+                                        : '-',
                                     style: TextStyle(
                                       fontSize: 11,
-                                      fontWeight: isDebit ? FontWeight.bold : FontWeight.normal,
-                                      color: isDebit ? const Color(0xFF1E40AF) : Colors.grey,
+                                      fontWeight: isDebit
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isDebit
+                                          ? const Color(0xFF1E40AF)
+                                          : Colors.grey,
                                     ),
                                   ),
                                 ),
                                 _tableCell(
                                   Text(
-                                    isCredit ? '$cur${e.credit.toStringAsFixed(2)}' : '-',
+                                    isCredit
+                                        ? '$cur${e.credit.toStringAsFixed(2)}'
+                                        : '-',
                                     style: TextStyle(
                                       fontSize: 11,
-                                      fontWeight: isCredit ? FontWeight.bold : FontWeight.normal,
-                                      color: isCredit ? const Color(0xFF059669) : Colors.grey,
+                                      fontWeight: isCredit
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isCredit
+                                          ? const Color(0xFF059669)
+                                          : Colors.grey,
                                     ),
                                   ),
                                 ),
@@ -1353,18 +1660,27 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                                     children: [
                                       Text(
                                         '$cur${e.runningBalance.abs().toStringAsFixed(2)}',
-                                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: balColor),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 12,
+                                            color: balColor),
                                       ),
                                       const SizedBox(width: 4),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 4, vertical: 1),
                                         decoration: BoxDecoration(
-                                          color: balColor.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(3),
+                                          color:
+                                              balColor.withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(3),
                                         ),
                                         child: Text(
                                           balType,
-                                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: balColor),
+                                          style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: balColor),
                                         ),
                                       ),
                                     ],
@@ -1373,9 +1689,13 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                                 _tableCell(
                                   isInvoice
                                       ? IconButton(
-                                          icon: const Icon(Icons.remove_red_eye_outlined, size: 16, color: Color(0xFF4F46E5)),
+                                          icon: const Icon(
+                                              Icons.remove_red_eye_outlined,
+                                              size: 16,
+                                              color: Color(0xFF4F46E5)),
                                           tooltip: 'View Invoice Items',
-                                          onPressed: () => _viewInvoiceDetails(e.refNo),
+                                          onPressed: () =>
+                                              _viewInvoiceDetails(e.refNo),
                                           padding: EdgeInsets.zero,
                                           constraints: const BoxConstraints(),
                                         )
@@ -1396,7 +1716,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                color:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                 border: Border(top: BorderSide(color: borderColor, width: 1.5)),
               ),
               child: Wrap(
@@ -1409,7 +1730,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                     widget.settings.enableSecondaryLanguage
                         ? 'GRAND TOTALS (کل میزان کھاتہ):'
                         : 'GRAND TOTALS:',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                   Wrap(
                     spacing: 16,
@@ -1418,16 +1740,25 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                     children: [
                       Text(
                         'Total Debit (Dr): $cur${_totalDebit.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E40AF)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Color(0xFF1E40AF)),
                       ),
                       Text(
                         'Total Credit (Cr): $cur${_totalCredit.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF059669)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Color(0xFF059669)),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _closingBalance > 0 ? const Color(0xFFFEE2E2) : const Color(0xFFD1FAE5),
+                          color: _closingBalance > 0
+                              ? const Color(0xFFFEE2E2)
+                              : const Color(0xFFD1FAE5),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -1437,7 +1768,9 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 12,
-                            color: _closingBalance > 0 ? const Color(0xFFDC2626) : const Color(0xFF065F46),
+                            color: _closingBalance > 0
+                                ? const Color(0xFFDC2626)
+                                : const Color(0xFF065F46),
                           ),
                         ),
                       ),

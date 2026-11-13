@@ -122,7 +122,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     if (currentUser != null && !currentUser.hasPermission('purchase.delete')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Access Denied: You do not have permission to delete purchase invoices.'),
+          content: Text(
+              'Access Denied: You do not have permission to delete purchase invoices.'),
           backgroundColor: Color(0xFFEF4444),
         ),
       );
@@ -139,9 +140,13 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
           'and restore any payment recorded in the cash register / bank account.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete Invoice'),
           ),
@@ -157,7 +162,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Purchase invoice ${p.refNo} deleted and stock reversed.'),
+              content: Text(
+                  'Purchase invoice ${p.refNo} deleted and stock reversed.'),
               backgroundColor: const Color(0xFF10B981),
             ),
           );
@@ -171,7 +177,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     if (currentUser != null && !currentUser.hasPermission('purchase.edit')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Access Denied: You do not have permission to edit purchases.'),
+          content: Text(
+              'Access Denied: You do not have permission to edit purchases.'),
           backgroundColor: Color(0xFFEF4444),
         ),
       );
@@ -186,7 +193,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
         builder: (ctx, setDlgState) {
           return AlertDialog(
             backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             title: Row(
               children: [
                 Container(
@@ -195,15 +203,20 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                     color: const Color(0xFFEEF2FF),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.edit_note_rounded, color: Color(0xFF4F46E5), size: 22),
+                  child: const Icon(Icons.edit_note_rounded,
+                      color: Color(0xFF4F46E5), size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Update Purchase Status', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text('Invoice: ${p.refNo} • ${p.supplierName}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                      const Text('Update Purchase Status',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('Invoice: ${p.refNo} • ${p.supplierName}',
+                          style: const TextStyle(
+                              fontSize: 12, color: Color(0xFF64748B))),
                     ],
                   ),
                 ),
@@ -215,25 +228,34 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Select New Status:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  const Text('Select New Status:',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: selectedStatus,
                     decoration: InputDecoration(
                       isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 11),
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      fillColor: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     items: const [
                       DropdownMenuItem(
                         value: 'received',
                         child: Row(
                           children: [
-                            Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF10B981)),
+                            Icon(Icons.check_circle_rounded,
+                                size: 16, color: Color(0xFF10B981)),
                             SizedBox(width: 8),
-                            Text('Received (Goods In Store)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            Text('Received (Goods In Store)',
+                                style: TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -241,9 +263,12 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                         value: 'pending',
                         child: Row(
                           children: [
-                            Icon(Icons.hourglass_bottom_rounded, size: 16, color: Color(0xFFD97706)),
+                            Icon(Icons.hourglass_bottom_rounded,
+                                size: 16, color: Color(0xFFD97706)),
                             SizedBox(width: 8),
-                            Text('Pending (Awaiting Delivery)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            Text('Pending (Awaiting Delivery)',
+                                style: TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -251,9 +276,12 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                         value: 'ordered',
                         child: Row(
                           children: [
-                            Icon(Icons.assignment_rounded, size: 16, color: Color(0xFF6366F1)),
+                            Icon(Icons.assignment_rounded,
+                                size: 16, color: Color(0xFF6366F1)),
                             SizedBox(width: 8),
-                            Text('Ordered (Purchase Order)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            Text('Ordered (Purchase Order)',
+                                style: TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -315,7 +343,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4F46E5),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 icon: const Icon(Icons.check_rounded, size: 16),
                 label: const Text('Apply Status'),
@@ -327,7 +356,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
       ),
     );
 
-    if (updated == true && selectedStatus != p.status.toLowerCase() && p.id != null) {
+    if (updated == true &&
+        selectedStatus != p.status.toLowerCase() &&
+        p.id != null) {
       final db = await DatabaseService.initialize();
       final success = await db.updatePurchaseStatus(p.id!, selectedStatus);
       if (success) {
@@ -335,7 +366,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Purchase ${p.refNo} status updated to ${selectedStatus.toUpperCase()}!'),
+              content: Text(
+                  'Purchase ${p.refNo} status updated to ${selectedStatus.toUpperCase()}!'),
               backgroundColor: const Color(0xFF10B981),
             ),
           );
@@ -353,7 +385,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     final totalDue = _totalDueAmount;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
@@ -377,7 +410,11 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Manage incoming supplier shipments, purchase invoices, and vendor payables.',
-                      style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -385,11 +422,15 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 19),
-                  label: const Text('Add Purchase', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  label: const Text('Add Purchase',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   onPressed: _openAddPurchase,
                 ),
               ],
@@ -398,9 +439,19 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
 
             LayoutBuilder(
               builder: (context, constraints) {
-                final c1 = _miniCard('Total Purchases', '$currency${totalPurchases.toStringAsFixed(2)}', const Color(0xFF4F46E5), isDark: isDark);
-                final c2 = _miniCard('Total Payables Due', '$currency${totalDue.toStringAsFixed(2)}', const Color(0xFFEF4444), isDark: isDark);
-                final c3 = _miniCard('Purchase Orders', '$_totalOrdersCount orders', const Color(0xFF10B981), isDark: isDark);
+                final c1 = _miniCard(
+                    'Total Purchases',
+                    '$currency${totalPurchases.toStringAsFixed(2)}',
+                    const Color(0xFF4F46E5),
+                    isDark: isDark);
+                final c2 = _miniCard(
+                    'Total Payables Due',
+                    '$currency${totalDue.toStringAsFixed(2)}',
+                    const Color(0xFFEF4444),
+                    isDark: isDark);
+                final c3 = _miniCard('Purchase Orders',
+                    '$_totalOrdersCount orders', const Color(0xFF10B981),
+                    isDark: isDark);
 
                 if (constraints.maxWidth < 650) {
                   return Column(
@@ -503,7 +554,10 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               child: Row(
                 children: [
@@ -526,17 +580,38 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                           );
                         }
                       },
-                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A)),
                       decoration: InputDecoration(
-                        hintText: 'Search purchases by Ref No, Supplier, Location...',
-                        hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                        hintText:
+                            'Search purchases by Ref No, Supplier, Location...',
+                        hintStyle: TextStyle(
+                            fontSize: 13,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B)),
                         prefixIcon: const Icon(Icons.search_rounded, size: 18),
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 9),
                         filled: true,
-                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                        fillColor: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0))),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0))),
                       ),
                     ),
                   ),
@@ -545,20 +620,35 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0)),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        dropdownColor:
+                            isDark ? const Color(0xFF1E293B) : Colors.white,
                         value: _statusFilter,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
                         items: const [
-                          DropdownMenuItem(value: 'all', child: Text('Status: All')),
-                          DropdownMenuItem(value: 'received', child: Text('Received')),
-                          DropdownMenuItem(value: 'pending', child: Text('Pending')),
-                          DropdownMenuItem(value: 'ordered', child: Text('Ordered')),
+                          DropdownMenuItem(
+                              value: 'all', child: Text('Status: All')),
+                          DropdownMenuItem(
+                              value: 'received', child: Text('Received')),
+                          DropdownMenuItem(
+                              value: 'pending', child: Text('Pending')),
+                          DropdownMenuItem(
+                              value: 'ordered', child: Text('Ordered')),
                         ],
                         onChanged: (val) {
                           setState(() {
@@ -575,20 +665,34 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0)),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        dropdownColor:
+                            isDark ? const Color(0xFF1E293B) : Colors.white,
                         value: _paymentFilter,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
                         items: const [
-                          DropdownMenuItem(value: 'all', child: Text('Payment: All')),
+                          DropdownMenuItem(
+                              value: 'all', child: Text('Payment: All')),
                           DropdownMenuItem(value: 'paid', child: Text('Paid')),
-                          DropdownMenuItem(value: 'due', child: Text('Due / Unpaid')),
-                          DropdownMenuItem(value: 'partial', child: Text('Partial')),
+                          DropdownMenuItem(
+                              value: 'due', child: Text('Due / Unpaid')),
+                          DropdownMenuItem(
+                              value: 'partial', child: Text('Partial')),
                         ],
                         onChanged: (val) {
                           setState(() {
@@ -609,17 +713,29 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               child: _loading
-                  ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5))))
+                  ? const Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Center(
+                          child: CircularProgressIndicator(
+                              color: Color(0xFF4F46E5))))
                   : filteredPurchases.isEmpty
                       ? Padding(
                           padding: const EdgeInsets.all(40),
                           child: Center(
                             child: Text(
-                              _purchases.isEmpty ? 'No purchase records yet.' : 'No purchases match your filter.',
-                              style: TextStyle(color: isDark ? const Color(0xFF64748B) : Colors.grey),
+                              _purchases.isEmpty
+                                  ? 'No purchase records yet.'
+                                  : 'No purchases match your filter.',
+                              style: TextStyle(
+                                  color: isDark
+                                      ? const Color(0xFF64748B)
+                                      : Colors.grey),
                             ),
                           ),
                         )
@@ -627,7 +743,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                           borderRadius: BorderRadius.circular(12),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final double tableWidth = math.max(constraints.maxWidth, 1100.0);
+                              final double tableWidth =
+                                  math.max(constraints.maxWidth, 1100.0);
                               return Scrollbar(
                                 controller: _hScroll,
                                 thumbVisibility: true,
@@ -637,11 +754,13 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                 child: SingleChildScrollView(
                                   controller: _hScroll,
                                   scrollDirection: Axis.horizontal,
-                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
                                   child: SizedBox(
                                     width: tableWidth,
                                     child: Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
+                                      padding:
+                                          const EdgeInsets.only(bottom: 12),
                                       child: Table(
                                         columnWidths: const {
                                           0: FlexColumnWidth(1.4), // REF NO
@@ -650,17 +769,30 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                           3: FlexColumnWidth(2.0), // SUPPLIER
                                           4: FlexColumnWidth(1.2), // STATUS
                                           5: FlexColumnWidth(1.2), // PAYMENT
-                                          6: FlexColumnWidth(1.4), // TOTAL AMOUNT
-                                          7: FlexColumnWidth(1.4), // PAID AMOUNT
-                                          8: FlexColumnWidth(1.3), // BALANCE DUE
+                                          6: FlexColumnWidth(
+                                              1.4), // TOTAL AMOUNT
+                                          7: FlexColumnWidth(
+                                              1.4), // PAID AMOUNT
+                                          8: FlexColumnWidth(
+                                              1.3), // BALANCE DUE
                                           9: FlexColumnWidth(1.2), // ACTIONS
                                         },
-                                        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                        defaultVerticalAlignment:
+                                            TableCellVerticalAlignment.middle,
                                         children: [
                                           TableRow(
                                             decoration: BoxDecoration(
-                                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                                              border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), width: 1.2)),
+                                              color: isDark
+                                                  ? const Color(0xFF0F172A)
+                                                  : const Color(0xFFF8FAFC),
+                                              border: Border(
+                                                  bottom: BorderSide(
+                                                      color: isDark
+                                                          ? const Color(
+                                                              0xFF334155)
+                                                          : const Color(
+                                                              0xFFE2E8F0),
+                                                      width: 1.2)),
                                             ),
                                             children: [
                                               _th('REF NO', isDark),
@@ -675,153 +807,251 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                               _th('ACTIONS', isDark),
                                             ],
                                           ),
-                                          ...filteredPurchases.asMap().entries.map((entry) {
+                                          ...filteredPurchases
+                                              .asMap()
+                                              .entries
+                                              .map((entry) {
                                             final idx = entry.key;
                                             final p = entry.value;
                                             final rowBg = idx.isOdd
-                                                ? (isDark ? const Color(0xFF1E293B) : Colors.white)
-                                                : (isDark ? const Color(0xFF172033) : const Color(0xFFFBFDFF));
+                                                ? (isDark
+                                                    ? const Color(0xFF1E293B)
+                                                    : Colors.white)
+                                                : (isDark
+                                                    ? const Color(0xFF172033)
+                                                    : const Color(0xFFFBFDFF));
 
                                             return TableRow(
                                               decoration: BoxDecoration(
                                                 color: rowBg,
-                                                border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155).withValues(alpha: 0.6) : const Color(0xFFE2E8F0), width: 0.8)),
+                                                border: Border(
+                                                    bottom: BorderSide(
+                                                        color: isDark
+                                                            ? const Color(
+                                                                    0xFF334155)
+                                                                .withValues(
+                                                                    alpha: 0.6)
+                                                            : const Color(
+                                                                0xFFE2E8F0),
+                                                        width: 0.8)),
                                               ),
                                               children: [
                                                 _td(Text(
                                                   p.refNo,
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
-                                                    color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFF818CF8)
+                                                        : const Color(
+                                                            0xFF4F46E5),
                                                   ),
                                                 )),
                                                 _td(Text(
                                                   p.createdAt,
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFF94A3B8)
+                                                        : const Color(
+                                                            0xFF64748B),
                                                   ),
                                                 )),
                                                 _td(Text(
                                                   p.locationName,
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w600,
-                                                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFFCBD5E1)
+                                                        : const Color(
+                                                            0xFF475569),
                                                   ),
                                                 )),
                                                 _td(Text(
                                                   p.supplierName,
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w600,
-                                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                    color: isDark
+                                                        ? Colors.white
+                                                        : const Color(
+                                                            0xFF0F172A),
                                                   ),
                                                 )),
                                                 _td(
                                                   InkWell(
-                                                    borderRadius: BorderRadius.circular(20),
-                                                    onTap: () => _openUpdateStatusDialog(p),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                    onTap: () =>
+                                                        _openUpdateStatusDialog(
+                                                            p),
                                                     child: Tooltip(
-                                                      message: 'Click to update status (${p.status.toUpperCase()})',
+                                                      message:
+                                                          'Click to update status (${p.status.toUpperCase()})',
                                                       child: Row(
-                                                        mainAxisSize: MainAxisSize.min,
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
                                                         children: [
-                                                          StatusPill(status: p.status),
-                                                          const SizedBox(width: 4),
+                                                          StatusPill(
+                                                              status: p.status),
+                                                          const SizedBox(
+                                                              width: 4),
                                                           Icon(
-                                                            Icons.arrow_drop_down_rounded,
+                                                            Icons
+                                                                .arrow_drop_down_rounded,
                                                             size: 16,
-                                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                                            color: isDark
+                                                                ? const Color(
+                                                                    0xFF94A3B8)
+                                                                : const Color(
+                                                                    0xFF64748B),
                                                           ),
                                                         ],
                                                       ),
                                                     ),
                                                   ),
                                                 ),
-                                                _td(StatusPill(status: p.paymentStatus)),
+                                                _td(StatusPill(
+                                                    status: p.paymentStatus)),
                                                 _td(Text(
                                                   '$currency${p.totalAmount.toStringAsFixed(2)}',
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w900,
-                                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                    color: isDark
+                                                        ? Colors.white
+                                                        : const Color(
+                                                            0xFF0F172A),
                                                   ),
                                                 )),
                                                 _td(Text(
                                                   '$currency${p.paidAmount.toStringAsFixed(2)}',
-                                                  style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold),
+                                                  style: const TextStyle(
+                                                      color: Color(0xFF10B981),
+                                                      fontWeight:
+                                                          FontWeight.bold),
                                                 )),
                                                 _td(Text(
-                                                  p.dueAmount > 0 ? '$currency${p.dueAmount.toStringAsFixed(2)}' : '-',
+                                                  p.dueAmount > 0
+                                                      ? '$currency${p.dueAmount.toStringAsFixed(2)}'
+                                                      : '-',
                                                   style: TextStyle(
-                                                    color: p.dueAmount > 0 ? const Color(0xFFEF4444) : (isDark ? const Color(0xFF64748B) : Colors.grey),
+                                                    color: p.dueAmount > 0
+                                                        ? const Color(
+                                                            0xFFEF4444)
+                                                        : (isDark
+                                                            ? const Color(
+                                                                0xFF64748B)
+                                                            : Colors.grey),
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 )),
                                                 _td(
                                                   Row(
-                                                    mainAxisSize: MainAxisSize.min,
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
                                                     children: [
                                                       if (p.dueAmount > 0)
                                                         IconButton(
                                                           icon: const Icon(
-                                                            Icons.payments_outlined,
+                                                            Icons
+                                                                .payments_outlined,
                                                             size: 18,
-                                                            color: Color(0xFF059669),
+                                                            color: Color(
+                                                                0xFF059669),
                                                           ),
-                                                          tooltip: 'Pay Supplier Due',
+                                                          tooltip:
+                                                              'Pay Supplier Due',
                                                           onPressed: () {
                                                             showDialog(
                                                               context: context,
-                                                              builder: (_) => PayDueDialog(
-                                                                settings: widget.settings,
-                                                                type: DuePaymentType.purchase,
+                                                              builder: (_) =>
+                                                                  PayDueDialog(
+                                                                settings: widget
+                                                                    .settings,
+                                                                type: DuePaymentType
+                                                                    .purchase,
                                                                 entityId: p.id!,
-                                                                reference: p.referenceNo,
-                                                                contactName: p.supplierName,
-                                                                contactId: p.supplierId,
-                                                                totalAmount: p.totalAmount,
-                                                                paidAmount: p.paidAmount,
-                                                                dueAmount: p.dueAmount,
-                                                                onPaymentSuccess: _load,
+                                                                reference: p
+                                                                    .referenceNo,
+                                                                contactName: p
+                                                                    .supplierName,
+                                                                contactId: p
+                                                                    .supplierId,
+                                                                totalAmount: p
+                                                                    .totalAmount,
+                                                                paidAmount: p
+                                                                    .paidAmount,
+                                                                dueAmount:
+                                                                    p.dueAmount,
+                                                                onPaymentSuccess:
+                                                                    _load,
                                                               ),
                                                             );
                                                           },
                                                         ),
-                                                      if (AuthService.currentUser?.hasPermission('purchase.edit') ?? true)
+                                                      if (AuthService
+                                                              .currentUser
+                                                              ?.hasPermission(
+                                                                  'purchase.edit') ??
+                                                          true)
                                                         IconButton(
                                                           icon: const Icon(
-                                                            Icons.edit_note_rounded,
+                                                            Icons
+                                                                .edit_note_rounded,
                                                             size: 20,
-                                                            color: Color(0xFF4F46E5),
+                                                            color: Color(
+                                                                0xFF4F46E5),
                                                           ),
-                                                          tooltip: 'Update Status (Received / Pending / Ordered)',
-                                                          onPressed: () => _openUpdateStatusDialog(p),
+                                                          tooltip:
+                                                              'Update Status (Received / Pending / Ordered)',
+                                                          onPressed: () =>
+                                                              _openUpdateStatusDialog(
+                                                                  p),
                                                         ),
                                                       IconButton(
                                                         icon: Icon(
                                                           Icons.print_outlined,
                                                           size: 18,
-                                                          color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF004EEB),
+                                                          color: isDark
+                                                              ? const Color(
+                                                                  0xFF60A5FA)
+                                                              : const Color(
+                                                                  0xFF004EEB),
                                                         ),
-                                                        tooltip: 'Print Purchase Receipt',
+                                                        tooltip:
+                                                            'Print Purchase Receipt',
                                                         onPressed: () {
                                                           showDialog(
                                                             context: context,
-                                                            builder: (_) => PurchaseReceiptDialog(
+                                                            builder: (_) =>
+                                                                PurchaseReceiptDialog(
                                                               purchase: p,
-                                                              settings: widget.settings,
+                                                              settings: widget
+                                                                  .settings,
                                                             ),
                                                           );
                                                         },
                                                       ),
-                                                      if (AuthService.currentUser?.hasPermission('purchase.delete') ?? true)
+                                                      if (AuthService
+                                                              .currentUser
+                                                              ?.hasPermission(
+                                                                  'purchase.delete') ??
+                                                          true)
                                                         IconButton(
                                                           icon: const Icon(
-                                                            Icons.delete_outline_rounded,
+                                                            Icons
+                                                                .delete_outline_rounded,
                                                             size: 18,
-                                                            color: Color(0xFFEF4444),
+                                                            color: Color(
+                                                                0xFFEF4444),
                                                           ),
-                                                          tooltip: 'Delete & Reverse Stock',
-                                                          onPressed: () => _deletePurchase(p),
+                                                          tooltip:
+                                                              'Delete & Reverse Stock',
+                                                          onPressed: () =>
+                                                              _deletePurchase(
+                                                                  p),
                                                         ),
                                                     ],
                                                   ),
@@ -864,13 +1094,15 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     );
   }
 
-  Widget _miniCard(String label, String value, Color color, {required bool isDark}) {
+  Widget _miniCard(String label, String value, Color color,
+      {required bool isDark}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -884,7 +1116,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.w900, color: color)),
         ],
       ),
     );
@@ -926,7 +1160,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isActive
-              ? (isDark ? activeColor.withValues(alpha: 0.25) : activeColor.withValues(alpha: 0.1))
+              ? (isDark
+                  ? activeColor.withValues(alpha: 0.25)
+                  : activeColor.withValues(alpha: 0.1))
               : (isDark ? const Color(0xFF1E293B) : Colors.white),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
@@ -946,7 +1182,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
                 color: isActive
                     ? (isDark ? Colors.white : activeColor)
-                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    : (isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B)),
               ),
             ),
             const SizedBox(width: 8),
@@ -955,7 +1193,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
               decoration: BoxDecoration(
                 color: isActive
                     ? activeColor
-                    : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    : (isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -965,7 +1205,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                   fontWeight: FontWeight.bold,
                   color: isActive
                       ? Colors.white
-                      : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
+                      : (isDark
+                          ? const Color(0xFFCBD5E1)
+                          : const Color(0xFF475569)),
                 ),
               ),
             ),

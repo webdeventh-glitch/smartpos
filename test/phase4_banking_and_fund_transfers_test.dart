@@ -17,7 +17,8 @@ void main() {
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('banking_transfer_test_');
-      dbPath = path.join(tempDir.path, 'bank_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(
+          tempDir.path, 'bank_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -29,7 +30,9 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Inter-Account Fund Transfer: Atomically debits source and credits destination', () async {
+    test(
+        '1. Inter-Account Fund Transfer: Atomically debits source and credits destination',
+        () async {
       // 1. Create Counter Cash Account (Opening 50,000)
       final cashAccId = await dbService.addPaymentAccount(PaymentAccount(
         name: 'Main Counter Cash',
@@ -64,19 +67,25 @@ void main() {
       expect(trfId, isPositive);
 
       // Verify source cash account balance = 50,000 - 20,000 = 30,000.0
-      final cashAfter = (await dbService.getPaymentAccounts()).firstWhere((a) => a.id == cashAccId);
+      final cashAfter = (await dbService.getPaymentAccounts())
+          .firstWhere((a) => a.id == cashAccId);
       expect(cashAfter.currentBalance, 30000.0);
 
       // Verify destination bank account balance = 100,000 + 20,000 = 120,000.0
-      final bankAfter = (await dbService.getPaymentAccounts()).firstWhere((a) => a.id == bankAccId);
+      final bankAfter = (await dbService.getPaymentAccounts())
+          .firstWhere((a) => a.id == bankAccId);
       expect(bankAfter.currentBalance, 120000.0);
 
       // Verify transfer recorded in history
       final history = await dbService.getAccountTransfers();
-      expect(history.any((t) => t.refNo == 'TRF-TEST-001' && t.amount == 20000.0), isTrue);
+      expect(
+          history.any((t) => t.refNo == 'TRF-TEST-001' && t.amount == 20000.0),
+          isTrue);
     });
 
-    test('2. Delete / Reverse Fund Transfer: Restores balances to both accounts', () async {
+    test(
+        '2. Delete / Reverse Fund Transfer: Restores balances to both accounts',
+        () async {
       final accAId = await dbService.addPaymentAccount(PaymentAccount(
         name: 'Account A',
         accountType: 'bank',
@@ -101,19 +110,37 @@ void main() {
       final trfId = await dbService.transferAccountFunds(transfer);
 
       // Before delete: A = 10,000, B = 10,000
-      expect((await dbService.getPaymentAccounts()).firstWhere((a) => a.id == accAId).currentBalance, 10000.0);
-      expect((await dbService.getPaymentAccounts()).firstWhere((a) => a.id == accBId).currentBalance, 10000.0);
+      expect(
+          (await dbService.getPaymentAccounts())
+              .firstWhere((a) => a.id == accAId)
+              .currentBalance,
+          10000.0);
+      expect(
+          (await dbService.getPaymentAccounts())
+              .firstWhere((a) => a.id == accBId)
+              .currentBalance,
+          10000.0);
 
       // Delete transfer
       final ok = await dbService.deleteAccountTransfer(trfId);
       expect(ok, isTrue);
 
       // After delete: A restored to 15,000, B restored to 5,000
-      expect((await dbService.getPaymentAccounts()).firstWhere((a) => a.id == accAId).currentBalance, 15000.0);
-      expect((await dbService.getPaymentAccounts()).firstWhere((a) => a.id == accBId).currentBalance, 5000.0);
+      expect(
+          (await dbService.getPaymentAccounts())
+              .firstWhere((a) => a.id == accAId)
+              .currentBalance,
+          15000.0);
+      expect(
+          (await dbService.getPaymentAccounts())
+              .firstWhere((a) => a.id == accBId)
+              .currentBalance,
+          5000.0);
     });
 
-    test('3. Direct Account Deposit: Increments balance and creates deposit transaction', () async {
+    test(
+        '3. Direct Account Deposit: Increments balance and creates deposit transaction',
+        () async {
       final bankId = await dbService.addPaymentAccount(PaymentAccount(
         name: 'HBL Business Account',
         accountType: 'bank',
@@ -130,7 +157,8 @@ void main() {
       );
 
       // Verify balance is now 75,000.0
-      final acc = (await dbService.getPaymentAccounts()).firstWhere((a) => a.id == bankId);
+      final acc = (await dbService.getPaymentAccounts())
+          .firstWhere((a) => a.id == bankId);
       expect(acc.currentBalance, 75000.0);
 
       // Verify statement reflects deposit
@@ -141,7 +169,9 @@ void main() {
       expect(statement['closingBalance'], 75000.0);
     });
 
-    test('4. Account Passbook / Statement: Accurately tracks Transfers In and Transfers Out', () async {
+    test(
+        '4. Account Passbook / Statement: Accurately tracks Transfers In and Transfers Out',
+        () async {
       final cashId = await dbService.addPaymentAccount(PaymentAccount(
         name: 'Counter Safe',
         accountType: 'cash',
@@ -167,12 +197,14 @@ void main() {
       ));
 
       // Cash Statement: Outflow 4,000, Closing 6,000
-      final cashStmt = await dbService.getPaymentAccountStatement(accountId: cashId, accountName: 'Counter Safe');
+      final cashStmt = await dbService.getPaymentAccountStatement(
+          accountId: cashId, accountName: 'Counter Safe');
       expect(cashStmt['totalOutflow'], 4000.0);
       expect(cashStmt['closingBalance'], 6000.0);
 
       // Bank Statement: Inflow 4,000, Closing 24,000
-      final bankStmt = await dbService.getPaymentAccountStatement(accountId: bankId, accountName: 'Allied Bank');
+      final bankStmt = await dbService.getPaymentAccountStatement(
+          accountId: bankId, accountName: 'Allied Bank');
       expect(bankStmt['totalInflow'], 4000.0);
       expect(bankStmt['closingBalance'], 24000.0);
     });

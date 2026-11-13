@@ -11,7 +11,8 @@ void main() {
     sqfliteFfiInit();
   });
 
-  testWidgets('MainShell renders Smart POS header, sidebar and dashboard', (tester) async {
+  testWidgets('MainShell renders Smart POS header, sidebar and dashboard',
+      (tester) async {
     // Initialize in-memory database in runAsync
     await tester.runAsync(() async {
       await DatabaseService.initialize(customPath: inMemoryDatabasePath);

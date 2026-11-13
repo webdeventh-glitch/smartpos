@@ -78,7 +78,8 @@ void main() {
       );
 
   group('Phase 4 Step 4.1 - ESC/POS Thermal Printing & KOT', () {
-    test('Builds valid 80mm and 58mm ESC/POS binary receipts and KOT tickets', () async {
+    test('Builds valid 80mm and 58mm ESC/POS binary receipts and KOT tickets',
+        () async {
       final settings = BusinessSettings(
         businessName: 'City Mart',
         branchName: 'Lahore Branch',
@@ -107,7 +108,8 @@ void main() {
       // ESC @ init command present
       expect(bytes80.take(2).toList(), [0x1B, 0x40]);
       // Contains merchant & invoice ASCII payload
-      final ascii80 = String.fromCharCodes(bytes80.where((b) => b >= 32 && b <= 126));
+      final ascii80 =
+          String.fromCharCodes(bytes80.where((b) => b >= 32 && b <= 126));
       expect(ascii80, contains('CITY MART'));
       expect(ascii80, contains('INV-2026-44'));
       expect(ascii80, contains('Paracetamol 500mg Box'));
@@ -133,13 +135,16 @@ void main() {
         settings: settings,
         kotNumber: 'KOT-17',
       );
-      final kotAscii = String.fromCharCodes(kotBytes.where((b) => b >= 32 && b <= 126));
+      final kotAscii =
+          String.fromCharCodes(kotBytes.where((b) => b >= 32 && b <= 126));
       expect(kotAscii, contains('KITCHEN ORDER TICKET'));
       expect(kotAscii, contains('Table 04'));
       expect(kotAscii, contains('Chicken Biryani Full'));
     });
 
-    test('Persists ThermalPrinterConfig CRUD and dispatches raw ESC/POS bytes over TCP socket', () async {
+    test(
+        'Persists ThermalPrinterConfig CRUD and dispatches raw ESC/POS bytes over TCP socket',
+        () async {
       final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
       final receivedCompleter = Completer<List<int>>();
       final collected = <int>[];
@@ -182,9 +187,11 @@ void main() {
         );
         expect(sent, isTrue);
 
-        final received = await receivedCompleter.future.timeout(const Duration(seconds: 5));
+        final received =
+            await receivedCompleter.future.timeout(const Duration(seconds: 5));
         expect(received.length, greaterThan(100));
-        final text = String.fromCharCodes(received.where((b) => b >= 32 && b <= 126));
+        final text =
+            String.fromCharCodes(received.where((b) => b >= 32 && b <= 126));
         expect(text, contains('SOCKET TEST STORE'));
         expect(text, contains('INV-2026-44'));
 
@@ -198,7 +205,9 @@ void main() {
   });
 
   group('Phase 4 Step 4.2 & 4.3 - PDF Export & Multiple Invoice Layouts', () {
-    test('Seeds default InvoiceLayouts and persists custom template fields cleanly', () async {
+    test(
+        'Seeds default InvoiceLayouts and persists custom template fields cleanly',
+        () async {
       final layouts = await dbService.getInvoiceLayouts();
       expect(layouts.length, greaterThanOrEqualTo(3));
       expect(layouts.any((l) => l.isDefault), isTrue);
@@ -230,7 +239,9 @@ void main() {
       expect(loaded.invoiceHeading, 'WHOLESALE TAX INVOICE');
     });
 
-    test('Generates valid PDF files for Sales, Quotations, Purchases, and Reports', () async {
+    test(
+        'Generates valid PDF files for Sales, Quotations, Purchases, and Reports',
+        () async {
       final settings = BusinessSettings(businessName: 'PDF Enterprise');
       final layout = await dbService.getDefaultInvoiceLayout();
 
@@ -240,7 +251,7 @@ void main() {
           data[1] == 0x50 && // P
           data[2] == 0x44 && // D
           data[3] == 0x46 && // F
-          data[4] == 0x2D;   // -
+          data[4] == 0x2D; // -
 
       final saleA4 = await PdfExportService.generateSalePdf(
         sale: buildSampleSale(),
@@ -275,7 +286,8 @@ void main() {
           status: 'received',
           paymentStatus: 'partial',
           createdAt: '2026-11-11 10:00:00',
-          itemsJson: '[{"product_name":"Vitamin C","quantity":10,"purchase_price":500,"subtotal":5000}]',
+          itemsJson:
+              '[{"product_name":"Vitamin C","quantity":10,"purchase_price":500,"subtotal":5000}]',
         ),
         settings: settings,
       );
@@ -303,7 +315,9 @@ void main() {
       expect(saved.lengthSync(), saleA4.length);
     });
 
-    testWidgets('PrinterManagementSection & InvoiceLayoutsManager render configured profiles', (tester) async {
+    testWidgets(
+        'PrinterManagementSection & InvoiceLayoutsManager render configured profiles',
+        (tester) async {
       tester.view.physicalSize = const Size(1440, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -342,13 +356,16 @@ void main() {
           ),
         ),
       );
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 400)));
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 400)));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text('ESC/POS Thermal Printers & Auto-Print Setup'), findsOneWidget);
+      expect(find.text('ESC/POS Thermal Printers & Auto-Print Setup'),
+          findsOneWidget);
       expect(find.text('Epson Kitchen Kot'), findsOneWidget);
-      expect(find.text('Saved Invoice Layout Templates (Multi-Template)'), findsOneWidget);
+      expect(find.text('Saved Invoice Layout Templates (Multi-Template)'),
+          findsOneWidget);
       expect(find.text('Detailed A4 Agency'), findsOneWidget);
     });
   });

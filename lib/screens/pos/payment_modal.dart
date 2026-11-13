@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/currency_rate_service.dart';
+import '../../services/localization_service.dart';
 
 class PaymentModal extends StatefulWidget {
   final double grandTotal;
@@ -801,7 +802,7 @@ class _PaymentModalState extends State<PaymentModal> {
                           if (widget.isWalkIn) {
                             setState(() {
                               _validationError =
-                                  'Strict Walk-in Rule: واک اِن کسٹمر کے لیے اسپلٹ / ملٹیپل پیمنٹ کی اجازت نہیں ہے۔ واک اِن کسٹمر مکمل کیش ادا کرتے ہیں۔';
+                                  'Multiple / split payments are not permitted for walk-in cash customers.';
                             });
                             return;
                           }
@@ -946,9 +947,9 @@ class _PaymentModalState extends State<PaymentModal> {
                               const Icon(Icons.currency_exchange_rounded,
                                   size: 14, color: Color(0xFF16A34A)),
                               const SizedBox(width: 6),
-                              const Text(
-                                'PAYMENT CURRENCY (ادائیگی کی کرنسی)',
-                                style: TextStyle(
+                              Text(
+                                PosLocalization.tr('PAYMENT CURRENCY'),
+                                style: const TextStyle(
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 0.5),

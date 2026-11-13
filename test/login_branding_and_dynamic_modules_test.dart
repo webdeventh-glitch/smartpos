@@ -11,11 +11,14 @@ void main() {
   });
 
   group('Login Screen Branding & Custom Presets Tests', () {
-    test('Default Pharmacy effectiveLoginBanner points to medicine agency banner', () {
+    test(
+        'Default Pharmacy effectiveLoginBanner points to medicine agency banner',
+        () {
       final settings = BusinessSettings(
         businessType: 'pharmacy',
       );
-      expect(settings.effectiveLoginBanner, 'assets/images/medicine_agency_banner.jpg');
+      expect(settings.effectiveLoginBanner,
+          'assets/images/medicine_agency_banner.jpg');
     });
 
     test('Custom loginBannerPath overrides default', () {
@@ -25,9 +28,11 @@ void main() {
         loginSideTitle: 'Supermarket Wholesale Engine',
         loginSideSubtitle: 'Barcode billing with rapid checkout.',
       );
-      expect(settings.effectiveLoginBanner, 'assets/images/supermarket_banner.jpg');
+      expect(settings.effectiveLoginBanner,
+          'assets/images/supermarket_banner.jpg');
       expect(settings.loginSideTitle, 'Supermarket Wholesale Engine');
-      expect(settings.loginSideSubtitle, 'Barcode billing with rapid checkout.');
+      expect(
+          settings.loginSideSubtitle, 'Barcode billing with rapid checkout.');
     });
 
     test('Serialization toMap and fromMap preserves login banner fields', () {
@@ -39,13 +44,15 @@ void main() {
       );
 
       final map = settings.toMap();
-      expect(map['login_banner_path'], 'assets/images/medicine_agency_banner.jpg');
+      expect(
+          map['login_banner_path'], 'assets/images/medicine_agency_banner.jpg');
       expect(map['login_side_title'], 'Next-Generation Pharmacy Engine');
       expect(map['login_side_subtitle'], 'Form 2A & 236H Tax Compliant');
 
       final deserialized = BusinessSettings.fromMap(map);
       expect(deserialized.businessName, 'Irfan Medicen Agency');
-      expect(deserialized.effectiveLoginBanner, 'assets/images/medicine_agency_banner.jpg');
+      expect(deserialized.effectiveLoginBanner,
+          'assets/images/medicine_agency_banner.jpg');
       expect(deserialized.loginSideTitle, 'Next-Generation Pharmacy Engine');
       expect(deserialized.loginSideSubtitle, 'Form 2A & 236H Tax Compliant');
     });
@@ -69,7 +76,8 @@ void main() {
 
     test('Gym Members SQLite CRUD is 100% dynamic', () async {
       final initialMembers = await dbService.getGymMembers();
-      expect(initialMembers.isNotEmpty, true, reason: 'Should have initial seed rows');
+      expect(initialMembers.isNotEmpty, true,
+          reason: 'Should have initial seed rows');
 
       // Add a dynamic member
       final newMemberId = await dbService.addGymMember({
@@ -94,9 +102,11 @@ void main() {
       expect(added['plan'], 'Pro Athlete Annual');
 
       // Update member status
-      await dbService.updateGymMember(newMemberId, {'status': 'Expiring Soon', 'days_left': 3});
+      await dbService.updateGymMember(
+          newMemberId, {'status': 'Expiring Soon', 'days_left': 3});
       final refreshed = await dbService.getGymMembers();
-      final updatedMember = refreshed.firstWhere((m) => m['name'] == 'Babar Azam');
+      final updatedMember =
+          refreshed.firstWhere((m) => m['name'] == 'Babar Azam');
       expect(updatedMember['status'], 'Expiring Soon');
       expect(updatedMember['days_left'], 3);
 
@@ -187,7 +197,8 @@ void main() {
 
     test('Restaurant Tables & KOT SQLite CRUD is 100% dynamic', () async {
       final initialTables = await dbService.getRestaurantTables();
-      expect(initialTables.isNotEmpty, true, reason: 'Initial dining tables seeded');
+      expect(initialTables.isNotEmpty, true,
+          reason: 'Initial dining tables seeded');
 
       // Add a dynamic dining table
       final newTableId = await dbService.addRestaurantTable({
@@ -203,7 +214,8 @@ void main() {
 
       // Verify table is saved
       final tablesAfter = await dbService.getRestaurantTables();
-      final addedTable = tablesAfter.firstWhere((t) => t['name'] == 'Rooftop VIP Gazebo');
+      final addedTable =
+          tablesAfter.firstWhere((t) => t['name'] == 'Rooftop VIP Gazebo');
       expect(addedTable['capacity'], 8);
       expect(addedTable['section'], 'Sky Lounge');
 
@@ -215,7 +227,8 @@ void main() {
         'kot_time': 'Just now',
       });
       final tablesOccupied = await dbService.getRestaurantTables();
-      final updated = tablesOccupied.firstWhere((t) => t['name'] == 'Rooftop VIP Gazebo');
+      final updated =
+          tablesOccupied.firstWhere((t) => t['name'] == 'Rooftop VIP Gazebo');
       expect(updated['status'], 'occupied');
       expect(updated['order_total'], 5400.0);
 
@@ -236,21 +249,36 @@ void main() {
       expect(updatedKot['status'], 'Ready to Serve');
     });
 
-    test('Modular Initial Seeder strictly seeds Restaurant data for Restaurant business', () async {
-      final resSummary = await dbService.seedInitialDataForBusinessType(businessType: 'restaurant');
-      expect(resSummary['products']! > 0, true, reason: 'Menu dishes must be seeded');
-      expect(resSummary['categories']! > 0, true, reason: 'Restaurant food categories must be seeded');
+    test(
+        'Modular Initial Seeder strictly seeds Restaurant data for Restaurant business',
+        () async {
+      final resSummary = await dbService.seedInitialDataForBusinessType(
+          businessType: 'restaurant');
+      expect(resSummary['products']! > 0, true,
+          reason: 'Menu dishes must be seeded');
+      expect(resSummary['categories']! > 0, true,
+          reason: 'Restaurant food categories must be seeded');
 
       final products = await dbService.getProducts();
-      expect(products.any((p) => p.name.contains('Zinger') || p.name.contains('Karahi')), true);
+      expect(
+          products.any(
+              (p) => p.name.contains('Zinger') || p.name.contains('Karahi')),
+          true);
     });
 
-    test('Modular Initial Seeder strictly seeds Supermarket data for Supermarket business', () async {
-      final smSummary = await dbService.seedInitialDataForBusinessType(businessType: 'supermarket');
-      expect(smSummary['products']! > 0, true, reason: 'FMCG items must be seeded');
+    test(
+        'Modular Initial Seeder strictly seeds Supermarket data for Supermarket business',
+        () async {
+      final smSummary = await dbService.seedInitialDataForBusinessType(
+          businessType: 'supermarket');
+      expect(smSummary['products']! > 0, true,
+          reason: 'FMCG items must be seeded');
 
       final products = await dbService.getProducts();
-      expect(products.any((p) => p.name.contains('Tea') || p.name.contains('Cooking Oil')), true);
+      expect(
+          products.any(
+              (p) => p.name.contains('Tea') || p.name.contains('Cooking Oil')),
+          true);
     });
   });
 }

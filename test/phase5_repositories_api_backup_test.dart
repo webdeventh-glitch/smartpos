@@ -24,7 +24,8 @@ void main() {
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('smartpos_phase5_test_');
-      dbPath = path.join(tempDir.path, 'phase5_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(
+          tempDir.path, 'phase5_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -40,12 +41,15 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. BackupUpdateService creates instant encrypted snapshot and lists backups', () async {
+    test(
+        '1. BackupUpdateService creates instant encrypted snapshot and lists backups',
+        () async {
       final backupService = BackupUpdateService.instance;
       final backupDir = await backupService.getBackupDirectory();
       expect(backupDir.existsSync(), isTrue);
 
-      final backupFile = await backupService.createBackup(customNote: 'Automated test snapshot');
+      final backupFile = await backupService.createBackup(
+          customNote: 'Automated test snapshot');
       expect(backupFile.existsSync(), isTrue);
       expect(backupFile.path.endsWith('.db.enc'), isTrue);
 
@@ -58,7 +62,8 @@ void main() {
       } catch (_) {}
     });
 
-    test('2. BackupUpdateService online check and offline package migration', () async {
+    test('2. BackupUpdateService online check and offline package migration',
+        () async {
       final backupService = BackupUpdateService.instance;
 
       // Online check simulation
@@ -71,13 +76,15 @@ void main() {
       final fakePkg = File(path.join(tempDir.path, 'smartpos_v2.6_update.pkg'));
       fakePkg.writeAsStringSync('Smart POS Offline Upgrade Archive Package');
 
-      final result = await backupService.applyOfflineUpdatePackage(fakePkg.path);
+      final result =
+          await backupService.applyOfflineUpdatePackage(fakePkg.path);
       expect(result['success'], isTrue);
       expect(result['migrated_tables'], contains('payment_transactions'));
       expect(result['migrated_tables'], contains('sync_queue'));
     });
 
-    test('3. Embedded LocalApiService start, health check & query over HTTP', () async {
+    test('3. Embedded LocalApiService start, health check & query over HTTP',
+        () async {
       final api = LocalApiService.instance;
       final started = await api.startServer(port: 9091);
       expect(started, isTrue);
@@ -87,7 +94,8 @@ void main() {
       final client = HttpClient();
       try {
         // Test GET /health
-        final healthReq = await client.getUrl(Uri.parse('http://127.0.0.1:9091/health'));
+        final healthReq =
+            await client.getUrl(Uri.parse('http://127.0.0.1:9091/health'));
         final healthRes = await healthReq.close();
         expect(healthRes.statusCode, equals(200));
         final healthBody = await healthRes.transform(utf8.decoder).join();
@@ -96,12 +104,14 @@ void main() {
         expect(healthJson['app'], equals('Smart POS'));
 
         // Test GET /products
-        final prodReq = await client.getUrl(Uri.parse('http://127.0.0.1:9091/products'));
+        final prodReq =
+            await client.getUrl(Uri.parse('http://127.0.0.1:9091/products'));
         final prodRes = await prodReq.close();
         expect(prodRes.statusCode, equals(200));
 
         // Test GET /reports/summary
-        final repReq = await client.getUrl(Uri.parse('http://127.0.0.1:9091/reports/summary'));
+        final repReq = await client
+            .getUrl(Uri.parse('http://127.0.0.1:9091/reports/summary'));
         final repRes = await repReq.close();
         expect(repRes.statusCode, equals(200));
       } finally {
@@ -111,7 +121,8 @@ void main() {
       }
     });
 
-    test('4. Domain Repositories: Sales, Purchases, Inventory, Contacts', () async {
+    test('4. Domain Repositories: Sales, Purchases, Inventory, Contacts',
+        () async {
       final salesRepo = SalesRepository(dbService);
       final purchaseRepo = PurchaseRepository(dbService);
       final invRepo = InventoryRepository(dbService);

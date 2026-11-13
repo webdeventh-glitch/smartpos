@@ -23,7 +23,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   final TextEditingController _amountCtrl = TextEditingController();
   final TextEditingController _refCtrl = TextEditingController();
   final TextEditingController _noteCtrl = TextEditingController();
-  
+
   String _selectedCategory = 'Store Rent';
   String _paymentMethod = 'Cash';
   bool _isSaving = false;
@@ -68,7 +68,9 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
     final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0.0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid expense amount greater than 0'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Please enter a valid expense amount greater than 0'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -94,7 +96,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const Icon(Icons.check_circle_rounded,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Expense of ${widget.settings.currencySymbol} ${amount.toStringAsFixed(2)} ($_selectedCategory) recorded successfully!',
@@ -112,7 +115,9 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to record expense: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Failed to record expense: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -125,11 +130,14 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
 
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final headerBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final inputBg = isDark ? const Color(0xFF0F172A) : Colors.white;
-    final inputBorder = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final inputBorder =
+        isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -159,7 +167,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                 padding: const EdgeInsets.fromLTRB(22, 18, 16, 16),
                 decoration: BoxDecoration(
                   color: headerBg,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(16)),
                   border: Border(bottom: BorderSide(color: borderColor)),
                 ),
                 child: Row(
@@ -168,11 +177,17 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEF2F2),
+                        color: isDark
+                            ? const Color(0xFF450A0A)
+                            : const Color(0xFFFEF2F2),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA)),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF7F1D1D)
+                                : const Color(0xFFFECACA)),
                       ),
-                      child: const Icon(Icons.receipt_long_rounded, color: Color(0xFFDC2626), size: 22),
+                      child: const Icon(Icons.receipt_long_rounded,
+                          color: Color(0xFFDC2626), size: 22),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -190,13 +205,15 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                           const SizedBox(height: 2),
                           Text(
                             'Record petty cash, store maintenance, bills or overheads',
-                            style: TextStyle(fontSize: 12, color: textSecondary),
+                            style:
+                                TextStyle(fontSize: 12, color: textSecondary),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.close_rounded, size: 20, color: textSecondary),
+                      icon: Icon(Icons.close_rounded,
+                          size: 20, color: textSecondary),
                       onPressed: () => Navigator.pop(context),
                       splashRadius: 18,
                     ),
@@ -211,7 +228,11 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Expense Category
-                    Text('Expense Category *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    Text('Expense Category *',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: textSecondary)),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -223,16 +244,20 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedCategory,
-                          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          dropdownColor:
+                              isDark ? const Color(0xFF1E293B) : Colors.white,
                           isExpanded: true,
                           items: _categories
                               .map((c) => DropdownMenuItem(
                                     value: c,
-                                    child: Text(c, style: TextStyle(fontSize: 13, color: textPrimary)),
+                                    child: Text(c,
+                                        style: TextStyle(
+                                            fontSize: 13, color: textPrimary)),
                                   ))
                               .toList(),
                           onChanged: (val) {
-                            if (val != null) setState(() => _selectedCategory = val);
+                            if (val != null)
+                              setState(() => _selectedCategory = val);
                           },
                         ),
                       ),
@@ -249,30 +274,59 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Amount ($currency) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                              Text('Amount ($currency) *',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: textSecondary)),
                               const SizedBox(height: 6),
                               TextFormField(
                                 controller: _amountCtrl,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'^\d+\.?\d{0,2}'))
+                                ],
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: textPrimary),
                                 decoration: InputDecoration(
                                   hintText: '0.00',
                                   hintStyle: TextStyle(color: textSecondary),
                                   filled: true,
                                   fillColor: inputBg,
                                   prefixIcon: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                    child: Text(currency, style: TextStyle(fontWeight: FontWeight.bold, color: textSecondary)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 12),
+                                    child: Text(currency,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: textSecondary)),
                                   ),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5)),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide:
+                                          BorderSide(color: inputBorder)),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide:
+                                          BorderSide(color: inputBorder)),
+                                  focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                          color: Color(0xFF4F46E5),
+                                          width: 1.5)),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
                                 ),
                                 validator: (val) {
-                                  if (val == null || val.trim().isEmpty) return 'Enter amount';
-                                  if (double.tryParse(val) == null) return 'Invalid number';
+                                  if (val == null || val.trim().isEmpty)
+                                    return 'Enter amount';
+                                  if (double.tryParse(val) == null)
+                                    return 'Invalid number';
                                   return null;
                                 },
                               ),
@@ -287,10 +341,15 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Payment Method', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                              Text('Payment Method',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: textSecondary)),
                               const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
                                   color: inputBg,
                                   borderRadius: BorderRadius.circular(8),
@@ -299,16 +358,22 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value: _paymentMethod,
-                                    dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                    dropdownColor: isDark
+                                        ? const Color(0xFF1E293B)
+                                        : Colors.white,
                                     isExpanded: true,
                                     items: _paymentMethods
                                         .map((m) => DropdownMenuItem(
                                               value: m,
-                                              child: Text(m, style: TextStyle(fontSize: 13, color: textPrimary)),
+                                              child: Text(m,
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: textPrimary)),
                                             ))
                                         .toList(),
                                     onChanged: (val) {
-                                      if (val != null) setState(() => _paymentMethod = val);
+                                      if (val != null)
+                                        setState(() => _paymentMethod = val);
                                     },
                                   ),
                                 ),
@@ -321,7 +386,11 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     const SizedBox(height: 16),
 
                     // Reference Number
-                    Text('Reference / Voucher No.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    Text('Reference / Voucher No.',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: textSecondary)),
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _refCtrl,
@@ -329,29 +398,50 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: inputBg,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: inputBorder)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: inputBorder)),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF4F46E5), width: 1.5)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
                       ),
                     ),
                     const SizedBox(height: 16),
 
                     // Note / Remarks
-                    Text('Note / Remarks', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary)),
+                    Text('Note / Remarks',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: textSecondary)),
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _noteCtrl,
                       maxLines: 2,
                       style: TextStyle(fontSize: 13, color: textPrimary),
                       decoration: InputDecoration(
-                        hintText: 'Enter expense details (e.g. Paid for tea & snacks, office maintenance)...',
-                        hintStyle: TextStyle(fontSize: 12, color: textSecondary),
+                        hintText:
+                            'Enter expense details (e.g. Paid for tea & snacks, office maintenance)...',
+                        hintStyle:
+                            TextStyle(fontSize: 12, color: textSecondary),
                         filled: true,
                         fillColor: inputBg,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: inputBorder)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: inputBorder)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: inputBorder)),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF4F46E5), width: 1.5)),
                         contentPadding: const EdgeInsets.all(12),
                       ),
                     ),
@@ -364,7 +454,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                 padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
                 decoration: BoxDecoration(
                   color: headerBg,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(16)),
                   border: Border(top: BorderSide(color: borderColor)),
                 ),
                 child: Row(
@@ -372,14 +463,19 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   children: [
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        backgroundColor:
+                            isDark ? const Color(0xFF1E293B) : Colors.white,
                         foregroundColor: textSecondary,
                         side: BorderSide(color: inputBorder),
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      child: const Text('Cancel',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13)),
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton.icon(
@@ -387,13 +483,21 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                         backgroundColor: const Color(0xFF4F46E5),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: _isSaving
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.check_rounded, size: 18),
-                      label: const Text('Save Expense', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      label: const Text('Save Expense',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13)),
                       onPressed: _isSaving ? null : _saveExpense,
                     ),
                   ],

@@ -11,14 +11,16 @@ void main() {
     sqfliteFfiInit();
   });
 
-  group('Ultimate POS Phase 3: Purchase Lifecycle & Stock Transfers Parity', () {
+  group('Ultimate POS Phase 3: Purchase Lifecycle & Stock Transfers Parity',
+      () {
     late DatabaseService dbService;
     late Directory tempDir;
     late String dbPath;
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('purchase_transfer_test_');
-      dbPath = path.join(tempDir.path, 'p3_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(
+          tempDir.path, 'p3_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -30,7 +32,9 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Purchase Status Ordered: Does NOT increment stock or supplier payable balance', () async {
+    test(
+        '1. Purchase Status Ordered: Does NOT increment stock or supplier payable balance',
+        () async {
       // 1. Create a supplier with 0 balance
       final supId = await dbService.addContact(Contact(
         type: 'supplier',
@@ -76,15 +80,19 @@ void main() {
       expect(purchaseId, isPositive);
 
       // Verify stock remains 10.0 (NOT 110.0)
-      final prod = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final prod =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
       expect(prod.stockQuantity, 10.0);
 
       // Verify supplier ledger remains 0.0 (NOT 3000.0)
-      final sup = (await dbService.getContacts(type: 'supplier')).firstWhere((s) => s.id == supId);
+      final sup = (await dbService.getContacts(type: 'supplier'))
+          .firstWhere((s) => s.id == supId);
       expect(sup.balance, 0.0);
     });
 
-    test('2. Purchase Status Pending: Does NOT increment stock or supplier balance', () async {
+    test(
+        '2. Purchase Status Pending: Does NOT increment stock or supplier balance',
+        () async {
       final supId = await dbService.addContact(Contact(
         type: 'supplier',
         name: 'Hardware Supplier Beta',
@@ -123,15 +131,19 @@ void main() {
       );
 
       // Stock remains 5.0
-      final prod = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final prod =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
       expect(prod.stockQuantity, 5.0);
 
       // Supplier balance remains 500.0
-      final sup = (await dbService.getContacts(type: 'supplier')).firstWhere((s) => s.id == supId);
+      final sup = (await dbService.getContacts(type: 'supplier'))
+          .firstWhere((s) => s.id == supId);
       expect(sup.balance, 500.0);
     });
 
-    test('3. Update Purchase Status to Received: Automatically increments stock & updates supplier balance', () async {
+    test(
+        '3. Update Purchase Status to Received: Automatically increments stock & updates supplier balance',
+        () async {
       final supId = await dbService.addContact(Contact(
         type: 'supplier',
         name: 'Electronics Distributor',
@@ -170,18 +182,24 @@ void main() {
         ],
       );
 
-      expect((await dbService.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 20.0);
+      expect(
+          (await dbService.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          20.0);
 
       // Step B: Mark as 'received'
       final ok = await dbService.updatePurchaseStatus(pId, 'received');
       expect(ok, isTrue);
 
       // Verify stock is now 20 + 50 = 70.0
-      final prodReceived = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final prodReceived =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
       expect(prodReceived.stockQuantity, 70.0);
 
       // Verify supplier ledger is now 10000.0
-      final supReceived = (await dbService.getContacts(type: 'supplier')).firstWhere((s) => s.id == supId);
+      final supReceived = (await dbService.getContacts(type: 'supplier'))
+          .firstWhere((s) => s.id == supId);
       expect(supReceived.balance, 10000.0);
 
       // Step C: Revert from 'received' to 'pending'
@@ -189,11 +207,13 @@ void main() {
       expect(reverted, isTrue);
 
       // Verify stock is back to 20.0
-      final prodReverted = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final prodReverted =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
       expect(prodReverted.stockQuantity, 20.0);
 
       // Verify supplier balance is back to 0.0
-      final supReverted = (await dbService.getContacts(type: 'supplier')).firstWhere((s) => s.id == supId);
+      final supReverted = (await dbService.getContacts(type: 'supplier'))
+          .firstWhere((s) => s.id == supId);
       expect(supReverted.balance, 0.0);
     });
 
@@ -218,10 +238,16 @@ void main() {
       );
       final p1Id = await dbService.createPurchase(
         purchase: pOrdered,
-        items: [{'product_id': prodId, 'quantity': 10.0, 'purchase_price': 60.0}],
+        items: [
+          {'product_id': prodId, 'quantity': 10.0, 'purchase_price': 60.0}
+        ],
       );
       await dbService.deletePurchase(p1Id);
-      expect((await dbService.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 15.0);
+      expect(
+          (await dbService.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          15.0);
 
       // Case B: Create 'received' purchase (adds 10 -> stock becomes 25)
       final pReceived = Purchase(
@@ -234,16 +260,28 @@ void main() {
       );
       final p2Id = await dbService.createPurchase(
         purchase: pReceived,
-        items: [{'product_id': prodId, 'quantity': 10.0, 'purchase_price': 60.0}],
+        items: [
+          {'product_id': prodId, 'quantity': 10.0, 'purchase_price': 60.0}
+        ],
       );
-      expect((await dbService.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 25.0);
+      expect(
+          (await dbService.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          25.0);
 
       // Delete 'received' purchase -> reverses added stock back to 15.0
       await dbService.deletePurchase(p2Id);
-      expect((await dbService.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 15.0);
+      expect(
+          (await dbService.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          15.0);
     });
 
-    test('5. Stock Transfers Status Workflow (Pending -> In-Transit -> Completed)', () async {
+    test(
+        '5. Stock Transfers Status Workflow (Pending -> In-Transit -> Completed)',
+        () async {
       final prodId = await dbService.insertProduct(Product(
         name: 'Transfer Item A',
         sku: 'TRF-001',
@@ -278,22 +316,39 @@ void main() {
       expect(trfId, isPositive);
 
       // Stock remains 50.0
-      expect((await dbService.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 50.0);
+      expect(
+          (await dbService.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          50.0);
 
       // Step B: Mark as 'in_transit' -> Stock deducted from source (50 - 10 = 40.0)
-      final okTransit = await dbService.updateStockTransferStatus(trfId, 'in_transit');
+      final okTransit =
+          await dbService.updateStockTransferStatus(trfId, 'in_transit');
       expect(okTransit, isTrue);
-      expect((await dbService.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 40.0);
+      expect(
+          (await dbService.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          40.0);
 
       // Step C: Mark as 'completed' -> Status completed, stock stays deducted from source
-      final okCompleted = await dbService.updateStockTransferStatus(trfId, 'completed');
+      final okCompleted =
+          await dbService.updateStockTransferStatus(trfId, 'completed');
       expect(okCompleted, isTrue);
-      expect((await dbService.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 40.0);
+      expect(
+          (await dbService.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          40.0);
 
       // Step D: Delete completed transfer -> Restores stock back to 50.0
       await dbService.deleteStockTransfer(trfId);
-      expect((await dbService.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 50.0);
+      expect(
+          (await dbService.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          50.0);
     });
   });
 }
-

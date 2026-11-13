@@ -10,14 +10,18 @@ void main() {
     sqfliteFfiInit();
   });
 
-  group('Ultimate POS Phase 6: Multi-Branch Business Locations & Custom Role Matrix', () {
+  group(
+      'Ultimate POS Phase 6: Multi-Branch Business Locations & Custom Role Matrix',
+      () {
     late DatabaseService dbService;
     late Directory tempDir;
     late String dbPath;
 
     setUp(() async {
-      tempDir = Directory.systemTemp.createTempSync('phase6_locations_permissions_test_');
-      dbPath = path.join(tempDir.path, 'pos_${DateTime.now().microsecondsSinceEpoch}.db');
+      tempDir = Directory.systemTemp
+          .createTempSync('phase6_locations_permissions_test_');
+      dbPath = path.join(
+          tempDir.path, 'pos_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -29,11 +33,14 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Business Locations Full CRUD: Create, read, update, deactivate, and delete', () async {
+    test(
+        '1. Business Locations Full CRUD: Create, read, update, deactivate, and delete',
+        () async {
       // 1. Verify default seeded locations
       final initialLocations = await dbService.getBusinessLocations();
       expect(initialLocations, isNotEmpty);
-      expect(initialLocations.any((l) => l.name.contains('Main Branch')), isTrue);
+      expect(
+          initialLocations.any((l) => l.name.contains('Main Branch')), isTrue);
 
       // 2. Create new business branch
       final newLoc = BusinessLocation(
@@ -73,7 +80,8 @@ void main() {
       );
       await dbService.updateBusinessLocation(updatedLoc);
 
-      final refetched = (await dbService.getBusinessLocations()).firstWhere((l) => l.id == locId);
+      final refetched = (await dbService.getBusinessLocations())
+          .firstWhere((l) => l.id == locId);
       expect(refetched.landmark, 'Suite 404, Pace Tower');
       expect(refetched.mobile, '+92 321 1122334');
       expect(refetched.isActive, isFalse);
@@ -122,12 +130,15 @@ void main() {
       );
       await dbService.updateUser(reassigned);
 
-      final afterUpdate = (await dbService.getUsers()).firstWhere((u) => u.username == 'hamza_isb');
+      final afterUpdate = (await dbService.getUsers())
+          .firstWhere((u) => u.username == 'hamza_isb');
       expect(afterUpdate.branchId, 1);
       expect(afterUpdate.branchName, 'Main Branch HQ');
     });
 
-    test('3. Granular Authorization Matrix: Restricted salesman vs customized privileges', () async {
+    test(
+        '3. Granular Authorization Matrix: Restricted salesman vs customized privileges',
+        () async {
       // 1. Create a restricted cashier user
       final restrictedCashier = User(
         name: 'Bilal Cashier',
@@ -150,7 +161,8 @@ void main() {
       final cashierId = await dbService.addUser(restrictedCashier);
       expect(cashierId, greaterThan(0));
 
-      final fetchedCashier = (await dbService.getUsers()).firstWhere((u) => u.username == 'bilal_counter');
+      final fetchedCashier = (await dbService.getUsers())
+          .firstWhere((u) => u.username == 'bilal_counter');
 
       // Verify all restriction checks evaluate to false
       expect(fetchedCashier.canEditPrice, isFalse);
@@ -175,13 +187,15 @@ void main() {
       );
       await dbService.updateUser(elevatedCashier);
 
-      final updatedCashier = (await dbService.getUsers()).firstWhere((u) => u.username == 'bilal_counter');
+      final updatedCashier = (await dbService.getUsers())
+          .firstWhere((u) => u.username == 'bilal_counter');
       expect(updatedCashier.canAccessKhata, isTrue);
       expect(updatedCashier.canAccessReports, isTrue);
       expect(updatedCashier.canDeleteSale, isTrue);
       expect(updatedCashier.hasPermission('sales.delete'), isTrue);
       expect(updatedCashier.hasPermission('reports.view'), isTrue);
-      expect(updatedCashier.hasPermission('inventory.manage'), isFalse); // still restricted
+      expect(updatedCashier.hasPermission('inventory.manage'),
+          isFalse); // still restricted
     });
 
     test('4. Admin & Super Admin Global Authorization Bypass', () {
@@ -191,7 +205,8 @@ void main() {
         username: 'owner_root',
         password: 'secure_password',
         role: 'superadmin',
-        canEditPrice: false, // Even if flag is nominally false, superadmin bypasses
+        canEditPrice:
+            false, // Even if flag is nominally false, superadmin bypasses
         canDeleteSale: false,
         canViewCostPrice: false,
       );
@@ -222,4 +237,3 @@ void main() {
     });
   });
 }
-

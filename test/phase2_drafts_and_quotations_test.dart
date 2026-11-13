@@ -10,14 +10,16 @@ void main() {
     sqfliteFfiInit();
   });
 
-  group('Ultimate POS Phase 2: Drafts, Quotations & Sales Orders Lifecycle', () {
+  group('Ultimate POS Phase 2: Drafts, Quotations & Sales Orders Lifecycle',
+      () {
     late DatabaseService dbService;
     late Directory tempDir;
     late String dbPath;
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('draft_quote_test_');
-      dbPath = path.join(tempDir.path, 'draft_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(
+          tempDir.path, 'draft_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -29,7 +31,9 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Draft Creation: Saves bill without deducting stock or affecting customer balance', () async {
+    test(
+        '1. Draft Creation: Saves bill without deducting stock or affecting customer balance',
+        () async {
       // 1. Create a customer with 0 balance
       final custId = await dbService.addContact(Contact(
         type: 'customer',
@@ -47,7 +51,8 @@ void main() {
         purchasePrice: 350.0,
         stockQuantity: 50.0,
       ));
-      final product = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final product =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
 
       // 3. Save as Draft
       final draftSale = Sale(
@@ -75,15 +80,19 @@ void main() {
       expect(createdDraft.saleStatus, 'draft');
 
       // 4. Verify stock was NOT deducted (must still be 50.0)
-      final prodAfter = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final prodAfter =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
       expect(prodAfter.stockQuantity, 50.0);
 
       // 5. Verify customer balance was NOT updated (must still be 0.0)
-      final custAfter = (await dbService.getContacts(type: 'customer')).firstWhere((c) => c.id == custId);
+      final custAfter = (await dbService.getContacts(type: 'customer'))
+          .firstWhere((c) => c.id == custId);
       expect(custAfter.balance, 0.0);
     });
 
-    test('2. Quotation Creation: Saves estimate without deducting stock or adding ledger due', () async {
+    test(
+        '2. Quotation Creation: Saves estimate without deducting stock or adding ledger due',
+        () async {
       final custId = await dbService.addContact(Contact(
         type: 'customer',
         name: 'Quotation Client A',
@@ -99,7 +108,8 @@ void main() {
         purchasePrice: 210000.0,
         stockQuantity: 10.0,
       ));
-      final product = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final product =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
 
       final quote = Sale(
         invoiceNo: 'QUO-001',
@@ -126,15 +136,19 @@ void main() {
       expect(createdQuote.saleStatus, 'quotation');
 
       // Verify stock untouched
-      final prodAfter = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final prodAfter =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
       expect(prodAfter.stockQuantity, 10.0);
 
       // Verify customer ledger untouched (150.0)
-      final custAfter = (await dbService.getContacts(type: 'customer')).firstWhere((c) => c.id == custId);
+      final custAfter = (await dbService.getContacts(type: 'customer'))
+          .firstWhere((c) => c.id == custId);
       expect(custAfter.balance, 150.0);
     });
 
-    test('3. Convert Draft to Final Sale: Deducts inventory and updates register & ledger', () async {
+    test(
+        '3. Convert Draft to Final Sale: Deducts inventory and updates register & ledger',
+        () async {
       await dbService.openRegister('Test Cashier', 2000.0);
 
       final custId = await dbService.addContact(Contact(
@@ -151,7 +165,8 @@ void main() {
         purchasePrice: 1000.0,
         stockQuantity: 20.0,
       ));
-      final product = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final product =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
 
       // Step A: Save Draft first (2 items = 3000)
       final draft = Sale(
@@ -173,7 +188,11 @@ void main() {
         ],
       );
 
-      expect((await dbService.getProducts()).firstWhere((p) => p.id == prodId).stockQuantity, 20.0);
+      expect(
+          (await dbService.getProducts())
+              .firstWhere((p) => p.id == prodId)
+              .stockQuantity,
+          20.0);
 
       // Step B: Cashier resumes draft, customer adds 1 more item (total 3 = 4500.0), pays 2000 cash, 2500 due
       final finalizedSale = Sale(
@@ -201,11 +220,13 @@ void main() {
       expect(updated.totalAmount, 4500.0);
 
       // Verify stock is NOW deducted by 3 (20.0 - 3 = 17.0)
-      final prodFinal = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final prodFinal =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
       expect(prodFinal.stockQuantity, 17.0);
 
       // Verify customer ledger increased by due amount (2500.0)
-      final custFinal = (await dbService.getContacts(type: 'customer')).firstWhere((c) => c.id == custId);
+      final custFinal = (await dbService.getContacts(type: 'customer'))
+          .firstWhere((c) => c.id == custId);
       expect(custFinal.balance, 2500.0);
 
       // Verify active register updated with 2000.0 cash paid
@@ -214,7 +235,8 @@ void main() {
       expect(reg.totalCashInRegister, 4000.0); // 2000 float + 2000 cash
     });
 
-    test('4. Delete Draft: Cleanly removes draft without modifying inventory', () async {
+    test('4. Delete Draft: Cleanly removes draft without modifying inventory',
+        () async {
       final prodId = await dbService.insertProduct(Product(
         name: 'Item for Draft Delete',
         sku: 'DEL-001',
@@ -223,7 +245,8 @@ void main() {
         purchasePrice: 60.0,
         stockQuantity: 15.0,
       ));
-      final product = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final product =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
 
       final draft = Sale(
         invoiceNo: 'DFT-DEL-01',
@@ -245,7 +268,8 @@ void main() {
       expect(fetched, isNull);
 
       // Inventory must stay at 15.0
-      final prodCheck = (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
+      final prodCheck =
+          (await dbService.getProducts()).firstWhere((p) => p.id == prodId);
       expect(prodCheck.stockQuantity, 15.0);
     });
   });

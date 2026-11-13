@@ -14,7 +14,8 @@ class ChequeManagementScreen extends StatefulWidget {
 
 class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
   bool _loading = true;
-  String _statusFilter = 'all'; // 'all', 'pending', 'overdue', 'cleared', 'bounced'
+  String _statusFilter =
+      'all'; // 'all', 'pending', 'overdue', 'cleared', 'bounced'
   String _search = '';
   List<PaymentTransaction> _cheques = [];
   Map<String, num> _summary = {};
@@ -51,8 +52,10 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Cheque ${txn.chequeNumber.isNotEmpty ? "#${txn.chequeNumber}" : txn.refNo} marked as ${newStatus.toUpperCase()}'),
-          backgroundColor: newStatus == 'cleared' ? const Color(0xFF10B981) : Colors.orange,
+          content: Text(
+              'Cheque ${txn.chequeNumber.isNotEmpty ? "#${txn.chequeNumber}" : txn.refNo} marked as ${newStatus.toUpperCase()}'),
+          backgroundColor:
+              newStatus == 'cleared' ? const Color(0xFF10B981) : Colors.orange,
         ),
       );
     }
@@ -79,10 +82,12 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cur = widget.settings.currencySymbol;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -90,16 +95,27 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF0038B8), size: 28),
+                const Icon(Icons.account_balance_wallet_rounded,
+                    color: Color(0xFF0038B8), size: 28),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Cheque Management',
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                      Text('Track customer & supplier cheques, due dates, overdue alerts, and bank clearance status',
-                          style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                          style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A))),
+                      Text(
+                          'Track customer & supplier cheques, due dates, overdue alerts, and bank clearance status',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B))),
                     ],
                   ),
                 ),
@@ -113,13 +129,37 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                _metricCard('Pending Cheques', '${_summary['pendingCount'] ?? 0}', '$cur${(_summary['pendingAmount'] ?? 0.0).toDouble().toStringAsFixed(2)}', const Color(0xFFF59E0B), cardBg, borderColor),
+                _metricCard(
+                    'Pending Cheques',
+                    '${_summary['pendingCount'] ?? 0}',
+                    '$cur${(_summary['pendingAmount'] ?? 0.0).toDouble().toStringAsFixed(2)}',
+                    const Color(0xFFF59E0B),
+                    cardBg,
+                    borderColor),
                 const SizedBox(width: 12),
-                _metricCard('Overdue Cheques', '${_summary['overdueCount'] ?? 0}', '$cur${(_summary['overdueAmount'] ?? 0.0).toDouble().toStringAsFixed(2)}', Colors.red, cardBg, borderColor),
+                _metricCard(
+                    'Overdue Cheques',
+                    '${_summary['overdueCount'] ?? 0}',
+                    '$cur${(_summary['overdueAmount'] ?? 0.0).toDouble().toStringAsFixed(2)}',
+                    Colors.red,
+                    cardBg,
+                    borderColor),
                 const SizedBox(width: 12),
-                _metricCard('Cleared Cheques', '${_summary['clearedCount'] ?? 0}', '$cur${(_summary['clearedAmount'] ?? 0.0).toDouble().toStringAsFixed(2)}', const Color(0xFF10B981), cardBg, borderColor),
+                _metricCard(
+                    'Cleared Cheques',
+                    '${_summary['clearedCount'] ?? 0}',
+                    '$cur${(_summary['clearedAmount'] ?? 0.0).toDouble().toStringAsFixed(2)}',
+                    const Color(0xFF10B981),
+                    cardBg,
+                    borderColor),
                 const SizedBox(width: 12),
-                _metricCard('Bounced Cheques', '${_summary['bouncedCount'] ?? 0}', '$cur${(_summary['bouncedAmount'] ?? 0.0).toDouble().toStringAsFixed(2)}', Colors.deepOrange, cardBg, borderColor),
+                _metricCard(
+                    'Bounced Cheques',
+                    '${_summary['bouncedCount'] ?? 0}',
+                    '$cur${(_summary['bouncedAmount'] ?? 0.0).toDouble().toStringAsFixed(2)}',
+                    Colors.deepOrange,
+                    cardBg,
+                    borderColor),
               ],
             ),
             const SizedBox(height: 16),
@@ -173,37 +213,55 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
                     : _cheques.isEmpty
-                        ? const Center(child: Text('No cheque records found.', style: TextStyle(color: Colors.grey)))
+                        ? const Center(
+                            child: Text('No cheque records found.',
+                                style: TextStyle(color: Colors.grey)))
                         : ListView.separated(
                             itemCount: _cheques.length,
-                            separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+                            separatorBuilder: (_, __) =>
+                                Divider(height: 1, color: borderColor),
                             itemBuilder: (_, idx) {
                               final c = _cheques[idx];
                               final col = _statusColor(c);
-                              final statusText = c.isOverdueCheque ? 'OVERDUE' : c.chequeStatus.toUpperCase();
+                              final statusText = c.isOverdueCheque
+                                  ? 'OVERDUE'
+                                  : c.chequeStatus.toUpperCase();
                               return ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: col.withValues(alpha: 0.14),
-                                  child: Icon(Icons.article_outlined, color: col, size: 18),
+                                  child: Icon(Icons.article_outlined,
+                                      color: col, size: 18),
                                 ),
                                 title: Row(
                                   children: [
                                     Text(
-                                      c.chequeNumber.isNotEmpty ? 'Cheque #${c.chequeNumber}' : 'Ref: ${c.refNo}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                      c.chequeNumber.isNotEmpty
+                                          ? 'Cheque #${c.chequeNumber}'
+                                          : 'Ref: ${c.refNo}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13),
                                     ),
                                     const SizedBox(width: 8),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
                                         color: col.withValues(alpha: 0.14),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: Text(statusText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: col)),
+                                      child: Text(statusText,
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: col)),
                                     ),
                                     if (c.bankName.isNotEmpty) ...[
                                       const SizedBox(width: 8),
-                                      Text('• ${c.bankName}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                      Text('• ${c.bankName}',
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey)),
                                     ],
                                   ],
                                 ),
@@ -215,19 +273,27 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text('$cur${c.amount.toStringAsFixed(2)}',
-                                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 14)),
                                     const SizedBox(width: 12),
                                     if (c.chequeStatus != 'cleared')
                                       ElevatedButton(
-                                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white),
-                                        onPressed: () => _changeStatus(c, 'cleared'),
+                                        style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color(0xFF10B981),
+                                            foregroundColor: Colors.white),
+                                        onPressed: () =>
+                                            _changeStatus(c, 'cleared'),
                                         child: const Text('Clear'),
                                       ),
                                     if (c.chequeStatus == 'pending') ...[
                                       const SizedBox(width: 6),
                                       OutlinedButton(
-                                        style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                                        onPressed: () => _changeStatus(c, 'bounced'),
+                                        style: OutlinedButton.styleFrom(
+                                            foregroundColor: Colors.red),
+                                        onPressed: () =>
+                                            _changeStatus(c, 'bounced'),
                                         child: const Text('Bounced'),
                                       ),
                                     ],
@@ -244,7 +310,8 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
     );
   }
 
-  Widget _metricCard(String title, String count, String amount, Color color, Color bg, Color border) {
+  Widget _metricCard(String title, String count, String amount, Color color,
+      Color bg, Color border) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -256,13 +323,25 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(amount, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
-                Text('$count chq', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                Text(amount,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: color)),
+                Text('$count chq',
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey)),
               ],
             ),
           ],

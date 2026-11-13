@@ -2,7 +2,8 @@
 class SmsGateway {
   final int? id;
   final String name;
-  final String provider; // 'zong', 'ufone', 'jazz', 'telenor', 'sendpk', 'generic_http', 'twilio'
+  final String
+      provider; // 'zong', 'ufone', 'jazz', 'telenor', 'sendpk', 'generic_http', 'twilio'
   final String apiUrl;
   final String apiKey;
   final String apiSecret;
@@ -51,7 +52,8 @@ class SmsGateway {
         httpMethod: map['http_method'] as String? ?? 'POST',
         payloadFormat: map['payload_format'] as String? ?? '',
         isActive: (map['is_active'] as int? ?? 1) == 1,
-        createdAt: map['created_at'] as String? ?? DateTime.now().toIso8601String(),
+        createdAt:
+            map['created_at'] as String? ?? DateTime.now().toIso8601String(),
       );
 
   SmsGateway copyWith({

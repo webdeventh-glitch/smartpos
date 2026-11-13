@@ -96,8 +96,18 @@ class User {
     'users.manage': ['user.manage', 'manage_users'],
     'user.manage': ['users.manage', 'manage_users'],
     'manage_users': ['user.manage', 'users.manage'],
-    'inventory.manage': ['inventory.adjust', 'inventory.transfer', 'inventory.audit', 'access_inventory'],
-    'access_inventory': ['inventory.manage', 'inventory.adjust', 'inventory.transfer', 'inventory.audit'],
+    'inventory.manage': [
+      'inventory.adjust',
+      'inventory.transfer',
+      'inventory.audit',
+      'access_inventory'
+    ],
+    'access_inventory': [
+      'inventory.manage',
+      'inventory.adjust',
+      'inventory.transfer',
+      'inventory.audit'
+    ],
     'access_settings': ['settings.manage'],
     'edit_price': ['pos.edit_price'],
     'give_discount': ['pos.give_discount'],
@@ -136,7 +146,8 @@ class User {
 
     if (_checkLegacyBooleanFlag(key)) return true;
     if (explicit.isEmpty) {
-      final defaults = PermissionCatalog.defaultPermissionsForRole(role).toSet();
+      final defaults =
+          PermissionCatalog.defaultPermissionsForRole(role).toSet();
       return _matchesExplicitSet(defaults, key);
     }
     return false;

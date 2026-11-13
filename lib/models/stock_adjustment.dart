@@ -70,7 +70,8 @@ class StockAdjustment {
           .map((e) => StockAdjustmentItem.fromMap(e as Map<String, dynamic>))
           .toList();
     } catch (e, st) {
-      AppLogger.warning('Models', 'Failed parsing StockAdjustment itemsJson', e, st);
+      AppLogger.warning(
+          'Models', 'Failed parsing StockAdjustment itemsJson', e, st);
       return [];
     }
   }

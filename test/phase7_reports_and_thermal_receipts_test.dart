@@ -9,7 +9,9 @@ void main() {
     sqfliteFfiInit();
   });
 
-  test('Phase 7: Profit & Loss Statement, Stock Valuation Audit, and Thermal Receipt Formatting', () async {
+  test(
+      'Phase 7: Profit & Loss Statement, Stock Valuation Audit, and Thermal Receipt Formatting',
+      () async {
     final tempDir = await Directory.systemTemp.createTemp('pos_phase7_test_');
     final dbPath = '${tempDir.path}/test_phase7.db';
 

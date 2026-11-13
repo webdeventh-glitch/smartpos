@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../navigation/app_routes.dart';
 import '../services/auth_service.dart';
+import '../services/localization_service.dart';
 
 class SmartSidebar extends StatefulWidget {
   final AppRoute selectedRoute;
@@ -57,11 +58,34 @@ class _SmartSidebarState extends State<SmartSidebar> {
       _userMgmtExpanded = true;
     } else if (route == AppRoute.customers || route == AppRoute.suppliers) {
       _contactsExpanded = true;
-    } else if (const [AppRoute.productsList, AppRoute.categories, AppRoute.addProduct, AppRoute.printLabels, AppRoute.variationTemplates, AppRoute.units, AppRoute.brands, AppRoute.warranties, AppRoute.sellingPriceGroups, AppRoute.importProducts, AppRoute.discountRules].contains(route)) {
+    } else if (const [
+      AppRoute.productsList,
+      AppRoute.categories,
+      AppRoute.addProduct,
+      AppRoute.printLabels,
+      AppRoute.variationTemplates,
+      AppRoute.units,
+      AppRoute.brands,
+      AppRoute.warranties,
+      AppRoute.sellingPriceGroups,
+      AppRoute.importProducts,
+      AppRoute.discountRules
+    ].contains(route)) {
       _productsExpanded = true;
-    } else if (const [AppRoute.purchasesList, AppRoute.purchaseReturn, AppRoute.addPurchase, AppRoute.purchaseOrders].contains(route)) {
+    } else if (const [
+      AppRoute.purchasesList,
+      AppRoute.purchaseReturn,
+      AppRoute.addPurchase,
+      AppRoute.purchaseOrders
+    ].contains(route)) {
       _purchasesExpanded = true;
-    } else if (const [AppRoute.posTerminal, AppRoute.salesList, AppRoute.salesReturn, AppRoute.salesOrders, AppRoute.commissionAgents].contains(route)) {
+    } else if (const [
+      AppRoute.posTerminal,
+      AppRoute.salesList,
+      AppRoute.salesReturn,
+      AppRoute.salesOrders,
+      AppRoute.commissionAgents
+    ].contains(route)) {
       _sellExpanded = true;
     } else if (route == AppRoute.stockTransfers) {
       _transfersExpanded = true;
@@ -69,11 +93,31 @@ class _SmartSidebarState extends State<SmartSidebar> {
       _adjustmentsExpanded = true;
     } else if (route == AppRoute.expenses) {
       _expensesExpanded = true;
-    } else if (const [AppRoute.reports, AppRoute.inventoryAudit].contains(route)) {
+    } else if (const [AppRoute.reports, AppRoute.inventoryAudit]
+        .contains(route)) {
       _reportsExpanded = true;
-    } else if (const [AppRoute.settings, AppRoute.paymentAccounts, AppRoute.chequeManagement, AppRoute.annualClosing, AppRoute.moduleSettings, AppRoute.cloudSync].contains(route)) {
+    } else if (const [
+      AppRoute.settings,
+      AppRoute.paymentAccounts,
+      AppRoute.chequeManagement,
+      AppRoute.annualClosing,
+      AppRoute.moduleSettings,
+      AppRoute.cloudSync
+    ].contains(route)) {
       _settingsExpanded = true;
-    } else if (const [AppRoute.businessModulesHub, AppRoute.restaurantCafe, AppRoute.repairService, AppRoute.hotelManagement, AppRoute.gymFitness, AppRoute.manufacturing, AppRoute.wooCommerceSync, AppRoute.hrmEmployee, AppRoute.accountingCrm, AppRoute.fruitMandi, AppRoute.poultryBusiness].contains(route)) {
+    } else if (const [
+      AppRoute.businessModulesHub,
+      AppRoute.restaurantCafe,
+      AppRoute.repairService,
+      AppRoute.hotelManagement,
+      AppRoute.gymFitness,
+      AppRoute.manufacturing,
+      AppRoute.wooCommerceSync,
+      AppRoute.hrmEmployee,
+      AppRoute.accountingCrm,
+      AppRoute.fruitMandi,
+      AppRoute.poultryBusiness
+    ].contains(route)) {
       _industryExpanded = true;
     }
   }
@@ -112,7 +156,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.9,
-                color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                color:
+                    isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
               ),
             ),
           ),
@@ -121,7 +166,9 @@ class _SmartSidebarState extends State<SmartSidebar> {
             child: Divider(
               height: 1,
               thickness: 0.8,
-              color: isDark ? const Color(0xFF334155).withValues(alpha: 0.6) : const Color(0xFFE2E8F0),
+              color: isDark
+                  ? const Color(0xFF334155).withValues(alpha: 0.6)
+                  : const Color(0xFFE2E8F0),
             ),
           ),
         ],
@@ -129,16 +176,38 @@ class _SmartSidebarState extends State<SmartSidebar> {
     );
   }
 
+  String _getDisplayTitle(String title, String? defaultUrduSubtitle) {
+    final settings = widget.settings;
+    if (settings == null) return title;
+    final primary = settings.activePrimaryLanguage;
+    if (primary == 'en') return title;
+    if (primary == 'ur' &&
+        defaultUrduSubtitle != null &&
+        defaultUrduSubtitle.isNotEmpty) {
+      return defaultUrduSubtitle;
+    }
+    return PosLocalization.tr(title, settings: settings);
+  }
+
   String? _getLocalizedSubtitle(String title, String? defaultUrduSubtitle) {
-    // If secondary language is disabled (unchecked), ONLY show the primary language!
-    final enableSecondary = widget.settings?.enableSecondaryLanguage ?? false;
-    if (!enableSecondary) return null;
+    // Secondary language is ONLY allowed when Primary Language is English
+    final settings = widget.settings;
+    if (settings == null || !settings.hasEffectiveSecondaryLanguage) {
+      return null;
+    }
 
-    final primary = (widget.settings?.totalInWordsLanguage ?? 'en').toLowerCase().trim();
-    final sec = (widget.settings?.secondaryLanguage ?? 'ur').toLowerCase().trim();
+    final sec = settings.secondaryLanguage.toLowerCase().trim();
+    if (sec == 'ur' &&
+        defaultUrduSubtitle != null &&
+        defaultUrduSubtitle.isNotEmpty) {
+      return defaultUrduSubtitle;
+    }
+    if (sec == 'en') return null;
 
-    // If secondary is same as primary, don't show duplicate
-    if (sec == primary) return null;
+    final translated = PosLocalization.tr(title, primaryOverride: sec);
+    if (translated != title && translated.isNotEmpty) {
+      return translated;
+    }
 
     if (sec == 'fa') {
       const farsiSubtitles = {
@@ -404,10 +473,13 @@ class _SmartSidebarState extends State<SmartSidebar> {
     VoidCallback? onToggleSubmenu,
     VoidCallback? onTapDirect,
   }) {
+    final displayTitle = _getDisplayTitle(title, urduSubtitle);
     final activeSubtitle = _getLocalizedSubtitle(title, urduSubtitle);
     final matchesFilter = _filter.isEmpty ||
         title.toLowerCase().contains(_filter) ||
-        (activeSubtitle != null && activeSubtitle.toLowerCase().contains(_filter));
+        displayTitle.toLowerCase().contains(_filter) ||
+        (activeSubtitle != null &&
+            activeSubtitle.toLowerCase().contains(_filter));
 
     if (!matchesFilter) {
       return const SizedBox.shrink();
@@ -417,22 +489,29 @@ class _SmartSidebarState extends State<SmartSidebar> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final activeBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFEEF2FF);
-    final activeText = isDark ? const Color(0xFF93C5FD) : const Color(0xFF4F46E5);
-    final activeIcon = isDark ? const Color(0xFF93C5FD) : const Color(0xFF4F46E5);
-    final inactiveText = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155);
-    final inactiveIcon = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final activeText =
+        isDark ? const Color(0xFF93C5FD) : const Color(0xFF4F46E5);
+    final activeIcon =
+        isDark ? const Color(0xFF93C5FD) : const Color(0xFF4F46E5);
+    final inactiveText =
+        isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155);
+    final inactiveIcon =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     if (widget.isCollapsed) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 8),
         child: Tooltip(
-          message: activeSubtitle != null && activeSubtitle.isNotEmpty ? '$title ($activeSubtitle)' : title,
+          message: activeSubtitle != null && activeSubtitle.isNotEmpty
+              ? '$title ($activeSubtitle)'
+              : title,
           preferBelow: false,
           decoration: BoxDecoration(
             color: const Color(0xFF0F172A),
             borderRadius: BorderRadius.circular(6),
           ),
-          textStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+              color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
@@ -453,14 +532,20 @@ class _SmartSidebarState extends State<SmartSidebar> {
                   color: isSelected ? activeBg : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                   border: isSelected
-                      ? Border.all(color: isDark ? const Color(0xFF3B82F6) : const Color(0xFFC7D2FE), width: 1)
+                      ? Border.all(
+                          color: isDark
+                              ? const Color(0xFF3B82F6)
+                              : const Color(0xFFC7D2FE),
+                          width: 1)
                       : null,
                 ),
                 child: Center(
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      Icon(icon, size: 21, color: isSelected ? activeIcon : inactiveIcon),
+                      Icon(icon,
+                          size: 21,
+                          color: isSelected ? activeIcon : inactiveIcon),
                       if (badgeText != null)
                         Positioned(
                           top: -3,
@@ -506,7 +591,11 @@ class _SmartSidebarState extends State<SmartSidebar> {
               color: isSelected ? activeBg : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
               border: isSelected
-                  ? Border.all(color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.5) : const Color(0xFFC7D2FE), width: 1)
+                  ? Border.all(
+                      color: isDark
+                          ? const Color(0xFF3B82F6).withValues(alpha: 0.5)
+                          : const Color(0xFFC7D2FE),
+                      width: 1)
                   : null,
             ),
             child: Row(
@@ -538,12 +627,13 @@ class _SmartSidebarState extends State<SmartSidebar> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        title,
+                        displayTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w600,
                           color: isSelected ? activeText : inactiveText,
                           letterSpacing: -0.1,
                         ),
@@ -558,8 +648,12 @@ class _SmartSidebarState extends State<SmartSidebar> {
                             style: TextStyle(
                               fontSize: 10.5,
                               color: isSelected
-                                  ? (isDark ? const Color(0xFF93C5FD) : const Color(0xFF6366F1))
-                                  : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                                  ? (isDark
+                                      ? const Color(0xFF93C5FD)
+                                      : const Color(0xFF6366F1))
+                                  : (isDark
+                                      ? const Color(0xFF64748B)
+                                      : const Color(0xFF94A3B8)),
                               fontWeight: FontWeight.normal,
                             ),
                           ),
@@ -570,14 +664,18 @@ class _SmartSidebarState extends State<SmartSidebar> {
 
                 if (badgeText != null) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: badgeColor ?? const Color(0xFF4F46E5),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       badgeText,
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -606,10 +704,13 @@ class _SmartSidebarState extends State<SmartSidebar> {
     String? urduSubtitle,
     required AppRoute route,
   }) {
+    final displayTitle = _getDisplayTitle(title, urduSubtitle);
     final activeSubtitle = _getLocalizedSubtitle(title, urduSubtitle);
     final matchesFilter = _filter.isEmpty ||
         title.toLowerCase().contains(_filter) ||
-        (activeSubtitle != null && activeSubtitle.toLowerCase().contains(_filter));
+        displayTitle.toLowerCase().contains(_filter) ||
+        (activeSubtitle != null &&
+            activeSubtitle.toLowerCase().contains(_filter));
 
     if (!matchesFilter) {
       return const SizedBox.shrink();
@@ -619,23 +720,31 @@ class _SmartSidebarState extends State<SmartSidebar> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final activeBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFEEF2FF);
-    final activeText = isDark ? const Color(0xFF93C5FD) : const Color(0xFF4F46E5);
-    final activeDot = isDark ? const Color(0xFF93C5FD) : const Color(0xFF4F46E5);
-    final inactiveText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
-    final inactiveDot = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
+    final activeText =
+        isDark ? const Color(0xFF93C5FD) : const Color(0xFF4F46E5);
+    final activeDot =
+        isDark ? const Color(0xFF93C5FD) : const Color(0xFF4F46E5);
+    final inactiveText =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
+    final inactiveDot =
+        isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
 
     return Padding(
-      padding: const EdgeInsets.only(left: 28, right: 10, top: 1.5, bottom: 1.5),
+      padding:
+          const EdgeInsets.only(left: 28, right: 10, top: 1.5, bottom: 1.5),
       child: Material(
         color: Colors.transparent,
         child: Tooltip(
-          message: activeSubtitle != null && activeSubtitle.isNotEmpty ? '$title ($activeSubtitle)' : title,
+          message: activeSubtitle != null && activeSubtitle.isNotEmpty
+              ? '$title ($activeSubtitle)'
+              : title,
           waitDuration: const Duration(milliseconds: 350),
           child: InkWell(
             onTap: () => widget.onSelect(route),
             borderRadius: BorderRadius.circular(8),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6.5),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6.5),
               decoration: BoxDecoration(
                 color: isSelected ? activeBg : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
@@ -654,12 +763,13 @@ class _SmartSidebarState extends State<SmartSidebar> {
                   const SizedBox(width: 9),
                   Expanded(
                     child: Text(
-                      title,
+                      displayTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12.5,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
                         color: isSelected ? activeText : inactiveText,
                       ),
                     ),
@@ -698,16 +808,61 @@ class _SmartSidebarState extends State<SmartSidebar> {
     final canSettings = can('settings.manage');
 
     // Check if parent sections are active
-    final isProductsActive = const [AppRoute.productsList, AppRoute.categories, AppRoute.addProduct, AppRoute.printLabels, AppRoute.variationTemplates, AppRoute.units, AppRoute.brands, AppRoute.warranties, AppRoute.sellingPriceGroups, AppRoute.importProducts, AppRoute.discountRules].contains(widget.selectedRoute);
-    final isPurchasesActive = const [AppRoute.purchasesList, AppRoute.purchaseReturn, AppRoute.addPurchase, AppRoute.purchaseOrders].contains(widget.selectedRoute);
-    final isSellActive = const [AppRoute.posTerminal, AppRoute.salesList, AppRoute.salesReturn, AppRoute.salesOrders, AppRoute.commissionAgents].contains(widget.selectedRoute);
-    final isContactsActive = const [AppRoute.customers, AppRoute.suppliers].contains(widget.selectedRoute);
+    final isProductsActive = const [
+      AppRoute.productsList,
+      AppRoute.categories,
+      AppRoute.addProduct,
+      AppRoute.printLabels,
+      AppRoute.variationTemplates,
+      AppRoute.units,
+      AppRoute.brands,
+      AppRoute.warranties,
+      AppRoute.sellingPriceGroups,
+      AppRoute.importProducts,
+      AppRoute.discountRules
+    ].contains(widget.selectedRoute);
+    final isPurchasesActive = const [
+      AppRoute.purchasesList,
+      AppRoute.purchaseReturn,
+      AppRoute.addPurchase,
+      AppRoute.purchaseOrders
+    ].contains(widget.selectedRoute);
+    final isSellActive = const [
+      AppRoute.posTerminal,
+      AppRoute.salesList,
+      AppRoute.salesReturn,
+      AppRoute.salesOrders,
+      AppRoute.commissionAgents
+    ].contains(widget.selectedRoute);
+    final isContactsActive = const [AppRoute.customers, AppRoute.suppliers]
+        .contains(widget.selectedRoute);
     final isTransfersActive = widget.selectedRoute == AppRoute.stockTransfers;
-    final isAdjustmentsActive = widget.selectedRoute == AppRoute.stockAdjustments;
+    final isAdjustmentsActive =
+        widget.selectedRoute == AppRoute.stockAdjustments;
     final isExpensesActive = widget.selectedRoute == AppRoute.expenses;
-    final isReportsActive = const [AppRoute.reports, AppRoute.inventoryAudit].contains(widget.selectedRoute);
-    final isSettingsActive = const [AppRoute.settings, AppRoute.paymentAccounts, AppRoute.chequeManagement, AppRoute.annualClosing, AppRoute.moduleSettings, AppRoute.cloudSync].contains(widget.selectedRoute);
-    final isIndustryActive = const [AppRoute.businessModulesHub, AppRoute.restaurantCafe, AppRoute.repairService, AppRoute.hotelManagement, AppRoute.gymFitness, AppRoute.manufacturing, AppRoute.wooCommerceSync, AppRoute.hrmEmployee, AppRoute.accountingCrm, AppRoute.fruitMandi, AppRoute.poultryBusiness].contains(widget.selectedRoute);
+    final isReportsActive = const [AppRoute.reports, AppRoute.inventoryAudit]
+        .contains(widget.selectedRoute);
+    final isSettingsActive = const [
+      AppRoute.settings,
+      AppRoute.paymentAccounts,
+      AppRoute.chequeManagement,
+      AppRoute.annualClosing,
+      AppRoute.moduleSettings,
+      AppRoute.cloudSync
+    ].contains(widget.selectedRoute);
+    final isIndustryActive = const [
+      AppRoute.businessModulesHub,
+      AppRoute.restaurantCafe,
+      AppRoute.repairService,
+      AppRoute.hotelManagement,
+      AppRoute.gymFitness,
+      AppRoute.manufacturing,
+      AppRoute.wooCommerceSync,
+      AppRoute.hrmEmployee,
+      AppRoute.accountingCrm,
+      AppRoute.fruitMandi,
+      AppRoute.poultryBusiness
+    ].contains(widget.selectedRoute);
 
     return [
       // ==========================================
@@ -750,28 +905,68 @@ class _SmartSidebarState extends State<SmartSidebar> {
             hasSubmenu: true,
             isExpanded: _productsExpanded,
             isActiveParent: isProductsActive,
-            onToggleSubmenu: () => setState(() => _productsExpanded = !_productsExpanded),
+            onToggleSubmenu: () =>
+                setState(() => _productsExpanded = !_productsExpanded),
             onTapDirect: () => widget.onSelect(AppRoute.productsList),
           ),
           if (!widget.isCollapsed && _productsExpanded) ...[
-            _subItem(title: 'List Products', urduSubtitle: 'پروڈکٹس لسٹ', route: AppRoute.productsList),
-            if (canAddProduct) _subItem(title: 'Add Product', urduSubtitle: 'نیا پروڈکٹ', route: AppRoute.addProduct),
-            if (canPrintLabels) _subItem(title: 'Print Labels', urduSubtitle: 'بارکوڈ لیبلز', route: AppRoute.printLabels),
+            _subItem(
+                title: 'List Products',
+                urduSubtitle: 'پروڈکٹس لسٹ',
+                route: AppRoute.productsList),
+            if (canAddProduct)
+              _subItem(
+                  title: 'Add Product',
+                  urduSubtitle: 'نیا پروڈکٹ',
+                  route: AppRoute.addProduct),
+            if (canPrintLabels)
+              _subItem(
+                  title: 'Print Labels',
+                  urduSubtitle: 'بارکوڈ لیبلز',
+                  route: AppRoute.printLabels),
             if (_isModEnabled(BusinessSettings.moduleVariations))
-              _subItem(title: 'Variations', urduSubtitle: 'ویرینٹس', route: AppRoute.variationTemplates),
-            if (canAddProduct) _subItem(title: 'Import Products', urduSubtitle: 'امپورٹ', route: AppRoute.importProducts),
-            if (canSettings) _subItem(title: 'Price Groups', urduSubtitle: 'قیمت گروپس', route: AppRoute.sellingPriceGroups),
-            if (canSettings || canAddProduct) _subItem(title: 'Discount Rules', urduSubtitle: 'رعایت کے اصول', route: AppRoute.discountRules),
-            _subItem(title: 'Units', urduSubtitle: 'پیمائش کے یونٹس', route: AppRoute.units),
-            _subItem(title: 'Categories', urduSubtitle: 'کیٹیگریز', route: AppRoute.categories),
-            _subItem(title: 'Brands', urduSubtitle: 'برانڈز', route: AppRoute.brands),
-            _subItem(title: 'Warranties', urduSubtitle: 'وارنٹیز', route: AppRoute.warranties),
+              _subItem(
+                  title: 'Variations',
+                  urduSubtitle: 'ویرینٹس',
+                  route: AppRoute.variationTemplates),
+            if (canAddProduct)
+              _subItem(
+                  title: 'Import Products',
+                  urduSubtitle: 'امپورٹ',
+                  route: AppRoute.importProducts),
+            if (canSettings)
+              _subItem(
+                  title: 'Price Groups',
+                  urduSubtitle: 'قیمت گروپس',
+                  route: AppRoute.sellingPriceGroups),
+            if (canSettings || canAddProduct)
+              _subItem(
+                  title: 'Discount Rules',
+                  urduSubtitle: 'رعایت کے اصول',
+                  route: AppRoute.discountRules),
+            _subItem(
+                title: 'Units',
+                urduSubtitle: 'پیمائش کے یونٹس',
+                route: AppRoute.units),
+            _subItem(
+                title: 'Categories',
+                urduSubtitle: 'کیٹیگریز',
+                route: AppRoute.categories),
+            _subItem(
+                title: 'Brands',
+                urduSubtitle: 'برانڈز',
+                route: AppRoute.brands),
+            _subItem(
+                title: 'Warranties',
+                urduSubtitle: 'وارنٹیز',
+                route: AppRoute.warranties),
           ],
         ],
       ],
 
       // Stock Transfers
-      if (canInventory && _isModEnabled(BusinessSettings.moduleStockTransfers)) ...[
+      if (canInventory &&
+          _isModEnabled(BusinessSettings.moduleStockTransfers)) ...[
         _navItem(
           icon: Icons.local_shipping_outlined,
           title: 'Stock Transfers',
@@ -780,12 +975,19 @@ class _SmartSidebarState extends State<SmartSidebar> {
           hasSubmenu: true,
           isExpanded: _transfersExpanded,
           isActiveParent: isTransfersActive,
-          onToggleSubmenu: () => setState(() => _transfersExpanded = !_transfersExpanded),
+          onToggleSubmenu: () =>
+              setState(() => _transfersExpanded = !_transfersExpanded),
           onTapDirect: () => widget.onSelect(AppRoute.stockTransfers),
         ),
         if (!widget.isCollapsed && _transfersExpanded) ...[
-          _subItem(title: 'List Transfers', urduSubtitle: 'تمام ٹرانسفرز', route: AppRoute.stockTransfers),
-          _subItem(title: 'Add Transfer', urduSubtitle: 'نیا ٹرانسفر بھیجیں', route: AppRoute.stockTransfers),
+          _subItem(
+              title: 'List Transfers',
+              urduSubtitle: 'تمام ٹرانسفرز',
+              route: AppRoute.stockTransfers),
+          _subItem(
+              title: 'Add Transfer',
+              urduSubtitle: 'نیا ٹرانسفر بھیجیں',
+              route: AppRoute.stockTransfers),
         ],
       ],
 
@@ -799,12 +1001,19 @@ class _SmartSidebarState extends State<SmartSidebar> {
           hasSubmenu: true,
           isExpanded: _adjustmentsExpanded,
           isActiveParent: isAdjustmentsActive,
-          onToggleSubmenu: () => setState(() => _adjustmentsExpanded = !_adjustmentsExpanded),
+          onToggleSubmenu: () =>
+              setState(() => _adjustmentsExpanded = !_adjustmentsExpanded),
           onTapDirect: () => widget.onSelect(AppRoute.stockAdjustments),
         ),
         if (!widget.isCollapsed && _adjustmentsExpanded) ...[
-          _subItem(title: 'Adjustments List', urduSubtitle: 'لسٹ', route: AppRoute.stockAdjustments),
-          _subItem(title: 'Add Adjustment', urduSubtitle: 'نیا اندراج', route: AppRoute.stockAdjustments),
+          _subItem(
+              title: 'Adjustments List',
+              urduSubtitle: 'لسٹ',
+              route: AppRoute.stockAdjustments),
+          _subItem(
+              title: 'Add Adjustment',
+              urduSubtitle: 'نیا اندراج',
+              route: AppRoute.stockAdjustments),
         ],
       ],
 
@@ -828,13 +1037,36 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(AppRoute.salesList),
         ),
         if (!widget.isCollapsed && _sellExpanded) ...[
-          if (canSales) _subItem(title: 'All Sales', urduSubtitle: 'تمام بلز', route: AppRoute.salesList),
-          if (canSales) _subItem(title: 'Sales Orders', urduSubtitle: 'سیلز آرڈرز', route: AppRoute.salesOrders),
-          if (canSales) _subItem(title: 'Commission Agents', urduSubtitle: 'کمیشن ایجنٹس', route: AppRoute.commissionAgents),
-          if (canPos) _subItem(title: 'POS Terminal', urduSubtitle: 'کاؤنٹر سیل', route: AppRoute.posTerminal),
-          if (canSales) _subItem(title: 'List POS', urduSubtitle: 'پی او ایس انوائسز', route: AppRoute.salesList),
+          if (canSales)
+            _subItem(
+                title: 'All Sales',
+                urduSubtitle: 'تمام بلز',
+                route: AppRoute.salesList),
+          if (canSales)
+            _subItem(
+                title: 'Sales Orders',
+                urduSubtitle: 'سیلز آرڈرز',
+                route: AppRoute.salesOrders),
+          if (canSales)
+            _subItem(
+                title: 'Commission Agents',
+                urduSubtitle: 'کمیشن ایجنٹس',
+                route: AppRoute.commissionAgents),
+          if (canPos)
+            _subItem(
+                title: 'POS Terminal',
+                urduSubtitle: 'کاؤنٹر سیل',
+                route: AppRoute.posTerminal),
+          if (canSales)
+            _subItem(
+                title: 'List POS',
+                urduSubtitle: 'پی او ایس انوائسز',
+                route: AppRoute.salesList),
           if (canReturns && _isModEnabled(BusinessSettings.moduleReturns))
-            _subItem(title: 'Sales Return', urduSubtitle: 'سیلز واپسی', route: AppRoute.salesReturn),
+            _subItem(
+                title: 'Sales Return',
+                urduSubtitle: 'سیلز واپسی',
+                route: AppRoute.salesReturn),
         ],
       ],
 
@@ -848,15 +1080,29 @@ class _SmartSidebarState extends State<SmartSidebar> {
           hasSubmenu: true,
           isExpanded: _purchasesExpanded,
           isActiveParent: isPurchasesActive,
-          onToggleSubmenu: () => setState(() => _purchasesExpanded = !_purchasesExpanded),
+          onToggleSubmenu: () =>
+              setState(() => _purchasesExpanded = !_purchasesExpanded),
           onTapDirect: () => widget.onSelect(AppRoute.purchasesList),
         ),
         if (!widget.isCollapsed && _purchasesExpanded) ...[
-          _subItem(title: 'Purchases List', urduSubtitle: 'خریداری لسٹ', route: AppRoute.purchasesList),
-          _subItem(title: 'Purchase Orders', urduSubtitle: 'پرچیز آرڈرز', route: AppRoute.purchaseOrders),
-          if (canAddPurchase) _subItem(title: 'Add Purchase', urduSubtitle: 'نئی خریداری درج کریں', route: AppRoute.addPurchase),
+          _subItem(
+              title: 'Purchases List',
+              urduSubtitle: 'خریداری لسٹ',
+              route: AppRoute.purchasesList),
+          _subItem(
+              title: 'Purchase Orders',
+              urduSubtitle: 'پرچیز آرڈرز',
+              route: AppRoute.purchaseOrders),
+          if (canAddPurchase)
+            _subItem(
+                title: 'Add Purchase',
+                urduSubtitle: 'نئی خریداری درج کریں',
+                route: AppRoute.addPurchase),
           if (canAddPurchase && _isModEnabled(BusinessSettings.moduleReturns))
-            _subItem(title: 'Purchase Return', urduSubtitle: 'خریداری واپسی', route: AppRoute.purchaseReturn),
+            _subItem(
+                title: 'Purchase Return',
+                urduSubtitle: 'خریداری واپسی',
+                route: AppRoute.purchaseReturn),
         ],
       ],
 
@@ -870,12 +1116,19 @@ class _SmartSidebarState extends State<SmartSidebar> {
           hasSubmenu: true,
           isExpanded: _expensesExpanded,
           isActiveParent: isExpensesActive,
-          onToggleSubmenu: () => setState(() => _expensesExpanded = !_expensesExpanded),
+          onToggleSubmenu: () =>
+              setState(() => _expensesExpanded = !_expensesExpanded),
           onTapDirect: () => widget.onSelect(AppRoute.expenses),
         ),
         if (!widget.isCollapsed && _expensesExpanded) ...[
-          _subItem(title: 'List Expenses', urduSubtitle: 'تمام اخراجات', route: AppRoute.expenses),
-          _subItem(title: 'Add Expense', urduSubtitle: 'نیا خرچہ شامل کریں', route: AppRoute.expenses),
+          _subItem(
+              title: 'List Expenses',
+              urduSubtitle: 'تمام اخراجات',
+              route: AppRoute.expenses),
+          _subItem(
+              title: 'Add Expense',
+              urduSubtitle: 'نیا خرچہ شامل کریں',
+              route: AppRoute.expenses),
         ],
       ],
 
@@ -894,13 +1147,23 @@ class _SmartSidebarState extends State<SmartSidebar> {
           hasSubmenu: true,
           isExpanded: _contactsExpanded,
           isActiveParent: isContactsActive,
-          onToggleSubmenu: () => setState(() => _contactsExpanded = !_contactsExpanded),
+          onToggleSubmenu: () =>
+              setState(() => _contactsExpanded = !_contactsExpanded),
           onTapDirect: () => widget.onSelect(AppRoute.customers),
         ),
       if (!widget.isCollapsed && _contactsExpanded && canKhata) ...[
-        _subItem(title: 'Customers', urduSubtitle: 'گاہک / کسٹمرز', route: AppRoute.customers),
-        _subItem(title: 'Suppliers', urduSubtitle: 'سپلائرز / وینڈرز', route: AppRoute.suppliers),
-        _subItem(title: 'Customer Groups', urduSubtitle: 'کسٹمر گروپس', route: AppRoute.customers),
+        _subItem(
+            title: 'Customers',
+            urduSubtitle: 'گاہک / کسٹمرز',
+            route: AppRoute.customers),
+        _subItem(
+            title: 'Suppliers',
+            urduSubtitle: 'سپلائرز / وینڈرز',
+            route: AppRoute.suppliers),
+        _subItem(
+            title: 'Customer Groups',
+            urduSubtitle: 'کسٹمر گروپس',
+            route: AppRoute.customers),
       ],
 
       if (canSettings) ...[
@@ -922,12 +1185,19 @@ class _SmartSidebarState extends State<SmartSidebar> {
           hasSubmenu: true,
           isExpanded: _userMgmtExpanded,
           isActiveParent: widget.selectedRoute == AppRoute.userManagement,
-          onToggleSubmenu: () => setState(() => _userMgmtExpanded = !_userMgmtExpanded),
+          onToggleSubmenu: () =>
+              setState(() => _userMgmtExpanded = !_userMgmtExpanded),
           onTapDirect: () => widget.onSelect(AppRoute.userManagement),
         ),
       if (!widget.isCollapsed && _userMgmtExpanded && canManageUsers) ...[
-        _subItem(title: 'Users', urduSubtitle: 'صارفین کی فہرست', route: AppRoute.userManagement),
-        _subItem(title: 'Roles & Permissions', urduSubtitle: 'اختیارات', route: AppRoute.userManagement),
+        _subItem(
+            title: 'Users',
+            urduSubtitle: 'صارفین کی فہرست',
+            route: AppRoute.userManagement),
+        _subItem(
+            title: 'Roles & Permissions',
+            urduSubtitle: 'اختیارات',
+            route: AppRoute.userManagement),
       ],
 
       // ==========================================
@@ -945,17 +1215,36 @@ class _SmartSidebarState extends State<SmartSidebar> {
           hasSubmenu: true,
           isExpanded: _reportsExpanded,
           isActiveParent: isReportsActive,
-          onToggleSubmenu: () => setState(() => _reportsExpanded = !_reportsExpanded),
+          onToggleSubmenu: () =>
+              setState(() => _reportsExpanded = !_reportsExpanded),
           onTapDirect: () => widget.onSelect(AppRoute.reports),
         ),
         if (!widget.isCollapsed && _reportsExpanded) ...[
-          _subItem(title: 'Profit / Loss Report', urduSubtitle: 'نفع نقصان', route: AppRoute.reports),
-          _subItem(title: 'Purchase & Sale', urduSubtitle: 'خرید و فروخت', route: AppRoute.reports),
-          _subItem(title: 'Tax Report', urduSubtitle: 'ٹیکس رپورٹ', route: AppRoute.reports),
-          _subItem(title: 'Contact Dues', urduSubtitle: 'کھاتہ بقایا جات', route: AppRoute.reports),
+          _subItem(
+              title: 'Profit / Loss Report',
+              urduSubtitle: 'نفع نقصان',
+              route: AppRoute.reports),
+          _subItem(
+              title: 'Purchase & Sale',
+              urduSubtitle: 'خرید و فروخت',
+              route: AppRoute.reports),
+          _subItem(
+              title: 'Tax Report',
+              urduSubtitle: 'ٹیکس رپورٹ',
+              route: AppRoute.reports),
+          _subItem(
+              title: 'Contact Dues',
+              urduSubtitle: 'کھاتہ بقایا جات',
+              route: AppRoute.reports),
           if (_isModEnabled(BusinessSettings.moduleStockAudit))
-            _subItem(title: 'Stock & Expiry Audit', urduSubtitle: 'سٹاک و ایکسپائری', route: AppRoute.inventoryAudit),
-          _subItem(title: 'Trending Products', urduSubtitle: 'زیادہ بکنے والا مال', route: AppRoute.reports),
+            _subItem(
+                title: 'Stock & Expiry Audit',
+                urduSubtitle: 'سٹاک و ایکسپائری',
+                route: AppRoute.inventoryAudit),
+          _subItem(
+              title: 'Trending Products',
+              urduSubtitle: 'زیادہ بکنے والا مال',
+              route: AppRoute.reports),
         ],
       ],
 
@@ -981,16 +1270,32 @@ class _SmartSidebarState extends State<SmartSidebar> {
           hasSubmenu: true,
           isExpanded: _settingsExpanded,
           isActiveParent: isSettingsActive,
-          onToggleSubmenu: () => setState(() => _settingsExpanded = !_settingsExpanded),
+          onToggleSubmenu: () =>
+              setState(() => _settingsExpanded = !_settingsExpanded),
           onTapDirect: () => widget.onSelect(AppRoute.settings),
         ),
         if (!widget.isCollapsed && _settingsExpanded) ...[
-          _subItem(title: 'Business Settings', urduSubtitle: 'کاروباری معلومات', route: AppRoute.settings),
-          _subItem(title: 'Payment Accounts', urduSubtitle: 'بینک و کیش', route: AppRoute.paymentAccounts),
+          _subItem(
+              title: 'Business Settings',
+              urduSubtitle: 'کاروباری معلومات',
+              route: AppRoute.settings),
+          _subItem(
+              title: 'Payment Accounts',
+              urduSubtitle: 'بینک و کیش',
+              route: AppRoute.paymentAccounts),
           if (_isModEnabled(BusinessSettings.moduleFiscalClosing))
-            _subItem(title: 'Annual Fiscal Closing', urduSubtitle: 'سالانہ کلوزنگ', route: AppRoute.annualClosing),
-          _subItem(title: 'Cloud & MySQL Sync', urduSubtitle: 'کلاؤڈ سنک', route: AppRoute.cloudSync),
-          _subItem(title: 'Modular Features', urduSubtitle: 'ماڈیولز آن/آف', route: AppRoute.moduleSettings),
+            _subItem(
+                title: 'Annual Fiscal Closing',
+                urduSubtitle: 'سالانہ کلوزنگ',
+                route: AppRoute.annualClosing),
+          _subItem(
+              title: 'Cloud & MySQL Sync',
+              urduSubtitle: 'کلاؤڈ سنک',
+              route: AppRoute.cloudSync),
+          _subItem(
+              title: 'Modular Features',
+              urduSubtitle: 'ماڈیولز آن/آف',
+              route: AppRoute.moduleSettings),
         ],
       ],
 
@@ -1007,31 +1312,42 @@ class _SmartSidebarState extends State<SmartSidebar> {
           hasSubmenu: true,
           isExpanded: _industryExpanded,
           isActiveParent: isIndustryActive,
-          onToggleSubmenu: () => setState(() => _industryExpanded = !_industryExpanded),
+          onToggleSubmenu: () =>
+              setState(() => _industryExpanded = !_industryExpanded),
           onTapDirect: () => widget.onSelect(AppRoute.businessModulesHub),
         ),
         if (!widget.isCollapsed && _industryExpanded) ...[
-          _subItem(title: 'All Modules Hub', route: AppRoute.businessModulesHub),
+          _subItem(
+              title: 'All Modules Hub', route: AppRoute.businessModulesHub),
           if (_isModEnabled(BusinessSettings.moduleRestaurant))
-            _subItem(title: 'Restaurant / Cafe', route: AppRoute.restaurantCafe),
+            _subItem(
+                title: 'Restaurant / Cafe', route: AppRoute.restaurantCafe),
           if (_isModEnabled(BusinessSettings.moduleRepair))
-            _subItem(title: 'Repair Shop / Service', route: AppRoute.repairService),
+            _subItem(
+                title: 'Repair Shop / Service', route: AppRoute.repairService),
           if (_isModEnabled(BusinessSettings.moduleHotel))
-            _subItem(title: 'Hotel Management', route: AppRoute.hotelManagement),
+            _subItem(
+                title: 'Hotel Management', route: AppRoute.hotelManagement),
           if (_isModEnabled(BusinessSettings.moduleGym))
             _subItem(title: 'Gym & Fitness Center', route: AppRoute.gymFitness),
           if (_isModEnabled(BusinessSettings.moduleManufacturing))
-            _subItem(title: 'Manufacturing / BOM', route: AppRoute.manufacturing),
+            _subItem(
+                title: 'Manufacturing / BOM', route: AppRoute.manufacturing),
           if (_isModEnabled(BusinessSettings.moduleWooCommerce))
-            _subItem(title: 'Online Store (Woo)', route: AppRoute.wooCommerceSync),
+            _subItem(
+                title: 'Online Store (Woo)', route: AppRoute.wooCommerceSync),
           if (_isModEnabled(BusinessSettings.moduleHrm))
-            _subItem(title: 'HR & Employee (Payroll)', route: AppRoute.hrmEmployee),
+            _subItem(
+                title: 'HR & Employee (Payroll)', route: AppRoute.hrmEmployee),
           if (_isModEnabled(BusinessSettings.moduleAccountingCrm))
-            _subItem(title: 'Accounting & Ledgers', route: AppRoute.accountingCrm),
+            _subItem(
+                title: 'Accounting & Ledgers', route: AppRoute.accountingCrm),
           if (_isModEnabled(BusinessSettings.moduleFruitMandi))
             _subItem(title: 'Fruit Mandi (Arhat)', route: AppRoute.fruitMandi),
           if (_isModEnabled(BusinessSettings.modulePoultry))
-            _subItem(title: 'Poultry Farm & Trading', route: AppRoute.poultryBusiness),
+            _subItem(
+                title: 'Poultry Farm & Trading',
+                route: AppRoute.poultryBusiness),
         ],
       ],
 
@@ -1076,10 +1392,14 @@ class _SmartSidebarState extends State<SmartSidebar> {
               child: Container(
                 height: 38,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  color: isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
                   ),
                 ),
                 child: TextField(
@@ -1089,17 +1409,22 @@ class _SmartSidebarState extends State<SmartSidebar> {
                     fontWeight: FontWeight.w500,
                     color: isDark ? Colors.white : const Color(0xFF0F172A),
                   ),
-                  onChanged: (val) => setState(() => _filter = val.trim().toLowerCase()),
+                  onChanged: (val) =>
+                      setState(() => _filter = val.trim().toLowerCase()),
                   decoration: InputDecoration(
                     hintText: 'Search menu...',
                     hintStyle: TextStyle(
                       fontSize: 12,
-                      color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                      color: isDark
+                          ? const Color(0xFF64748B)
+                          : const Color(0xFF94A3B8),
                     ),
                     prefixIcon: Icon(
                       Icons.search_rounded,
                       size: 17,
-                      color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                      color: isDark
+                          ? const Color(0xFF64748B)
+                          : const Color(0xFF94A3B8),
                     ),
                     suffixIcon: _filter.isNotEmpty
                         ? IconButton(
@@ -1148,13 +1473,15 @@ class _SmartSidebarState extends State<SmartSidebar> {
                   ),
                   child: widget.isCollapsed
                       ? const Center(
-                          child: Icon(Icons.bolt_rounded, color: Colors.white, size: 22),
+                          child: Icon(Icons.bolt_rounded,
+                              color: Colors.white, size: 22),
                         )
                       : Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Row(
                             children: [
-                              const Icon(Icons.bolt_rounded, color: Colors.amberAccent, size: 20),
+                              const Icon(Icons.bolt_rounded,
+                                  color: Colors.amberAccent, size: 20),
                               const SizedBox(width: 8),
                               const Expanded(
                                 child: Text(
@@ -1168,7 +1495,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.22),
                                   borderRadius: BorderRadius.circular(4),
@@ -1205,16 +1533,21 @@ class _SmartSidebarState extends State<SmartSidebar> {
               vertical: 10,
             ),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : const Color(0xFFF8FAFC),
+              color: isDark
+                  ? const Color(0xFF1E293B).withValues(alpha: 0.6)
+                  : const Color(0xFFF8FAFC),
               border: Border(
                 top: BorderSide(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                  color: isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFE2E8F0),
                 ),
               ),
             ),
             child: widget.isCollapsed
                 ? Tooltip(
-                    message: '$userName ($userRole)\n$branchName\n● Smart POS Live',
+                    message:
+                        '$userName ($userRole)\n$branchName\n● Smart POS Live',
                     preferBelow: false,
                     child: Center(
                       child: Stack(
@@ -1224,8 +1557,13 @@ class _SmartSidebarState extends State<SmartSidebar> {
                             radius: 16,
                             backgroundColor: const Color(0xFF4F46E5),
                             child: Text(
-                              userName.isNotEmpty ? userName[0].toUpperCase() : 'A',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                              userName.isNotEmpty
+                                  ? userName[0].toUpperCase()
+                                  : 'A',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13),
                             ),
                           ),
                           Positioned(
@@ -1237,7 +1575,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFF10B981),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 1.5),
+                                border:
+                                    Border.all(color: Colors.white, width: 1.5),
                               ),
                             ),
                           ),
@@ -1252,7 +1591,10 @@ class _SmartSidebarState extends State<SmartSidebar> {
                         backgroundColor: const Color(0xFF4F46E5),
                         child: Text(
                           userName.isNotEmpty ? userName[0].toUpperCase() : 'A',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -1268,7 +1610,9 @@ class _SmartSidebarState extends State<SmartSidebar> {
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
                               ),
                             ),
                             const SizedBox(height: 1),
@@ -1291,7 +1635,9 @@ class _SmartSidebarState extends State<SmartSidebar> {
                                     style: TextStyle(
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w500,
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF64748B),
                                     ),
                                   ),
                                 ),
@@ -1301,9 +1647,12 @@ class _SmartSidebarState extends State<SmartSidebar> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 2),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -1311,7 +1660,9 @@ class _SmartSidebarState extends State<SmartSidebar> {
                           style: TextStyle(
                             fontSize: 9.5,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                            color: isDark
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF475569),
                           ),
                         ),
                       ),

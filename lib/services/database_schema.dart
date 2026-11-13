@@ -1975,6 +1975,8 @@ class DatabaseSchema {
         'show_warranty_on_invoice', 'INTEGER DEFAULT 1');
     await _addColumnIfMissing(
         db, 'business_settings', 'show_total_in_words', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'primary_language', "TEXT DEFAULT 'en'");
     await _addColumnIfMissing(db, 'business_settings',
         'total_in_words_language', "TEXT DEFAULT 'ur'");
     await _addColumnIfMissing(db, 'business_settings',
@@ -2580,6 +2582,7 @@ class DatabaseSchema {
         show_sku_on_invoice INTEGER DEFAULT 1,
         show_warranty_on_invoice INTEGER DEFAULT 1,
         show_total_in_words INTEGER DEFAULT 1,
+        primary_language TEXT DEFAULT 'en',
         total_in_words_language TEXT DEFAULT 'ur',
         enable_secondary_language INTEGER DEFAULT 0,
         secondary_language TEXT DEFAULT 'ur',

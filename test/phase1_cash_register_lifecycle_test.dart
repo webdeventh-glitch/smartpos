@@ -17,7 +17,8 @@ void main() {
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('register_test_');
-      dbPath = path.join(tempDir.path, 'reg_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(
+          tempDir.path, 'reg_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -29,7 +30,8 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Shift Opening: creates register with custom opening cash float', () async {
+    test('1. Shift Opening: creates register with custom opening cash float',
+        () async {
       // Cashier opens shift with 3500.00
       await dbService.openRegister('Irfan Khan (Cashier)', 3500.0);
 
@@ -83,7 +85,8 @@ void main() {
       final active = await dbService.getActiveRegister();
       expect(active, isNotNull);
       expect(active!.totalSalesCash, 1050.0);
-      expect(active.totalCashInRegister, 3050.0); // 2000 opening + 1050 cash sale
+      expect(
+          active.totalCashInRegister, 3050.0); // 2000 opening + 1050 cash sale
     });
 
     test('3. Cash expense automatically updates drawer cash balance', () async {
@@ -106,7 +109,8 @@ void main() {
       expect(active!.totalCashInRegister, 4700.0);
     });
 
-    test('4. Cash sale return automatically updates drawer cash balance', () async {
+    test('4. Cash sale return automatically updates drawer cash balance',
+        () async {
       await dbService.openRegister('Cashier A', 5000.0);
 
       // Record a cash return refund
@@ -129,7 +133,8 @@ void main() {
       expect(active!.totalCashInRegister, 4550.0);
     });
 
-    test('5. Shift Closing: Z-Report closing flow marks register as closed', () async {
+    test('5. Shift Closing: Z-Report closing flow marks register as closed',
+        () async {
       await dbService.openRegister('Cashier B', 2000.0);
 
       final product = Product(
@@ -171,13 +176,15 @@ void main() {
       expect(expectedCash, 2500.0);
 
       // Cashier counts 2500.0 and closes shift
-      await dbService.closeRegister(active.id!, 2500.0, 'Shift closed smoothly. No discrepancy.');
+      await dbService.closeRegister(
+          active.id!, 2500.0, 'Shift closed smoothly. No discrepancy.');
 
       final closedCheck = await dbService.getActiveRegister();
       expect(closedCheck, isNull);
 
       // Verify the closed record in database
-      final allRegs = await dbService.db.query('cash_registers', orderBy: 'id DESC', limit: 1);
+      final allRegs = await dbService.db
+          .query('cash_registers', orderBy: 'id DESC', limit: 1);
       expect(allRegs.first['status'], 'closed');
       expect(allRegs.first['closing_amount'], 2500.0);
       expect(allRegs.first['note'], contains('Shift closed smoothly'));

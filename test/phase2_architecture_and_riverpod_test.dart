@@ -49,7 +49,9 @@ void main() {
   });
 
   group('Step 2.1: Modular Domain Models', () {
-    test('Direct domain model imports match barrel exports and serialize cleanly', () {
+    test(
+        'Direct domain model imports match barrel exports and serialize cleanly',
+        () {
       const group = CustomerGroup(
         id: 7,
         name: 'VIP Pharmacy Buyers',
@@ -80,7 +82,8 @@ void main() {
       expect(pItemDecoded.subtotal, 900.0);
     });
 
-    test('CartItem.clone produces independent snapshot for Undo/Redo history', () {
+    test('CartItem.clone produces independent snapshot for Undo/Redo history',
+        () {
       final prod = Product(
         id: 1,
         name: 'Sugar 1Kg',
@@ -102,7 +105,9 @@ void main() {
   });
 
   group('Step 2.2: Domain Repositories & Facade Consistency', () {
-    test('Product, Category, Expense, Register, Settings, and Report repositories operate standalone', () async {
+    test(
+        'Product, Category, Expense, Register, Settings, and Report repositories operate standalone',
+        () async {
       final productRepo = ProductRepository(dbService);
       final expenseRepo = ExpenseRepository(dbService);
       final registerRepo = RegisterRepository(dbService);
@@ -129,7 +134,8 @@ void main() {
       final fetched = await productRepo.getProductById(prodId);
       expect(fetched, isNotNull);
       expect(fetched!.name, 'Green Tea Pack');
-      expect((await dbService.getProducts()).any((e) => e.id == prodId), isTrue);
+      expect(
+          (await dbService.getProducts()).any((e) => e.id == prodId), isTrue);
 
       final expId = await expenseRepo.addExpense(
         Expense(
@@ -146,7 +152,8 @@ void main() {
 
       final activeBefore = await registerRepo.getActiveRegister();
       if (activeBefore != null && activeBefore.id != null) {
-        await registerRepo.closeRegister(activeBefore.id!, 0.0, 'Close baseline');
+        await registerRepo.closeRegister(
+            activeBefore.id!, 0.0, 'Close baseline');
       }
       await registerRepo.openRegister('Cashier Ali', 5000.0);
       final activeNow = await registerRepo.getActiveRegister();
@@ -162,7 +169,8 @@ void main() {
       await settingsRepo.updateBusinessSettings(
         curSettings.copyWith(businessName: 'Refactor Mart'),
       );
-      expect((await dbService.getBusinessSettings()).businessName, 'Refactor Mart');
+      expect((await dbService.getBusinessSettings()).businessName,
+          'Refactor Mart');
     });
 
     test('ContactRepository singular alias resolves ContactsRepository', () {
@@ -211,7 +219,9 @@ void main() {
       );
     });
 
-    testWidgets('SmartSidebar emits typed AppRoute on tap without magic indices', (tester) async {
+    testWidgets(
+        'SmartSidebar emits typed AppRoute on tap without magic indices',
+        (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -243,7 +253,8 @@ void main() {
   });
 
   group('Step 2.4: Riverpod State Management & Undo/Redo Cart', () {
-    test('CartNotifier calculates totals and supports multi-step Undo/Redo', () {
+    test('CartNotifier calculates totals and supports multi-step Undo/Redo',
+        () {
       final container = ProviderContainer(
         overrides: [databaseServiceProvider.overrideWithValue(dbService)],
       );
@@ -314,7 +325,9 @@ void main() {
       expect(st.canRedo, isFalse);
     });
 
-    test('ProductListNotifier, ActiveRegisterNotifier, and NavigationNotifier react cleanly', () async {
+    test(
+        'ProductListNotifier, ActiveRegisterNotifier, and NavigationNotifier react cleanly',
+        () async {
       final container = ProviderContainer(
         overrides: [databaseServiceProvider.overrideWithValue(dbService)],
       );
@@ -357,7 +370,9 @@ void main() {
       expect(openedReg!.cashierName, 'Cashier Sara');
     });
 
-    testWidgets('PosTerminalScreen Undo and Redo buttons revert and restore cart edits', (tester) async {
+    testWidgets(
+        'PosTerminalScreen Undo and Redo buttons revert and restore cart edits',
+        (tester) async {
       tester.view.physicalSize = const Size(1440, 960);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -418,4 +433,3 @@ void main() {
     });
   });
 }
-

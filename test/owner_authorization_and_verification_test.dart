@@ -94,7 +94,8 @@ void main() {
 
     test('1. Verify All Parity Tables Exist in Database', () async {
       final db = dbService.db;
-      final tablesRes = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+      final tablesRes = await db
+          .rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
       final tableNames = tablesRes.map((r) => r['name'] as String).toSet();
 
       final expectedTables = [
@@ -114,11 +115,14 @@ void main() {
       ];
 
       for (final table in expectedTables) {
-        expect(tableNames.contains(table), isTrue, reason: 'Expected table $table to exist');
+        expect(tableNames.contains(table), isTrue,
+            reason: 'Expected table $table to exist');
       }
     });
 
-    test('2. Verify Users Table Schema Contains All 12 Granular Authorization Columns', () async {
+    test(
+        '2. Verify Users Table Schema Contains All 12 Granular Authorization Columns',
+        () async {
       final db = dbService.db;
       final columnsRes = await db.rawQuery("PRAGMA table_info(users)");
       final colNames = columnsRes.map((r) => r['name'] as String).toSet();
@@ -139,11 +143,13 @@ void main() {
       ];
 
       for (final col in expectedCols) {
-        expect(colNames.contains(col), isTrue, reason: 'Expected column $col in users table');
+        expect(colNames.contains(col), isTrue,
+            reason: 'Expected column $col in users table');
       }
     });
 
-    test('3. Verify Pre-Seeded Accounts and Granular Security Settings', () async {
+    test('3. Verify Pre-Seeded Accounts and Granular Security Settings',
+        () async {
       final users = await dbService.getUsers();
       expect(users.isNotEmpty, isTrue);
 
@@ -166,13 +172,19 @@ void main() {
       // B. Salesman (salesman1) - Protected & Restricted Counter Persona
       expect(owner.hasPermission('pos.edit_price'), isTrue);
       expect(salesman.isSalesman, isTrue);
-      expect(salesman.canEditPrice, isFalse, reason: 'Salesman must NOT be able to alter selling prices');
+      expect(salesman.canEditPrice, isFalse,
+          reason: 'Salesman must NOT be able to alter selling prices');
       expect(salesman.canGiveDiscount, isTrue);
-      expect(salesman.maxDiscountPercent, equals(5.0), reason: 'Salesman discount limit must be capped at 5%');
-      expect(salesman.canViewCostPrice, isFalse, reason: 'Salesman must NOT see wholesale purchase costs');
-      expect(salesman.canDeleteSale, isFalse, reason: 'Salesman must NOT be able to void/delete sales');
-      expect(salesman.canProcessReturn, isFalse, reason: 'Salesman must NOT process cash refunds without manager');
-      expect(salesman.canAccessKhata, isTrue, reason: 'Salesman can view customer credit balance');
+      expect(salesman.maxDiscountPercent, equals(5.0),
+          reason: 'Salesman discount limit must be capped at 5%');
+      expect(salesman.canViewCostPrice, isFalse,
+          reason: 'Salesman must NOT see wholesale purchase costs');
+      expect(salesman.canDeleteSale, isFalse,
+          reason: 'Salesman must NOT be able to void/delete sales');
+      expect(salesman.canProcessReturn, isFalse,
+          reason: 'Salesman must NOT process cash refunds without manager');
+      expect(salesman.canAccessKhata, isTrue,
+          reason: 'Salesman can view customer credit balance');
       expect(salesman.canAccessReports, isFalse);
       expect(salesman.canAccessSettings, isFalse);
       expect(salesman.canManageUsers, isFalse);
@@ -189,17 +201,21 @@ void main() {
       expect(manager.canManageUsers, isFalse);
     });
 
-    test('4. Test Authentication Service with Hashed / Salting Logic', () async {
+    test('4. Test Authentication Service with Hashed / Salting Logic',
+        () async {
       // Correct strong password logins
-      final ownerSuccess = await AuthService.login('webdeventh', 'Owner@Pass2026!');
+      final ownerSuccess =
+          await AuthService.login('webdeventh', 'Owner@Pass2026!');
       expect(ownerSuccess, isTrue);
       expect(AuthService.currentUser?.username, equals('webdeventh'));
 
-      final salesmanSuccess = await AuthService.login('salesman1', 'Sales@Pass2026!');
+      final salesmanSuccess =
+          await AuthService.login('salesman1', 'Sales@Pass2026!');
       expect(salesmanSuccess, isTrue);
       expect(AuthService.currentUser?.username, equals('salesman1'));
 
-      final managerSuccess = await AuthService.login('manager1', 'Mgr@Pass2026!');
+      final managerSuccess =
+          await AuthService.login('manager1', 'Mgr@Pass2026!');
       expect(managerSuccess, isTrue);
       expect(AuthService.currentUser?.username, equals('manager1'));
 
@@ -209,7 +225,9 @@ void main() {
       expect(badLogin, isFalse);
     });
 
-    test('5. Owner Dynamically Modifies Salesman Permissions & Persists to Database', () async {
+    test(
+        '5. Owner Dynamically Modifies Salesman Permissions & Persists to Database',
+        () async {
       final users = await dbService.getUsers();
       final salesman = users.firstWhere((u) => u.username == 'salesman1');
 
@@ -228,11 +246,15 @@ void main() {
 
       // Reload from database to ensure SQLite persistence
       final refreshedUsers = await dbService.getUsers();
-      final refreshedSalesman = refreshedUsers.firstWhere((u) => u.username == 'salesman1');
+      final refreshedSalesman =
+          refreshedUsers.firstWhere((u) => u.username == 'salesman1');
 
-      expect(refreshedSalesman.canEditPrice, isTrue, reason: 'Updated price permission should persist');
-      expect(refreshedSalesman.maxDiscountPercent, equals(15.0), reason: 'Updated max discount should persist');
-      expect(refreshedSalesman.canViewCostPrice, isTrue, reason: 'Updated cost price visibility should persist');
+      expect(refreshedSalesman.canEditPrice, isTrue,
+          reason: 'Updated price permission should persist');
+      expect(refreshedSalesman.maxDiscountPercent, equals(15.0),
+          reason: 'Updated max discount should persist');
+      expect(refreshedSalesman.canViewCostPrice, isTrue,
+          reason: 'Updated cost price visibility should persist');
 
       // Owner restricts salesman again
       final lockedSalesman = refreshedSalesman.copyWith(
@@ -243,7 +265,8 @@ void main() {
       await dbService.updateUser(lockedSalesman);
 
       final reRefreshed = await dbService.getUsers();
-      final reSalesman = reRefreshed.firstWhere((u) => u.username == 'salesman1');
+      final reSalesman =
+          reRefreshed.firstWhere((u) => u.username == 'salesman1');
       expect(reSalesman.canEditPrice, isFalse);
       expect(reSalesman.canGiveDiscount, isFalse);
       expect(reSalesman.maxDiscountPercent, equals(0.0));
@@ -266,7 +289,8 @@ void main() {
       await dbService.updateUser(salesman);
 
       // A. Cart item pricing calculation
-      final item = CartItem(product: sample, quantity: 3, unitPrice: sample.sellingPrice);
+      final item = CartItem(
+          product: sample, quantity: 3, unitPrice: sample.sellingPrice);
       expect(item.subtotal, equals(sample.sellingPrice * 3));
 
       // B. Enforce Price alteration rule for salesman
@@ -274,7 +298,8 @@ void main() {
       expect(allowPriceEdit(salesman), isFalse);
 
       // C. Enforce Discount limit rule for salesman
-      bool allowDiscount(User user, double rate) => user.canGiveDiscount && rate <= user.maxDiscountPercent;
+      bool allowDiscount(User user, double rate) =>
+          user.canGiveDiscount && rate <= user.maxDiscountPercent;
       expect(allowDiscount(salesman, 4.0), isTrue); // within 5% limit
       expect(allowDiscount(salesman, 5.0), isTrue); // exactly at 5% limit
       expect(allowDiscount(salesman, 5.1), isFalse); // exceeds 5% limit
@@ -284,6 +309,7 @@ void main() {
       String getDisplayCost(User user, Product p) {
         return user.canViewCostPrice ? '${p.purchasePrice}' : '••••••';
       }
+
       expect(getDisplayCost(salesman, sample), equals('••••••'));
 
       final owner = users.firstWhere((u) => u.username == 'webdeventh');

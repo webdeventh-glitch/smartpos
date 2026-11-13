@@ -85,7 +85,8 @@ class CloudSyncService {
         startPeriodicSync(settings);
       }
     } catch (e, st) {
-      AppLogger.error('CloudSyncService', 'Failed initializing cloud sync state', e, st);
+      AppLogger.error(
+          'CloudSyncService', 'Failed initializing cloud sync state', e, st);
     }
   }
 
@@ -101,7 +102,8 @@ class CloudSyncService {
             : '$count changes queued for sync',
       );
     } catch (e, st) {
-      AppLogger.warning('CloudSyncService', 'Failed refreshing pending sync count', e, st);
+      AppLogger.warning(
+          'CloudSyncService', 'Failed refreshing pending sync count', e, st);
     }
   }
 
@@ -114,7 +116,8 @@ class CloudSyncService {
     if (clean.isEmpty) {
       return {
         'success': false,
-        'message': 'Server URL cannot be empty (e.g. http://localhost:8000/api)',
+        'message':
+            'Server URL cannot be empty (e.g. http://localhost:8000/api)',
         'latencyMs': 0,
       };
     }
@@ -136,13 +139,15 @@ class CloudSyncService {
       if (res.statusCode >= 200 && res.statusCode < 300) {
         return {
           'success': true,
-          'message': 'Connected to Laravel/MySQL Backend (${latency}ms) - Status: ${res.statusCode}',
+          'message':
+              'Connected to Laravel/MySQL Backend (${latency}ms) - Status: ${res.statusCode}',
           'latencyMs': latency,
         };
       } else {
         return {
           'success': false,
-          'message': 'Server responded with HTTP ${res.statusCode}: ${res.body}',
+          'message':
+              'Server responded with HTTP ${res.statusCode}: ${res.body}',
           'latencyMs': latency,
         };
       }
@@ -150,7 +155,8 @@ class CloudSyncService {
       stopwatch.stop();
       return {
         'success': false,
-        'message': 'Connection failed: ${e.toString().replaceAll('Exception:', '').trim()}',
+        'message':
+            'Connection failed: ${e.toString().replaceAll('Exception:', '').trim()}',
         'latencyMs': stopwatch.elapsedMilliseconds,
       };
     }
@@ -163,7 +169,8 @@ class CloudSyncService {
         'success': true,
         'pushed': 0,
         'pulled': 0,
-        'message': 'Offline Mode is active. All data remains in local SQLite without network sync.',
+        'message':
+            'Offline Mode is active. All data remains in local SQLite without network sync.',
       };
     }
 
@@ -177,7 +184,8 @@ class CloudSyncService {
         'success': false,
         'pushed': 0,
         'pulled': 0,
-        'message': 'Server URL is empty. Please set your Laravel backend URL in Sync Settings.',
+        'message':
+            'Server URL is empty. Please set your Laravel backend URL in Sync Settings.',
       };
     }
 
@@ -187,7 +195,8 @@ class CloudSyncService {
     syncNotifier.value = syncNotifier.value.copyWith(
       state: SyncState.syncing,
       pendingCount: pendingItems.length,
-      message: 'Syncing ${pendingItems.length} items with Laravel / MySQL server...',
+      message:
+          'Syncing ${pendingItems.length} items with Laravel / MySQL server...',
     );
 
     int pushedCount = 0;
@@ -212,22 +221,26 @@ class CloudSyncService {
         };
 
         final pushUri = Uri.parse('$serverUrl/sync/push');
-        final pushRes = await http.post(
-          pushUri,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            if (settings.syncApiKey.isNotEmpty) 'Authorization': 'Bearer ${settings.syncApiKey}',
-          },
-          body: jsonEncode(pushPayload),
-        ).timeout(const Duration(seconds: 15));
+        final pushRes = await http
+            .post(
+              pushUri,
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                if (settings.syncApiKey.isNotEmpty)
+                  'Authorization': 'Bearer ${settings.syncApiKey}',
+              },
+              body: jsonEncode(pushPayload),
+            )
+            .timeout(const Duration(seconds: 15));
 
         if (pushRes.statusCode >= 200 && pushRes.statusCode < 300) {
           final ids = pendingItems.map((e) => e['id'] as int).toList();
           await db.markSyncItemsDone(ids);
           pushedCount = ids.length;
         } else {
-          throw Exception('Push failed HTTP ${pushRes.statusCode}: ${pushRes.body}');
+          throw Exception(
+              'Push failed HTTP ${pushRes.statusCode}: ${pushRes.body}');
         }
       }
 
@@ -239,7 +252,8 @@ class CloudSyncService {
         pullUri,
         headers: {
           'Accept': 'application/json',
-          if (settings.syncApiKey.isNotEmpty) 'Authorization': 'Bearer ${settings.syncApiKey}',
+          if (settings.syncApiKey.isNotEmpty)
+            'Authorization': 'Bearer ${settings.syncApiKey}',
         },
       ).timeout(const Duration(seconds: 15));
 
@@ -270,14 +284,16 @@ class CloudSyncService {
         pendingCount: remainingPending,
         lastSync: DateTime.now(),
         isServerReachable: true,
-        message: 'Sync complete: Pushed $pushedCount items, pulled $pulledCount items',
+        message:
+            'Sync complete: Pushed $pushedCount items, pulled $pulledCount items',
       );
 
       return {
         'success': true,
         'pushed': pushedCount,
         'pulled': pulledCount,
-        'message': 'Successfully synced with Laravel / MySQL! ($pushedCount pushed, $pulledCount pulled)',
+        'message':
+            'Successfully synced with Laravel / MySQL! ($pushedCount pushed, $pulledCount pulled)',
       };
     } catch (e) {
       final errorMsg = e.toString().replaceAll('Exception:', '').trim();

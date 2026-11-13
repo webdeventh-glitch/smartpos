@@ -110,7 +110,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
   Future<void> _openAddCustomer([Contact? customerToEdit]) async {
     if (!_canManageCustomers) {
-      _denyPermission('Access Denied: You do not have permission to manage customers.');
+      _denyPermission(
+          'Access Denied: You do not have permission to manage customers.');
       return;
     }
     await showDialog(
@@ -124,7 +125,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
   Future<void> _showCustomerGroupsManager() async {
     if (!_canManageCustomers) {
-      _denyPermission('Access Denied: You do not have permission to manage customer groups.');
+      _denyPermission(
+          'Access Denied: You do not have permission to manage customer groups.');
       return;
     }
     final db = await DatabaseService.initialize();
@@ -142,7 +144,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
               text: existing != null ? existing.amount.toString() : '-10.0',
             );
             String calcType =
-                existing?.priceCalculationType == 'selling_price_group' && priceGroups.isNotEmpty
+                existing?.priceCalculationType == 'selling_price_group' &&
+                        priceGroups.isNotEmpty
                     ? 'selling_price_group'
                     : 'percentage';
             int? selectedPriceGroupId = existing?.sellingPriceGroupId ??
@@ -152,8 +155,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
               context: ctx,
               builder: (formCtx) => StatefulBuilder(
                 builder: (formCtx, setFormState) => AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  title: Text(existing == null ? 'New Customer Group' : 'Edit Customer Group'),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  title: Text(existing == null
+                      ? 'New Customer Group'
+                      : 'Edit Customer Group'),
                   content: SizedBox(
                     width: 380,
                     child: Column(
@@ -193,10 +199,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         if (calcType == 'percentage')
                           TextField(
                             controller: amountCtrl,
-                            keyboardType:
-                                const TextInputType.numberWithOptions(signed: true, decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                signed: true, decimal: true),
                             decoration: const InputDecoration(
-                              labelText: 'Price Adjustment % (-10 = 10% off, +5 = 5% markup)',
+                              labelText:
+                                  'Price Adjustment % (-10 = 10% off, +5 = 5% markup)',
                               isDense: true,
                             ),
                           )
@@ -213,7 +220,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                       child: Text(pg.name),
                                     ))
                                 .toList(),
-                            onChanged: (v) => setFormState(() => selectedPriceGroupId = v),
+                            onChanged: (v) =>
+                                setFormState(() => selectedPriceGroupId = v),
                           ),
                       ],
                     ),
@@ -238,8 +246,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           name: nameCtrl.text.trim(),
                           amount: pct,
                           priceCalculationType: calcType,
-                          sellingPriceGroupId:
-                              calcType == 'selling_price_group' ? selectedPriceGroupId : null,
+                          sellingPriceGroupId: calcType == 'selling_price_group'
+                              ? selectedPriceGroupId
+                              : null,
                         );
                         if (existing?.id != null) {
                           await db.updateCustomerGroup(next);
@@ -260,12 +269,14 @@ class _CustomersScreenState extends State<CustomersScreen> {
           }
 
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Customer Groups & Tiered Pricing',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
@@ -289,10 +300,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         final g = groups[i];
                         final String tag;
                         if (g.priceCalculationType == 'selling_price_group') {
-                          final spg = priceGroups.cast<SellingPriceGroup?>().firstWhere(
-                                (p) => p?.id == g.sellingPriceGroupId,
-                                orElse: () => null,
-                              );
+                          final spg =
+                              priceGroups.cast<SellingPriceGroup?>().firstWhere(
+                                    (p) => p?.id == g.sellingPriceGroupId,
+                                    orElse: () => null,
+                                  );
                           tag = spg != null
                               ? 'Selling Price Group: ${spg.name}'
                               : 'Selling Price Group';
@@ -304,23 +316,30 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                   : '+${g.amount.toStringAsFixed(1)}% Markup';
                         }
                         return ListTile(
-                          leading: const Icon(Icons.groups_rounded, color: Color(0xFF4F46E5)),
-                          title: Text(g.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          leading: const Icon(Icons.groups_rounded,
+                              color: Color(0xFF4F46E5)),
+                          title: Text(g.name,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text('Tier Rule: $tag'),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.edit_outlined, color: Color(0xFF4F46E5), size: 19),
+                                icon: const Icon(Icons.edit_outlined,
+                                    color: Color(0xFF4F46E5), size: 19),
                                 onPressed: () => openGroupForm(g),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 19),
+                                icon: const Icon(Icons.delete_outline,
+                                    color: Colors.redAccent, size: 19),
                                 onPressed: () async {
                                   if (g.id == null) return;
                                   await db.deleteCustomerGroup(g.id!);
-                                  final refreshed = await db.getCustomerGroups();
-                                  if (ctx.mounted) setDlgState(() => groups = refreshed);
+                                  final refreshed =
+                                      await db.getCustomerGroups();
+                                  if (ctx.mounted)
+                                    setDlgState(() => groups = refreshed);
                                   _load();
                                 },
                               ),
@@ -331,7 +350,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close')),
             ],
           );
         },
@@ -341,7 +362,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
   Future<void> _openPayDueDialog(Contact customer) async {
     if (!_canRecordKhataPayment) {
-      _denyPermission('Access Denied: You do not have permission to record khata payments.');
+      _denyPermission(
+          'Access Denied: You do not have permission to record khata payments.');
       return;
     }
     await RecordContactPaymentDialog.show(
@@ -415,7 +437,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
     final displayedCustomers = _customers;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -434,22 +457,28 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF4F46E5),
                           side: const BorderSide(color: Color(0xFF4F46E5)),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.groups_rounded, size: 18),
-                        label: const Text('Customer Groups', style: TextStyle(fontWeight: FontWeight.bold)),
+                        label: const Text('Customer Groups',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: _showCustomerGroupsManager,
                       ),
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFDC2626),
                         side: const BorderSide(color: Color(0xFFDC2626)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.print_rounded, size: 18),
-                      label: const Text('Print Defaulters Sheet', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Print Defaulters Sheet',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () => _printDefaultersSheet(const <Contact>[]),
                     ),
                     if (_canManageCustomers)
@@ -458,11 +487,14 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           backgroundColor: const Color(0xFF4F46E5),
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.person_add_rounded, size: 18),
-                        label: const Text('Add Customer', style: TextStyle(fontWeight: FontWeight.bold)),
+                        label: const Text('Add Customer',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: () => _openAddCustomer(),
                       ),
                   ],
@@ -482,7 +514,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Track customer accounts, overdue defaulters, send WhatsApp & SMS reminders, and collect dues.',
-                      style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : Colors.grey.shade600),
                     ),
                   ],
                 );
@@ -512,10 +548,20 @@ class _CustomersScreenState extends State<CustomersScreen> {
             // 4 KPI Summary Cards (Responsive)
             LayoutBuilder(
               builder: (context, constraints) {
-                final c1 = _miniCard('Total Customers', '$_totalCustomersCount', const Color(0xFF4F46E5), isDark: isDark);
-                final c2 = _miniCard('Defaulters (Pending Due)', '$_defaultersCount customers', const Color(0xFFEF4444), isDark: isDark);
-                final c3 = _miniCard('Total Overdue Receivables', '$currency${totalReceivable.toStringAsFixed(2)}', const Color(0xFFDC2626), isDark: isDark);
-                final c4 = _miniCard('Credit Limit Exceeded', '$_overLimitCount accounts', const Color(0xFFF59E0B), isDark: isDark);
+                final c1 = _miniCard('Total Customers', '$_totalCustomersCount',
+                    const Color(0xFF4F46E5),
+                    isDark: isDark);
+                final c2 = _miniCard('Defaulters (Pending Due)',
+                    '$_defaultersCount customers', const Color(0xFFEF4444),
+                    isDark: isDark);
+                final c3 = _miniCard(
+                    'Total Overdue Receivables',
+                    '$currency${totalReceivable.toStringAsFixed(2)}',
+                    const Color(0xFFDC2626),
+                    isDark: isDark);
+                final c4 = _miniCard('Credit Limit Exceeded',
+                    '$_overLimitCount accounts', const Color(0xFFF59E0B),
+                    isDark: isDark);
 
                 if (constraints.maxWidth >= 1050) {
                   return Row(
@@ -574,9 +620,14 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     _filterChip('all', 'All ($_totalCustomersCount)', isDark),
-                    _filterChip('defaulters', 'Defaulters / Dues ($_defaultersCount)', isDark, isHighlight: true, icon: Icons.warning_amber_rounded),
-                    _filterChip('over_limit', 'Limit Exceeded ($_overLimitCount)', isDark, icon: Icons.block_rounded),
-                    _filterChip('clear', 'Zero Balance ($_clearCount)', isDark, icon: Icons.check_circle_outline_rounded),
+                    _filterChip('defaulters',
+                        'Defaulters / Dues ($_defaultersCount)', isDark,
+                        isHighlight: true, icon: Icons.warning_amber_rounded),
+                    _filterChip('over_limit',
+                        'Limit Exceeded ($_overLimitCount)', isDark,
+                        icon: Icons.block_rounded),
+                    _filterChip('clear', 'Zero Balance ($_clearCount)', isDark,
+                        icon: Icons.check_circle_outline_rounded),
                   ],
                 );
 
@@ -584,7 +635,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   width: constraints.maxWidth < 750 ? double.infinity : 280,
                   child: TextField(
                     controller: _searchCtrl,
-                    style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
                       hintText: 'Search by name, phone...',
                       prefixIcon: const Icon(Icons.search, size: 18),
@@ -603,8 +656,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           : null,
                       isDense: true,
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      fillColor: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     onChanged: (val) {
                       setState(() {
@@ -629,7 +685,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1E293B) : Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0)),
                   ),
                   child: constraints.maxWidth < 950
                       ? Column(
@@ -657,21 +716,36 @@ class _CustomersScreenState extends State<CustomersScreen> {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               child: _loading
-                  ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
+                  ? const Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Center(child: CircularProgressIndicator()))
                   : displayedCustomers.isEmpty
                       ? Padding(
                           padding: const EdgeInsets.all(40),
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(Icons.search_off_rounded, size: 40, color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
+                                Icon(Icons.search_off_rounded,
+                                    size: 40,
+                                    color: isDark
+                                        ? const Color(0xFF475569)
+                                        : const Color(0xFFCBD5E1)),
                                 const SizedBox(height: 10),
                                 Text(
-                                  _filter == 'defaulters' ? 'Great news! No defaulters found.' : 'No customers match the selected criteria.',
-                                  style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.bold),
+                                  _filter == 'defaulters'
+                                      ? 'Great news! No defaulters found.'
+                                      : 'No customers match the selected criteria.',
+                                  style: TextStyle(
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF64748B),
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -681,30 +755,44 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           borderRadius: BorderRadius.circular(12),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final double tableWidth = math.max(constraints.maxWidth, 950.0);
+                              final double tableWidth =
+                                  math.max(constraints.maxWidth, 950.0);
                               return Scrollbar(
                                 thumbVisibility: true,
                                 trackVisibility: true,
                                 child: SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
-                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
                                   child: SizedBox(
                                     width: tableWidth,
                                     child: Table(
                                       columnWidths: const {
-                                        0: FlexColumnWidth(2.2), // CUSTOMER NAME
+                                        0: FlexColumnWidth(
+                                            2.2), // CUSTOMER NAME
                                         1: FlexColumnWidth(1.8), // BUSINESS
                                         2: FlexColumnWidth(1.4), // PHONE
                                         3: FlexColumnWidth(1.4), // CREDIT LIMIT
                                         4: FlexColumnWidth(1.4), // CURRENT DUE
-                                        5: FlexColumnWidth(2.2), // ACTIONS & REMINDERS
+                                        5: FlexColumnWidth(
+                                            2.2), // ACTIONS & REMINDERS
                                       },
-                                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                      defaultVerticalAlignment:
+                                          TableCellVerticalAlignment.middle,
                                       children: [
                                         TableRow(
                                           decoration: BoxDecoration(
-                                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                                            border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), width: 1.2)),
+                                            color: isDark
+                                                ? const Color(0xFF0F172A)
+                                                : const Color(0xFFF8FAFC),
+                                            border: Border(
+                                                bottom: BorderSide(
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFF334155)
+                                                        : const Color(
+                                                            0xFFE2E8F0),
+                                                    width: 1.2)),
                                           ),
                                           children: [
                                             _th('CUSTOMER NAME', isDark),
@@ -715,18 +803,36 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                             _th('ACTIONS & REMINDERS', isDark),
                                           ],
                                         ),
-                                        ...displayedCustomers.asMap().entries.map((entry) {
+                                        ...displayedCustomers
+                                            .asMap()
+                                            .entries
+                                            .map((entry) {
                                           final idx = entry.key;
                                           final c = entry.value;
-                                          final isOverLimit = c.creditLimit > 0 && c.balance > c.creditLimit;
+                                          final isOverLimit =
+                                              c.creditLimit > 0 &&
+                                                  c.balance > c.creditLimit;
                                           final rowBg = idx.isOdd
-                                              ? (isDark ? const Color(0xFF1E293B) : Colors.white)
-                                              : (isDark ? const Color(0xFF172033) : const Color(0xFFFBFDFF));
+                                              ? (isDark
+                                                  ? const Color(0xFF1E293B)
+                                                  : Colors.white)
+                                              : (isDark
+                                                  ? const Color(0xFF172033)
+                                                  : const Color(0xFFFBFDFF));
 
                                           return TableRow(
                                             decoration: BoxDecoration(
                                               color: rowBg,
-                                              border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155).withValues(alpha: 0.6) : const Color(0xFFE2E8F0), width: 0.8)),
+                                              border: Border(
+                                                  bottom: BorderSide(
+                                                      color: isDark
+                                                          ? const Color(
+                                                                  0xFF334155)
+                                                              .withValues(
+                                                                  alpha: 0.6)
+                                                          : const Color(
+                                                              0xFFE2E8F0),
+                                                      width: 0.8)),
                                             ),
                                             children: [
                                               _td(
@@ -734,14 +840,28 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                   children: [
                                                     CircleAvatar(
                                                       radius: 14,
-                                                      backgroundColor: c.balance > 0
-                                                          ? const Color(0xFFFEE2E2)
-                                                          : (isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF)),
+                                                      backgroundColor: c
+                                                                  .balance >
+                                                              0
+                                                          ? const Color(
+                                                              0xFFFEE2E2)
+                                                          : (isDark
+                                                              ? const Color(
+                                                                  0xFF312E81)
+                                                              : const Color(
+                                                                  0xFFEEF2FF)),
                                                       child: Text(
-                                                        c.name.isNotEmpty ? c.name[0] : 'C',
+                                                        c.name.isNotEmpty
+                                                            ? c.name[0]
+                                                            : 'C',
                                                         style: TextStyle(
-                                                          color: c.balance > 0 ? const Color(0xFFDC2626) : const Color(0xFF4F46E5),
-                                                          fontWeight: FontWeight.bold,
+                                                          color: c.balance > 0
+                                                              ? const Color(
+                                                                  0xFFDC2626)
+                                                              : const Color(
+                                                                  0xFF4F46E5),
+                                                          fontWeight:
+                                                              FontWeight.bold,
                                                           fontSize: 11,
                                                         ),
                                                       ),
@@ -749,34 +869,75 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                     const SizedBox(width: 10),
                                                     Expanded(
                                                       child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
                                                         children: [
                                                           Text(
                                                             c.name,
                                                             style: TextStyle(
-                                                              fontWeight: FontWeight.bold,
-                                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color: isDark
+                                                                  ? Colors.white
+                                                                  : const Color(
+                                                                      0xFF0F172A),
                                                             ),
-                                                            overflow: TextOverflow.ellipsis,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
                                                           ),
-                                                          if (c.customerGroupName != null && c.customerGroupName!.isNotEmpty)
+                                                          if (c.customerGroupName !=
+                                                                  null &&
+                                                              c.customerGroupName!
+                                                                  .isNotEmpty)
                                                             Container(
-                                                              margin: const EdgeInsets.only(top: 2),
-                                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                                              decoration: BoxDecoration(
-                                                                color: const Color(0xFFEEF2FF),
-                                                                borderRadius: BorderRadius.circular(4),
+                                                              margin:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                      top: 2),
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          6,
+                                                                      vertical:
+                                                                          1),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: const Color(
+                                                                    0xFFEEF2FF),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            4),
                                                               ),
                                                               child: Text(
                                                                 c.customerGroupName!,
-                                                                style: const TextStyle(fontSize: 10, color: Color(0xFF4F46E5), fontWeight: FontWeight.w700),
+                                                                style: const TextStyle(
+                                                                    fontSize:
+                                                                        10,
+                                                                    color: Color(
+                                                                        0xFF4F46E5),
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w700),
                                                               ),
                                                             ),
                                                           if (isOverLimit)
                                                             const Text(
                                                               'Exceeded Limit!',
-                                                              style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold),
+                                                              style: TextStyle(
+                                                                  fontSize: 10,
+                                                                  color: Colors
+                                                                      .orange,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold),
                                                             ),
                                                         ],
                                                       ),
@@ -785,86 +946,215 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                 ),
                                               ),
                                               _td(Text(
-                                                c.businessName?.isNotEmpty == true ? c.businessName! : '-',
-                                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                                c.businessName?.isNotEmpty ==
+                                                        true
+                                                    ? c.businessName!
+                                                    : '-',
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFFCBD5E1)
+                                                        : Colors.black87),
                                                 overflow: TextOverflow.ellipsis,
                                               )),
                                               _td(Text(
-                                                c.phone.isNotEmpty ? c.phone : '-',
-                                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                                c.phone.isNotEmpty
+                                                    ? c.phone
+                                                    : '-',
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFFCBD5E1)
+                                                        : Colors.black87),
                                               )),
                                               _td(Text(
                                                 '$currency${c.creditLimit.toStringAsFixed(2)}',
-                                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : Colors.black87),
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFFCBD5E1)
+                                                        : Colors.black87),
                                               )),
                                               _td(Text(
-                                                c.balance > 0 ? '$currency${c.balance.toStringAsFixed(2)}' : '$currency 0.00',
+                                                c.balance > 0
+                                                    ? '$currency${c.balance.toStringAsFixed(2)}'
+                                                    : '$currency 0.00',
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 13,
-                                                  color: c.balance > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                                                  color: c.balance > 0
+                                                      ? const Color(0xFFEF4444)
+                                                      : const Color(0xFF10B981),
                                                 ),
                                               )),
                                               _td(
                                                 Wrap(
                                                   spacing: 6,
                                                   runSpacing: 4,
-                                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                                  crossAxisAlignment:
+                                                      WrapCrossAlignment.center,
                                                   children: [
                                                     // Pay Due
                                                     if (c.balance > 0) ...[
                                                       if (_canRecordKhataPayment)
                                                         ElevatedButton.icon(
-                                                          style: ElevatedButton.styleFrom(
-                                                            backgroundColor: const Color(0xFF059669),
-                                                            foregroundColor: Colors.white,
+                                                          style: ElevatedButton
+                                                              .styleFrom(
+                                                            backgroundColor:
+                                                                const Color(
+                                                                    0xFF059669),
+                                                            foregroundColor:
+                                                                Colors.white,
                                                             elevation: 0,
-                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        10,
+                                                                    vertical:
+                                                                        6),
+                                                            shape: RoundedRectangleBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            6)),
                                                           ),
-                                                          icon: const Icon(Icons.attach_money, size: 14),
-                                                          label: const Text('Pay Due', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                                          onPressed: () => _openPayDueDialog(c),
+                                                          icon: const Icon(
+                                                              Icons
+                                                                  .attach_money,
+                                                              size: 14),
+                                                          label: const Text(
+                                                              'Pay Due',
+                                                              style: TextStyle(
+                                                                  fontSize: 11,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold)),
+                                                          onPressed: () =>
+                                                              _openPayDueDialog(
+                                                                  c),
                                                         ),
 
                                                       // WhatsApp / SMS Reminder
                                                       ElevatedButton.icon(
-                                                        style: ElevatedButton.styleFrom(
-                                                          backgroundColor: const Color(0xFF10B981),
-                                                          foregroundColor: Colors.white,
+                                                        style: ElevatedButton
+                                                            .styleFrom(
+                                                          backgroundColor:
+                                                              const Color(
+                                                                  0xFF10B981),
+                                                          foregroundColor:
+                                                              Colors.white,
                                                           elevation: 0,
-                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal:
+                                                                      10,
+                                                                  vertical: 6),
+                                                          shape: RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          6)),
                                                         ),
-                                                        icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 13),
-                                                        label: const Text('Reminder', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                                        onPressed: () => _openReminderDialog(c),
+                                                        icon: const FaIcon(
+                                                            FontAwesomeIcons
+                                                                .whatsapp,
+                                                            size: 13),
+                                                        label: const Text(
+                                                            'Reminder',
+                                                            style: TextStyle(
+                                                                fontSize: 11,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        onPressed: () =>
+                                                            _openReminderDialog(
+                                                                c),
                                                       ),
                                                     ],
 
                                                     // Khata Ledger
                                                     OutlinedButton.icon(
-                                                      style: OutlinedButton.styleFrom(
-                                                        foregroundColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5),
-                                                        side: BorderSide(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
-                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                      style: OutlinedButton
+                                                          .styleFrom(
+                                                        foregroundColor: isDark
+                                                            ? const Color(
+                                                                0xFFA5B4FC)
+                                                            : const Color(
+                                                                0xFF4F46E5),
+                                                        side: BorderSide(
+                                                            color: isDark
+                                                                ? const Color(
+                                                                    0xFF4338CA)
+                                                                : const Color(
+                                                                    0xFFC7D2FE)),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 10,
+                                                                vertical: 6),
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            6)),
                                                       ),
-                                                      icon: const Icon(Icons.receipt_long, size: 14),
-                                                      label: const Text('Ledger', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                                      onPressed: () => _openLedgerDialog(c),
+                                                      icon: const Icon(
+                                                          Icons.receipt_long,
+                                                          size: 14),
+                                                      label: const Text(
+                                                          'Ledger',
+                                                          style: TextStyle(
+                                                              fontSize: 11,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold)),
+                                                      onPressed: () =>
+                                                          _openLedgerDialog(c),
                                                     ),
                                                     if (_canManageCustomers)
                                                       OutlinedButton.icon(
-                                                        style: OutlinedButton.styleFrom(
-                                                          foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-                                                          side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                        style: OutlinedButton
+                                                            .styleFrom(
+                                                          foregroundColor: isDark
+                                                              ? const Color(
+                                                                  0xFF94A3B8)
+                                                              : const Color(
+                                                                  0xFF475569),
+                                                          side: BorderSide(
+                                                              color: isDark
+                                                                  ? const Color(
+                                                                      0xFF334155)
+                                                                  : const Color(
+                                                                      0xFFCBD5E1)),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal: 8,
+                                                                  vertical: 6),
+                                                          shape: RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          6)),
                                                         ),
-                                                        icon: const Icon(Icons.edit_outlined, size: 14),
-                                                        label: const Text('Edit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                                        onPressed: () => _openAddCustomer(c),
+                                                        icon: const Icon(
+                                                            Icons.edit_outlined,
+                                                            size: 14),
+                                                        label: const Text(
+                                                            'Edit',
+                                                            style: TextStyle(
+                                                                fontSize: 11,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        onPressed: () =>
+                                                            _openAddCustomer(c),
                                                       ),
                                                   ],
                                                 ),
@@ -906,9 +1196,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
     );
   }
 
-  Widget _filterChip(String id, String label, bool isDark, {bool isHighlight = false, IconData? icon}) {
+  Widget _filterChip(String id, String label, bool isDark,
+      {bool isHighlight = false, IconData? icon}) {
     final isSelected = _filter == id;
-    final color = isHighlight ? const Color(0xFFEF4444) : const Color(0xFF4F46E5);
+    final color =
+        isHighlight ? const Color(0xFFEF4444) : const Color(0xFF4F46E5);
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
@@ -922,10 +1214,18 @@ class _CustomersScreenState extends State<CustomersScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color : (isHighlight ? const Color(0xFFEF4444).withValues(alpha: 0.1) : Colors.transparent),
+          color: isSelected
+              ? color
+              : (isHighlight
+                  ? const Color(0xFFEF4444).withValues(alpha: 0.1)
+                  : Colors.transparent),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : (isHighlight ? const Color(0xFFEF4444).withValues(alpha: 0.4) : const Color(0xFFCBD5E1)),
+            color: isSelected
+                ? color
+                : (isHighlight
+                    ? const Color(0xFFEF4444).withValues(alpha: 0.4)
+                    : const Color(0xFFCBD5E1)),
           ),
         ),
         child: Row(
@@ -935,7 +1235,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
               Icon(
                 icon,
                 size: 13,
-                color: isSelected ? Colors.white : (isHighlight ? const Color(0xFFDC2626) : const Color(0xFF4F46E5)),
+                color: isSelected
+                    ? Colors.white
+                    : (isHighlight
+                        ? const Color(0xFFDC2626)
+                        : const Color(0xFF4F46E5)),
               ),
               const SizedBox(width: 5),
             ],
@@ -944,7 +1248,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                color: isSelected ? Colors.white : (isHighlight ? const Color(0xFFDC2626) : const Color(0xFF475569)),
+                color: isSelected
+                    ? Colors.white
+                    : (isHighlight
+                        ? const Color(0xFFDC2626)
+                        : const Color(0xFF475569)),
               ),
             ),
           ],
@@ -953,13 +1261,15 @@ class _CustomersScreenState extends State<CustomersScreen> {
     );
   }
 
-  Widget _miniCard(String label, String value, Color color, {required bool isDark}) {
+  Widget _miniCard(String label, String value, Color color,
+      {required bool isDark}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -973,7 +1283,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color), overflow: TextOverflow.ellipsis),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w900, color: color),
+              overflow: TextOverflow.ellipsis),
         ],
       ),
     );

@@ -30,4 +30,3 @@ final settingsProvider =
     AsyncNotifierProvider<SettingsNotifier, BusinessSettings>(
   SettingsNotifier.new,
 );
-

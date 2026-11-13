@@ -15,7 +15,8 @@ void main() {
     late String testDbPath;
 
     setUp(() async {
-      testDbPath = '${Directory.systemTemp.path}/test_multi_units_${DateTime.now().microsecondsSinceEpoch}.db';
+      testDbPath =
+          '${Directory.systemTemp.path}/test_multi_units_${DateTime.now().microsecondsSinceEpoch}.db';
       db = await DatabaseService.initialize(customPath: testDbPath);
     });
 
@@ -26,7 +27,9 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Database returns correct sub-units for Pharma, Grocery and Discrete items', () async {
+    test(
+        '1. Database returns correct sub-units for Pharma, Grocery and Discrete items',
+        () async {
       // Pharma item: Tablet
       final tabProd = Product(
         name: 'Panadol 500mg Tab',
@@ -97,7 +100,9 @@ void main() {
       expect(item.subtotal, 1730.00); // 2 Boxes * 865.00 = 1730.00
     });
 
-    test('3. Stock deduction deducts accurate base unit quantity from inventory', () async {
+    test(
+        '3. Stock deduction deducts accurate base unit quantity from inventory',
+        () async {
       final pId = await db.insertProduct(Product(
         name: 'Disprin Soluble',
         sku: 'DSP-01',
@@ -137,7 +142,8 @@ void main() {
       await db.createSale(sale: sale, items: [cartItem]);
 
       // Stock should have decreased by 2 * 100 = 200 tablets (from 500 to 300)
-      final updatedProduct = (await db.getProducts()).firstWhere((p) => p.id == pId);
+      final updatedProduct =
+          (await db.getProducts()).firstWhere((p) => p.id == pId);
       expect(updatedProduct.stockQuantity, 300.0);
     });
   });

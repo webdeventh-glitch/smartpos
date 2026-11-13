@@ -19,7 +19,8 @@ void main() {
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('messaging_ai_test_');
-      dbPath = path.join(tempDir.path, 'pos_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(
+          tempDir.path, 'pos_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -31,12 +32,19 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Pakistani Phone Number Formatting: Converts 03xx to international 923xx', () {
+    test(
+        '1. Pakistani Phone Number Formatting: Converts 03xx to international 923xx',
+        () {
       expect(MessagingService.formatPhoneNumber('03001234567'), '923001234567');
       expect(MessagingService.formatPhoneNumber('3001234567'), '923001234567');
-      expect(MessagingService.formatPhoneNumber('+92 321-9876543'), '923219876543');
-      expect(MessagingService.formatPhoneNumber('00923331122334'), '923331122334');
-      expect(MessagingService.formatPhoneNumber('03001234567', international: false), '03001234567');
+      expect(MessagingService.formatPhoneNumber('+92 321-9876543'),
+          '923219876543');
+      expect(
+          MessagingService.formatPhoneNumber('00923331122334'), '923331122334');
+      expect(
+          MessagingService.formatPhoneNumber('03001234567',
+              international: false),
+          '03001234567');
     });
 
     test('2. SMS Gateways Full CRUD & Message Logging', () async {
@@ -48,7 +56,8 @@ void main() {
       final newGateway = SmsGateway(
         name: 'Ufone Corporate Messaging',
         provider: 'ufone',
-        apiUrl: 'https://ufone.api.domain/sms?to={to}&msg={message}&mask={mask}&key={key}',
+        apiUrl:
+            'https://ufone.api.domain/sms?to={to}&msg={message}&mask={mask}&key={key}',
         apiKey: 'ufone_test_key_123',
         senderId: 'MYBRAND',
         httpMethod: 'GET',
@@ -65,10 +74,12 @@ void main() {
       expect(savedGw.senderId, 'MYBRAND');
 
       // 3. Update gateway
-      final updatedGw = savedGw.copyWith(senderId: 'SUPERPOS', httpMethod: 'POST');
+      final updatedGw =
+          savedGw.copyWith(senderId: 'SUPERPOS', httpMethod: 'POST');
       await dbService.updateSmsGateway(updatedGw);
 
-      final refetched = (await dbService.getSmsGateways()).firstWhere((g) => g.id == gwId);
+      final refetched =
+          (await dbService.getSmsGateways()).firstWhere((g) => g.id == gwId);
       expect(refetched.senderId, 'SUPERPOS');
       expect(refetched.httpMethod, 'POST');
 
@@ -77,7 +88,8 @@ void main() {
         recipientName: 'Muhammad Ali',
         phoneNumber: '923001234567',
         channel: 'sms',
-        messageBody: 'Your bill #INV-1001 for Rs 4,500 has been generated. Thank you!',
+        messageBody:
+            'Your bill #INV-1001 for Rs 4,500 has been generated. Thank you!',
         status: 'sent',
         gatewayName: 'Ufone Corporate Messaging',
         createdAt: DateTime.now().toIso8601String(),
@@ -183,4 +195,3 @@ void main() {
     });
   });
 }
-

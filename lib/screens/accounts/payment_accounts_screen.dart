@@ -13,7 +13,8 @@ class PaymentAccountsScreen extends StatefulWidget {
   State<PaymentAccountsScreen> createState() => _PaymentAccountsScreenState();
 }
 
-class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with SingleTickerProviderStateMixin {
+class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<PaymentAccount> _accounts = [];
   List<AccountTransfer> _transfers = [];
@@ -52,12 +53,18 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
         children: [
           Text(
             text,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF334155)),
           ),
           if (isRequired)
             const Text(
               ' *',
-              style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.bold, fontSize: 12),
+              style: TextStyle(
+                  color: Color(0xFFDC2626),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12),
             ),
         ],
       ),
@@ -77,13 +84,19 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Container(
             width: 480,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: const [BoxShadow(color: Color(0x1F000000), blurRadius: 24, offset: Offset(0, 8))],
+              boxShadow: const [
+                BoxShadow(
+                    color: Color(0x1F000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 8))
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -92,28 +105,41 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                 // Header
                 Container(
                   padding: const EdgeInsets.fromLTRB(22, 18, 16, 16),
-                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9)))),
+                  decoration: const BoxDecoration(
+                      border:
+                          Border(bottom: BorderSide(color: Color(0xFFF1F5F9)))),
                   child: Row(
                     children: [
                       Container(
                         width: 40,
                         height: 40,
-                        decoration: BoxDecoration(color: const Color(0xFFEEF2FF), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.account_balance_rounded, color: Color(0xFF4F46E5), size: 22),
+                        decoration: BoxDecoration(
+                            color: const Color(0xFFEEF2FF),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.account_balance_rounded,
+                            color: Color(0xFF4F46E5), size: 22),
                       ),
                       const SizedBox(width: 14),
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Add Payment Account', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                            Text('Add Payment Account',
+                                style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A))),
                             SizedBox(height: 2),
-                            Text('Register a bank account, cash drawer or merchant terminal', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                            Text(
+                                'Register a bank account, cash drawer or merchant terminal',
+                                style: TextStyle(
+                                    fontSize: 12, color: Color(0xFF64748B))),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF94A3B8)),
+                        icon: const Icon(Icons.close_rounded,
+                            size: 20, color: Color(0xFF94A3B8)),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
@@ -129,19 +155,26 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                       _fieldLabel('Account Name', isRequired: true),
                       TextField(
                         controller: nameCtrl,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600),
                         decoration: InputDecoration(
                           hintText: 'e.g. Meezan Main Operating, Cash Drawer',
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFCBD5E1))),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                       const SizedBox(height: 14),
-
                       _fieldLabel('Account Number / IBAN'),
                       TextField(
                         controller: numCtrl,
@@ -149,52 +182,83 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                         decoration: InputDecoration(
                           hintText: 'e.g. PK36MEZN000123456789',
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFCBD5E1))),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                       const SizedBox(height: 14),
-
                       _fieldLabel('Account Type', isRequired: true),
                       DropdownButtonFormField<String>(
                         initialValue: type,
                         decoration: InputDecoration(
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFCBD5E1))),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                         items: const [
-                          DropdownMenuItem(value: 'cash', child: Text('Cash Drawer / Register', style: TextStyle(fontSize: 13))),
-                          DropdownMenuItem(value: 'bank', child: Text('Bank Operating Account', style: TextStyle(fontSize: 13))),
-                          DropdownMenuItem(value: 'pos_terminal', child: Text('POS Merchant Terminal / Gateway', style: TextStyle(fontSize: 13))),
+                          DropdownMenuItem(
+                              value: 'cash',
+                              child: Text('Cash Drawer / Register',
+                                  style: TextStyle(fontSize: 13))),
+                          DropdownMenuItem(
+                              value: 'bank',
+                              child: Text('Bank Operating Account',
+                                  style: TextStyle(fontSize: 13))),
+                          DropdownMenuItem(
+                              value: 'pos_terminal',
+                              child: Text('POS Merchant Terminal / Gateway',
+                                  style: TextStyle(fontSize: 13))),
                         ],
-                        onChanged: (val) => setDlgState(() => type = val ?? type),
+                        onChanged: (val) =>
+                            setDlgState(() => type = val ?? type),
                       ),
                       const SizedBox(height: 14),
-
-                      _fieldLabel('Opening Balance ($currency)', isRequired: true),
+                      _fieldLabel('Opening Balance ($currency)',
+                          isRequired: true),
                       TextField(
                         controller: balCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
                         decoration: InputDecoration(
                           isDense: true,
                           prefixText: '$currency ',
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFCBD5E1))),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                       const SizedBox(height: 14),
-
                       _fieldLabel('Description / Note'),
                       TextField(
                         controller: noteCtrl,
@@ -202,11 +266,18 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                         decoration: InputDecoration(
                           hintText: 'Additional account details...',
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFCBD5E1))),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ],
@@ -218,7 +289,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                   padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
                   decoration: const BoxDecoration(
                     color: Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                    borderRadius:
+                        BorderRadius.vertical(bottom: Radius.circular(16)),
                     border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                   child: Row(
@@ -229,11 +301,15 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF475569),
                           side: const BorderSide(color: Color(0xFFCBD5E1)),
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        child: const Text('Cancel',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13)),
                       ),
                       const SizedBox(width: 10),
                       ElevatedButton.icon(
@@ -241,15 +317,20 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                           backgroundColor: const Color(0xFF4F46E5),
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.check_rounded, size: 18),
-                        label: const Text('Save Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        label: const Text('Save Account',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           final name = nameCtrl.text.trim();
                           if (name.isEmpty) return;
-                          final bal = double.tryParse(balCtrl.text.trim()) ?? 0.0;
+                          final bal =
+                              double.tryParse(balCtrl.text.trim()) ?? 0.0;
 
                           final db = await DatabaseService.initialize();
                           await db.addPaymentAccount(PaymentAccount(
@@ -266,7 +347,10 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
 
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Payment account "$name" created successfully!'), backgroundColor: const Color(0xFF10B981)),
+                              SnackBar(
+                                  content: Text(
+                                      'Payment account "$name" created successfully!'),
+                                  backgroundColor: const Color(0xFF10B981)),
                             );
                           }
                         },
@@ -282,10 +366,13 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
     );
   }
 
-  Future<void> _showTransferFundsDialog({PaymentAccount? initialFromAccount}) async {
+  Future<void> _showTransferFundsDialog(
+      {PaymentAccount? initialFromAccount}) async {
     if (_accounts.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('At least 2 payment accounts are required to transfer funds.')),
+        const SnackBar(
+            content: Text(
+                'At least 2 payment accounts are required to transfer funds.')),
       );
       return;
     }
@@ -294,7 +381,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
     final nextRef = await db.generateNextAccountTransferRef();
 
     PaymentAccount fromAcc = initialFromAccount ?? _accounts.first;
-    PaymentAccount toAcc = _accounts.firstWhere((a) => a.id != fromAcc.id, orElse: () => _accounts.last);
+    PaymentAccount toAcc = _accounts.firstWhere((a) => a.id != fromAcc.id,
+        orElse: () => _accounts.last);
     final amountCtrl = TextEditingController(text: '500.00');
     final noteCtrl = TextEditingController();
     final currency = widget.settings.currencySymbol;
@@ -306,13 +394,19 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Container(
             width: 500,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: const [BoxShadow(color: Color(0x1F000000), blurRadius: 24, offset: Offset(0, 8))],
+              boxShadow: const [
+                BoxShadow(
+                    color: Color(0x1F000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 8))
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -321,28 +415,41 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                 // Header
                 Container(
                   padding: const EdgeInsets.fromLTRB(22, 18, 16, 16),
-                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9)))),
+                  decoration: const BoxDecoration(
+                      border:
+                          Border(bottom: BorderSide(color: Color(0xFFF1F5F9)))),
                   child: Row(
                     children: [
                       Container(
                         width: 40,
                         height: 40,
-                        decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.sync_alt_rounded, color: Color(0xFF059669), size: 22),
+                        decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.sync_alt_rounded,
+                            color: Color(0xFF059669), size: 22),
                       ),
                       const SizedBox(width: 14),
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Transfer Funds Between Accounts', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                            Text('Transfer Funds Between Accounts',
+                                style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A))),
                             SizedBox(height: 2),
-                            Text('Double-entry bookkeeping between drawers and banks', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                            Text(
+                                'Double-entry bookkeeping between drawers and banks',
+                                style: TextStyle(
+                                    fontSize: 12, color: Color(0xFF64748B))),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF94A3B8)),
+                        icon: const Icon(Icons.close_rounded,
+                            size: 20, color: Color(0xFF94A3B8)),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
@@ -360,72 +467,107 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                         initialValue: fromAcc,
                         decoration: InputDecoration(
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFCBD5E1))),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                         items: _accounts
                             .map((a) => DropdownMenuItem(
                                   value: a,
-                                  child: Text('${a.name} ($currency${a.currentBalance.toStringAsFixed(2)})', style: const TextStyle(fontSize: 13)),
+                                  child: Text(
+                                      '${a.name} ($currency${a.currentBalance.toStringAsFixed(2)})',
+                                      style: const TextStyle(fontSize: 13)),
                                 ))
                             .toList(),
-                        onChanged: (val) => setDlgState(() => fromAcc = val ?? fromAcc),
+                        onChanged: (val) =>
+                            setDlgState(() => fromAcc = val ?? fromAcc),
                       ),
                       const SizedBox(height: 14),
-
                       _fieldLabel('To Account (Destination)', isRequired: true),
                       DropdownButtonFormField<PaymentAccount>(
                         initialValue: toAcc,
                         decoration: InputDecoration(
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFCBD5E1))),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                         items: _accounts
                             .map((a) => DropdownMenuItem(
                                   value: a,
-                                  child: Text('${a.name} ($currency${a.currentBalance.toStringAsFixed(2)})', style: const TextStyle(fontSize: 13)),
+                                  child: Text(
+                                      '${a.name} ($currency${a.currentBalance.toStringAsFixed(2)})',
+                                      style: const TextStyle(fontSize: 13)),
                                 ))
                             .toList(),
-                        onChanged: (val) => setDlgState(() => toAcc = val ?? toAcc),
+                        onChanged: (val) =>
+                            setDlgState(() => toAcc = val ?? toAcc),
                       ),
                       const SizedBox(height: 14),
-
-                      _fieldLabel('Transfer Amount ($currency)', isRequired: true),
+                      _fieldLabel('Transfer Amount ($currency)',
+                          isRequired: true),
                       TextField(
                         controller: amountCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
                         decoration: InputDecoration(
                           isDense: true,
                           prefixText: '$currency ',
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFCBD5E1))),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                       const SizedBox(height: 14),
-
                       _fieldLabel('Reference Note / Reason'),
                       TextField(
                         controller: noteCtrl,
                         style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
-                          hintText: 'e.g. Daily cash register deposit to bank...',
+                          hintText:
+                              'e.g. Daily cash register deposit to bank...',
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFCBD5E1))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFCBD5E1))),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ],
@@ -437,7 +579,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                   padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
                   decoration: const BoxDecoration(
                     color: Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                    borderRadius:
+                        BorderRadius.vertical(bottom: Radius.circular(16)),
                     border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                   child: Row(
@@ -448,11 +591,15 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF475569),
                           side: const BorderSide(color: Color(0xFFCBD5E1)),
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        child: const Text('Cancel',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13)),
                       ),
                       const SizedBox(width: 10),
                       ElevatedButton.icon(
@@ -460,20 +607,28 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                           backgroundColor: const Color(0xFF059669),
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.sync_alt_rounded, size: 18),
-                        label: const Text('Transfer Funds', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        label: const Text('Transfer Funds',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           if (fromAcc.id == toAcc.id) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Source and destination accounts cannot be the same!'), backgroundColor: Colors.red),
+                              const SnackBar(
+                                  content: Text(
+                                      'Source and destination accounts cannot be the same!'),
+                                  backgroundColor: Colors.red),
                             );
                             return;
                           }
 
-                          final amount = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+                          final amount =
+                              double.tryParse(amountCtrl.text.trim()) ?? 0.0;
                           if (amount <= 0) return;
 
                           final transfer = AccountTransfer(
@@ -482,7 +637,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                             toAccountId: toAcc.id!,
                             toAccountName: toAcc.name,
                             amount: amount,
-                            date: DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+                            date: DateFormat('yyyy-MM-dd HH:mm:ss')
+                                .format(DateTime.now()),
                             refNo: nextRef,
                             note: noteCtrl.text.trim(),
                           );
@@ -494,7 +650,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Transferred $currency${amount.toStringAsFixed(2)} from ${fromAcc.name} to ${toAcc.name}!'),
+                                content: Text(
+                                    'Transferred $currency${amount.toStringAsFixed(2)} from ${fromAcc.name} to ${toAcc.name}!'),
                                 backgroundColor: const Color(0xFF10B981),
                               ),
                             );
@@ -523,13 +680,19 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Container(
             width: 480,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: const [BoxShadow(color: Color(0x1F000000), blurRadius: 24, offset: Offset(0, 8))],
+              boxShadow: const [
+                BoxShadow(
+                    color: Color(0x1F000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 8))
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -537,28 +700,41 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
               children: [
                 Container(
                   padding: const EdgeInsets.fromLTRB(22, 18, 16, 16),
-                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9)))),
+                  decoration: const BoxDecoration(
+                      border:
+                          Border(bottom: BorderSide(color: Color(0xFFF1F5F9)))),
                   child: Row(
                     children: [
                       Container(
                         width: 40,
                         height: 40,
-                        decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.arrow_downward_rounded, color: Color(0xFF059669), size: 22),
+                        decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.arrow_downward_rounded,
+                            color: Color(0xFF059669), size: 22),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Deposit Funds into ${acc.name}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                            Text('Deposit Funds into ${acc.name}',
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A))),
                             const SizedBox(height: 2),
-                            Text('Current Balance: $currency${acc.currentBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                            Text(
+                                'Current Balance: $currency${acc.currentBalance.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Color(0xFF64748B))),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF94A3B8)),
+                        icon: const Icon(Icons.close_rounded,
+                            size: 20, color: Color(0xFF94A3B8)),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
@@ -569,19 +745,27 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _fieldLabel('Deposit Amount ($currency)', isRequired: true),
+                      _fieldLabel('Deposit Amount ($currency)',
+                          isRequired: true),
                       TextField(
                         controller: amountCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
                         decoration: InputDecoration(
                           isDense: true,
                           prefixText: '$currency ',
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -590,19 +774,31 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                         value: paymentMethod,
                         decoration: InputDecoration(
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                         items: const [
                           DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                          DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer / Cheque')),
-                          DropdownMenuItem(value: 'card', child: Text('Card / Online Terminal')),
-                          DropdownMenuItem(value: 'other', child: Text('Owner Capital / Other')),
+                          DropdownMenuItem(
+                              value: 'bank_transfer',
+                              child: Text('Bank Transfer / Cheque')),
+                          DropdownMenuItem(
+                              value: 'card',
+                              child: Text('Card / Online Terminal')),
+                          DropdownMenuItem(
+                              value: 'other',
+                              child: Text('Owner Capital / Other')),
                         ],
-                        onChanged: (val) => setDlgState(() => paymentMethod = val ?? 'cash'),
+                        onChanged: (val) =>
+                            setDlgState(() => paymentMethod = val ?? 'cash'),
                       ),
                       const SizedBox(height: 14),
                       _fieldLabel('Description / Deposit Note'),
@@ -610,13 +806,19 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                         controller: noteCtrl,
                         style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
-                          hintText: 'e.g. Cash top-up, Director loan, Bank profit...',
+                          hintText:
+                              'e.g. Cash top-up, Director loan, Bank profit...',
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
                       ),
                     ],
@@ -626,7 +828,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                   padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
                   decoration: const BoxDecoration(
                     color: Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                    borderRadius:
+                        BorderRadius.vertical(bottom: Radius.circular(16)),
                     border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
                   ),
                   child: Row(
@@ -637,11 +840,15 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF475569),
                           side: const BorderSide(color: Color(0xFFCBD5E1)),
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        child: const Text('Cancel',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13)),
                       ),
                       const SizedBox(width: 10),
                       ElevatedButton.icon(
@@ -649,13 +856,18 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                           backgroundColor: const Color(0xFF059669),
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.check_rounded, size: 18),
-                        label: const Text('Deposit Funds', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        label: const Text('Deposit Funds',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
-                          final amt = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+                          final amt =
+                              double.tryParse(amountCtrl.text.trim()) ?? 0.0;
                           if (amt <= 0) return;
                           final db = await DatabaseService.initialize();
                           await db.depositToAccount(
@@ -669,7 +881,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Deposited $currency${amt.toStringAsFixed(2)} into ${acc.name}!'),
+                                content: Text(
+                                    'Deposited $currency${amt.toStringAsFixed(2)} into ${acc.name}!'),
                                 backgroundColor: const Color(0xFF10B981),
                               ),
                             );
@@ -699,9 +912,13 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
           'deduct $currency${t.amount.toStringAsFixed(2)} from "${t.toAccountName}".',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Reverse Transfer'),
           ),
@@ -757,10 +974,15 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Payment Accounts & Banking',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A))),
                     SizedBox(height: 4),
-                    Text('Manage cash drawers, bank accounts, POS merchant terminals, and double-entry transfers.',
-                        style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                    Text(
+                        'Manage cash drawers, bank accounts, POS merchant terminals, and double-entry transfers.',
+                        style:
+                            TextStyle(fontSize: 13, color: Color(0xFF64748B))),
                   ],
                 ),
                 Row(
@@ -769,11 +991,14 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4F46E5),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.add_rounded, size: 18),
-                      label: const Text('Add Account', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Add Account',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _showAddAccountDialog,
                     ),
                     const SizedBox(width: 10),
@@ -781,11 +1006,14 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF059669),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.sync_alt_rounded, size: 18),
-                      label: const Text('Transfer Funds', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Transfer Funds',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _showTransferFundsDialog,
                     ),
                   ],
@@ -793,18 +1021,21 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
               ],
             ),
             const SizedBox(height: 20),
-
             Row(
               children: [
-                _mini('Total Liquid Assets', '$currency${totalFunds.toStringAsFixed(2)}', const Color(0xFF4F46E5)),
+                _mini(
+                    'Total Liquid Assets',
+                    '$currency${totalFunds.toStringAsFixed(2)}',
+                    const Color(0xFF4F46E5)),
                 const SizedBox(width: 14),
-                _mini('Active Accounts', '${_accounts.length}', const Color(0xFF10B981)),
+                _mini('Active Accounts', '${_accounts.length}',
+                    const Color(0xFF10B981)),
                 const SizedBox(width: 14),
-                _mini('Inter-Account Transfers', '${_transfers.length}', const Color(0xFF7C3AED)),
+                _mini('Inter-Account Transfers', '${_transfers.length}',
+                    const Color(0xFF7C3AED)),
               ],
             ),
             const SizedBox(height: 20),
-
             TabBar(
               controller: _tabController,
               labelColor: const Color(0xFF4F46E5),
@@ -812,14 +1043,19 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
               indicatorColor: const Color(0xFF4F46E5),
               indicatorWeight: 3,
               tabs: const [
-                Tab(icon: Icon(Icons.account_balance_wallet_outlined), text: 'Payment Accounts'),
-                Tab(icon: Icon(Icons.history_outlined), text: 'Transfer History'),
+                Tab(
+                    icon: Icon(Icons.account_balance_wallet_outlined),
+                    text: 'Payment Accounts'),
+                Tab(
+                    icon: Icon(Icons.history_outlined),
+                    text: 'Transfer History'),
               ],
             ),
             const SizedBox(height: 16),
-
             _loading
-                ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
+                ? const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator()))
                 : SizedBox(
                     height: 520,
                     child: TabBarView(
@@ -833,19 +1069,50 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: _accounts.isEmpty
-                              ? const Center(child: Text('No payment accounts configured yet.'))
+                              ? const Center(
+                                  child: Text(
+                                      'No payment accounts configured yet.'))
                               : SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: DataTable(
-                                    headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                                    headingRowColor: WidgetStateProperty.all(
+                                        const Color(0xFFF8FAFC)),
                                     columns: const [
-                                      DataColumn(label: Text('ACCOUNT NAME', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('TYPE', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('ACCOUNT / IBAN', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('OPENING BALANCE', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('CURRENT BALANCE', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('NOTE', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('ACCOUNT NAME',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('TYPE',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('ACCOUNT / IBAN',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('OPENING BALANCE',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('CURRENT BALANCE',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('NOTE',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('ACTIONS',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
                                     ],
                                     rows: _accounts.map((a) {
                                       final isCash = a.accountType == 'cash';
@@ -854,64 +1121,141 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                                           Row(
                                             children: [
                                               Icon(
-                                                isCash ? Icons.money : (a.accountType == 'pos_terminal' ? Icons.credit_card : Icons.account_balance),
+                                                isCash
+                                                    ? Icons.money
+                                                    : (a.accountType ==
+                                                            'pos_terminal'
+                                                        ? Icons.credit_card
+                                                        : Icons
+                                                            .account_balance),
                                                 size: 16,
-                                                color: isCash ? const Color(0xFF10B981) : const Color(0xFF004EEB),
+                                                color: isCash
+                                                    ? const Color(0xFF10B981)
+                                                    : const Color(0xFF004EEB),
                                               ),
                                               const SizedBox(width: 8),
-                                              Text(a.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                              Text(a.name,
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold)),
                                             ],
                                           ),
                                         ),
-                                        DataCell(Text(a.accountType.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600))),
-                                        DataCell(Text(a.accountNumber.isNotEmpty ? a.accountNumber : '-', style: const TextStyle(fontSize: 12))),
-                                        DataCell(Text('$currency${a.openingBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12))),
+                                        DataCell(Text(
+                                            a.accountType.toUpperCase(),
+                                            style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600))),
+                                        DataCell(Text(
+                                            a.accountNumber.isNotEmpty
+                                                ? a.accountNumber
+                                                : '-',
+                                            style:
+                                                const TextStyle(fontSize: 12))),
+                                        DataCell(Text(
+                                            '$currency${a.openingBalance.toStringAsFixed(2)}',
+                                            style:
+                                                const TextStyle(fontSize: 12))),
                                         DataCell(Text(
                                           '$currency${a.currentBalance.toStringAsFixed(2)}',
-                                          style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A), fontSize: 13),
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              color: Color(0xFF0F172A),
+                                              fontSize: 13),
                                         )),
-                                        DataCell(Text(a.note.isNotEmpty ? a.note : '-', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                                        DataCell(Text(
+                                            a.note.isNotEmpty ? a.note : '-',
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFF64748B)))),
                                         DataCell(
                                           Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               ElevatedButton.icon(
                                                 style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(0xFFECFDF5),
-                                                  foregroundColor: const Color(0xFF059669),
+                                                  backgroundColor:
+                                                      const Color(0xFFECFDF5),
+                                                  foregroundColor:
+                                                      const Color(0xFF059669),
                                                   elevation: 0,
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 6),
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6)),
                                                 ),
-                                                icon: const Icon(Icons.arrow_downward_rounded, size: 14),
-                                                label: const Text('Deposit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                                onPressed: () => _showDepositDialog(a),
+                                                icon: const Icon(
+                                                    Icons
+                                                        .arrow_downward_rounded,
+                                                    size: 14),
+                                                label: const Text('Deposit',
+                                                    style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                onPressed: () =>
+                                                    _showDepositDialog(a),
                                               ),
                                               const SizedBox(width: 6),
                                               ElevatedButton.icon(
                                                 style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(0xFFEFF6FF),
-                                                  foregroundColor: const Color(0xFF2563EB),
+                                                  backgroundColor:
+                                                      const Color(0xFFEFF6FF),
+                                                  foregroundColor:
+                                                      const Color(0xFF2563EB),
                                                   elevation: 0,
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 6),
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6)),
                                                 ),
-                                                icon: const Icon(Icons.sync_alt_rounded, size: 14),
-                                                label: const Text('Transfer', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                                onPressed: () => _showTransferFundsDialog(initialFromAccount: a),
+                                                icon: const Icon(
+                                                    Icons.sync_alt_rounded,
+                                                    size: 14),
+                                                label: const Text('Transfer',
+                                                    style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                onPressed: () =>
+                                                    _showTransferFundsDialog(
+                                                        initialFromAccount: a),
                                               ),
                                               const SizedBox(width: 6),
                                               ElevatedButton.icon(
                                                 style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(0xFFEEF2FF),
-                                                  foregroundColor: const Color(0xFF4F46E5),
+                                                  backgroundColor:
+                                                      const Color(0xFFEEF2FF),
+                                                  foregroundColor:
+                                                      const Color(0xFF4F46E5),
                                                   elevation: 0,
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 6),
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6)),
                                                 ),
-                                                icon: const Icon(Icons.receipt_long_rounded, size: 14),
-                                                label: const Text('Statement', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                                onPressed: () => _showStatementDialog(a),
+                                                icon: const Icon(
+                                                    Icons.receipt_long_rounded,
+                                                    size: 14),
+                                                label: const Text('Statement',
+                                                    style: TextStyle(
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                onPressed: () =>
+                                                    _showStatementDialog(a),
                                               ),
                                             ],
                                           ),
@@ -930,32 +1274,83 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: _transfers.isEmpty
-                              ? const Center(child: Text('No fund transfers recorded yet.'))
+                              ? const Center(
+                                  child:
+                                      Text('No fund transfers recorded yet.'))
                               : SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: DataTable(
-                                    headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+                                    headingRowColor: WidgetStateProperty.all(
+                                        const Color(0xFFF8FAFC)),
                                     columns: const [
-                                      DataColumn(label: Text('DATE', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('REF NO', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('FROM ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('TO ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('AMOUNT TRANSFERRED', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('NOTE', style: TextStyle(fontWeight: FontWeight.bold))),
-                                      DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('DATE',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('REF NO',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('FROM ACCOUNT',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('TO ACCOUNT',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('AMOUNT TRANSFERRED',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('NOTE',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
+                                      DataColumn(
+                                          label: Text('ACTIONS',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.bold))),
                                     ],
                                     rows: _transfers.map((t) {
                                       return DataRow(cells: [
                                         DataCell(Text(t.date.split(' ').first)),
-                                        DataCell(Text(t.refNo, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF004EEB)))),
-                                        DataCell(Text(t.fromAccountName, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600))),
-                                        DataCell(Text(t.toAccountName, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600))),
-                                        DataCell(Text('$currency${t.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900))),
-                                        DataCell(Text(t.note.isNotEmpty ? t.note : '-', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                                        DataCell(Text(t.refNo,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF004EEB)))),
+                                        DataCell(Text(t.fromAccountName,
+                                            style: const TextStyle(
+                                                color: Colors.red,
+                                                fontWeight: FontWeight.w600))),
+                                        DataCell(Text(t.toAccountName,
+                                            style: const TextStyle(
+                                                color: Colors.green,
+                                                fontWeight: FontWeight.w600))),
+                                        DataCell(Text(
+                                            '$currency${t.amount.toStringAsFixed(2)}',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w900))),
+                                        DataCell(Text(
+                                            t.note.isNotEmpty ? t.note : '-',
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFF64748B)))),
                                         DataCell(
                                           IconButton(
-                                            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
-                                            tooltip: 'Reverse & Delete Transfer',
+                                            icon: const Icon(
+                                                Icons.delete_outline_rounded,
+                                                size: 18,
+                                                color: Color(0xFFEF4444)),
+                                            tooltip:
+                                                'Reverse & Delete Transfer',
                                             onPressed: () => _deleteTransfer(t),
                                           ),
                                         ),
@@ -985,9 +1380,15 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen> with Sing
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+            Text(value,
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w900, color: color)),
           ],
         ),
       ),

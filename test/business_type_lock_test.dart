@@ -12,10 +12,13 @@ void main() {
     late DatabaseService dbService;
 
     setUp(() async {
-      dbService = await DatabaseService.initialize(customPath: inMemoryDatabasePath);
+      dbService =
+          await DatabaseService.initialize(customPath: inMemoryDatabasePath);
     });
 
-    test('1. BusinessSettings helper displays correct labels and copyWith works', () {
+    test(
+        '1. BusinessSettings helper displays correct labels and copyWith works',
+        () {
       final pharmacy = BusinessSettings(businessType: 'pharmacy');
       expect(pharmacy.businessTypeDisplayName, contains('Pharmacy'));
 
@@ -36,7 +39,8 @@ void main() {
       expect(copied.businessType, equals('pharmacy'));
     });
 
-    test('2. First installation wizard sets business type permanently', () async {
+    test('2. First installation wizard sets business type permanently',
+        () async {
       // Step 1: Newly seeded database starts unconfigured
       final initial = await dbService.getBusinessSettings();
       expect(initial.isConfigured, isFalse);
@@ -55,7 +59,8 @@ void main() {
       expect(saved.businessName, equals('Apex Solar Energy Solutions'));
     });
 
-    test('3. Post-installation business type cannot be switched or altered', () async {
+    test('3. Post-installation business type cannot be switched or altered',
+        () async {
       // The business was established as 'solar' during initial installation in test 2
       final current = await dbService.getBusinessSettings();
       expect(current.isConfigured, isTrue);
@@ -72,7 +77,8 @@ void main() {
       final postAttempt = await dbService.getBusinessSettings();
       expect(postAttempt.businessName, equals('Apex Electronics & Clothing'));
       expect(postAttempt.businessType, equals('solar'),
-          reason: 'Business type must remain locked to the first-installation configuration');
+          reason:
+              'Business type must remain locked to the first-installation configuration');
     });
   });
 }

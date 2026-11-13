@@ -38,7 +38,8 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
   @override
   void didUpdateWidget(covariant PrinterManagementSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.settings.autoPrintReceipt != widget.settings.autoPrintReceipt ||
+    if (oldWidget.settings.autoPrintReceipt !=
+            widget.settings.autoPrintReceipt ||
         oldWidget.settings.autoPrintKot != widget.settings.autoPrintKot) {
       _autoPrintReceipt = widget.settings.autoPrintReceipt;
       _autoPrintKot = widget.settings.autoPrintKot;
@@ -55,7 +56,8 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
         });
       }
     } catch (e, st) {
-      AppLogger.warning('PrinterManagementSection', 'Failed loading printers', e, st);
+      AppLogger.warning(
+          'PrinterManagementSection', 'Failed loading printers', e, st);
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -80,11 +82,13 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
   }
 
   Future<void> _showPrinterDialog([ThermalPrinterConfig? existing]) async {
-    final nameCtrl = TextEditingController(text: existing?.name ?? 'Counter POS Printer');
+    final nameCtrl =
+        TextEditingController(text: existing?.name ?? 'Counter POS Printer');
     String connType = existing?.connectionType ?? 'network';
     String capProfile = existing?.capabilityProfile ?? 'default';
     String paperWidth = existing?.paperWidth ?? '80mm';
-    final ipCtrl = TextEditingController(text: existing?.ipAddress ?? '192.168.1.100');
+    final ipCtrl =
+        TextEditingController(text: existing?.ipAddress ?? '192.168.1.100');
     final portCtrl = TextEditingController(text: '${existing?.port ?? 9100}');
     final winPathCtrl = TextEditingController(
       text: existing?.windowsPrinterPath ??
@@ -99,12 +103,15 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: Row(
             children: [
               const Icon(Icons.print_rounded, color: Color(0xFF4F46E5)),
               const SizedBox(width: 8),
-              Text(existing == null ? 'Add Thermal ESC/POS Printer' : 'Edit Printer Profile'),
+              Text(existing == null
+                  ? 'Add Thermal ESC/POS Printer'
+                  : 'Edit Printer Profile'),
             ],
           ),
           content: SizedBox(
@@ -133,8 +140,12 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                             border: OutlineInputBorder(),
                           ),
                           items: const [
-                            DropdownMenuItem(value: 'network', child: Text('Network (LAN TCP/IP)')),
-                            DropdownMenuItem(value: 'windows', child: Text('Windows USB / Shared')),
+                            DropdownMenuItem(
+                                value: 'network',
+                                child: Text('Network (LAN TCP/IP)')),
+                            DropdownMenuItem(
+                                value: 'windows',
+                                child: Text('Windows USB / Shared')),
                           ],
                           onChanged: (v) {
                             if (v != null) setDlgState(() => connType = v);
@@ -151,8 +162,10 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                             border: OutlineInputBorder(),
                           ),
                           items: const [
-                            DropdownMenuItem(value: '80mm', child: Text('80mm (48 chars)')),
-                            DropdownMenuItem(value: '58mm', child: Text('58mm (32 chars)')),
+                            DropdownMenuItem(
+                                value: '80mm', child: Text('80mm (48 chars)')),
+                            DropdownMenuItem(
+                                value: '58mm', child: Text('58mm (32 chars)')),
                           ],
                           onChanged: (v) {
                             if (v != null) setDlgState(() => paperWidth = v);
@@ -223,28 +236,32 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                   SwitchListTile.adaptive(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Default Counter Receipt Printer', style: TextStyle(fontSize: 13)),
+                    title: const Text('Default Counter Receipt Printer',
+                        style: TextStyle(fontSize: 13)),
                     value: isDefault,
                     onChanged: (v) => setDlgState(() => isDefault = v),
                   ),
                   SwitchListTile.adaptive(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Use as Kitchen KOT Printer', style: TextStyle(fontSize: 13)),
+                    title: const Text('Use as Kitchen KOT Printer',
+                        style: TextStyle(fontSize: 13)),
                     value: isKot,
                     onChanged: (v) => setDlgState(() => isKot = v),
                   ),
                   SwitchListTile.adaptive(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Auto-Cut Paper After Print', style: TextStyle(fontSize: 13)),
+                    title: const Text('Auto-Cut Paper After Print',
+                        style: TextStyle(fontSize: 13)),
                     value: autoCut,
                     onChanged: (v) => setDlgState(() => autoCut = v),
                   ),
                   SwitchListTile.adaptive(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Open Cash Drawer Pulse (ESC p)', style: TextStyle(fontSize: 13)),
+                    title: const Text('Open Cash Drawer Pulse (ESC p)',
+                        style: TextStyle(fontSize: 13)),
                     value: openDrawer,
                     onChanged: (v) => setDlgState(() => openDrawer = v),
                   ),
@@ -284,7 +301,8 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                 final db = await DatabaseService.initialize();
                 final id = await db.savePrinter(config);
                 if (isDefault) {
-                  final nextSettings = widget.settings.copyWith(defaultPrinterId: id);
+                  final nextSettings =
+                      widget.settings.copyWith(defaultPrinterId: id);
                   await db.updateBusinessSettings(nextSettings);
                   widget.onSettingsUpdated(nextSettings);
                 }
@@ -308,14 +326,16 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
       await ThermalPrinterService.sendBytes(printer, bytes);
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Test ESC/POS receipt sent to ${printer.name} (${printer.endpointLabel})!'),
+          content: Text(
+              'Test ESC/POS receipt sent to ${printer.name} (${printer.endpointLabel})!'),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Printer connection failed (${printer.endpointLabel}): $e'),
+          content:
+              Text('Printer connection failed (${printer.endpointLabel}): $e'),
           backgroundColor: const Color(0xFFEF4444),
         ),
       );
@@ -326,7 +346,8 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -344,7 +365,8 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
               const Expanded(
                 child: Row(
                   children: [
-                    Icon(Icons.receipt_rounded, color: Color(0xFF4F46E5), size: 24),
+                    Icon(Icons.receipt_rounded,
+                        color: Color(0xFF4F46E5), size: 24),
                     SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -352,11 +374,13 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                         children: [
                           Text(
                             'ESC/POS Thermal Printers & Auto-Print Setup',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w800),
                           ),
                           Text(
                             'Configure 58mm / 80mm network TCP or Windows USB/shared thermal printers & kitchen KOT routing.',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            style: TextStyle(
+                                fontSize: 12, color: Color(0xFF64748B)),
                           ),
                         ],
                       ),
@@ -411,12 +435,16 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
           ),
           const Divider(height: 22),
           if (_loading)
-            const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+            const Center(
+                child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircularProgressIndicator()))
           else if (_printers.isEmpty)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                color:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: borderColor),
               ),
@@ -427,7 +455,8 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                   Expanded(
                     child: Text(
                       'No thermal printer configured yet. Click "Add Printer" to add an 80mm or 58mm Network / Windows ESC/POS printer.',
-                      style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                      style:
+                          TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
                     ),
                   ),
                 ],
@@ -438,12 +467,16 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
               children: _printers.map((pr) {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    color: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: pr.isDefault ? const Color(0xFF4F46E5) : borderColor,
+                      color:
+                          pr.isDefault ? const Color(0xFF4F46E5) : borderColor,
                     ),
                   ),
                   child: Row(
@@ -465,30 +498,40 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                               children: [
                                 Text(
                                   pr.name,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.5),
                                 ),
                                 if (pr.isDefault)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 7, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFDBEAFE),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: const Text(
                                       'Default POS',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1D4ED8)),
                                     ),
                                   ),
                                 if (pr.isKotPrinter)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 7, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFFFEDD5),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: const Text(
                                       'KOT Kitchen',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFC2410C)),
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFC2410C)),
                                     ),
                                   ),
                               ],
@@ -496,14 +539,16 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                             const SizedBox(height: 2),
                             Text(
                               '${pr.connectionType.toUpperCase()} • ${pr.endpointLabel} • ${pr.paperWidth} (${pr.charPerLine} cols) • ${pr.capabilityProfile}',
-                              style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                              style: const TextStyle(
+                                  fontSize: 11.5, color: Color(0xFF64748B)),
                             ),
                           ],
                         ),
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.bolt_rounded, size: 15),
-                        label: const Text('Test Print', style: TextStyle(fontSize: 11.5)),
+                        label: const Text('Test Print',
+                            style: TextStyle(fontSize: 11.5)),
                         onPressed: () => _testPrint(pr),
                       ),
                       const SizedBox(width: 6),
@@ -512,21 +557,25 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                           onPressed: () async {
                             final db = await DatabaseService.initialize();
                             await db.setDefaultPrinter(pr.id!);
-                            final next = widget.settings.copyWith(defaultPrinterId: pr.id);
+                            final next = widget.settings
+                                .copyWith(defaultPrinterId: pr.id);
                             await db.updateBusinessSettings(next);
                             widget.onSettingsUpdated(next);
                             _loadPrinters();
                           },
-                          child: const Text('Set Default', style: TextStyle(fontSize: 11.5)),
+                          child: const Text('Set Default',
+                              style: TextStyle(fontSize: 11.5)),
                         ),
                       IconButton(
                         tooltip: 'Edit Printer',
-                        icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
+                        icon: const Icon(Icons.edit_outlined,
+                            size: 18, color: Color(0xFF4F46E5)),
                         onPressed: () => _showPrinterDialog(pr),
                       ),
                       IconButton(
                         tooltip: 'Delete Printer',
-                        icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            size: 18, color: Color(0xFFEF4444)),
                         onPressed: () async {
                           if (pr.id == null) return;
                           final db = await DatabaseService.initialize();
@@ -544,4 +593,3 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
     );
   }
 }
-

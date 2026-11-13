@@ -17,7 +17,8 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
   final List<Map<String, String>> _messages = [
     {
       'role': 'ai',
-      'text': 'Assalam-o-Alaikum! Main Smart POS ka AI Business Assistant hoon. Main aapki store sales, inventory guidance, aur software chalane me mukammal madad kar sakta hoon. Aaj main aapki kya madad karun?',
+      'text':
+          'Assalam-o-Alaikum! Main Smart POS ka AI Business Assistant hoon. Main aapki store sales, inventory guidance, aur software chalane me mukammal madad kar sakta hoon. Aaj main aapki kya madad karun?',
     }
   ];
   bool _isTyping = false;
@@ -59,7 +60,8 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
         setState(() {
           _messages.add({
             'role': 'ai',
-            'text': 'Maazrat, AI response generate karne me masla pesh aaya: ${e.toString()}',
+            'text':
+                'Maazrat, AI response generate karne me masla pesh aaya: ${e.toString()}',
           });
           _isTyping = false;
         });
@@ -111,7 +113,8 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                       color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 22),
+                    child: const Icon(Icons.auto_awesome_rounded,
+                        color: Colors.white, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -120,7 +123,10 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                       children: const [
                         Text(
                           'Smart POS AI Business Advisor',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16),
                         ),
                         Text(
                           'Powered by Google Gemini / OpenAI • Roman Urdu & English',
@@ -147,20 +153,26 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                   children: [
                     ActionChip(
                       avatar: const Icon(Icons.keyboard_outlined, size: 14),
-                      label: const Text('Shortcut keys kya hain?', style: TextStyle(fontSize: 11)),
-                      onPressed: () => _sendMessage('Smart POS me keyboard shortcut keys kya hain?'),
+                      label: const Text('Shortcut keys kya hain?',
+                          style: TextStyle(fontSize: 11)),
+                      onPressed: () => _sendMessage(
+                          'Smart POS me keyboard shortcut keys kya hain?'),
                     ),
                     const SizedBox(width: 8),
                     ActionChip(
                       avatar: const Icon(Icons.trending_up_rounded, size: 14),
-                      label: const Text('Sales barhane ka mashwara', style: TextStyle(fontSize: 11)),
-                      onPressed: () => _sendMessage('Retail store ki sales aur profit margin barhane ke liye koi 3 tips dein.'),
+                      label: const Text('Sales barhane ka mashwara',
+                          style: TextStyle(fontSize: 11)),
+                      onPressed: () => _sendMessage(
+                          'Retail store ki sales aur profit margin barhane ke liye koi 3 tips dein.'),
                     ),
                     const SizedBox(width: 8),
                     ActionChip(
                       avatar: const Icon(Icons.history_rounded, size: 14),
-                      label: const Text('Draft bill resume kahan se hoga?', style: TextStyle(fontSize: 11)),
-                      onPressed: () => _sendMessage('Customer ka draft bill kahan se resume karun?'),
+                      label: const Text('Draft bill resume kahan se hoga?',
+                          style: TextStyle(fontSize: 11)),
+                      onPressed: () => _sendMessage(
+                          'Customer ka draft bill kahan se resume karun?'),
                     ),
                   ],
                 ),
@@ -179,14 +191,18 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                   final isUser = msg['role'] == 'user';
 
                   return Align(
-                    alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment:
+                        isUser ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
                       constraints: const BoxConstraints(maxWidth: 440),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         color: isUser
                             ? const Color(0xFF4F46E5)
-                            : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                            : (isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFF1F5F9)),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: SelectableText(
@@ -194,7 +210,11 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                         style: TextStyle(
                           fontSize: 13,
                           height: 1.4,
-                          color: isUser ? Colors.white : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                          color: isUser
+                              ? Colors.white
+                              : (isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1E293B)),
                         ),
                       ),
                     ),
@@ -205,13 +225,19 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
 
             if (_isTyping)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 alignment: Alignment.centerLeft,
                 child: const Row(
                   children: [
-                    SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF7C3AED))),
+                    SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Color(0xFF7C3AED))),
                     SizedBox(width: 10),
-                    Text('AI is typing response...', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    Text('AI is typing response...',
+                        style: TextStyle(fontSize: 11, color: Colors.grey)),
                   ],
                 ),
               ),
@@ -220,7 +246,11 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                border: Border(
+                    top: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0))),
               ),
               child: Row(
                 children: [
@@ -229,7 +259,8 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                       controller: _msgCtrl,
                       onSubmitted: _sendMessage,
                       decoration: const InputDecoration(
-                        hintText: 'Type your question in Roman Urdu or English...',
+                        hintText:
+                            'Type your question in Roman Urdu or English...',
                         isDense: true,
                         border: OutlineInputBorder(),
                       ),
@@ -241,7 +272,8 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                       backgroundColor: const Color(0xFF7C3AED),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.all(14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () => _sendMessage(_msgCtrl.text),
                     child: const Icon(Icons.send_rounded, size: 18),
@@ -255,4 +287,3 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
     );
   }
 }
-

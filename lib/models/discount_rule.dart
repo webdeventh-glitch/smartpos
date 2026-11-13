@@ -18,7 +18,8 @@ class DiscountEvaluationResult {
 class DiscountRule {
   final int? id;
   final String name;
-  final String ruleType; // 'standard', 'buy_x_get_y', 'quantity_break', 'time_based'
+  final String
+      ruleType; // 'standard', 'buy_x_get_y', 'quantity_break', 'time_based'
   final String discountType; // 'percentage', 'fixed'
   final double discountAmount;
   final String? startsAt;
@@ -27,7 +28,8 @@ class DiscountRule {
   final int? brandId;
   final int? categoryId;
   final int? locationId;
-  final String daysOfWeek; // e.g. '1,2,3,4,5' (ISO weekday 1=Mon..7=Sun); empty = all days
+  final String
+      daysOfWeek; // e.g. '1,2,3,4,5' (ISO weekday 1=Mon..7=Sun); empty = all days
   final String startTime; // 'HH:mm'
   final String endTime; // 'HH:mm'
   final double minQuantity;
@@ -132,7 +134,8 @@ class DiscountRule {
   double computeDiscount(List<CartItem> items, DateTime now) {
     if (items.isEmpty || !isScheduleMatch(now)) return 0.0;
 
-    final matchingItems = items.where((item) => matchesProduct(item.product)).toList();
+    final matchingItems =
+        items.where((item) => matchesProduct(item.product)).toList();
     if (matchingItems.isEmpty) return 0.0;
 
     final matchingSubtotal =
@@ -153,7 +156,8 @@ class DiscountRule {
         final bundleSize = buyQuantity + freeQuantity;
         final sets = (matchingQty / bundleSize).floor();
         if (sets <= 0) return 0.0;
-        final avgPrice = matchingQty > 0 ? (matchingSubtotal / matchingQty) : 0.0;
+        final avgPrice =
+            matchingQty > 0 ? (matchingSubtotal / matchingQty) : 0.0;
         final disc = sets * freeQuantity * avgPrice;
         return disc.clamp(0.0, matchingSubtotal);
 
@@ -171,7 +175,8 @@ class DiscountRule {
   double _computeStandardValue(double targetSubtotal) {
     if (discountAmount <= 0 || targetSubtotal <= 0) return 0.0;
     if (discountType == 'percentage') {
-      return (targetSubtotal * (discountAmount / 100.0)).clamp(0.0, targetSubtotal);
+      return (targetSubtotal * (discountAmount / 100.0))
+          .clamp(0.0, targetSubtotal);
     }
     return discountAmount.clamp(0.0, targetSubtotal);
   }

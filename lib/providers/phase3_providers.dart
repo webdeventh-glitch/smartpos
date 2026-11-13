@@ -33,7 +33,8 @@ final taxRatesProvider = FutureProvider.autoDispose<List<TaxRate>>((ref) async {
   return ref.watch(settingsRepositoryProvider).getTaxRates();
 });
 
-final taxGroupsProvider = FutureProvider.autoDispose<List<TaxGroup>>((ref) async {
+final taxGroupsProvider =
+    FutureProvider.autoDispose<List<TaxGroup>>((ref) async {
   return ref.watch(settingsRepositoryProvider).getTaxGroups();
 });
 
@@ -55,4 +56,3 @@ final activityLogsProvider = FutureProvider.autoDispose
         search: filter.search,
       );
 });
-

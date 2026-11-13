@@ -51,7 +51,8 @@ class _BrandsScreenState extends State<BrandsScreen> {
   void _openBrandDialog([Brand? brandToEdit]) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final nameCtrl = TextEditingController(text: brandToEdit?.name ?? '');
-    final descCtrl = TextEditingController(text: brandToEdit?.description ?? '');
+    final descCtrl =
+        TextEditingController(text: brandToEdit?.description ?? '');
 
     showDialog(
       context: context,
@@ -60,7 +61,9 @@ class _BrandsScreenState extends State<BrandsScreen> {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          side: BorderSide(
+              color:
+                  isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
@@ -82,7 +85,11 @@ class _BrandsScreenState extends State<BrandsScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      icon: Icon(Icons.close,
+                          size: 20,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
@@ -92,8 +99,11 @@ class _BrandsScreenState extends State<BrandsScreen> {
                 const SizedBox(height: 6),
                 TextField(
                   controller: nameCtrl,
-                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                  decoration: _inputDeco('e.g. Coca-Cola, Samsung, Nestle', isDark),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  decoration:
+                      _inputDeco('e.g. Coca-Cola, Samsung, Nestle', isDark),
                 ),
                 const SizedBox(height: 14),
                 _fieldLabel('Short Description', isDark),
@@ -101,8 +111,11 @@ class _BrandsScreenState extends State<BrandsScreen> {
                 TextField(
                   controller: descCtrl,
                   maxLines: 2,
-                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                  decoration: _inputDeco('Optional notes or brand details', isDark),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  decoration:
+                      _inputDeco('Optional notes or brand details', isDark),
                 ),
                 const SizedBox(height: 22),
                 Row(
@@ -110,7 +123,11 @@ class _BrandsScreenState extends State<BrandsScreen> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                      child: Text('Cancel',
+                          style: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B))),
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton(
@@ -118,21 +135,25 @@ class _BrandsScreenState extends State<BrandsScreen> {
                         backgroundColor: const Color(0xFF4F46E5),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: () async {
                         final name = nameCtrl.text.trim();
                         if (name.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please enter brand name')),
+                            const SnackBar(
+                                content: Text('Please enter brand name')),
                           );
                           return;
                         }
 
                         final db = await DatabaseService.initialize();
                         if (brandToEdit == null) {
-                          await db.addBrand(Brand(name: name, description: descCtrl.text.trim()));
+                          await db.addBrand(Brand(
+                              name: name, description: descCtrl.text.trim()));
                         } else {
                           await db.updateBrand(Brand(
                             id: brandToEdit.id,
@@ -144,7 +165,8 @@ class _BrandsScreenState extends State<BrandsScreen> {
                         if (ctx.mounted) Navigator.pop(ctx);
                         _load();
                       },
-                      child: Text(brandToEdit == null ? 'Save Brand' : 'Update Brand'),
+                      child: Text(
+                          brandToEdit == null ? 'Save Brand' : 'Update Brand'),
                     ),
                   ],
                 ),
@@ -167,7 +189,8 @@ class _BrandsScreenState extends State<BrandsScreen> {
             'Brand "${brand.name}" has $prodsCount active products associated with it. Please reassign or delete these products before deleting the brand.',
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
           ],
         ),
       );
@@ -178,11 +201,16 @@ class _BrandsScreenState extends State<BrandsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Brand?'),
-        content: Text('Are you sure you want to permanently delete "${brand.name}"?'),
+        content: Text(
+            'Are you sure you want to permanently delete "${brand.name}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -211,18 +239,22 @@ class _BrandsScreenState extends State<BrandsScreen> {
   InputDecoration _inputDeco(String hint, bool isDark) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+      hintStyle: TextStyle(
+          fontSize: 13,
+          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       isDense: true,
       filled: true,
       fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+        borderSide: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+        borderSide: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
       ),
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -236,7 +268,8 @@ class _BrandsScreenState extends State<BrandsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final filtered = _brands.where((b) {
       if (_search.isEmpty) return true;
-      return b.name.toLowerCase().contains(_search) || (b.description ?? '').toLowerCase().contains(_search);
+      return b.name.toLowerCase().contains(_search) ||
+          (b.description ?? '').toLowerCase().contains(_search);
     }).toList();
 
     final totalFiltered = filtered.length;
@@ -244,10 +277,12 @@ class _BrandsScreenState extends State<BrandsScreen> {
     final currentPage = _currentPage > totalPages ? totalPages : _currentPage;
     final startIndex = (currentPage - 1) * _pageSize;
     final endIndex = min(totalFiltered, startIndex + _pageSize);
-    final paginatedBrands = totalFiltered > 0 ? filtered.sublist(startIndex, endIndex) : <Brand>[];
+    final paginatedBrands =
+        totalFiltered > 0 ? filtered.sublist(startIndex, endIndex) : <Brand>[];
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
@@ -266,7 +301,8 @@ class _BrandsScreenState extends State<BrandsScreen> {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -275,7 +311,9 @@ class _BrandsScreenState extends State<BrandsScreen> {
                         'Manage manufacturers, labels, and brands for product categorization.',
                         style: TextStyle(
                           fontSize: 13,
-                          color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : Colors.grey.shade600,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -288,11 +326,14 @@ class _BrandsScreenState extends State<BrandsScreen> {
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Brand', style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: const Text('Add Brand',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
                   onPressed: () => _openBrandDialog(),
                 ),
               ],
@@ -305,42 +346,80 @@ class _BrandsScreenState extends State<BrandsScreen> {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
-                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                      onChanged: (val) => setState(() => _search = val.trim().toLowerCase()),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A)),
+                      onChanged: (val) =>
+                          setState(() => _search = val.trim().toLowerCase()),
                       decoration: InputDecoration(
                         hintText: 'Search brand name or notes...',
-                        hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
-                        prefixIcon: Icon(Icons.search, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8)),
+                        hintStyle: TextStyle(
+                            fontSize: 13,
+                            color: isDark
+                                ? const Color(0xFF64748B)
+                                : const Color(0xFF94A3B8)),
+                        prefixIcon: Icon(Icons.search,
+                            size: 18,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF94A3B8)),
                         isDense: true,
                         filled: true,
-                        fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
-                        focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8)), borderSide: BorderSide(color: Color(0xFF4F46E5), width: 1.5)),
+                        fillColor:
+                            isDark ? const Color(0xFF0F172A) : Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 12),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0))),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0))),
+                        focusedBorder: const OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                            borderSide: BorderSide(
+                                color: Color(0xFF4F46E5), width: 1.5)),
                       ),
                     ),
                   ),
                   const SizedBox(width: 14),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
+                      color: isDark
+                          ? const Color(0xFF312E81).withValues(alpha: 0.4)
+                          : const Color(0xFFEEF2FF),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isDark ? const Color(0xFF4338CA) : const Color(0xFFC7D2FE)),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF4338CA)
+                              : const Color(0xFFC7D2FE)),
                     ),
                     child: Text(
                       '${filtered.length} Brands found',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
+                        color: isDark
+                            ? const Color(0xFF818CF8)
+                            : const Color(0xFF4F46E5),
                       ),
                     ),
                   ),
@@ -351,7 +430,10 @@ class _BrandsScreenState extends State<BrandsScreen> {
 
             // Brands Data Table
             if (_loading)
-              const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+              const Center(
+                  child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: CircularProgressIndicator()))
             else if (filtered.isEmpty)
               Container(
                 padding: const EdgeInsets.all(40),
@@ -359,11 +441,18 @@ class _BrandsScreenState extends State<BrandsScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.branding_watermark_outlined, size: 48, color: isDark ? const Color(0xFF64748B) : Colors.grey.shade400),
+                    Icon(Icons.branding_watermark_outlined,
+                        size: 48,
+                        color: isDark
+                            ? const Color(0xFF64748B)
+                            : Colors.grey.shade400),
                     const SizedBox(height: 12),
                     Text(
                       'No Brands Found',
@@ -376,7 +465,11 @@ class _BrandsScreenState extends State<BrandsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Click "Add Brand" above to register your first brand.',
-                      style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : Colors.grey.shade600, fontSize: 13),
+                      style: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : Colors.grey.shade600,
+                          fontSize: 13),
                     ),
                   ],
                 ),
@@ -386,15 +479,24 @@ class _BrandsScreenState extends State<BrandsScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
                   boxShadow: [
-                    BoxShadow(color: isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0x04000000), blurRadius: 6, offset: const Offset(0, 2)),
+                    BoxShadow(
+                        color: isDark
+                            ? Colors.black.withValues(alpha: 0.2)
+                            : const Color(0x04000000),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2)),
                   ],
                 ),
                 child: Column(
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(12)),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final minWidth = max(constraints.maxWidth, 720.0);
@@ -411,34 +513,53 @@ class _BrandsScreenState extends State<BrandsScreen> {
                                 },
                                 children: [
                                   TableRow(
-                                    decoration: BoxDecoration(color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                                    decoration: BoxDecoration(
+                                        color: isDark
+                                            ? const Color(0xFF0F172A)
+                                            : const Color(0xFFF8FAFC)),
                                     children: [
                                       _th('Brand Name', isDark: isDark),
                                       _th('Description', isDark: isDark),
                                       _th('Products Linked', isDark: isDark),
-                                      _th('Actions', alignRight: true, isDark: isDark),
+                                      _th('Actions',
+                                          alignRight: true, isDark: isDark),
                                     ],
                                   ),
                                   ...paginatedBrands.map((b) {
-                                    final count = _brandProductCounts[b.id] ?? 0;
+                                    final count =
+                                        _brandProductCounts[b.id] ?? 0;
                                     return TableRow(
                                       decoration: BoxDecoration(
-                                        border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                                        border: Border(
+                                            top: BorderSide(
+                                                color: isDark
+                                                    ? const Color(0xFF334155)
+                                                    : const Color(0xFFE2E8F0))),
                                       ),
                                       children: [
                                         Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 14),
                                           child: Row(
                                             children: [
                                               CircleAvatar(
                                                 radius: 14,
-                                                backgroundColor: isDark ? const Color(0xFF312E81).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
+                                                backgroundColor: isDark
+                                                    ? const Color(0xFF312E81)
+                                                        .withValues(alpha: 0.4)
+                                                    : const Color(0xFFEEF2FF),
                                                 child: Text(
-                                                  b.name.isNotEmpty ? b.name[0].toUpperCase() : 'B',
+                                                  b.name.isNotEmpty
+                                                      ? b.name[0].toUpperCase()
+                                                      : 'B',
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.bold,
-                                                    color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFF818CF8)
+                                                        : const Color(
+                                                            0xFF4F46E5),
                                                   ),
                                                 ),
                                               ),
@@ -449,34 +570,63 @@ class _BrandsScreenState extends State<BrandsScreen> {
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w700,
                                                     fontSize: 13,
-                                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                    color: isDark
+                                                        ? Colors.white
+                                                        : const Color(
+                                                            0xFF0F172A),
                                                   ),
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
                                         Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 14),
                                           child: Text(
-                                            b.description?.isNotEmpty == true ? b.description! : '-',
-                                            style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                            b.description?.isNotEmpty == true
+                                                ? b.description!
+                                                : '-',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: isDark
+                                                    ? const Color(0xFF94A3B8)
+                                                    : const Color(0xFF64748B)),
                                           ),
                                         ),
                                         Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 14),
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
                                             decoration: BoxDecoration(
                                               color: count > 0
-                                                  ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5))
-                                                  : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
-                                              borderRadius: BorderRadius.circular(6),
+                                                  ? (isDark
+                                                      ? const Color(0xFF064E3B)
+                                                          .withValues(
+                                                              alpha: 0.4)
+                                                      : const Color(0xFFECFDF5))
+                                                  : (isDark
+                                                      ? const Color(0xFF0F172A)
+                                                      : const Color(
+                                                          0xFFF1F5F9)),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
                                               border: Border.all(
                                                 color: count > 0
-                                                    ? (isDark ? const Color(0xFF047857) : const Color(0xFFA7F3D0))
-                                                    : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                                    ? (isDark
+                                                        ? const Color(
+                                                            0xFF047857)
+                                                        : const Color(
+                                                            0xFFA7F3D0))
+                                                    : (isDark
+                                                        ? const Color(
+                                                            0xFF334155)
+                                                        : const Color(
+                                                            0xFFE2E8F0)),
                                               ),
                                             ),
                                             child: Text(
@@ -485,26 +635,52 @@ class _BrandsScreenState extends State<BrandsScreen> {
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
                                                 color: count > 0
-                                                    ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))
-                                                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                                    ? (isDark
+                                                        ? const Color(
+                                                            0xFF34D399)
+                                                        : const Color(
+                                                            0xFF059669))
+                                                    : (isDark
+                                                        ? const Color(
+                                                            0xFF94A3B8)
+                                                        : const Color(
+                                                            0xFF64748B)),
                                               ),
                                             ),
                                           ),
                                         ),
                                         Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 10),
                                           child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
                                             children: [
                                               IconButton(
                                                 tooltip: 'Edit Brand',
-                                                icon: Icon(Icons.edit_outlined, size: 18, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
-                                                onPressed: () => _openBrandDialog(b),
+                                                icon: Icon(Icons.edit_outlined,
+                                                    size: 18,
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFF818CF8)
+                                                        : const Color(
+                                                            0xFF4F46E5)),
+                                                onPressed: () =>
+                                                    _openBrandDialog(b),
                                               ),
                                               IconButton(
                                                 tooltip: 'Delete Brand',
-                                                icon: Icon(Icons.delete_outline_rounded, size: 18, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
-                                                onPressed: () => _deleteBrand(b),
+                                                icon: Icon(
+                                                    Icons
+                                                        .delete_outline_rounded,
+                                                    size: 18,
+                                                    color: isDark
+                                                        ? const Color(
+                                                            0xFFF87171)
+                                                        : const Color(
+                                                            0xFFDC2626)),
+                                                onPressed: () =>
+                                                    _deleteBrand(b),
                                               ),
                                             ],
                                           ),
@@ -523,7 +699,8 @@ class _BrandsScreenState extends State<BrandsScreen> {
                       currentPage: currentPage,
                       pageSize: _pageSize,
                       totalItems: totalFiltered,
-                      onPageChanged: (newPage) => setState(() => _currentPage = newPage),
+                      onPageChanged: (newPage) =>
+                          setState(() => _currentPage = newPage),
                       onPageSizeChanged: (newSize) => setState(() {
                         _pageSize = newSize;
                         _currentPage = 1;

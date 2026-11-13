@@ -85,7 +85,8 @@ class DatabaseEncryptionService {
   static Future<void> configureUserPassphrase(String passphrase) async {
     final clean = passphrase.trim();
     if (clean.length < 8) {
-      throw ArgumentError('Encryption passphrase must be at least 8 characters.');
+      throw ArgumentError(
+          'Encryption passphrase must be at least 8 characters.');
     }
 
     final salt = _randomBytes(16);
@@ -100,7 +101,8 @@ class DatabaseEncryptionService {
           lanes: 1,
         ),
       );
-    final derivedKey = derivator.process(Uint8List.fromList(utf8.encode(clean)));
+    final derivedKey =
+        derivator.process(Uint8List.fromList(utf8.encode(clean)));
 
     await WindowsCredentialStore.writeSecret(
       targetName: credentialTargetSalt,
@@ -393,7 +395,8 @@ class DatabaseEncryptionService {
 
   /// Migrates legacy plaintext secrets inside an existing SQLite database to
   /// AES-256-GCM encrypted format and updates the encrypted vault snapshot.
-  static Future<int> migratePlaintextSecrets(Database db, {String? dbPath}) async {
+  static Future<int> migratePlaintextSecrets(Database db,
+      {String? dbPath}) async {
     await getOrCreateMasterKey();
     int migratedCount = 0;
 
@@ -410,7 +413,8 @@ class DatabaseEncryptionService {
         }
       }
       if (updates.isNotEmpty && id != null) {
-        await db.update('business_settings', updates, where: 'id = ?', whereArgs: [id]);
+        await db.update('business_settings', updates,
+            where: 'id = ?', whereArgs: [id]);
       }
     }
 
@@ -431,7 +435,8 @@ class DatabaseEncryptionService {
         }
       }
     } catch (e, st) {
-      AppLogger.warning('DatabaseEncryption', 'Skipped ai_settings secret migration', e, st);
+      AppLogger.warning(
+          'DatabaseEncryption', 'Skipped ai_settings secret migration', e, st);
     }
 
     // 3. Encrypt sms_gateways api_key & api_secret
@@ -448,18 +453,21 @@ class DatabaseEncryptionService {
           }
         }
         if (updates.isNotEmpty && id != null) {
-          await db.update('sms_gateways', updates, where: 'id = ?', whereArgs: [id]);
+          await db.update('sms_gateways', updates,
+              where: 'id = ?', whereArgs: [id]);
         }
       }
     } catch (e, st) {
-      AppLogger.warning('DatabaseEncryption', 'Skipped sms_gateways secret migration', e, st);
+      AppLogger.warning(
+          'DatabaseEncryption', 'Skipped sms_gateways secret migration', e, st);
     }
 
     if (dbPath != null && dbPath != inMemoryDatabasePath) {
       try {
         await sealVaultSnapshot(dbPath);
       } catch (e, st) {
-        AppLogger.warning('DatabaseEncryption', 'Could not seal vault snapshot', e, st);
+        AppLogger.warning(
+            'DatabaseEncryption', 'Could not seal vault snapshot', e, st);
       }
     }
 
@@ -472,4 +480,3 @@ class DatabaseEncryptionService {
     return migratedCount;
   }
 }
-

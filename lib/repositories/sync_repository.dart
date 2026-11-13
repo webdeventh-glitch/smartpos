@@ -17,7 +17,8 @@ class SyncRepository extends BaseRepository {
         MySqlService.connectAndSync(settings: s, localDb: dbService);
       }
     }).catchError((Object e, StackTrace st) {
-      AppLogger.warning('SyncRepository', 'Async MySQL sync skipped due to error', e, st);
+      AppLogger.warning(
+          'SyncRepository', 'Async MySQL sync skipped due to error', e, st);
     });
   }
 
@@ -40,7 +41,8 @@ class SyncRepository extends BaseRepository {
     });
   }
 
-  Future<List<Map<String, dynamic>>> getPendingSyncItems({int limit = 100}) async {
+  Future<List<Map<String, dynamic>>> getPendingSyncItems(
+      {int limit = 100}) async {
     return await db.query(
       'sync_queue',
       where: "status = 'pending'",
@@ -75,7 +77,8 @@ class SyncRepository extends BaseRepository {
   }
 
   Future<int> getPendingSyncCount() async {
-    final res = await db.rawQuery("SELECT COUNT(*) as c FROM sync_queue WHERE status = 'pending'");
+    final res = await db.rawQuery(
+        "SELECT COUNT(*) as c FROM sync_queue WHERE status = 'pending'");
     return (res.first['c'] as int?) ?? 0;
   }
 
@@ -102,13 +105,17 @@ class SyncRepository extends BaseRepository {
     String remoteUpdatedAt = '',
   }) async {
     final localDt = DateTime.tryParse(localUpdatedAt.trim()) ??
-        DateTime.tryParse((localRecord['updated_at'] ?? localRecord['created_at'] ?? '').toString());
+        DateTime.tryParse(
+            (localRecord['updated_at'] ?? localRecord['created_at'] ?? '')
+                .toString());
     final remoteDt = DateTime.tryParse(remoteUpdatedAt.trim()) ??
-        DateTime.tryParse((remoteRecord['updated_at'] ?? remoteRecord['created_at'] ?? '').toString());
+        DateTime.tryParse(
+            (remoteRecord['updated_at'] ?? remoteRecord['created_at'] ?? '')
+                .toString());
 
     // Default to local_won on exact ties so counter terminal data is never unexpectedly overwritten.
-    final remoteIsNewer = remoteDt != null &&
-        (localDt == null || remoteDt.isAfter(localDt));
+    final remoteIsNewer =
+        remoteDt != null && (localDt == null || remoteDt.isAfter(localDt));
     final winnerSource = remoteIsNewer ? 'remote_won' : 'local_won';
     final winnerRecord = remoteIsNewer ? remoteRecord : localRecord;
 

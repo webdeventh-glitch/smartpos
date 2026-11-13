@@ -9,7 +9,8 @@ void main() {
     sqfliteFfiInit();
   });
 
-  test('Phase 1: Multi-Location, Tax Rates and Invoice Schemes operations', () async {
+  test('Phase 1: Multi-Location, Tax Rates and Invoice Schemes operations',
+      () async {
     final tempDir = await Directory.systemTemp.createTemp('pos_phase1_test_');
     final dbPath = '${tempDir.path}/test_phase1.db';
 

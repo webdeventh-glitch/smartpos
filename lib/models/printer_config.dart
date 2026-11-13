@@ -6,12 +6,14 @@ class ThermalPrinterConfig {
   final int? id;
   final String name;
   final String connectionType; // 'network', 'windows'
-  final String capabilityProfile; // 'default', 'simple', 'SP2000', 'TEP-200M', 'P822D'
+  final String
+      capabilityProfile; // 'default', 'simple', 'SP2000', 'TEP-200M', 'P822D'
   final String paperWidth; // '80mm', '58mm'
   final int charPerLine; // 48 for 80mm, 32 for 58mm
   final String ipAddress;
   final int port;
-  final String windowsPrinterPath; // Windows shared/installed printer name or UNC path
+  final String
+      windowsPrinterPath; // Windows shared/installed printer name or UNC path
   final bool isDefault;
   final bool isKotPrinter;
   final bool autoCut;
@@ -37,7 +39,9 @@ class ThermalPrinterConfig {
         createdAt = createdAt ?? DateTime.now().toIso8601String();
 
   String get endpointLabel => connectionType == 'windows'
-      ? (windowsPrinterPath.isNotEmpty ? windowsPrinterPath : 'Default Windows Printer')
+      ? (windowsPrinterPath.isNotEmpty
+          ? windowsPrinterPath
+          : 'Default Windows Printer')
       : '$ipAddress:$port';
 
   ThermalPrinterConfig copyWith({
@@ -95,7 +99,8 @@ class ThermalPrinterConfig {
         'created_at': createdAt,
       };
 
-  factory ThermalPrinterConfig.fromMap(Map<String, dynamic> map) => ThermalPrinterConfig(
+  factory ThermalPrinterConfig.fromMap(Map<String, dynamic> map) =>
+      ThermalPrinterConfig(
         id: map['id'] as int?,
         name: modelAsString(map['name'], 'POS Printer'),
         connectionType: modelAsString(map['connection_type'], 'network'),
@@ -112,7 +117,7 @@ class ThermalPrinterConfig {
         isKotPrinter: modelAsBool(map['is_kot_printer'], false),
         autoCut: modelAsBool(map['auto_cut'], true),
         openCashDrawer: modelAsBool(map['open_cash_drawer'], false),
-        createdAt: modelAsString(map['created_at'], DateTime.now().toIso8601String()),
+        createdAt:
+            modelAsString(map['created_at'], DateTime.now().toIso8601String()),
       );
 }
-

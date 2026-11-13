@@ -152,7 +152,8 @@ DateTime? parseExpiryDate(String? expiryDate) {
     }
     return DateTime.tryParse(trimmed);
   } catch (e, st) {
-    AppLogger.warning('Models', 'Failed parsing expiry date "$expiryDate"', e, st);
+    AppLogger.warning(
+        'Models', 'Failed parsing expiry date "$expiryDate"', e, st);
     return null;
   }
 }

@@ -10,14 +10,17 @@ void main() {
     sqfliteFfiInit();
   });
 
-  group('Smart POS Phase 3: Partial Payments, Split Tender & Credit Ledger Tests', () {
+  group(
+      'Smart POS Phase 3: Partial Payments, Split Tender & Credit Ledger Tests',
+      () {
     late DatabaseService dbService;
     late Directory tempDir;
     late String dbPath;
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('smartpos_p3_');
-      dbPath = path.join(tempDir.path, 'test_p3_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(
+          tempDir.path, 'test_p3_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -29,13 +32,16 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Walk-in customer detection strictly flags non-account customers', () async {
+    test('1. Walk-in customer detection strictly flags non-account customers',
+        () async {
       // Null customer ID is walk-in
       expect(await dbService.isWalkInCustomer(null), isTrue);
 
       // Default walk-in customer in database
       final contacts = await dbService.getContacts(type: 'customer');
-      final walkIn = contacts.firstWhere((c) => c.name.toLowerCase().contains('walk-in'), orElse: () => Contact(type: 'customer', name: 'Walk-In Customer'));
+      final walkIn = contacts.firstWhere(
+          (c) => c.name.toLowerCase().contains('walk-in'),
+          orElse: () => Contact(type: 'customer', name: 'Walk-In Customer'));
       if (walkIn.id != null) {
         expect(await dbService.isWalkInCustomer(walkIn.id), isTrue);
       }
@@ -51,7 +57,8 @@ void main() {
       expect(await dbService.isWalkInCustomer(registeredId), isFalse);
     });
 
-    test('2. Registered Customer Credit & Partial Sale updates ledger balance', () async {
+    test('2. Registered Customer Credit & Partial Sale updates ledger balance',
+        () async {
       final customerId = await dbService.addContact(Contact(
         type: 'customer',
         name: 'Ali Electronics Store',
@@ -99,13 +106,15 @@ void main() {
       expect(updatedCustomer?.balance, 110000.0);
 
       // Verify payment transaction was logged for the initial paid amount (40,000)
-      final txs = await dbService.getPaymentTransactionsForSale(completedSale.id!);
+      final txs =
+          await dbService.getPaymentTransactionsForSale(completedSale.id!);
       expect(txs.length, 1);
       expect(txs.first.amount, 40000.0);
       expect(txs.first.paymentMethod, 'cash');
     });
 
-    test('3. Multi-tender Split Payment records separate ledger transactions', () async {
+    test('3. Multi-tender Split Payment records separate ledger transactions',
+        () async {
       final now = DateTime.now().toIso8601String();
       final product = Product(
         name: 'Longi 580W Panel',
@@ -147,13 +156,18 @@ void main() {
       expect(completedSale.dueAmount, 0.0);
 
       // Check payment_transactions table
-      final txs = await dbService.getPaymentTransactionsForSale(completedSale.id!);
+      final txs =
+          await dbService.getPaymentTransactionsForSale(completedSale.id!);
       expect(txs.length, 2);
-      expect(txs.any((t) => t.paymentMethod == 'cash' && t.amount == 80000.0), isTrue);
-      expect(txs.any((t) => t.paymentMethod == 'card' && t.amount == 100000.0), isTrue);
+      expect(txs.any((t) => t.paymentMethod == 'cash' && t.amount == 80000.0),
+          isTrue);
+      expect(txs.any((t) => t.paymentMethod == 'card' && t.amount == 100000.0),
+          isTrue);
     });
 
-    test('4. settleSalePayment collects installment, reduces due and updates customer ledger', () async {
+    test(
+        '4. settleSalePayment collects installment, reduces due and updates customer ledger',
+        () async {
       final customerId = await dbService.addContact(Contact(
         type: 'customer',
         name: 'Saad Solar Workshop',
@@ -209,7 +223,8 @@ void main() {
         note: 'Final clearance',
       );
 
-      final clearedSale = (await dbService.getSales()).firstWhere((s) => s.id == completedSale.id);
+      final clearedSale = (await dbService.getSales())
+          .firstWhere((s) => s.id == completedSale.id);
       expect(clearedSale.paidAmount, 200000.0);
       expect(clearedSale.dueAmount, 0.0);
       expect(clearedSale.paymentStatus, 'paid');
@@ -237,7 +252,8 @@ void main() {
         createdAt: now,
       );
 
-      final purchaseId = await dbService.createPurchase(purchase: purchase, items: []);
+      final purchaseId =
+          await dbService.createPurchase(purchase: purchase, items: []);
       expect(purchaseId, isPositive);
 
       // Supplier balance should be 300,000 payable

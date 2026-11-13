@@ -35,20 +35,26 @@ void main() {
 
     test('All individual boolean getters respond accurately', () {
       expect(BusinessSettings(businessType: 'general_store').isGeneral, isTrue);
-      expect(BusinessSettings(businessType: 'supermarket').isSupermarket, isTrue);
+      expect(
+          BusinessSettings(businessType: 'supermarket').isSupermarket, isTrue);
       expect(BusinessSettings(businessType: 'clothing').isClothing, isTrue);
-      expect(BusinessSettings(businessType: 'electronics').isSolarOrElectronics, isTrue);
+      expect(BusinessSettings(businessType: 'electronics').isSolarOrElectronics,
+          isTrue);
       expect(BusinessSettings(businessType: 'wholesale').isWholesale, isTrue);
       expect(BusinessSettings(businessType: 'pharmacy').isPharmacy, isTrue);
       expect(BusinessSettings(businessType: 'restaurant').isRestaurant, isTrue);
       expect(BusinessSettings(businessType: 'repair').isRepair, isTrue);
       expect(BusinessSettings(businessType: 'hotel').isHotel, isTrue);
       expect(BusinessSettings(businessType: 'gym').isGym, isTrue);
-      expect(BusinessSettings(businessType: 'manufacturing').isManufacturing, isTrue);
-      expect(BusinessSettings(businessType: 'woocommerce').isWooCommerce, isTrue);
+      expect(BusinessSettings(businessType: 'manufacturing').isManufacturing,
+          isTrue);
+      expect(
+          BusinessSettings(businessType: 'woocommerce').isWooCommerce, isTrue);
       expect(BusinessSettings(businessType: 'hrm').isHrm, isTrue);
-      expect(BusinessSettings(businessType: 'accounting_crm').isAccountingCrm, isTrue);
-      expect(BusinessSettings(businessType: 'fruit_wholesale').isFruitWholesale, isTrue);
+      expect(BusinessSettings(businessType: 'accounting_crm').isAccountingCrm,
+          isTrue);
+      expect(BusinessSettings(businessType: 'fruit_wholesale').isFruitWholesale,
+          isTrue);
       expect(BusinessSettings(businessType: 'poultry').isPoultry, isTrue);
     });
   });

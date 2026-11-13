@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p_path;
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../widgets/product_thumbnail.dart';
 
@@ -786,7 +787,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text(
             'Generate Variations from Template',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -820,7 +822,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   runSpacing: 6,
                   children: selected.values
                       .map((v) => Chip(
-                            label: Text(v, style: const TextStyle(fontSize: 12)),
+                            label:
+                                Text(v, style: const TextStyle(fontSize: 12)),
                             visualDensity: VisualDensity.compact,
                           ))
                       .toList(),
@@ -874,9 +877,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 final baseSku = _skuCtrl.text.trim().isNotEmpty
                     ? _skuCtrl.text.trim()
                     : 'VAR';
-                final existingNames = _variations
-                    .map((v) => v.name.toLowerCase().trim())
-                    .toSet();
+                final existingNames =
+                    _variations.map((v) => v.name.toLowerCase().trim()).toSet();
                 setState(() {
                   for (final rawVal in selected.values) {
                     final label = '${selected.name}: $rawVal';
@@ -960,10 +962,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
       final missing = <String>[];
       if (_nameCtrl.text.trim().isEmpty)
-        missing.add('Product Name (پروڈکٹ کا نام)');
+        missing
+            .add(PosLocalization.tr('Product Name', settings: widget.settings));
       final sellingVal = double.tryParse(_sellingPriceCtrl.text.trim()) ?? 0.0;
       if (sellingVal <= 0 && _productType == 'single')
-        missing.add('Selling Price (فروخت کی قیمت)');
+        missing.add(
+            PosLocalization.tr('Selling Price', settings: widget.settings));
 
       if (mounted) {
         await showDialog(
@@ -983,8 +987,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
             ),
             content: Text(
               missing.isNotEmpty
-                  ? 'براہ کرم درج ذیل خانے پر کریں تاکہ پروڈکٹ محفوظ ہو سکے:\n\n• ${missing.join("\n• ")}'
-                  : 'براہ کرم سرخ نشان والے تمام ضروری خانے درست کریں۔',
+                  ? (widget.settings.activePrimaryLanguage == 'ur'
+                      ? 'براہ کرم درج ذیل خانے پر کریں تاکہ پروڈکٹ محفوظ ہو سکے:\n\n• ${missing.join("\n• ")}'
+                      : 'Please fill in the following required fields:\n\n• ${missing.join("\n• ")}')
+                  : (widget.settings.activePrimaryLanguage == 'ur'
+                      ? 'براہ کرم سرخ نشان والے تمام ضروری خانے درست کریں۔'
+                      : 'Please correct all highlighted required fields.'),
               style: const TextStyle(fontSize: 14, height: 1.5),
             ),
             actions: [
@@ -1001,7 +1009,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   Navigator.pop(ctx);
                   _nameFocusNode.requestFocus();
                 },
-                child: const Text('OK / ٹھیک ہے'),
+                child:
+                    Text(PosLocalization.tr('Done', settings: widget.settings)),
               ),
             ],
           ),
@@ -1025,10 +1034,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
         }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
                 backgroundColor: Colors.red,
-                content: Text(
-                    'Selling Price must be greater than 0 / فروخت قیمت 0 سے زیادہ ہونی چاہیے')),
+                content: Text(widget.settings.activePrimaryLanguage == 'ur'
+                    ? 'فروخت قیمت 0 سے زیادہ ہونی چاہیے'
+                    : 'Selling Price must be greater than 0')),
           );
         }
         return false;
@@ -1308,7 +1318,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.keyS, control: true): () async {
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true):
+            () async {
           if (_isSaving) return;
           final success = await _saveProduct();
           if (success) widget.onProductCreated();
@@ -1317,143 +1328,214 @@ class _AddProductScreenState extends State<AddProductScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         body: SingleChildScrollView(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Page Title (matching Screenshot 4: "Add new product")
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    widget.productToEdit != null
-                        ? 'Edit product'
-                        : 'Add new product',
-                    style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF0F172A)),
-                  ),
-                  Row(
-                    children: [
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF64748B),
-                          side: const BorderSide(color: Color(0xFFCBD5E1)),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+          controller: _scrollController,
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Page Title (matching Screenshot 4: "Add new product")
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.productToEdit != null
+                          ? 'Edit product'
+                          : 'Add new product',
+                      style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F172A)),
+                    ),
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF64748B),
+                            side: const BorderSide(color: Color(0xFFCBD5E1)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: widget.onCancel,
+                          icon: const Icon(Icons.close, size: 16),
+                          label: const Text('Cancel'),
                         ),
-                        onPressed: widget.onCancel,
-                        icon: const Icon(Icons.close, size: 16),
-                        label: const Text('Cancel'),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4F46E5),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          elevation: 0,
+                        const SizedBox(width: 10),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F46E5),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            elevation: 0,
+                          ),
+                          onPressed: _isSaving
+                              ? null
+                              : () async {
+                                  final success = await _saveProduct();
+                                  if (success) {
+                                    widget.onProductCreated();
+                                  }
+                                },
+                          icon: _isSaving
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.check, size: 16),
+                          label: Text(_isSaving
+                              ? 'Saving...'
+                              : (widget.productToEdit != null
+                                  ? 'Update Product'
+                                  : 'Save Product')),
                         ),
-                        onPressed: _isSaving
-                            ? null
-                            : () async {
-                                final success = await _saveProduct();
-                                if (success) {
-                                  widget.onProductCreated();
-                                }
-                              },
-                        icon: _isSaving
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Icon(Icons.check, size: 16),
-                        label: Text(_isSaving
-                            ? 'Saving...'
-                            : (widget.productToEdit != null
-                                ? 'Update Product'
-                                : 'Save Product')),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-
-              // Main Form Container Card (White Card with Border)
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      ],
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ROW 1: Product Name | SKU | Barcode Type
-                    LayoutBuilder(builder: (context, constraints) {
-                      final isWide = constraints.maxWidth > 800;
-                      if (isWide) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Product Name
-                            Expanded(
-                              flex: 4,
-                              child: Column(
+                const SizedBox(height: 18),
+
+                // Main Form Container Card (White Card with Border)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ROW 1: Product Name | SKU | Barcode Type
+                      LayoutBuilder(builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 800;
+                        if (isWide) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Product Name
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFieldLabel(
+                                        PosLocalization.tr('Product Name',
+                                            settings: widget.settings),
+                                        isRequired: true),
+                                    TextFormField(
+                                      controller: _nameCtrl,
+                                      focusNode: _nameFocusNode,
+                                      decoration: _inputDecor(
+                                          'e.g. Pepsi 500ml, Panadol 500mg, Cotton T-Shirt'),
+                                      validator: (val) => val == null ||
+                                              val.trim().isEmpty
+                                          ? '${PosLocalization.tr("Product Name", settings: widget.settings)} required'
+                                          : null,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+
+                              // SKU
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFieldLabel('SKU',
+                                        hasInfo: true,
+                                        info: 'Stock Keeping Unit unique code'),
+                                    TextFormField(
+                                      controller: _skuCtrl,
+                                      decoration: _inputDecor('SKU').copyWith(
+                                        suffixIcon: IconButton(
+                                          icon: const Icon(Icons.auto_awesome,
+                                              size: 16,
+                                              color: Color(0xFF004EEB)),
+                                          tooltip: 'Auto-generate SKU',
+                                          onPressed: _autoGenerateSku,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+
+                              // Barcode Type
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFieldLabel('Barcode Type',
+                                        isRequired: true),
+                                    DropdownButtonFormField<String>(
+                                      initialValue: _barcodeType,
+                                      decoration: _inputDecor(''),
+                                      items: _barcodeTypes
+                                          .map((t) => DropdownMenuItem(
+                                              value: t,
+                                              child: Text(t,
+                                                  style: const TextStyle(
+                                                      fontSize: 13))))
+                                          .toList(),
+                                      onChanged: (val) {
+                                        if (val != null)
+                                          setState(() => _barcodeType = val);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          // Stacked layout on smaller screens
+                          return Column(
+                            children: [
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildFieldLabel(
-                                      widget.settings.enableSecondaryLanguage
-                                          ? 'Product Name / پروڈکٹ کا نام'
-                                          : 'Product Name',
+                                      PosLocalization.tr('Product Name',
+                                          settings: widget.settings),
                                       isRequired: true),
                                   TextFormField(
                                     controller: _nameCtrl,
                                     focusNode: _nameFocusNode,
                                     decoration: _inputDecor(
-                                        'e.g. Pepsi 500ml, Panadol 500mg, Cotton T-Shirt'),
+                                        'e.g. Pepsi 500ml, Panadol 500mg'),
                                     validator: (val) => val == null ||
                                             val.trim().isEmpty
-                                        ? (widget.settings
-                                                .enableSecondaryLanguage
-                                            ? 'Product Name is required / پروڈکٹ کا نام درج کریں'
-                                            : 'Product Name is required')
+                                        ? '${PosLocalization.tr("Product Name", settings: widget.settings)} required'
                                         : null,
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 20),
-
-                            // SKU
-                            Expanded(
-                              flex: 4,
-                              child: Column(
+                              const SizedBox(height: 16),
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildFieldLabel('SKU',
                                       hasInfo: true,
-                                      info: 'Stock Keeping Unit unique code'),
+                                      info: 'Stock Keeping Unit'),
                                   TextFormField(
                                     controller: _skuCtrl,
                                     decoration: _inputDecor('SKU').copyWith(
@@ -1467,13 +1549,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 20),
-
-                            // Barcode Type
-                            Expanded(
-                              flex: 4,
-                              child: Column(
+                              const SizedBox(height: 16),
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildFieldLabel('Barcode Type',
@@ -1495,270 +1572,320 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        );
-                      } else {
-                        // Stacked layout on smaller screens
-                        return Column(
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildFieldLabel(
-                                    widget.settings.enableSecondaryLanguage
-                                        ? 'Product Name / پروڈکٹ کا نام'
-                                        : 'Product Name',
-                                    isRequired: true),
-                                TextFormField(
-                                  controller: _nameCtrl,
-                                  focusNode: _nameFocusNode,
-                                  decoration: _inputDecor(
-                                      'e.g. Pepsi 500ml, Panadol 500mg'),
-                                  validator: (val) => val == null ||
-                                          val.trim().isEmpty
-                                      ? (widget.settings.enableSecondaryLanguage
-                                          ? 'Product Name is required / پروڈکٹ کا نام درج کریں'
-                                          : 'Product Name is required')
-                                      : null,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildFieldLabel('SKU',
-                                    hasInfo: true, info: 'Stock Keeping Unit'),
-                                TextFormField(
-                                  controller: _skuCtrl,
-                                  decoration: _inputDecor('SKU').copyWith(
-                                    suffixIcon: IconButton(
-                                      icon: const Icon(Icons.auto_awesome,
-                                          size: 16, color: Color(0xFF004EEB)),
-                                      tooltip: 'Auto-generate SKU',
-                                      onPressed: _autoGenerateSku,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildFieldLabel('Barcode Type',
-                                    isRequired: true),
-                                DropdownButtonFormField<String>(
-                                  initialValue: _barcodeType,
-                                  decoration: _inputDecor(''),
-                                  items: _barcodeTypes
-                                      .map((t) => DropdownMenuItem(
-                                          value: t,
-                                          child: Text(t,
-                                              style: const TextStyle(
-                                                  fontSize: 13))))
-                                      .toList(),
-                                  onChanged: (val) {
-                                    if (val != null)
-                                      setState(() => _barcodeType = val);
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        );
-                      }
-                    }),
-                    const SizedBox(height: 20),
+                            ],
+                          );
+                        }
+                      }),
+                      const SizedBox(height: 20),
 
-                    // ROW 2: Unit | Brand | Category
-                    LayoutBuilder(builder: (context, constraints) {
-                      final isWide = constraints.maxWidth > 800;
-                      if (isWide) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Unit with [+] button
-                            Expanded(
-                              flex: 4,
-                              child: Column(
+                      // ROW 2: Unit | Brand | Category
+                      LayoutBuilder(builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 800;
+                        if (isWide) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Unit with [+] button
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFieldLabel('Unit', isRequired: true),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child:
+                                              DropdownButtonFormField<String>(
+                                            initialValue: _selectedUnit,
+                                            decoration:
+                                                _inputDecor('Please Select'),
+                                            items: _units
+                                                .map((u) => DropdownMenuItem(
+                                                    value: u,
+                                                    child: Text(u,
+                                                        style: const TextStyle(
+                                                            fontSize: 13))))
+                                                .toList(),
+                                            onChanged: (val) {
+                                              if (val != null)
+                                                setState(
+                                                    () => _selectedUnit = val);
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildPlusButton(
+                                            _showQuickAddUnitDialog),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+
+                              // Brand with [+] button
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFieldLabel('Brand'),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: DropdownButtonFormField<Brand>(
+                                            initialValue: _selectedBrand,
+                                            decoration:
+                                                _inputDecor('Please Select'),
+                                            items: _brands
+                                                .map((b) => DropdownMenuItem(
+                                                    value: b,
+                                                    child: Text(b.name,
+                                                        style: const TextStyle(
+                                                            fontSize: 13))))
+                                                .toList(),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                _selectedBrand = val;
+                                                if (_nameCtrl.text
+                                                        .trim()
+                                                        .isEmpty &&
+                                                    val != null &&
+                                                    val.name != 'Standard') {
+                                                  _nameCtrl.text = val.name;
+                                                }
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildPlusButton(_quickAddBrand),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+
+                              // Category with [+] button
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFieldLabel('Category'),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child:
+                                              DropdownButtonFormField<Category>(
+                                            initialValue: _selectedCategory,
+                                            decoration:
+                                                _inputDecor('Please Select'),
+                                            items: _categories
+                                                .map((c) => DropdownMenuItem(
+                                                    value: c,
+                                                    child: Text(c.name,
+                                                        style: const TextStyle(
+                                                            fontSize: 13))))
+                                                .toList(),
+                                            onChanged: (val) {
+                                              setState(() =>
+                                                  _selectedCategory = val);
+                                              _autoGenerateSku();
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildPlusButton(_quickAddCategory),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildFieldLabel('Unit', isRequired: true),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: DropdownButtonFormField<String>(
-                                          initialValue: _selectedUnit,
-                                          decoration:
-                                              _inputDecor('Please Select'),
-                                          items: _units
-                                              .map((u) => DropdownMenuItem(
-                                                  value: u,
-                                                  child: Text(u,
-                                                      style: const TextStyle(
-                                                          fontSize: 13))))
-                                              .toList(),
-                                          onChanged: (val) {
-                                            if (val != null)
-                                              setState(
-                                                  () => _selectedUnit = val);
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildPlusButton(_showQuickAddUnitDialog),
-                                    ],
+                                  DropdownButtonFormField<String>(
+                                    initialValue: _selectedUnit,
+                                    decoration: _inputDecor('Please Select'),
+                                    items: _units
+                                        .map((u) => DropdownMenuItem(
+                                            value: u,
+                                            child: Text(u,
+                                                style: const TextStyle(
+                                                    fontSize: 13))))
+                                        .toList(),
+                                    onChanged: (val) {
+                                      if (val != null)
+                                        setState(() => _selectedUnit = val);
+                                    },
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 20),
-
-                            // Brand with [+] button
-                            Expanded(
-                              flex: 4,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel('Brand'),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: DropdownButtonFormField<Brand>(
-                                          initialValue: _selectedBrand,
-                                          decoration:
-                                              _inputDecor('Please Select'),
-                                          items: _brands
-                                              .map((b) => DropdownMenuItem(
-                                                  value: b,
-                                                  child: Text(b.name,
-                                                      style: const TextStyle(
-                                                          fontSize: 13))))
-                                              .toList(),
-                                          onChanged: (val) {
-                                            setState(() {
-                                              _selectedBrand = val;
-                                              if (_nameCtrl.text
-                                                      .trim()
-                                                      .isEmpty &&
-                                                  val != null &&
-                                                  val.name != 'Standard') {
-                                                _nameCtrl.text = val.name;
-                                              }
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildPlusButton(_quickAddBrand),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-
-                            // Category with [+] button
-                            Expanded(
-                              flex: 4,
-                              child: Column(
+                              const SizedBox(height: 16),
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildFieldLabel('Category'),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child:
-                                            DropdownButtonFormField<Category>(
-                                          initialValue: _selectedCategory,
-                                          decoration:
-                                              _inputDecor('Please Select'),
-                                          items: _categories
-                                              .map((c) => DropdownMenuItem(
-                                                  value: c,
-                                                  child: Text(c.name,
-                                                      style: const TextStyle(
-                                                          fontSize: 13))))
-                                              .toList(),
-                                          onChanged: (val) {
-                                            setState(
-                                                () => _selectedCategory = val);
-                                            _autoGenerateSku();
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildPlusButton(_quickAddCategory),
-                                    ],
+                                  DropdownButtonFormField<Category>(
+                                    initialValue: _selectedCategory,
+                                    decoration: _inputDecor('Please Select'),
+                                    items: _categories
+                                        .map((c) => DropdownMenuItem(
+                                            value: c,
+                                            child: Text(c.name,
+                                                style: const TextStyle(
+                                                    fontSize: 13))))
+                                        .toList(),
+                                    onChanged: (val) =>
+                                        setState(() => _selectedCategory = val),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        );
-                      } else {
-                        return Column(
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildFieldLabel('Unit', isRequired: true),
-                                DropdownButtonFormField<String>(
-                                  initialValue: _selectedUnit,
-                                  decoration: _inputDecor('Please Select'),
-                                  items: _units
-                                      .map((u) => DropdownMenuItem(
-                                          value: u,
-                                          child: Text(u,
-                                              style: const TextStyle(
-                                                  fontSize: 13))))
-                                      .toList(),
-                                  onChanged: (val) {
-                                    if (val != null)
-                                      setState(() => _selectedUnit = val);
-                                  },
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildFieldLabel('Category'),
-                                DropdownButtonFormField<Category>(
-                                  initialValue: _selectedCategory,
-                                  decoration: _inputDecor('Please Select'),
-                                  items: _categories
-                                      .map((c) => DropdownMenuItem(
-                                          value: c,
-                                          child: Text(c.name,
-                                              style: const TextStyle(
-                                                  fontSize: 13))))
-                                      .toList(),
-                                  onChanged: (val) =>
-                                      setState(() => _selectedCategory = val),
-                                ),
-                              ],
-                            ),
-                          ],
-                        );
-                      }
-                    }),
-                    const SizedBox(height: 20),
+                            ],
+                          );
+                        }
+                      }),
+                      const SizedBox(height: 20),
 
-                    // ROW 3: Sub Category | Business Locations
-                    LayoutBuilder(builder: (context, constraints) {
-                      final isWide = constraints.maxWidth > 800;
-                      if (isWide) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Sub category
-                            Expanded(
-                              flex: 4,
-                              child: Column(
+                      // ROW 3: Sub Category | Business Locations
+                      LayoutBuilder(builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 800;
+                        if (isWide) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Sub category
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFieldLabel('Sub category'),
+                                    DropdownButtonFormField<String>(
+                                      initialValue: _selectedSubCategory,
+                                      hint: const Text('Please Select',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: Color(0xFF94A3B8))),
+                                      decoration: _inputDecor('Please Select'),
+                                      items: _subCategories
+                                          .map((s) => DropdownMenuItem(
+                                              value: s,
+                                              child: Text(s,
+                                                  style: const TextStyle(
+                                                      fontSize: 13))))
+                                          .toList(),
+                                      onChanged: (val) => setState(
+                                          () => _selectedSubCategory = val),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+
+                              // Business Locations
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFieldLabel('Business Locations',
+                                        hasInfo: true,
+                                        info:
+                                            'Location where product is available'),
+                                    Container(
+                                      height: 44,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                            color: const Color(0xFFCBD5E1)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF0284C7),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.close,
+                                                    size: 14,
+                                                    color: Colors.white),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  _selectedLocation,
+                                                  style: const TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.white),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+
+                              // Warranty
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFieldLabel('Warranty',
+                                        hasInfo: true,
+                                        info: 'Product warranty terms'),
+                                    DropdownButtonFormField<Warranty>(
+                                      initialValue: _selectedWarranty,
+                                      hint: const Text('No Warranty',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: Color(0xFF94A3B8))),
+                                      decoration: _inputDecor('Please Select'),
+                                      items: _warranties
+                                          .map((w) => DropdownMenuItem(
+                                                value: w,
+                                                child: Text(w.name,
+                                                    style: const TextStyle(
+                                                        fontSize: 13),
+                                                    overflow:
+                                                        TextOverflow.ellipsis),
+                                              ))
+                                          .toList(),
+                                      onChanged: (val) => setState(
+                                          () => _selectedWarranty = val),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildFieldLabel('Sub category'),
@@ -1781,1043 +1908,938 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 20),
+                            ],
+                          );
+                        }
+                      }),
+                      const SizedBox(height: 20),
 
-                            // Business Locations
-                            Expanded(
-                              flex: 4,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel('Business Locations',
-                                      hasInfo: true,
-                                      info:
-                                          'Location where product is available'),
-                                  Container(
-                                    height: 44,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                          color: const Color(0xFFCBD5E1)),
+                      // ROW 4: Manage Stock Checkbox | Alert Quantity
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Checkbox(
+                            value: _manageStock,
+                            activeColor: const Color(0xFF0284C7),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4)),
+                            onChanged: (val) =>
+                                setState(() => _manageStock = val ?? true),
+                          ),
+                          InkWell(
+                            onTap: () =>
+                                setState(() => _manageStock = !_manageStock),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: const [
+                                    Text(
+                                      'Manage Stock?',
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1E293B)),
                                     ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF0284C7),
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.close,
-                                                  size: 14,
-                                                  color: Colors.white),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                _selectedLocation,
-                                                style: const TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                    SizedBox(width: 4),
+                                    Icon(Icons.info,
+                                        size: 14, color: Color(0xFF06B6D4)),
+                                  ],
+                                ),
+                                const Text(
+                                  'Enable stock management at product level',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontStyle: FontStyle.italic,
+                                      color: Color(0xFF64748B)),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 20),
-
-                            // Warranty
-                            Expanded(
-                              flex: 4,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildFieldLabel('Warranty',
-                                      hasInfo: true,
-                                      info: 'Product warranty terms'),
-                                  DropdownButtonFormField<Warranty>(
-                                    initialValue: _selectedWarranty,
-                                    hint: const Text('No Warranty',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: Color(0xFF94A3B8))),
-                                    decoration: _inputDecor('Please Select'),
-                                    items: _warranties
-                                        .map((w) => DropdownMenuItem(
-                                              value: w,
-                                              child: Text(w.name,
-                                                  style: const TextStyle(
-                                                      fontSize: 13),
-                                                  overflow:
-                                                      TextOverflow.ellipsis),
-                                            ))
-                                        .toList(),
-                                    onChanged: (val) =>
-                                        setState(() => _selectedWarranty = val),
-                                  ),
-                                ],
-                              ),
+                          ),
+                          const SizedBox(width: 24),
+                          Checkbox(
+                            value: _isFeatured,
+                            activeColor: const Color(0xFF4F46E5),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4)),
+                            onChanged: (val) =>
+                                setState(() => _isFeatured = val ?? false),
+                          ),
+                          InkWell(
+                            onTap: () =>
+                                setState(() => _isFeatured = !_isFeatured),
+                            child: const Text(
+                              'Featured Product (POS)',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E293B)),
                             ),
-                          ],
-                        );
-                      } else {
-                        return Column(
-                          children: [
+                          ),
+                          const SizedBox(width: 40),
+                          if (_manageStock) ...[
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildFieldLabel('Sub category'),
-                                DropdownButtonFormField<String>(
-                                  initialValue: _selectedSubCategory,
-                                  hint: const Text('Please Select',
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          color: Color(0xFF94A3B8))),
-                                  decoration: _inputDecor('Please Select'),
-                                  items: _subCategories
-                                      .map((s) => DropdownMenuItem(
-                                          value: s,
-                                          child: Text(s,
-                                              style: const TextStyle(
-                                                  fontSize: 13))))
-                                      .toList(),
-                                  onChanged: (val) => setState(
-                                      () => _selectedSubCategory = val),
+                                _buildFieldLabel('Alert quantity',
+                                    hasInfo: true,
+                                    info:
+                                        'Notify when stock falls below this number'),
+                                SizedBox(
+                                  width: 160,
+                                  child: TextFormField(
+                                    controller: _alertQtyCtrl,
+                                    keyboardType: TextInputType.number,
+                                    decoration: _inputDecor('Alert quantity'),
+                                  ),
                                 ),
                               ],
                             ),
                           ],
-                        );
-                      }
-                    }),
-                    const SizedBox(height: 20),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
 
-                    // ROW 4: Manage Stock Checkbox | Alert Quantity
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Checkbox(
-                          value: _manageStock,
-                          activeColor: const Color(0xFF0284C7),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4)),
-                          onChanged: (val) =>
-                              setState(() => _manageStock = val ?? true),
-                        ),
-                        InkWell(
-                          onTap: () =>
-                              setState(() => _manageStock = !_manageStock),
+                      // Industry & Pharmacy Specific Card: Batch No, Expiry Date, Bonus Qty, Pack Size (Conditional)
+                      if (widget.settings.isBatchExpiryEnabled ||
+                          widget.settings.isPharmacy) ...[
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: widget.settings.isPharmacy
+                                ? const Color(0xFFF0FDF4)
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: widget.settings.isPharmacy
+                                  ? const Color(0xFFBBF7D0)
+                                  : const Color(0xFFE2E8F0),
+                            ),
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                children: const [
-                                  Text(
-                                    'Manage Stock?',
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1E293B)),
-                                  ),
-                                  SizedBox(width: 4),
-                                  Icon(Icons.info,
-                                      size: 14, color: Color(0xFF06B6D4)),
-                                ],
-                              ),
-                              const Text(
-                                'Enable stock management at product level',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontStyle: FontStyle.italic,
-                                    color: Color(0xFF64748B)),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Checkbox(
-                          value: _isFeatured,
-                          activeColor: const Color(0xFF4F46E5),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4)),
-                          onChanged: (val) =>
-                              setState(() => _isFeatured = val ?? false),
-                        ),
-                        InkWell(
-                          onTap: () =>
-                              setState(() => _isFeatured = !_isFeatured),
-                          child: const Text(
-                            'Featured Product (POS)',
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E293B)),
-                          ),
-                        ),
-                        const SizedBox(width: 40),
-                        if (_manageStock) ...[
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildFieldLabel('Alert quantity',
-                                  hasInfo: true,
-                                  info:
-                                      'Notify when stock falls below this number'),
-                              SizedBox(
-                                width: 160,
-                                child: TextFormField(
-                                  controller: _alertQtyCtrl,
-                                  keyboardType: TextInputType.number,
-                                  decoration: _inputDecor('Alert quantity'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Industry & Pharmacy Specific Card: Batch No, Expiry Date, Bonus Qty, Pack Size (Conditional)
-                    if (widget.settings.isBatchExpiryEnabled ||
-                        widget.settings.isPharmacy) ...[
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: widget.settings.isPharmacy
-                              ? const Color(0xFFF0FDF4)
-                              : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: widget.settings.isPharmacy
-                                ? const Color(0xFFBBF7D0)
-                                : const Color(0xFFE2E8F0),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.medication_outlined,
-                                  size: 18,
-                                  color: widget.settings.isPharmacy
-                                      ? const Color(0xFF16A34A)
-                                      : const Color(0xFF0038B8),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  widget.settings.isPharmacy
-                                      ? 'Pharmaceutical Specifications (Batch, Expiry & Bonus Scheme)'
-                                      : 'Extended Product Specifications (Batch, Expiry & Pack Size)',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                                children: [
+                                  Icon(
+                                    Icons.medication_outlined,
+                                    size: 18,
                                     color: widget.settings.isPharmacy
-                                        ? const Color(0xFF166534)
-                                        : const Color(0xFF1E293B),
+                                        ? const Color(0xFF16A34A)
+                                        : const Color(0xFF0038B8),
                                   ),
-                                ),
-                                if (widget.settings.isPharmacy) ...[
-                                  const Spacer(),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFDCFCE7),
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(
-                                          color: const Color(0xFF86EFAC)),
-                                    ),
-                                    child: const Text(
-                                      'Drug Act 1976 Compliant',
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF15803D)),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    widget.settings.isPharmacy
+                                        ? 'Pharmaceutical Specifications (Batch, Expiry & Bonus Scheme)'
+                                        : 'Extended Product Specifications (Batch, Expiry & Pack Size)',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: widget.settings.isPharmacy
+                                          ? const Color(0xFF166534)
+                                          : const Color(0xFF1E293B),
                                     ),
                                   ),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            LayoutBuilder(builder: (context, constraints) {
-                              final isWide = constraints.maxWidth > 800;
-                              if (isWide) {
-                                return Row(
-                                  children: [
-                                    // Batch Number
-                                    Expanded(
-                                      flex: 3,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _buildFieldLabel('Batch Number',
-                                              hasInfo: true,
-                                              info:
-                                                  'Manufacturer lot/batch number'),
-                                          TextFormField(
-                                            controller: _batchCtrl,
-                                            decoration: _inputDecor(
-                                                'e.g. 02260 or DW001'),
-                                          ),
-                                        ],
+                                  if (widget.settings.isPharmacy) ...[
+                                    const Spacer(),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFDCFCE7),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                            color: const Color(0xFF86EFAC)),
+                                      ),
+                                      child: const Text(
+                                        'Drug Act 1976 Compliant',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF15803D)),
                                       ),
                                     ),
-                                    const SizedBox(width: 16),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              LayoutBuilder(builder: (context, constraints) {
+                                final isWide = constraints.maxWidth > 800;
+                                if (isWide) {
+                                  return Row(
+                                    children: [
+                                      // Batch Number
+                                      Expanded(
+                                        flex: 3,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            _buildFieldLabel('Batch Number',
+                                                hasInfo: true,
+                                                info:
+                                                    'Manufacturer lot/batch number'),
+                                            TextFormField(
+                                              controller: _batchCtrl,
+                                              decoration: _inputDecor(
+                                                  'e.g. 02260 or DW001'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
 
-                                    // Expiry Date
-                                    Expanded(
-                                      flex: 3,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _buildFieldLabel('Expiry Date',
-                                              hasInfo: true,
-                                              info:
-                                                  'MM-YYYY format e.g. 12-2028 (Click calendar to pick)'),
-                                          TextFormField(
-                                            controller: _expiryCtrl,
-                                            decoration: _inputDecor(
-                                                    'MM-YYYY (e.g. 12-2028)')
-                                                .copyWith(
-                                              suffixIcon: IconButton(
-                                                icon: const Icon(
-                                                    Icons.calendar_month,
-                                                    size: 20,
-                                                    color: Color(0xFF004EEB)),
-                                                tooltip: 'Select Expiry Date',
-                                                onPressed: () =>
-                                                    _pickExpiryDate(
-                                                        _expiryCtrl),
+                                      // Expiry Date
+                                      Expanded(
+                                        flex: 3,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            _buildFieldLabel('Expiry Date',
+                                                hasInfo: true,
+                                                info:
+                                                    'MM-YYYY format e.g. 12-2028 (Click calendar to pick)'),
+                                            TextFormField(
+                                              controller: _expiryCtrl,
+                                              decoration: _inputDecor(
+                                                      'MM-YYYY (e.g. 12-2028)')
+                                                  .copyWith(
+                                                suffixIcon: IconButton(
+                                                  icon: const Icon(
+                                                      Icons.calendar_month,
+                                                      size: 20,
+                                                      color: Color(0xFF004EEB)),
+                                                  tooltip: 'Select Expiry Date',
+                                                  onPressed: () =>
+                                                      _pickExpiryDate(
+                                                          _expiryCtrl),
+                                                ),
                                               ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+
+                                      // Bonus Quantity
+                                      Expanded(
+                                        flex: 3,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            _buildFieldLabel(
+                                                'Bonus Scheme / Free Qty',
+                                                hasInfo: true,
+                                                info:
+                                                    'Free units given per deal'),
+                                            TextFormField(
+                                              controller: _bonusQtyCtrl,
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              decoration: _inputDecor('0'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+
+                                      // Pack Size
+                                      Expanded(
+                                        flex: 3,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            _buildFieldLabel(
+                                                'Pack Size / Multiplier',
+                                                hasInfo: true,
+                                                info: 'Units per retail pack'),
+                                            TextFormField(
+                                              controller: _packSizeCtrl,
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              decoration: _inputDecor('1'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                } else {
+                                  return Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                _buildFieldLabel(
+                                                    'Batch Number'),
+                                                TextFormField(
+                                                    controller: _batchCtrl,
+                                                    decoration:
+                                                        _inputDecor('Batch #')),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                _buildFieldLabel(
+                                                    'Expiry (MM-YYYY)'),
+                                                TextFormField(
+                                                  controller: _expiryCtrl,
+                                                  decoration:
+                                                      _inputDecor('12-2028')
+                                                          .copyWith(
+                                                    suffixIcon: IconButton(
+                                                      icon: const Icon(
+                                                          Icons.calendar_month,
+                                                          size: 18,
+                                                          color: Color(
+                                                              0xFF004EEB)),
+                                                      tooltip:
+                                                          'Select Expiry Date',
+                                                      onPressed: () =>
+                                                          _pickExpiryDate(
+                                                              _expiryCtrl),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    const SizedBox(width: 16),
-
-                                    // Bonus Quantity
-                                    Expanded(
-                                      flex: 3,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                      const SizedBox(height: 12),
+                                      Row(
                                         children: [
-                                          _buildFieldLabel(
-                                              'Bonus Scheme / Free Qty',
-                                              hasInfo: true,
-                                              info:
-                                                  'Free units given per deal'),
-                                          TextFormField(
-                                            controller: _bonusQtyCtrl,
-                                            keyboardType: TextInputType.number,
-                                            decoration: _inputDecor('0'),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                _buildFieldLabel('Bonus Qty'),
+                                                TextFormField(
+                                                    controller: _bonusQtyCtrl,
+                                                    decoration:
+                                                        _inputDecor('0')),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                _buildFieldLabel('Pack Size'),
+                                                TextFormField(
+                                                    controller: _packSizeCtrl,
+                                                    decoration:
+                                                        _inputDecor('1')),
+                                              ],
+                                            ),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    const SizedBox(width: 16),
-
-                                    // Pack Size
-                                    Expanded(
-                                      flex: 3,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _buildFieldLabel(
-                                              'Pack Size / Multiplier',
-                                              hasInfo: true,
-                                              info: 'Units per retail pack'),
-                                          TextFormField(
-                                            controller: _packSizeCtrl,
-                                            keyboardType: TextInputType.number,
-                                            decoration: _inputDecor('1'),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              } else {
-                                return Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              _buildFieldLabel('Batch Number'),
-                                              TextFormField(
-                                                  controller: _batchCtrl,
-                                                  decoration:
-                                                      _inputDecor('Batch #')),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              _buildFieldLabel(
-                                                  'Expiry (MM-YYYY)'),
-                                              TextFormField(
-                                                controller: _expiryCtrl,
-                                                decoration:
-                                                    _inputDecor('12-2028')
-                                                        .copyWith(
-                                                  suffixIcon: IconButton(
-                                                    icon: const Icon(
-                                                        Icons.calendar_month,
-                                                        size: 18,
-                                                        color:
-                                                            Color(0xFF004EEB)),
-                                                    tooltip:
-                                                        'Select Expiry Date',
-                                                    onPressed: () =>
-                                                        _pickExpiryDate(
-                                                            _expiryCtrl),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              _buildFieldLabel('Bonus Qty'),
-                                              TextFormField(
-                                                  controller: _bonusQtyCtrl,
-                                                  decoration: _inputDecor('0')),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              _buildFieldLabel('Pack Size'),
-                                              TextFormField(
-                                                  controller: _packSizeCtrl,
-                                                  decoration: _inputDecor('1')),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                );
-                              }
-                            }),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // ROW 5: Product Description (with AI + WYSIWYG) & Product Image
-                    LayoutBuilder(builder: (context, constraints) {
-                      final isWide = constraints.maxWidth > 800;
-                      if (isWide) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Product Description
-                            Expanded(
-                              flex: 7,
-                              child: _buildDescriptionSection(),
-                            ),
-                            const SizedBox(width: 24),
-
-                            // Product Image
-                            Expanded(
-                              flex: 5,
-                              child: _buildImageSection(),
-                            ),
-                          ],
-                        );
-                      } else {
-                        return Column(
-                          children: [
-                            _buildDescriptionSection(),
-                            const SizedBox(height: 20),
-                            _buildImageSection(),
-                          ],
-                        );
-                      }
-                    }),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Pricing & Stock Card
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Product Type & Pricing Engine',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A)),
-                        ),
-                        // Segmented Button Toggle for Single vs Variable Product
-                        Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: Row(
-                            children: [
-                              InkWell(
-                                onTap: () =>
-                                    setState(() => _productType = 'single'),
-                                borderRadius: BorderRadius.circular(6),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: _productType == 'single'
-                                        ? const Color(0xFF0038B8)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    'Single Product',
-                                    style: TextStyle(
-                                      color: _productType == 'single'
-                                          ? Colors.white
-                                          : const Color(0xFF64748B),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              InkWell(
-                                onTap: () =>
-                                    setState(() => _productType = 'variable'),
-                                borderRadius: BorderRadius.circular(6),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: _productType == 'variable'
-                                        ? const Color(0xFF0038B8)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    'Variable Product',
-                                    style: TextStyle(
-                                      color: _productType == 'variable'
-                                          ? Colors.white
-                                          : const Color(0xFF64748B),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                                    ],
+                                  );
+                                }
+                              }),
                             ],
                           ),
                         ),
+                        const SizedBox(height: 24),
                       ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (_taxRates.isNotEmpty || _taxGroups.isNotEmpty) ...[
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+
+                      // ROW 5: Product Description (with AI + WYSIWYG) & Product Image
+                      LayoutBuilder(builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 800;
+                        if (isWide) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Product Description
+                              Expanded(
+                                flex: 7,
+                                child: _buildDescriptionSection(),
+                              ),
+                              const SizedBox(width: 24),
+
+                              // Product Image
+                              Expanded(
+                                flex: 5,
+                                child: _buildImageSection(),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              _buildDescriptionSection(),
+                              const SizedBox(height: 20),
+                              _buildImageSection(),
+                            ],
+                          );
+                        }
+                      }),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Pricing & Stock Card
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildFieldLabel('Default Applicable Tax (Rate / Compound Group)'),
-                          Builder(
-                            builder: (_) {
-                              final groupKey = _selectedTaxGroupId != null &&
-                                      _taxGroups.any((g) => g.id == _selectedTaxGroupId)
-                                  ? 'group:$_selectedTaxGroupId'
-                                  : null;
-                              final rateKey = _selectedTaxRateId != null &&
-                                      _taxRates.any((r) => r.id == _selectedTaxRateId)
-                                  ? 'rate:$_selectedTaxRateId'
-                                  : null;
-                              final currentVal = groupKey ?? rateKey ?? 'none';
-                              return DropdownButtonFormField<String>(
-                                initialValue: currentVal,
-                                decoration: _inputDecor('Tax Exempt / Order Default'),
-                                items: [
-                                  const DropdownMenuItem(
-                                    value: 'none',
-                                    child: Text('None (Exempt / Use Order Tax)'),
-                                  ),
-                                  ..._taxRates.map(
-                                    (r) => DropdownMenuItem(
-                                      value: 'rate:${r.id}',
-                                      child: Text('${r.name} (${r.amount.toStringAsFixed(2)}%)'),
+                          const Text(
+                            'Product Type & Pricing Engine',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F172A)),
+                          ),
+                          // Segmented Button Toggle for Single vs Variable Product
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: Row(
+                              children: [
+                                InkWell(
+                                  onTap: () =>
+                                      setState(() => _productType = 'single'),
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: _productType == 'single'
+                                          ? const Color(0xFF0038B8)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
-                                  ),
-                                  ..._taxGroups.map(
-                                    (g) => DropdownMenuItem(
-                                      value: 'group:${g.id}',
-                                      child: Text(
-                                        '[${g.isCompound ? "Compound" : "Additive"} Group] ${g.name} (${g.computeEffectiveRate(_taxRates).toStringAsFixed(2)}%)',
+                                    child: Text(
+                                      'Single Product',
+                                      style: TextStyle(
+                                        color: _productType == 'single'
+                                            ? Colors.white
+                                            : const Color(0xFF64748B),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
                                       ),
                                     ),
                                   ),
-                                ],
-                                onChanged: (val) {
-                                  setState(() {
-                                    if (val == null || val == 'none') {
-                                      _selectedTaxRateId = null;
-                                      _selectedTaxGroupId = null;
-                                    } else if (val.startsWith('rate:')) {
-                                      _selectedTaxRateId = int.tryParse(val.substring(5));
-                                      _selectedTaxGroupId = null;
-                                    } else if (val.startsWith('group:')) {
-                                      _selectedTaxGroupId = int.tryParse(val.substring(6));
-                                      _selectedTaxRateId = null;
-                                    }
-                                  });
-                                },
-                              );
-                            },
+                                ),
+                                const SizedBox(width: 4),
+                                InkWell(
+                                  onTap: () =>
+                                      setState(() => _productType = 'variable'),
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: _productType == 'variable'
+                                          ? const Color(0xFF0038B8)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      'Variable Product',
+                                      style: TextStyle(
+                                        color: _productType == 'variable'
+                                            ? Colors.white
+                                            : const Color(0xFF64748B),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                    ],
-                    if (_productType == 'single') ...[
-                      Row(
-                        children: [
-                          // Purchase Price
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildFieldLabel(
-                                    widget.settings.enableSecondaryLanguage
-                                        ? 'Purchase Price ($currency) / لاگت'
-                                        : 'Purchase Price ($currency)'),
-                                TextFormField(
-                                  controller: _purchasePriceCtrl,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
-                                  decoration: _inputDecor('0.00'),
-                                  onChanged: (_) => _recalcSellingPrice(),
-                                  validator: (val) {
-                                    if (val != null &&
-                                        val.trim().isNotEmpty &&
-                                        double.tryParse(val.trim()) == null) {
-                                      return 'Must be a number';
-                                    }
-                                    return null;
+                      if (_taxRates.isNotEmpty || _taxGroups.isNotEmpty) ...[
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildFieldLabel(
+                                'Default Applicable Tax (Rate / Compound Group)'),
+                            Builder(
+                              builder: (_) {
+                                final groupKey = _selectedTaxGroupId != null &&
+                                        _taxGroups.any(
+                                            (g) => g.id == _selectedTaxGroupId)
+                                    ? 'group:$_selectedTaxGroupId'
+                                    : null;
+                                final rateKey = _selectedTaxRateId != null &&
+                                        _taxRates.any(
+                                            (r) => r.id == _selectedTaxRateId)
+                                    ? 'rate:$_selectedTaxRateId'
+                                    : null;
+                                final currentVal =
+                                    groupKey ?? rateKey ?? 'none';
+                                return DropdownButtonFormField<String>(
+                                  initialValue: currentVal,
+                                  decoration:
+                                      _inputDecor('Tax Exempt / Order Default'),
+                                  items: [
+                                    const DropdownMenuItem(
+                                      value: 'none',
+                                      child:
+                                          Text('None (Exempt / Use Order Tax)'),
+                                    ),
+                                    ..._taxRates.map(
+                                      (r) => DropdownMenuItem(
+                                        value: 'rate:${r.id}',
+                                        child: Text(
+                                            '${r.name} (${r.amount.toStringAsFixed(2)}%)'),
+                                      ),
+                                    ),
+                                    ..._taxGroups.map(
+                                      (g) => DropdownMenuItem(
+                                        value: 'group:${g.id}',
+                                        child: Text(
+                                          '[${g.isCompound ? "Compound" : "Additive"} Group] ${g.name} (${g.computeEffectiveRate(_taxRates).toStringAsFixed(2)}%)',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (val) {
+                                    setState(() {
+                                      if (val == null || val == 'none') {
+                                        _selectedTaxRateId = null;
+                                        _selectedTaxGroupId = null;
+                                      } else if (val.startsWith('rate:')) {
+                                        _selectedTaxRateId =
+                                            int.tryParse(val.substring(5));
+                                        _selectedTaxGroupId = null;
+                                      } else if (val.startsWith('group:')) {
+                                        _selectedTaxGroupId =
+                                            int.tryParse(val.substring(6));
+                                        _selectedTaxRateId = null;
+                                      }
+                                    });
                                   },
-                                ),
-                              ],
+                                );
+                              },
                             ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // Profit Margin (%)
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildFieldLabel('Profit Margin (%)'),
-                                TextFormField(
-                                  controller: _profitMarginCtrl,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
-                                  decoration: _inputDecor('25.0'),
-                                  onChanged: (_) => _recalcSellingPrice(),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // Selling Price
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildFieldLabel(
-                                    widget.settings.enableSecondaryLanguage
-                                        ? 'Selling Price ($currency)* / فروخت قیمت'
-                                        : 'Selling Price ($currency)*',
-                                    isRequired: true),
-                                TextFormField(
-                                  controller: _sellingPriceCtrl,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
-                                  decoration: _inputDecor('0.00'),
-                                  onChanged: (_) => _recalcMargin(),
-                                  validator: (val) {
-                                    if (val == null || val.trim().isEmpty)
-                                      return 'Selling Price required';
-                                    final num = double.tryParse(val.trim());
-                                    if (num == null || num <= 0)
-                                      return 'Must be > 0';
-                                    return null;
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // Opening Stock
-                          if (_manageStock)
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      if (_productType == 'single') ...[
+                        Row(
+                          children: [
+                            // Purchase Price
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildFieldLabel(widget
-                                          .settings.enableSecondaryLanguage
-                                      ? 'Opening Stock (Units) / ابتدائی سٹاک'
-                                      : 'Opening Stock (Units)'),
+                                  _buildFieldLabel(
+                                      '${PosLocalization.tr("Purchase Cost per Unit", settings: widget.settings)} ($currency)'),
                                   TextFormField(
-                                    controller: _openingStockCtrl,
+                                    controller: _purchasePriceCtrl,
                                     keyboardType:
                                         const TextInputType.numberWithOptions(
                                             decimal: true),
-                                    decoration: _inputDecor('50'),
+                                    decoration: _inputDecor('0.00'),
+                                    onChanged: (_) => _recalcSellingPrice(),
+                                    validator: (val) {
+                                      if (val != null &&
+                                          val.trim().isNotEmpty &&
+                                          double.tryParse(val.trim()) == null) {
+                                        return 'Must be a number';
+                                      }
+                                      return null;
+                                    },
                                   ),
                                 ],
                               ),
                             ),
-                        ],
-                      ),
-                    ] else ...[
-                      // Variable Product Variations Matrix
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Variations Matrix (${_variations.length} variations configured)',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Color(0xFF1E293B)),
-                          ),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: const Color(0xFF0038B8),
-                                  side: const BorderSide(
-                                      color: Color(0xFF0038B8)),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 10),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6)),
-                                ),
-                                icon: const Icon(Icons.auto_awesome, size: 16),
-                                label: const Text('Generate from Template'),
-                                onPressed: _showApplyTemplateDialog,
-                              ),
-                              ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0038B8),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 10),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6)),
-                                ),
-                                icon: const Icon(Icons.add, size: 16),
-                                label: const Text('Add Variation Option'),
-                                onPressed: _showAddVariationModal,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (_variations.isEmpty)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            children: const [
-                              Icon(Icons.style_outlined,
-                                  size: 36, color: Color(0xFF94A3B8)),
-                              SizedBox(height: 8),
-                              Text(
-                                'No variations added yet.',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF475569)),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Click "+ Add Variation Option" to define variants like Small, Medium, Large or Color choices.',
-                                style: TextStyle(
-                                    fontSize: 12, color: Color(0xFF64748B)),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        Table(
-                          border: TableBorder.all(
-                              color: const Color(0xFFE2E8F0),
-                              borderRadius: BorderRadius.circular(6)),
-                          columnWidths: const {
-                            0: FlexColumnWidth(2),
-                            1: FlexColumnWidth(2.5),
-                            2: FlexColumnWidth(1.5),
-                            3: FlexColumnWidth(1.5),
-                            4: FlexColumnWidth(1.2),
-                            5: FixedColumnWidth(60),
-                          },
-                          children: [
-                            const TableRow(
-                              decoration:
-                                  BoxDecoration(color: Color(0xFFF1F5F9)),
-                              children: [
-                                Padding(
-                                    padding: EdgeInsets.all(10),
-                                    child: Text('Variation',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13))),
-                                Padding(
-                                    padding: EdgeInsets.all(10),
-                                    child: Text('Sub-SKU',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13))),
-                                Padding(
-                                    padding: EdgeInsets.all(10),
-                                    child: Text('Purchase Price',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13))),
-                                Padding(
-                                    padding: EdgeInsets.all(10),
-                                    child: Text('Selling Price',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13))),
-                                Padding(
-                                    padding: EdgeInsets.all(10),
-                                    child: Text('Opening Stock',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13))),
-                                Padding(
-                                    padding: EdgeInsets.all(10),
-                                    child: Text('Action',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13))),
-                              ],
-                            ),
-                            ..._variations.asMap().entries.map((entry) {
-                              final idx = entry.key;
-                              final v = entry.value;
-                              return TableRow(
+                            const SizedBox(width: 16),
+
+                            // Profit Margin (%)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Text(v.name,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w600))),
-                                  Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Text(v.subSku,
-                                          style: const TextStyle(
-                                              fontFamily: 'monospace'))),
-                                  Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Text(
-                                          '$currency${v.purchasePrice.toStringAsFixed(2)}')),
-                                  Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Text(
-                                          '$currency${v.sellingPrice.toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF16A34A)))),
-                                  Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Text(
-                                          '${v.stockQuantity.toInt()} Pcs')),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline,
-                                        color: Colors.red, size: 20),
-                                    onPressed: () => setState(
-                                        () => _variations.removeAt(idx)),
+                                  _buildFieldLabel('Profit Margin (%)'),
+                                  TextFormField(
+                                    controller: _profitMarginCtrl,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    decoration: _inputDecor('25.0'),
+                                    onChanged: (_) => _recalcSellingPrice(),
                                   ),
                                 ],
-                              );
-                            }),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+
+                            // Selling Price
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildFieldLabel(
+                                      '${PosLocalization.tr("Selling Price", settings: widget.settings)} ($currency)*',
+                                      isRequired: true),
+                                  TextFormField(
+                                    controller: _sellingPriceCtrl,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    decoration: _inputDecor('0.00'),
+                                    onChanged: (_) => _recalcMargin(),
+                                    validator: (val) {
+                                      if (val == null || val.trim().isEmpty)
+                                        return 'Selling Price required';
+                                      final num = double.tryParse(val.trim());
+                                      if (num == null || num <= 0)
+                                        return 'Must be > 0';
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+
+                            // Opening Stock
+                            if (_manageStock)
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFieldLabel(PosLocalization.tr(
+                                        'Opening Stock (Units)',
+                                        settings: widget.settings)),
+                                    TextFormField(
+                                      controller: _openingStockCtrl,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                              decimal: true),
+                                      decoration: _inputDecor('50'),
+                                    ),
+                                  ],
+                                ),
+                              ),
                           ],
                         ),
+                      ] else ...[
+                        // Variable Product Variations Matrix
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Variations Matrix (${_variations.length} variations configured)',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Color(0xFF1E293B)),
+                            ),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF0038B8),
+                                    side: const BorderSide(
+                                        color: Color(0xFF0038B8)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6)),
+                                  ),
+                                  icon:
+                                      const Icon(Icons.auto_awesome, size: 16),
+                                  label: const Text('Generate from Template'),
+                                  onPressed: _showApplyTemplateDialog,
+                                ),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0038B8),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 10),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6)),
+                                  ),
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: const Text('Add Variation Option'),
+                                  onPressed: _showAddVariationModal,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (_variations.isEmpty)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: Column(
+                              children: const [
+                                Icon(Icons.style_outlined,
+                                    size: 36, color: Color(0xFF94A3B8)),
+                                SizedBox(height: 8),
+                                Text(
+                                  'No variations added yet.',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF475569)),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Click "+ Add Variation Option" to define variants like Small, Medium, Large or Color choices.',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Color(0xFF64748B)),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Table(
+                            border: TableBorder.all(
+                                color: const Color(0xFFE2E8F0),
+                                borderRadius: BorderRadius.circular(6)),
+                            columnWidths: const {
+                              0: FlexColumnWidth(2),
+                              1: FlexColumnWidth(2.5),
+                              2: FlexColumnWidth(1.5),
+                              3: FlexColumnWidth(1.5),
+                              4: FlexColumnWidth(1.2),
+                              5: FixedColumnWidth(60),
+                            },
+                            children: [
+                              const TableRow(
+                                decoration:
+                                    BoxDecoration(color: Color(0xFFF1F5F9)),
+                                children: [
+                                  Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Text('Variation',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13))),
+                                  Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Text('Sub-SKU',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13))),
+                                  Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Text('Purchase Price',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13))),
+                                  Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Text('Selling Price',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13))),
+                                  Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Text('Opening Stock',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13))),
+                                  Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Text('Action',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13))),
+                                ],
+                              ),
+                              ..._variations.asMap().entries.map((entry) {
+                                final idx = entry.key;
+                                final v = entry.value;
+                                return TableRow(
+                                  children: [
+                                    Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Text(v.name,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600))),
+                                    Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Text(v.subSku,
+                                            style: const TextStyle(
+                                                fontFamily: 'monospace'))),
+                                    Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Text(
+                                            '$currency${v.purchasePrice.toStringAsFixed(2)}')),
+                                    Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Text(
+                                            '$currency${v.sellingPrice.toStringAsFixed(2)}',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF16A34A)))),
+                                    Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Text(
+                                            '${v.stockQuantity.toInt()} Pcs')),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline,
+                                          color: Colors.red, size: 20),
+                                      onPressed: () => setState(
+                                          () => _variations.removeAt(idx)),
+                                    ),
+                                  ],
+                                );
+                              }),
+                            ],
+                          ),
+                      ],
                     ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Bottom Actions Bar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 16),
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        foregroundColor: const Color(0xFF475569),
+                      ),
+                      onPressed: widget.onCancel,
+                      child: const Text('Cancel',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 16),
+                        side: const BorderSide(color: Color(0xFF004EEB)),
+                        foregroundColor: const Color(0xFF004EEB),
+                      ),
+                      onPressed: _isSaving
+                          ? null
+                          : () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              final success = await _saveProduct();
+                              if (!mounted) return;
+                              if (success) {
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    backgroundColor: Color(0xFF10B981),
+                                    content: Text(
+                                        'Product added successfully! Enter next product.'),
+                                  ),
+                                );
+                                _nameCtrl.clear();
+                                _autoGenerateSku();
+                                if (_scrollController.hasClients) {
+                                  _scrollController.animateTo(0.0,
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      curve: Curves.easeOut);
+                                }
+                              }
+                            },
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Save & Add Another',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 32, vertical: 16),
+                        backgroundColor: const Color(0xFF004EEB),
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                      ),
+                      onPressed: _isSaving
+                          ? null
+                          : () async {
+                              final success = await _saveProduct();
+                              if (success) {
+                                widget.onProductCreated();
+                              }
+                            },
+                      icon: _isSaving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.check, size: 18),
+                      label: Text(
+                        _isSaving
+                            ? 'Saving Product...'
+                            : (widget.productToEdit != null
+                                ? 'Update Product'
+                                : 'Save Product'),
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Bottom Actions Bar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 16),
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
-                      foregroundColor: const Color(0xFF475569),
-                    ),
-                    onPressed: widget.onCancel,
-                    child: const Text('Cancel',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 16),
-                      side: const BorderSide(color: Color(0xFF004EEB)),
-                      foregroundColor: const Color(0xFF004EEB),
-                    ),
-                    onPressed: _isSaving
-                        ? null
-                        : () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            final success = await _saveProduct();
-                            if (!mounted) return;
-                            if (success) {
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                  backgroundColor: Color(0xFF10B981),
-                                  content: Text(
-                                      'Product added successfully! Enter next product.'),
-                                ),
-                              );
-                              _nameCtrl.clear();
-                              _autoGenerateSku();
-                              if (_scrollController.hasClients) {
-                                _scrollController.animateTo(0.0,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeOut);
-                              }
-                            }
-                          },
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Save & Add Another',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 16),
-                      backgroundColor: const Color(0xFF004EEB),
-                      foregroundColor: Colors.white,
-                      elevation: 2,
-                    ),
-                    onPressed: _isSaving
-                        ? null
-                        : () async {
-                            final success = await _saveProduct();
-                            if (success) {
-                              widget.onProductCreated();
-                            }
-                          },
-                    icon: _isSaving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.check, size: 18),
-                    label: Text(
-                      _isSaving
-                          ? 'Saving Product...'
-                          : (widget.productToEdit != null
-                              ? 'Update Product'
-                              : 'Save Product'),
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-            ],
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

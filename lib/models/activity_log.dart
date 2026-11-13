@@ -36,7 +36,8 @@ class ActivityLogEntry {
       final decoded = jsonDecode(raw);
       return decoded is Map<String, dynamic> ? decoded : {'value': decoded};
     } catch (e, st) {
-      AppLogger.warning('ActivityLogEntry', 'Invalid JSON payload in activity_log', e, st);
+      AppLogger.warning(
+          'ActivityLogEntry', 'Invalid JSON payload in activity_log', e, st);
       return null;
     }
   }
@@ -54,7 +55,8 @@ class ActivityLogEntry {
         'created_at': createdAt,
       };
 
-  factory ActivityLogEntry.fromMap(Map<String, dynamic> map) => ActivityLogEntry(
+  factory ActivityLogEntry.fromMap(Map<String, dynamic> map) =>
+      ActivityLogEntry(
         id: map['id'] as int?,
         userId: map['user_id'] as int?,
         userName: map['user_name'] as String? ?? 'System',
@@ -67,4 +69,3 @@ class ActivityLogEntry {
         createdAt: map['created_at'] as String? ?? '',
       );
 }
-

@@ -52,7 +52,8 @@ class AdvancedFeaturesRepository extends BaseRepository {
       'payment_transactions',
       where: where.join(' AND '),
       whereArgs: args,
-      orderBy: "CASE WHEN COALESCE(NULLIF(cheque_status, ''), 'pending') = 'pending' THEN 0 ELSE 1 END, "
+      orderBy:
+          "CASE WHEN COALESCE(NULLIF(cheque_status, ''), 'pending') = 'pending' THEN 0 ELSE 1 END, "
           'cheque_due_date ASC, id DESC',
     );
     return rows.map((e) => PaymentTransaction.fromMap(e)).toList();
@@ -132,13 +133,17 @@ class AdvancedFeaturesRepository extends BaseRepository {
       entityType: 'cheque',
       entityId: transactionId,
       oldValues: {'cheque_status': existing.first['cheque_status']},
-      newValues: {'cheque_status': normalized, 'cleared_at': updates['cheque_cleared_at']},
+      newValues: {
+        'cheque_status': normalized,
+        'cleared_at': updates['cheque_cleared_at']
+      },
     );
   }
 
   // ==================== STEP 6.4: COMMISSION AGENTS ====================
 
-  Future<List<CommissionAgent>> getCommissionAgents({bool activeOnly = false}) async {
+  Future<List<CommissionAgent>> getCommissionAgents(
+      {bool activeOnly = false}) async {
     final rows = await db.query(
       'commission_agents',
       where: activeOnly ? 'is_active = 1' : null,
@@ -172,7 +177,8 @@ class AdvancedFeaturesRepository extends BaseRepository {
   }
 
   Future<int> deleteCommissionAgent(int id) async {
-    return await db.delete('commission_agents', where: 'id = ?', whereArgs: [id]);
+    return await db
+        .delete('commission_agents', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<List<Map<String, dynamic>>> getCommissionReport({
@@ -309,4 +315,3 @@ class AdvancedFeaturesRepository extends BaseRepository {
     );
   }
 }
-

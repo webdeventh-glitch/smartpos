@@ -10,7 +10,8 @@ void main() {
     sqfliteFfiInit();
   });
 
-  test('Phase 3: Cash Register, Suspend/Park Sales, and Split Payments Flow', () async {
+  test('Phase 3: Cash Register, Suspend/Park Sales, and Split Payments Flow',
+      () async {
     final tempDir = await Directory.systemTemp.createTemp('pos_phase3_test_');
     final dbPath = '${tempDir.path}/test_phase3.db';
 

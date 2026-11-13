@@ -22,7 +22,8 @@ abstract class IContactsRepository {
   Future<bool> isWalkInCustomer(int? contactId);
   Future<int> addContactPayment(ContactPayment payment);
   Future<List<ContactPayment>> getContactPayments(int contactId);
-  Future<List<PaymentTransaction>> getPaymentTransactionsForContact(int contactId);
+  Future<List<PaymentTransaction>> getPaymentTransactionsForContact(
+      int contactId);
   Future<List<CustomerGroup>> getCustomerGroups();
   Future<CustomerGroup?> getCustomerGroupById(int id);
   Future<int> addCustomerGroup(CustomerGroup group);
@@ -50,7 +51,8 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
       whereArgs.addAll(['%$search%', '%$search%']);
     }
 
-    final whereClause = conditions.isNotEmpty ? 'WHERE ${conditions.join(' AND ')}' : '';
+    final whereClause =
+        conditions.isNotEmpty ? 'WHERE ${conditions.join(' AND ')}' : '';
     final rows = await db.rawQuery('''
       SELECT c.*, cg.name AS customer_group_name
       FROM contacts c
@@ -105,8 +107,9 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
       queryArgs.addAll([cursorName, cursorName, cursorId]);
     }
 
-    final whereClause =
-        queryConditions.isNotEmpty ? 'WHERE ${queryConditions.join(' AND ')}' : '';
+    final whereClause = queryConditions.isNotEmpty
+        ? 'WHERE ${queryConditions.join(' AND ')}'
+        : '';
     final limitOffset = useCursor
         ? 'LIMIT ${safePageSize + 1}'
         : 'LIMIT ${safePageSize + 1} OFFSET ${(safePage - 1) * safePageSize}';
@@ -125,8 +128,9 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
 
     int totalCount = 0;
     if (includeTotalCount) {
-      final baseWhere =
-          baseConditions.isNotEmpty ? 'WHERE ${baseConditions.join(' AND ')}' : '';
+      final baseWhere = baseConditions.isNotEmpty
+          ? 'WHERE ${baseConditions.join(' AND ')}'
+          : '';
       final countRows = await db.rawQuery(
         'SELECT COUNT(*) AS total FROM contacts c $baseWhere',
         baseArgs,
@@ -146,7 +150,8 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
   }
 
   /// Computes contact summary totals for a contact type (`customer` or `supplier`).
-  Future<Map<String, num>> getContactSummaryStats({required String type}) async {
+  Future<Map<String, num>> getContactSummaryStats(
+      {required String type}) async {
     final rows = await db.rawQuery('''
       SELECT
         COUNT(*) AS total_count,
@@ -216,7 +221,8 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
 
   @override
   Future<int> updateContact(Contact contact) async {
-    final existing = contact.id != null ? await getContactById(contact.id!) : null;
+    final existing =
+        contact.id != null ? await getContactById(contact.id!) : null;
     final res = await db.update('contacts', contact.toMap(),
         where: 'id = ?', whereArgs: [contact.id]);
     await dbService.queueSyncItem(
@@ -261,7 +267,6 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
     return null;
   }
 
-
   /// Direct customer or supplier ledger payment recording
   Future<void> recordContactPayment({
     required int contactId,
@@ -277,7 +282,8 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
     String chequeDueDate = '',
   }) async {
     await db.transaction((txn) async {
-      final rows = await txn.query('contacts', where: 'id = ?', whereArgs: [contactId], limit: 1);
+      final rows = await txn.query('contacts',
+          where: 'id = ?', whereArgs: [contactId], limit: 1);
       if (rows.isEmpty) throw Exception('Contact #$contactId not found');
       final contact = Contact.fromMap(rows.first);
 
@@ -288,14 +294,19 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
       );
 
       final nowStr = DateTime.now().toIso8601String();
-      final actualRef = refNo.isNotEmpty ? refNo : 'REC-${DateTime.now().millisecondsSinceEpoch}';
-      final actualNote = note.isNotEmpty ? note : 'Direct ledger settlement for ${contact.name}';
+      final actualRef = refNo.isNotEmpty
+          ? refNo
+          : 'REC-${DateTime.now().millisecondsSinceEpoch}';
+      final actualNote = note.isNotEmpty
+          ? note
+          : 'Direct ledger settlement for ${contact.name}';
       final isCheque = paymentMethod.toLowerCase() == 'cheque';
 
       final paymentId = await txn.insert('contact_payments', {
         'contact_id': contactId,
         'contact_name': contact.name,
-        'payment_type': transactionType == 'customer_payment' ? 'receive' : 'pay',
+        'payment_type':
+            transactionType == 'customer_payment' ? 'receive' : 'pay',
         'amount': amount,
         'payment_method': paymentMethod,
         'date': nowStr,
@@ -328,10 +339,10 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
     });
   }
 
-
   // Contact Payments & Due Collections
   Future<String> generateNextPaymentRef() async {
-    final rows = await db.rawQuery('SELECT MAX(id) as max_id FROM contact_payments');
+    final rows =
+        await db.rawQuery('SELECT MAX(id) as max_id FROM contact_payments');
     final maxId = (rows.first['max_id'] as int?) ?? 0;
     return 'PAY-2026-${(maxId + 1).toString().padLeft(4, '0')}';
   }
@@ -359,13 +370,17 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
       final nowStr = DateTime.now().toIso8601String();
       final isCheque = payment.paymentMethod.toLowerCase() == 'cheque';
       await txn.insert('payment_transactions', {
-        'transaction_type': payment.paymentType == 'receive' ? 'customer_payment' : 'supplier_payment',
+        'transaction_type': payment.paymentType == 'receive'
+            ? 'customer_payment'
+            : 'supplier_payment',
         'parent_id': paymentId,
         'contact_id': payment.contactId,
         'contact_name': payment.contactName,
         'payment_method': payment.paymentMethod,
         'amount': payment.amount,
-        'account_name': (payment.paymentMethod == 'cash') ? 'Cash Register' : 'Main Bank Account',
+        'account_name': (payment.paymentMethod == 'cash')
+            ? 'Cash Register'
+            : 'Main Bank Account',
         'transaction_date': payment.date.isNotEmpty ? payment.date : nowStr,
         'ref_no': payment.refNo,
         'note': payment.note,
@@ -375,7 +390,9 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
         'bank_name': payment.bankName,
         'cheque_due_date': payment.chequeDueDate,
         'cheque_status': isCheque
-            ? (payment.chequeStatus.isNotEmpty ? payment.chequeStatus : 'pending')
+            ? (payment.chequeStatus.isNotEmpty
+                ? payment.chequeStatus
+                : 'pending')
             : '',
       });
 
@@ -400,7 +417,6 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
   Future<List<Contact>> getCustomers() async => getContacts(type: 'customer');
   Future<List<Contact>> getSuppliers() async => getContacts(type: 'supplier');
 
-
   // ===================== PAYMENT TRANSACTIONS (SPLIT & DUE RECOVERIES) =====================
 
   Future<int> addPaymentTransaction(PaymentTransaction transaction) async {
@@ -413,12 +429,14 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
         payload: transaction.toMap(),
       );
     } catch (e, st) {
-      AppLogger.warning('DatabaseService', 'Failed queuing payment_transaction sync item', e, st);
+      AppLogger.warning('DatabaseService',
+          'Failed queuing payment_transaction sync item', e, st);
     }
     return id;
   }
 
-  Future<List<PaymentTransaction>> getPaymentTransactionsForSale(int saleId) async {
+  Future<List<PaymentTransaction>> getPaymentTransactionsForSale(
+      int saleId) async {
     final res = await db.query(
       'payment_transactions',
       where: "transaction_type = 'sale' AND parent_id = ?",
@@ -428,7 +446,8 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
     return res.map((m) => PaymentTransaction.fromMap(m)).toList();
   }
 
-  Future<List<PaymentTransaction>> getPaymentTransactionsForPurchase(int purchaseId) async {
+  Future<List<PaymentTransaction>> getPaymentTransactionsForPurchase(
+      int purchaseId) async {
     final res = await db.query(
       'payment_transactions',
       where: "transaction_type = 'purchase' AND parent_id = ?",
@@ -439,7 +458,8 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
   }
 
   @override
-  Future<List<PaymentTransaction>> getPaymentTransactionsForContact(int contactId) async {
+  Future<List<PaymentTransaction>> getPaymentTransactionsForContact(
+      int contactId) async {
     final res = await db.query(
       'payment_transactions',
       where: 'contact_id = ?',
@@ -449,7 +469,8 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
     return res.map((m) => PaymentTransaction.fromMap(m)).toList();
   }
 
-  Future<List<PaymentTransaction>> getAllPaymentTransactions({int limit = 100}) async {
+  Future<List<PaymentTransaction>> getAllPaymentTransactions(
+      {int limit = 100}) async {
     final res = await db.query(
       'payment_transactions',
       orderBy: 'id DESC',
@@ -459,9 +480,9 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
   }
 
   Future<int> deletePaymentTransaction(int id) async {
-    return await db.delete('payment_transactions', where: 'id = ?', whereArgs: [id]);
+    return await db
+        .delete('payment_transactions', where: 'id = ?', whereArgs: [id]);
   }
-
 
   // ===================== CONTACT LEDGER & WALK-IN HELPERS =====================
 
@@ -474,7 +495,8 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
     ''', [deltaAmount, contactId]);
   }
 
-  Future<void> updateContactLoyaltyPoints(int contactId, double deltaPoints) async {
+  Future<void> updateContactLoyaltyPoints(
+      int contactId, double deltaPoints) async {
     await db.rawUpdate('''
       UPDATE contacts 
       SET loyalty_points = MAX(0.0, COALESCE(loyalty_points, 0.0) + ?) 
@@ -485,7 +507,8 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
   @override
   Future<bool> isWalkInCustomer(int? customerId) async {
     if (customerId == null) return true;
-    final res = await db.query('contacts', where: 'id = ?', whereArgs: [customerId], limit: 1);
+    final res = await db.query('contacts',
+        where: 'id = ?', whereArgs: [customerId], limit: 1);
     if (res.isEmpty) return true;
     final name = (res.first['name'] as String? ?? '').toLowerCase();
     final isWalkIn = (res.first['is_default_walk_in'] as int? ?? 0) == 1;
@@ -579,7 +602,9 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
         action: 'deleted',
         entityType: 'customer_group',
         entityId: id,
-        oldValues: existing == null ? null : {'name': existing.name, 'amount': existing.amount},
+        oldValues: existing == null
+            ? null
+            : {'name': existing.name, 'amount': existing.amount},
       );
     }
     return count;
@@ -602,5 +627,4 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
       newValues: {'customer_group_id': groupId},
     );
   }
-
 }

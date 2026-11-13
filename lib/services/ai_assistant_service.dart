@@ -35,7 +35,8 @@ class AiAssistantService {
     String prompt,
     String? systemInstruction,
   ) async {
-    final model = settings.modelName.isNotEmpty ? settings.modelName : 'gemini-1.5-flash';
+    final model =
+        settings.modelName.isNotEmpty ? settings.modelName : 'gemini-1.5-flash';
     final url = Uri.parse(
       'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=${settings.apiKey.trim()}',
     );
@@ -90,7 +91,8 @@ class AiAssistantService {
     String prompt,
     String? systemInstruction,
   ) async {
-    final model = settings.modelName.isNotEmpty ? settings.modelName : 'gpt-4o-mini';
+    final model =
+        settings.modelName.isNotEmpty ? settings.modelName : 'gpt-4o-mini';
     final url = Uri.parse('https://api.openai.com/v1/chat/completions');
 
     final messages = [
@@ -138,16 +140,22 @@ class AiAssistantService {
     required BusinessSettings settings,
     AiSettings? aiSettings,
   }) async {
-    final cur = settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs';
+    final cur =
+        settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs';
     final totalSales = (report['totalSales'] as num?)?.toDouble() ?? 0.0;
     final netProfit = (report['netProfit'] as num?)?.toDouble() ?? 0.0;
-    final marginPercent = totalSales > 0 ? ((netProfit / totalSales) * 100).toStringAsFixed(1) : '0.0';
-    final totalPurchases = (report['totalPurchases'] as num?)?.toDouble() ?? 0.0;
+    final marginPercent = totalSales > 0
+        ? ((netProfit / totalSales) * 100).toStringAsFixed(1)
+        : '0.0';
+    final totalPurchases =
+        (report['totalPurchases'] as num?)?.toDouble() ?? 0.0;
     final totalExpenses = (report['totalExpenses'] as num?)?.toDouble() ?? 0.0;
     final totalDues = (report['totalCustomerDues'] as num?)?.toDouble() ?? 0.0;
 
-    final expiredCount = expiries.where((e) => e['risk_category'] == 'expired').length;
-    final critical30Count = expiries.where((e) => e['risk_category'] == '30_days').length;
+    final expiredCount =
+        expiries.where((e) => e['risk_category'] == 'expired').length;
+    final critical30Count =
+        expiries.where((e) => e['risk_category'] == '30_days').length;
     double costAtRisk = 0.0;
     for (final e in expiries) {
       if (e['risk_category'] == 'expired' || e['risk_category'] == '30_days') {
@@ -173,7 +181,8 @@ Please provide an executive summary and business advisory for the store owner in
 3. 3 Actionable Recommendations (Shop owner ko agle hafte kya karna chahiye: promotions, recovery, reordering).
 ''';
 
-    const systemInstruction = 'You are Smart POS Enterprise AI Business Advisor. '
+    const systemInstruction =
+        'You are Smart POS Enterprise AI Business Advisor. '
         'Provide concise, empowering, data-driven financial advice in Roman Urdu. Use bullet points and clean structure.';
 
     return await generate(
@@ -209,7 +218,8 @@ Software Context:
 Answer the user directly and helpfully in natural Roman Urdu. If they ask about software operations, give exact steps and shortcut keys.
 ''';
 
-    const systemInstruction = 'You are the official Smart POS AI Support Assistant. Help the cashier or store manager operate the desktop POS smoothly.';
+    const systemInstruction =
+        'You are the official Smart POS AI Support Assistant. Help the cashier or store manager operate the desktop POS smoothly.';
 
     return await generate(
       prompt: prompt,
@@ -228,4 +238,3 @@ Answer the user directly and helpfully in natural Roman Urdu. If they ask about 
         'open Settings > AI Assistant and enter your free API key from Google AI Studio.';
   }
 }
-

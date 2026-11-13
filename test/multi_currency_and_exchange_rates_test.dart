@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:desktop_starter/models/models.dart';
 import 'package:desktop_starter/services/currency_rate_service.dart';
 import 'package:desktop_starter/services/regional_data_service.dart';
 import 'package:desktop_starter/screens/pos/payment_modal.dart';
 
 void main() {
   group('CurrencyRateService Unit Tests', () {
-    test('1. Default rates for PKR base contain USD, SAR, AED with proper defaults', () {
+    test(
+        '1. Default rates for PKR base contain USD, SAR, AED with proper defaults',
+        () {
       final rates = CurrencyRateService.defaultRatesForBase('PKR');
       expect(rates.isNotEmpty, isTrue);
 
@@ -62,7 +63,9 @@ void main() {
       expect(result.isFullyPaid, isFalse);
     });
 
-    test('4. Free Open API Exchange Rates Parser correctly computes cross rates from mock JSON', () async {
+    test(
+        '4. Free Open API Exchange Rates Parser correctly computes cross rates from mock JSON',
+        () async {
       final mockJson = jsonEncode({
         'result': 'success',
         'base_code': 'USD',
@@ -101,7 +104,9 @@ void main() {
       expect(aed.liveRate, closeTo(75.29, 0.05));
     });
 
-    test('5. JSON Serialization and Deserialization preserve custom rates and enable status', () {
+    test(
+        '5. JSON Serialization and Deserialization preserve custom rates and enable status',
+        () {
       final original = [
         const CurrencyRate(
           code: 'USD',
@@ -140,8 +145,11 @@ void main() {
   });
 
   group('Regional Currency Dataset Tests', () {
-    test('RegionalDataService contains all major world currencies with flags and symbols', () {
-      expect(RegionalDataService.allCurrencies.length, greaterThanOrEqualTo(100));
+    test(
+        'RegionalDataService contains all major world currencies with flags and symbols',
+        () {
+      expect(
+          RegionalDataService.allCurrencies.length, greaterThanOrEqualTo(100));
 
       final pkr = RegionalDataService.findCurrency('PKR');
       expect(pkr, isNotNull);
@@ -159,7 +167,9 @@ void main() {
   });
 
   group('PaymentModal Multi-Currency Widget Tests', () {
-    testWidgets('PaymentModal displays multi-currency selector and calculates USD dual tender', (tester) async {
+    testWidgets(
+        'PaymentModal displays multi-currency selector and calculates USD dual tender',
+        (tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
 
       final rates = [
@@ -209,7 +219,7 @@ void main() {
       // Check header and grand total
       expect(find.text('TOTAL PAYABLE AMOUNT'), findsOneWidget);
       expect(find.text('Rs2800.00'), findsOneWidget);
-      expect(find.text('PAYMENT CURRENCY (ادائیگی کی کرنسی)'), findsOneWidget);
+      expect(find.textContaining('PAYMENT CURRENCY'), findsOneWidget);
 
       // Select USD Chip
       final usdChip = find.textContaining('\$ USD');

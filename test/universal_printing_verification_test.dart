@@ -94,7 +94,9 @@ void main() {
       );
     });
 
-    test('1. Thermal Bill (80mm) generation contains brand, items, dues, and return policy', () {
+    test(
+        '1. Thermal Bill (80mm) generation contains brand, items, dues, and return policy',
+        () {
       final html = PrintService.generateSaleInvoiceHtml(
         sale: testSale,
         settings: testSettings,
@@ -116,7 +118,9 @@ void main() {
       expect(html, contains('window.print()'));
     });
 
-    test('2. Quotation / Estimate generation outputs formal commercial estimate with terms', () {
+    test(
+        '2. Quotation / Estimate generation outputs formal commercial estimate with terms',
+        () {
       final html = PrintService.generateQuotationHtml(
         sale: testSale,
         settings: testSettings,
@@ -131,7 +135,9 @@ void main() {
       expect(html, contains('Authorized Signatory'));
     });
 
-    test('3. Price List / Catalog generation renders structured price sheet with margins', () {
+    test(
+        '3. Price List / Catalog generation renders structured price sheet with margins',
+        () {
       final html = PrintService.generatePriceListHtml(
         products: [testProduct],
         settings: testSettings,
@@ -145,13 +151,18 @@ void main() {
       expect(html, contains('45 in stock'));
     });
 
-    test('4. Defaulters List generation outputs recovery collection sheet with signatures', () {
+    test(
+        '4. Defaulters List generation outputs recovery collection sheet with signatures',
+        () {
       final html = PrintService.generateDefaultersListHtml(
         defaulters: [testCustomer],
         settings: testSettings,
       );
 
-      expect(html, contains('CREDIT DEFAULTERS & OUTSTANDING RECEIVABLES RECOVERY SHEET'));
+      expect(
+          html,
+          contains(
+              'CREDIT DEFAULTERS & OUTSTANDING RECEIVABLES RECOVERY SHEET'));
       expect(html, contains('Chaudhry Traders &amp; Co'));
       expect(html, contains('0321-9876543'));
       expect(html, contains('Grain Market Shop 45, Gujranwala'));
@@ -159,7 +170,9 @@ void main() {
       expect(html, contains('Recovery Officer Signature:'));
     });
 
-    test('5. Executive Business Report outputs financial statements and metrics', () {
+    test(
+        '5. Executive Business Report outputs financial statements and metrics',
+        () {
       final reportData = {
         'totalSales': 1500000.0,
         'netSales': 1450000.0,

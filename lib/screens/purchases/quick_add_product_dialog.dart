@@ -90,8 +90,11 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
       final db = await DatabaseService.initialize();
       final cost = double.tryParse(_costCtrl.text.trim()) ?? 0.0;
       final selling = double.tryParse(_sellingCtrl.text.trim()) ?? cost;
-      final sku = _skuCtrl.text.trim().isNotEmpty ? _skuCtrl.text.trim() : 'SKU-${DateTime.now().millisecondsSinceEpoch % 100000}';
-      final barcode = _barcodeCtrl.text.trim().isNotEmpty ? _barcodeCtrl.text.trim() : sku;
+      final sku = _skuCtrl.text.trim().isNotEmpty
+          ? _skuCtrl.text.trim()
+          : 'SKU-${DateTime.now().millisecondsSinceEpoch % 100000}';
+      final barcode =
+          _barcodeCtrl.text.trim().isNotEmpty ? _barcodeCtrl.text.trim() : sku;
 
       final prod = Product(
         name: _nameCtrl.text.trim(),
@@ -127,7 +130,9 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add product: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Failed to add product: $e'),
+              backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -141,17 +146,23 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
     final currency = widget.settings.currencySymbol;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final bgHeader = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     final inputDeco = InputDecoration(
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       filled: true,
       fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor)),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: borderColor)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: borderColor)),
     );
 
     return Dialog(
@@ -164,11 +175,14 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: borderColor),
           boxShadow: const [
-            BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
+            BoxShadow(
+                color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
           ],
         ),
         child: _isLoading
-            ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
+            ? const Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(child: CircularProgressIndicator()))
             : Form(
                 key: _formKey,
                 child: Column(
@@ -177,10 +191,12 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                   children: [
                     // Header
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 14),
                       decoration: BoxDecoration(
                         color: bgHeader,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(14)),
                         border: Border(bottom: BorderSide(color: borderColor)),
                       ),
                       child: Row(
@@ -188,16 +204,21 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                           Container(
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                              color: const Color(0xFF10B981)
+                                  .withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(7),
                             ),
-                            child: const Icon(Icons.add_box_rounded, color: Color(0xFF10B981), size: 19),
+                            child: const Icon(Icons.add_box_rounded,
+                                color: Color(0xFF10B981), size: 19),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'Quick Add New Product to Catalog',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary),
                             ),
                           ),
                           IconButton(
@@ -220,13 +241,22 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Product Name *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                    Text('Product Name *',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: textPrimary)),
                                     const SizedBox(height: 5),
                                     TextFormField(
                                       controller: _nameCtrl,
-                                      style: TextStyle(fontSize: 13, color: textPrimary),
-                                      decoration: inputDeco.copyWith(hintText: 'e.g. Panadol 500mg Strip'),
-                                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Product name required' : null,
+                                      style: TextStyle(
+                                          fontSize: 13, color: textPrimary),
+                                      decoration: inputDeco.copyWith(
+                                          hintText: 'e.g. Panadol 500mg Strip'),
+                                      validator: (v) =>
+                                          (v == null || v.trim().isEmpty)
+                                              ? 'Product name required'
+                                              : null,
                                     ),
                                   ],
                                 ),
@@ -237,17 +267,28 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Category', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                    Text('Category',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: textPrimary)),
                                     const SizedBox(height: 5),
                                     DropdownButtonFormField<Category>(
                                       dropdownColor: cardBg,
                                       decoration: inputDeco,
-                                      style: TextStyle(fontSize: 13, color: textPrimary),
+                                      style: TextStyle(
+                                          fontSize: 13, color: textPrimary),
                                       initialValue: _selectedCategory,
                                       items: _categories
-                                          .map((c) => DropdownMenuItem(value: c, child: Text(c.name, style: TextStyle(fontSize: 13, color: textPrimary))))
+                                          .map((c) => DropdownMenuItem(
+                                              value: c,
+                                              child: Text(c.name,
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: textPrimary))))
                                           .toList(),
-                                      onChanged: (val) => setState(() => _selectedCategory = val),
+                                      onChanged: (val) => setState(
+                                          () => _selectedCategory = val),
                                     ),
                                   ],
                                 ),
@@ -261,12 +302,19 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('SKU Code', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                    Text('SKU Code',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: textPrimary)),
                                     const SizedBox(height: 5),
                                     TextFormField(
                                       controller: _skuCtrl,
-                                      style: TextStyle(fontSize: 13, color: textPrimary),
-                                      decoration: inputDeco.copyWith(hintText: 'Leave blank to autogenerate'),
+                                      style: TextStyle(
+                                          fontSize: 13, color: textPrimary),
+                                      decoration: inputDeco.copyWith(
+                                          hintText:
+                                              'Leave blank to autogenerate'),
                                     ),
                                   ],
                                 ),
@@ -276,12 +324,18 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Barcode', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                    Text('Barcode',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: textPrimary)),
                                     const SizedBox(height: 5),
                                     TextFormField(
                                       controller: _barcodeCtrl,
-                                      style: TextStyle(fontSize: 13, color: textPrimary),
-                                      decoration: inputDeco.copyWith(hintText: 'Scan or leave blank'),
+                                      style: TextStyle(
+                                          fontSize: 13, color: textPrimary),
+                                      decoration: inputDeco.copyWith(
+                                          hintText: 'Scan or leave blank'),
                                     ),
                                   ],
                                 ),
@@ -291,22 +345,39 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Unit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                    Text('Unit',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: textPrimary)),
                                     const SizedBox(height: 5),
                                     DropdownButtonFormField<String>(
                                       dropdownColor: cardBg,
                                       decoration: inputDeco,
-                                      style: TextStyle(fontSize: 13, color: textPrimary),
+                                      style: TextStyle(
+                                          fontSize: 13, color: textPrimary),
                                       initialValue: _unit,
                                       items: const [
-                                        DropdownMenuItem(value: 'Pc', child: Text('Pieces (Pc)')),
-                                        DropdownMenuItem(value: 'Box', child: Text('Box / Carton')),
-                                        DropdownMenuItem(value: 'Strip', child: Text('Strip')),
-                                        DropdownMenuItem(value: 'Kg', child: Text('Kilogram (Kg)')),
-                                        DropdownMenuItem(value: 'Ltr', child: Text('Liter (Ltr)')),
-                                        DropdownMenuItem(value: 'Pack', child: Text('Pack')),
+                                        DropdownMenuItem(
+                                            value: 'Pc',
+                                            child: Text('Pieces (Pc)')),
+                                        DropdownMenuItem(
+                                            value: 'Box',
+                                            child: Text('Box / Carton')),
+                                        DropdownMenuItem(
+                                            value: 'Strip',
+                                            child: Text('Strip')),
+                                        DropdownMenuItem(
+                                            value: 'Kg',
+                                            child: Text('Kilogram (Kg)')),
+                                        DropdownMenuItem(
+                                            value: 'Ltr',
+                                            child: Text('Liter (Ltr)')),
+                                        DropdownMenuItem(
+                                            value: 'Pack', child: Text('Pack')),
                                       ],
-                                      onChanged: (val) => setState(() => _unit = val ?? 'Pc'),
+                                      onChanged: (val) =>
+                                          setState(() => _unit = val ?? 'Pc'),
                                     ),
                                   ],
                                 ),
@@ -320,15 +391,25 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Cost Price ($currency) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                    Text('Cost Price ($currency) *',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: textPrimary)),
                                     const SizedBox(height: 5),
                                     TextFormField(
                                       controller: _costCtrl,
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      style: TextStyle(fontSize: 13, color: textPrimary),
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                              decimal: true),
+                                      style: TextStyle(
+                                          fontSize: 13, color: textPrimary),
                                       decoration: inputDeco,
                                       onChanged: _onCostChanged,
-                                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Cost required' : null,
+                                      validator: (v) =>
+                                          (v == null || v.trim().isEmpty)
+                                              ? 'Cost required'
+                                              : null,
                                     ),
                                   ],
                                 ),
@@ -338,12 +419,19 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Profit Margin %', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                    Text('Profit Margin %',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: textPrimary)),
                                     const SizedBox(height: 5),
                                     TextFormField(
                                       controller: _marginCtrl,
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      style: TextStyle(fontSize: 13, color: textPrimary),
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                              decimal: true),
+                                      style: TextStyle(
+                                          fontSize: 13, color: textPrimary),
                                       decoration: inputDeco,
                                       onChanged: _onMarginChanged,
                                     ),
@@ -355,15 +443,25 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Selling Price ($currency) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                                    Text('Selling Price ($currency) *',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: textPrimary)),
                                     const SizedBox(height: 5),
                                     TextFormField(
                                       controller: _sellingCtrl,
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      style: TextStyle(fontSize: 13, color: textPrimary),
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                              decimal: true),
+                                      style: TextStyle(
+                                          fontSize: 13, color: textPrimary),
                                       decoration: inputDeco,
                                       onChanged: _onSellingChanged,
-                                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Selling price required' : null,
+                                      validator: (v) =>
+                                          (v == null || v.trim().isEmpty)
+                                              ? 'Selling price required'
+                                              : null,
                                     ),
                                   ],
                                 ),
@@ -376,10 +474,12 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
 
                     // Footer
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
                         color: bgHeader,
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
+                        borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(14)),
                         border: Border(top: BorderSide(color: borderColor)),
                       ),
                       child: Row(
@@ -389,8 +489,10 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                             style: OutlinedButton.styleFrom(
                               foregroundColor: textSecondary,
                               side: BorderSide(color: borderColor),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
                             onPressed: () => Navigator.of(context).pop(),
                             child: const Text('Cancel'),
@@ -400,13 +502,20 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF10B981),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
                             icon: _isSaving
-                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: Colors.white))
                                 : const Icon(Icons.check_rounded, size: 17),
-                            label: const Text('Save & Add to Bill', style: TextStyle(fontWeight: FontWeight.bold)),
+                            label: const Text('Save & Add to Bill',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
                             onPressed: _isSaving ? null : _save,
                           ),
                         ],

@@ -10,7 +10,8 @@ void main() {
   });
 
   group('Customer Loyalty Points & Nearing Expiry Tests', () {
-    test('1. Customer Contact model persists and updates loyalty points', () async {
+    test('1. Customer Contact model persists and updates loyalty points',
+        () async {
       final db = await DatabaseService.initialize();
 
       // Create a test customer with 0 initial points
@@ -43,9 +44,12 @@ void main() {
       expect(fetched!.loyaltyPoints, equals(0.0));
     });
 
-    test('2. Nearing expiry calculates days accurately and never forces automatic discounts', () {
+    test(
+        '2. Nearing expiry calculates days accurately and never forces automatic discounts',
+        () {
       final now = DateTime.now();
-      final nearingDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${(now.day + 15).toString().padLeft(2, '0')}';
+      final nearingDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${(now.day + 15).toString().padLeft(2, '0')}';
 
       final pNearing = Product(
         name: 'Nearing Tablets',
@@ -69,7 +73,8 @@ void main() {
 
       expect(cartItemNear.unitPrice, equals(300.0));
       expect(cartItemNear.discount, equals(0.0));
-      expect(cartItemNear.subtotal, equals(300.0)); // Strictly NO automatic discount!
+      expect(cartItemNear.subtotal,
+          equals(300.0)); // Strictly NO automatic discount!
       expect(cartItemNear.expiryDate, equals(nearingDate));
     });
 
@@ -86,7 +91,8 @@ void main() {
 
       // When admin/cashier explicitly checks redeem points
       redeemLoyalty = true;
-      loyaltyDiscount = customerPoints > grandTotal ? grandTotal : customerPoints;
+      loyaltyDiscount =
+          customerPoints > grandTotal ? grandTotal : customerPoints;
       payableTotal = grandTotal - (redeemLoyalty ? loyaltyDiscount : 0.0);
 
       expect(loyaltyDiscount, equals(200.0));
@@ -98,11 +104,14 @@ void main() {
       expect(earnedPoints, equals(13.0)); // 1 point per 100 Rs spent
     });
 
-    test('4. Expiry date parser correctly parses MM-YYYY formats (e.g. 01-2028 is NOT expired)', () {
+    test(
+        '4. Expiry date parser correctly parses MM-YYYY formats (e.g. 01-2028 is NOT expired)',
+        () {
       // User reported bug: Disprin with expiry "01-2028" was triggering WARNING: EXPIRED (01-2028)!
       final days2028 = calculateDaysUntilExpiry('01-2028');
       expect(days2028, isNotNull);
-      expect(days2028! > 300, isTrue, reason: 'January 2028 is far in the future and must NOT be expired');
+      expect(days2028! > 300, isTrue,
+          reason: 'January 2028 is far in the future and must NOT be expired');
 
       // Slash format: 01/2028
       final daysSlash = calculateDaysUntilExpiry('01/2028');
@@ -117,7 +126,8 @@ void main() {
       // Past date: 01-2020 must be expired (negative days)
       final daysPast = calculateDaysUntilExpiry('01-2020');
       expect(daysPast, isNotNull);
-      expect(daysPast! < 0, isTrue, reason: 'Past date must evaluate to negative days (expired)');
+      expect(daysPast! < 0, isTrue,
+          reason: 'Past date must evaluate to negative days (expired)');
 
       // Full date: 15-01-2028
       final daysFull = calculateDaysUntilExpiry('15-01-2028');

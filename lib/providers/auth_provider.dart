@@ -11,7 +11,8 @@ class AuthNotifier extends Notifier<User?> {
     }
 
     AuthService.currentUserNotifier.addListener(listener);
-    ref.onDispose(() => AuthService.currentUserNotifier.removeListener(listener));
+    ref.onDispose(
+        () => AuthService.currentUserNotifier.removeListener(listener));
     return AuthService.currentUser;
   }
 
@@ -24,4 +25,3 @@ class AuthNotifier extends Notifier<User?> {
 }
 
 final authProvider = NotifierProvider<AuthNotifier, User?>(AuthNotifier.new);
-

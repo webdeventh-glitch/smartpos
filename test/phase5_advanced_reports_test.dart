@@ -10,14 +10,17 @@ void main() {
     sqfliteFfiInit();
   });
 
-  group('Ultimate POS Phase 5: Advanced Reports (Shift, Expiry, Trending Products)', () {
+  group(
+      'Ultimate POS Phase 5: Advanced Reports (Shift, Expiry, Trending Products)',
+      () {
     late DatabaseService dbService;
     late Directory tempDir;
     late String dbPath;
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('adv_reports_test_');
-      dbPath = path.join(tempDir.path, 'reports_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(
+          tempDir.path, 'reports_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -29,7 +32,9 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Cash Register Shifts Report: Audits shifts, payment methods and cash variance', () async {
+    test(
+        '1. Cash Register Shifts Report: Audits shifts, payment methods and cash variance',
+        () async {
       // 1. Open shift for Cashier Ahmed with Rs 10,000 float
       await dbService.openRegister('Ahmed Cashier', 10000.0);
       final active = await dbService.getActiveRegister();
@@ -47,7 +52,8 @@ void main() {
         stockQuantity: 100,
         unit: 'Box',
       ));
-      final maskProduct = (await dbService.getProducts()).firstWhere((p) => p.id == pId);
+      final maskProduct =
+          (await dbService.getProducts()).firstWhere((p) => p.id == pId);
 
       // Sale 1: Cash Rs 5,000
       await dbService.createSale(
@@ -84,7 +90,8 @@ void main() {
       );
 
       // 3. Close shift with Rs 14,800 counted cash (Expected: 10,000 + 5,000 = 15,000 -> Rs 200 shortage)
-      await dbService.closeRegister(active.id!, 14800.0, 'Shift closed with Rs 200 minor drawer deficit');
+      await dbService.closeRegister(
+          active.id!, 14800.0, 'Shift closed with Rs 200 minor drawer deficit');
 
       // 4. Open second shift for Cashier Bilal with Rs 5,000 float (stays open)
       await dbService.openRegister('Bilal Shift Lead', 5000.0);
@@ -94,7 +101,8 @@ void main() {
       expect(allReports.length, greaterThanOrEqualTo(2));
 
       // Check Ahmed's closed shift
-      final ahmedShift = allReports.firstWhere((r) => r['cashier_name'] == 'Ahmed Cashier');
+      final ahmedShift =
+          allReports.firstWhere((r) => r['cashier_name'] == 'Ahmed Cashier');
       expect(ahmedShift['status'], 'closed');
       expect(ahmedShift['opening_amount'], 10000.0);
       expect(ahmedShift['total_sales_cash'], 5000.0);
@@ -105,19 +113,24 @@ void main() {
       expect(ahmedShift['difference'], -200.0);
 
       // Check Bilal's open shift
-      final bilalShift = allReports.firstWhere((r) => r['cashier_name'] == 'Bilal Shift Lead');
+      final bilalShift =
+          allReports.firstWhere((r) => r['cashier_name'] == 'Bilal Shift Lead');
       expect(bilalShift['status'], 'open');
       expect(bilalShift['opening_amount'], 5000.0);
 
       // Test status filters
       final openOnly = await dbService.getRegisterReport(status: 'open');
-      expect(openOnly.any((r) => r['cashier_name'] == 'Bilal Shift Lead'), isTrue);
+      expect(
+          openOnly.any((r) => r['cashier_name'] == 'Bilal Shift Lead'), isTrue);
 
       final closedOnly = await dbService.getRegisterReport(status: 'closed');
-      expect(closedOnly.any((r) => r['cashier_name'] == 'Ahmed Cashier'), isTrue);
+      expect(
+          closedOnly.any((r) => r['cashier_name'] == 'Ahmed Cashier'), isTrue);
     });
 
-    test('2. Stock Expiry & Batch Traceability: Filters expired and upcoming shelf risks', () async {
+    test(
+        '2. Stock Expiry & Batch Traceability: Filters expired and upcoming shelf risks',
+        () async {
       final now = DateTime.now();
 
       // Product 1: Already expired (10 days ago)
@@ -127,7 +140,8 @@ void main() {
         sku: 'MED-EXP-01',
         barcode: 'MED-EXP-01',
         batchNumber: 'BAT-PAST-99',
-        expiryDate: '${expPast.year}-${expPast.month.toString().padLeft(2, '0')}-${expPast.day.toString().padLeft(2, '0')}',
+        expiryDate:
+            '${expPast.year}-${expPast.month.toString().padLeft(2, '0')}-${expPast.day.toString().padLeft(2, '0')}',
         purchasePrice: 150.0,
         sellingPrice: 220.0,
         stockQuantity: 20,
@@ -141,7 +155,8 @@ void main() {
         sku: 'MED-CRIT-02',
         barcode: 'MED-CRIT-02',
         batchNumber: 'BAT-CRIT-15',
-        expiryDate: '${expCritical.year}-${expCritical.month.toString().padLeft(2, '0')}-${expCritical.day.toString().padLeft(2, '0')}',
+        expiryDate:
+            '${expCritical.year}-${expCritical.month.toString().padLeft(2, '0')}-${expCritical.day.toString().padLeft(2, '0')}',
         purchasePrice: 300.0,
         sellingPrice: 450.0,
         stockQuantity: 10,
@@ -155,7 +170,8 @@ void main() {
         sku: 'MED-WARN-03',
         barcode: 'MED-WARN-03',
         batchNumber: 'BAT-WARN-50',
-        expiryDate: '${expWarning.year}-${expWarning.month.toString().padLeft(2, '0')}-${expWarning.day.toString().padLeft(2, '0')}',
+        expiryDate:
+            '${expWarning.year}-${expWarning.month.toString().padLeft(2, '0')}-${expWarning.day.toString().padLeft(2, '0')}',
         purchasePrice: 500.0,
         sellingPrice: 700.0,
         stockQuantity: 15,
@@ -193,14 +209,17 @@ void main() {
       expect(allItems.length, 4, reason: 'Zero stock product must be excluded');
 
       // 2. Already Expired filter
-      final expiredItems = await dbService.getStockExpiryReport(filter: 'expired');
+      final expiredItems =
+          await dbService.getStockExpiryReport(filter: 'expired');
       expect(expiredItems.length, 1);
       expect(expiredItems.first['sku'], 'MED-EXP-01');
       expect(expiredItems.first['status_category'], 'expired');
-      expect(expiredItems.first['stock_value_cost'], 20 * 150.0); // Rs 3,000 cost at risk
+      expect(expiredItems.first['stock_value_cost'],
+          20 * 150.0); // Rs 3,000 cost at risk
 
       // 3. Expiring in 30 Days filter (includes expired + critical)
-      final thirtyDays = await dbService.getStockExpiryReport(filter: '30_days');
+      final thirtyDays =
+          await dbService.getStockExpiryReport(filter: '30_days');
       expect(thirtyDays.length, 2);
       expect(thirtyDays.any((i) => i['sku'] == 'MED-EXP-01'), isTrue);
       expect(thirtyDays.any((i) => i['sku'] == 'MED-CRIT-02'), isTrue);
@@ -211,12 +230,15 @@ void main() {
       expect(sixtyDays.any((i) => i['sku'] == 'MED-WARN-03'), isTrue);
 
       // 5. Search query filtering
-      final searched = await dbService.getStockExpiryReport(searchQuery: 'BAT-CRIT');
+      final searched =
+          await dbService.getStockExpiryReport(searchQuery: 'BAT-CRIT');
       expect(searched.length, 1);
       expect(searched.first['product_name'], 'Critical Eye Drops');
     });
 
-    test('3. Expiry Date Parser Diversity: Gracefully handles various industry date formats', () {
+    test(
+        '3. Expiry Date Parser Diversity: Gracefully handles various industry date formats',
+        () {
       // Format 1: "15 Dec 2026"
       final d1 = parseExpiryDate('15 Dec 2026');
       expect(d1, isNotNull);
@@ -248,7 +270,9 @@ void main() {
       expect(parseExpiryDate('   '), isNull);
     });
 
-    test('4. Trending Products Analysis: Computes volume and revenue rank accurately', () async {
+    test(
+        '4. Trending Products Analysis: Computes volume and revenue rank accurately',
+        () async {
       // Insert Product A: High volume, low revenue
       final idA = await dbService.insertProduct(Product(
         name: 'Bulk Sachet Pack',
@@ -259,7 +283,8 @@ void main() {
         stockQuantity: 500,
         unit: 'Sachet',
       ));
-      final prodA = (await dbService.getProducts()).firstWhere((p) => p.id == idA);
+      final prodA =
+          (await dbService.getProducts()).firstWhere((p) => p.id == idA);
 
       // Insert Product B: Low volume, high revenue
       final idB = await dbService.insertProduct(Product(
@@ -271,7 +296,8 @@ void main() {
         stockQuantity: 10,
         unit: 'Unit',
       ));
-      final prodB = (await dbService.getProducts()).firstWhere((p) => p.id == idB);
+      final prodB =
+          (await dbService.getProducts()).firstWhere((p) => p.id == idB);
 
       // Create Sales
       await dbService.createSale(
@@ -317,7 +343,8 @@ void main() {
 
       // When sorted by revenue:
       final byRev = List<Map<String, dynamic>>.from(topList);
-      byRev.sort((a, b) => ((b['revenue'] as num).toDouble()).compareTo((a['revenue'] as num).toDouble()));
+      byRev.sort((a, b) => ((b['revenue'] as num).toDouble())
+          .compareTo((a['revenue'] as num).toDouble()));
       expect(byRev.first['name'], 'Solar Inverter 6kW');
       expect((byRev.first['revenue'] as num).toDouble(), 280000.0);
     });

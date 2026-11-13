@@ -32,7 +32,8 @@ void main() {
     }
   });
 
-  test('addSaleReturn restocks returned quantities and persists return lines', () async {
+  test('addSaleReturn restocks returned quantities and persists return lines',
+      () async {
     final prodId = await db.addProduct(
       Product(
         name: 'Brufen Tablets',
@@ -73,7 +74,8 @@ void main() {
     expect((await db.getProductById(prodId))!.stockQuantity, 13.0);
 
     final returns = await db.getSaleReturns();
-    expect(returns.any((r) => r.returnNo == refNo && r.items.length == 1), isTrue);
+    expect(
+        returns.any((r) => r.returnNo == refNo && r.items.length == 1), isTrue);
   });
 
   test('addPurchaseReturn deducts returned stock cleanly', () async {

@@ -42,12 +42,14 @@ class PaymentTransaction {
     this.chequeDueDate = '',
     String? chequeStatus,
     this.chequeClearedAt = '',
-  }) : chequeStatus = chequeStatus ??
-            (paymentMethod == 'cheque' ? 'pending' : '');
+  }) : chequeStatus =
+            chequeStatus ?? (paymentMethod == 'cheque' ? 'pending' : '');
 
   bool get isCheque => paymentMethod.toLowerCase() == 'cheque';
   bool get isOverdueCheque {
-    if (!isCheque || chequeStatus != 'pending' || chequeDueDate.trim().isEmpty) {
+    if (!isCheque ||
+        chequeStatus != 'pending' ||
+        chequeDueDate.trim().isEmpty) {
       return false;
     }
     final due = DateTime.tryParse(chequeDueDate.trim());

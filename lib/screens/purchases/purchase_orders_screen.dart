@@ -94,7 +94,9 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
     Product? pickerProd = products.isNotEmpty ? products.first : null;
     final qtyCtrl = TextEditingController(text: '10');
     final costCtrl = TextEditingController(
-      text: pickerProd != null ? pickerProd.purchasePrice.toStringAsFixed(2) : '0.00',
+      text: pickerProd != null
+          ? pickerProd.purchasePrice.toStringAsFixed(2)
+          : '0.00',
     );
     bool saving = false;
     String? err;
@@ -105,7 +107,9 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
         builder: (ctx, setDlg) {
           final total = lines.fold<double>(
             0.0,
-            (s, l) => s + ((l['quantity'] as double) * (l['purchase_price'] as double)),
+            (s, l) =>
+                s +
+                ((l['quantity'] as double) * (l['purchase_price'] as double)),
           );
           final cur = widget.settings.currencySymbol;
           return AlertDialog(
@@ -114,7 +118,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                 Icon(Icons.local_shipping_outlined, color: Color(0xFF0038B8)),
                 SizedBox(width: 8),
                 Text('Create Purchase Order (PO)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
             content: SizedBox(
@@ -149,10 +154,12 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                             items: suppliers
                                 .map((s) => DropdownMenuItem(
                                       value: s,
-                                      child: Text(s.name, overflow: TextOverflow.ellipsis),
+                                      child: Text(s.name,
+                                          overflow: TextOverflow.ellipsis),
                                     ))
                                 .toList(),
-                            onChanged: (v) => setDlg(() => selectedSupplier = v),
+                            onChanged: (v) =>
+                                setDlg(() => selectedSupplier = v),
                           ),
                         ),
                       ],
@@ -180,7 +187,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                             onChanged: (v) => setDlg(() {
                               pickerProd = v;
                               if (v != null) {
-                                costCtrl.text = v.purchasePrice.toStringAsFixed(2);
+                                costCtrl.text =
+                                    v.purchasePrice.toStringAsFixed(2);
                               }
                             }),
                           ),
@@ -190,7 +198,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                           width: 75,
                           child: TextField(
                             controller: qtyCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: const InputDecoration(
                               labelText: 'Qty',
                               isDense: true,
@@ -203,7 +212,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                           width: 95,
                           child: TextField(
                             controller: costCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: const InputDecoration(
                               labelText: 'Unit Cost',
                               isDense: true,
@@ -216,8 +226,11 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                           onPressed: pickerProd == null
                               ? null
                               : () {
-                                  final q = double.tryParse(qtyCtrl.text.trim()) ?? 0;
-                                  final c = double.tryParse(costCtrl.text.trim()) ?? 0;
+                                  final q =
+                                      double.tryParse(qtyCtrl.text.trim()) ?? 0;
+                                  final c =
+                                      double.tryParse(costCtrl.text.trim()) ??
+                                          0;
                                   if (q <= 0) return;
                                   setDlg(() {
                                     lines.add({
@@ -261,12 +274,18 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                             final c = l['purchase_price'] as double;
                             return ListTile(
                               dense: true,
-                              title: Text('${l['product_name']}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                              subtitle: Text('${q.toStringAsFixed(2)} x $cur${c.toStringAsFixed(2)} = $cur${(q * c).toStringAsFixed(2)}',
+                              title: Text('${l['product_name']}',
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600)),
+                              subtitle: Text(
+                                  '${q.toStringAsFixed(2)} x $cur${c.toStringAsFixed(2)} = $cur${(q * c).toStringAsFixed(2)}',
                                   style: const TextStyle(fontSize: 11)),
                               trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                onPressed: () => setDlg(() => lines.removeAt(i)),
+                                icon: const Icon(Icons.delete_outline,
+                                    size: 18, color: Colors.red),
+                                onPressed: () =>
+                                    setDlg(() => lines.removeAt(i)),
                               ),
                             );
                           },
@@ -286,12 +305,17 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text('PO Total: $cur${total.toStringAsFixed(2)}',
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0038B8))),
+                            style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0038B8))),
                       ],
                     ),
                     if (err != null) ...[
                       const SizedBox(height: 6),
-                      Text(err!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                      Text(err!,
+                          style:
+                              const TextStyle(color: Colors.red, fontSize: 12)),
                     ],
                   ],
                 ),
@@ -309,15 +333,19 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                     ? null
                     : () async {
                         if (lines.isEmpty) {
-                          setDlg(() => err = 'Please add at least one line item.');
+                          setDlg(
+                              () => err = 'Please add at least one line item.');
                           return;
                         }
                         setDlg(() => saving = true);
                         final nowStr = DateTime.now().toIso8601String();
                         final po = Purchase(
-                          refNo: refCtrl.text.trim().isEmpty ? nextRef : refCtrl.text.trim(),
+                          refNo: refCtrl.text.trim().isEmpty
+                              ? nextRef
+                              : refCtrl.text.trim(),
                           supplierId: selectedSupplier?.id,
-                          supplierName: selectedSupplier?.name ?? 'General Supplier',
+                          supplierName:
+                              selectedSupplier?.name ?? 'General Supplier',
                           totalAmount: total,
                           paidAmount: 0.0,
                           status: 'ordered',
@@ -351,7 +379,9 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
     }
     if (pendingIndices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All items on this Purchase Order have already been received.')),
+        const SnackBar(
+            content: Text(
+                'All items on this Purchase Order have already been received.')),
       );
       return;
     }
@@ -360,7 +390,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
       for (final i in pendingIndices)
         i: TextEditingController(
           text: (((poItems[i]['quantity'] as num?)?.toDouble() ?? 0.0) -
-                  ((poItems[i]['received_quantity'] as num?)?.toDouble() ?? 0.0))
+                  ((poItems[i]['received_quantity'] as num?)?.toDouble() ??
+                      0.0))
               .toStringAsFixed(2),
         ),
     };
@@ -371,7 +402,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
         final line = poItems[i];
         final rem = ((line['quantity'] as num?)?.toDouble() ?? 0.0) -
             ((line['received_quantity'] as num?)?.toDouble() ?? 0.0);
-        final req = (double.tryParse(qtyCtrls[i]!.text.trim()) ?? 0.0).clamp(0.0, rem);
+        final req =
+            (double.tryParse(qtyCtrls[i]!.text.trim()) ?? 0.0).clamp(0.0, rem);
         final cost = (line['purchase_price'] as num?)?.toDouble() ??
             (line['unit_cost'] as num?)?.toDouble() ??
             0.0;
@@ -381,12 +413,14 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
     }
 
     final grnRefCtrl = TextEditingController();
-    final paidCtrl = TextEditingController(text: calcTotal().toStringAsFixed(2));
+    final paidCtrl =
+        TextEditingController(text: calcTotal().toStringAsFixed(2));
     String paymentMethod = 'cash';
     final chequeNoCtrl = TextEditingController();
     final bankCtrl = TextEditingController();
     final dueCtrl = TextEditingController(
-      text: DateFormat('yyyy-MM-dd').format(DateTime.now().add(const Duration(days: 7))),
+      text: DateFormat('yyyy-MM-dd')
+          .format(DateTime.now().add(const Duration(days: 7))),
     );
     bool receiving = false;
 
@@ -403,7 +437,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text('Receive Goods — ${po.refNo}',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -415,7 +450,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Supplier: ${po.supplierName}',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 10),
                     Container(
                       constraints: const BoxConstraints(maxHeight: 200),
@@ -430,22 +466,31 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                         itemBuilder: (_, idx) {
                           final i = pendingIndices[idx];
                           final line = poItems[i];
-                          final ordered = (line['quantity'] as num?)?.toDouble() ?? 0.0;
-                          final already = (line['received_quantity'] as num?)?.toDouble() ?? 0.0;
+                          final ordered =
+                              (line['quantity'] as num?)?.toDouble() ?? 0.0;
+                          final already =
+                              (line['received_quantity'] as num?)?.toDouble() ??
+                                  0.0;
                           final rem = ordered - already;
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
                             child: Row(
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text('${line['product_name'] ?? 'Product'}',
-                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                      Text(
+                                          '${line['product_name'] ?? 'Product'}',
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600)),
                                       Text(
                                         'Ordered: ${ordered.toStringAsFixed(1)} | Received: ${already.toStringAsFixed(1)} | Rem: ${rem.toStringAsFixed(1)}',
-                                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                        style: const TextStyle(
+                                            fontSize: 11, color: Colors.grey),
                                       ),
                                     ],
                                   ),
@@ -454,14 +499,17 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                                   width: 90,
                                   child: TextField(
                                     controller: qtyCtrls[i],
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
                                     decoration: const InputDecoration(
                                       labelText: 'Receive Qty',
                                       isDense: true,
                                       border: OutlineInputBorder(),
                                     ),
                                     onChanged: (_) => setDlg(() {
-                                      paidCtrl.text = calcTotal().toStringAsFixed(2);
+                                      paidCtrl.text =
+                                          calcTotal().toStringAsFixed(2);
                                     }),
                                   ),
                                 ),
@@ -492,21 +540,29 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                               border: OutlineInputBorder(),
                             ),
                             items: const [
-                              DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                              DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer')),
-                              DropdownMenuItem(value: 'cheque', child: Text('Cheque')),
-                              DropdownMenuItem(value: 'card', child: Text('Card')),
+                              DropdownMenuItem(
+                                  value: 'cash', child: Text('Cash')),
+                              DropdownMenuItem(
+                                  value: 'bank_transfer',
+                                  child: Text('Bank Transfer')),
+                              DropdownMenuItem(
+                                  value: 'cheque', child: Text('Cheque')),
+                              DropdownMenuItem(
+                                  value: 'card', child: Text('Card')),
                             ],
-                            onChanged: (v) => setDlg(() => paymentMethod = v ?? 'cash'),
+                            onChanged: (v) =>
+                                setDlg(() => paymentMethod = v ?? 'cash'),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
                             controller: paidCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: InputDecoration(
-                              labelText: 'Paid ($cur${grnTotal.toStringAsFixed(2)})',
+                              labelText:
+                                  'Paid ($cur${grnTotal.toStringAsFixed(2)})',
                               isDense: true,
                               border: const OutlineInputBorder(),
                             ),
@@ -563,9 +619,13 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                 child: const Text('Cancel'),
               ),
               ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white),
                 icon: const Icon(Icons.check, size: 16),
-                label: Text(receiving ? 'Receiving...' : 'Receive Into Stock ($cur${grnTotal.toStringAsFixed(2)})'),
+                label: Text(receiving
+                    ? 'Receiving...'
+                    : 'Receive Into Stock ($cur${grnTotal.toStringAsFixed(2)})'),
                 onPressed: receiving
                     ? null
                     : () async {
@@ -580,7 +640,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                             poId: po.id!,
                             receiveQtyByLineIndex: qtyMap,
                             supplierInvoiceRef: grnRefCtrl.text.trim(),
-                            paidNow: double.tryParse(paidCtrl.text.trim()) ?? grnTotal,
+                            paidNow: double.tryParse(paidCtrl.text.trim()) ??
+                                grnTotal,
                             paymentMethod: paymentMethod,
                             chequeNumber: chequeNoCtrl.text.trim(),
                             bankName: bankCtrl.text.trim(),
@@ -590,7 +651,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Goods received and stock updated for ${po.refNo}'),
+                                content: Text(
+                                    'Goods received and stock updated for ${po.refNo}'),
                                 backgroundColor: const Color(0xFF10B981),
                               ),
                             );
@@ -600,7 +662,9 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                           setDlg(() => receiving = false);
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+                              SnackBar(
+                                  content: Text('$e'),
+                                  backgroundColor: Colors.red),
                             );
                           }
                         }
@@ -614,7 +678,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
   }
 
   Future<void> _emailPoToSupplier(Purchase po) async {
-    final supplier = po.supplierId != null ? _suppliersById[po.supplierId!] : null;
+    final supplier =
+        po.supplierId != null ? _suppliersById[po.supplierId!] : null;
     final items = po.getItems();
     final cur = widget.settings.currencySymbol;
     final rows = items.map((line) {
@@ -633,15 +698,24 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
 
     final pdfBytes = await PdfExportService.generateReportPdf(
       title: 'Purchase Order ${po.refNo}',
-      subtitle: 'Supplier: ${po.supplierName} | Status: ${po.status.toUpperCase()}',
+      subtitle:
+          'Supplier: ${po.supplierName} | Status: ${po.status.toUpperCase()}',
       settings: widget.settings,
       summaryMetrics: {
         'PO Number': po.refNo,
-        'Order Date': po.createdAt.length >= 10 ? po.createdAt.substring(0, 10) : po.createdAt,
+        'Order Date': po.createdAt.length >= 10
+            ? po.createdAt.substring(0, 10)
+            : po.createdAt,
         'Line Items': '${items.length}',
         'Estimated Total': '$cur${po.totalAmount.toStringAsFixed(2)}',
       },
-      headers: const ['Product', 'SKU', 'Ordered Qty', 'Unit Cost', 'Line Total'],
+      headers: const [
+        'Product',
+        'SKU',
+        'Ordered Qty',
+        'Unit Cost',
+        'Line Total'
+      ],
       rows: rows,
     );
 
@@ -659,7 +733,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('PO PDF saved (${savedFile.path.split('\\').last}), email client launched & summary copied!'),
+        content: Text(
+            'PO PDF saved (${savedFile.path.split('\\').last}), email client launched & summary copied!'),
         backgroundColor: const Color(0xFF0038B8),
       ),
     );
@@ -670,10 +745,12 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cur = widget.settings.currencySymbol;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -681,17 +758,27 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.local_shipping_rounded, color: Color(0xFF0038B8), size: 28),
+                const Icon(Icons.local_shipping_rounded,
+                    color: Color(0xFF0038B8), size: 28),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Purchase Orders',
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                          style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A))),
                       Text(
                         'Issue supplier POs (Ordered -> Partial -> Received), receive GRNs into stock & email PO PDFs',
-                        style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B)),
                       ),
                     ],
                   ),
@@ -700,7 +787,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0038B8),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
                   ),
                   onPressed: _showCreatePurchaseOrderDialog,
                   icon: const Icon(Icons.add, size: 18),
@@ -711,7 +799,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                _statChip('Pending POs', '${_summary['count'] ?? 0}', const Color(0xFF0038B8), cardBg, borderColor),
+                _statChip('Pending POs', '${_summary['count'] ?? 0}',
+                    const Color(0xFF0038B8), cardBg, borderColor),
                 const SizedBox(width: 12),
                 _statChip(
                   'Pending PO Value',
@@ -774,29 +863,44 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                       child: _loading
                           ? const Center(child: CircularProgressIndicator())
                           : _orders.isEmpty
-                              ? const Center(child: Text('No purchase orders found.', style: TextStyle(color: Colors.grey)))
+                              ? const Center(
+                                  child: Text('No purchase orders found.',
+                                      style: TextStyle(color: Colors.grey)))
                               : ListView.separated(
                                   itemCount: _orders.length,
-                                  separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+                                  separatorBuilder: (_, __) =>
+                                      Divider(height: 1, color: borderColor),
                                   itemBuilder: (_, idx) {
                                     final po = _orders[idx];
                                     final stColor = _statusColor(po.status);
                                     return ListTile(
                                       leading: CircleAvatar(
-                                        backgroundColor: stColor.withValues(alpha: 0.14),
-                                        child: Icon(Icons.inventory_2_outlined, color: stColor, size: 18),
+                                        backgroundColor:
+                                            stColor.withValues(alpha: 0.14),
+                                        child: Icon(Icons.inventory_2_outlined,
+                                            color: stColor, size: 18),
                                       ),
                                       title: Row(
                                         children: [
-                                          Text(po.refNo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                          Text(po.refNo,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13)),
                                           const SizedBox(width: 8),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: stColor.withValues(alpha: 0.14),
-                                              borderRadius: BorderRadius.circular(12),
+                                              color: stColor.withValues(
+                                                  alpha: 0.14),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                             ),
-                                            child: Text(po.status.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: stColor)),
+                                            child: Text(po.status.toUpperCase(),
+                                                style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: stColor)),
                                           ),
                                         ],
                                       ),
@@ -809,24 +913,35 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                                         children: [
                                           Text(
                                             '$cur${po.totalAmount.toStringAsFixed(2)}',
-                                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 14),
                                           ),
                                           const SizedBox(width: 10),
                                           OutlinedButton.icon(
-                                            onPressed: () => _emailPoToSupplier(po),
-                                            icon: const Icon(Icons.email_outlined, size: 15),
+                                            onPressed: () =>
+                                                _emailPoToSupplier(po),
+                                            icon: const Icon(
+                                                Icons.email_outlined,
+                                                size: 15),
                                             label: const Text('Email PO'),
                                           ),
                                           const SizedBox(width: 8),
                                           if (po.status != 'received')
                                             ElevatedButton.icon(
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF10B981),
+                                                backgroundColor:
+                                                    const Color(0xFF10B981),
                                                 foregroundColor: Colors.white,
                                               ),
-                                              onPressed: () => _showReceiveGoodsDialog(po),
-                                              icon: const Icon(Icons.download_done_rounded, size: 15),
-                                              label: Text(po.status == 'partial' ? 'Receive Remaining' : 'Receive Goods'),
+                                              onPressed: () =>
+                                                  _showReceiveGoodsDialog(po),
+                                              icon: const Icon(
+                                                  Icons.download_done_rounded,
+                                                  size: 15),
+                                              label: Text(po.status == 'partial'
+                                                  ? 'Receive Remaining'
+                                                  : 'Receive Goods'),
                                             ),
                                         ],
                                       ),
@@ -860,7 +975,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
     );
   }
 
-  Widget _statChip(String label, String val, Color color, Color bg, Color border) {
+  Widget _statChip(
+      String label, String val, Color color, Color bg, Color border) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -871,9 +987,15 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600)),
           const SizedBox(height: 2),
-          Text(val, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
+          Text(val,
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w800, color: color)),
         ],
       ),
     );

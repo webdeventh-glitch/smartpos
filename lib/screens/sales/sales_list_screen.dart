@@ -12,6 +12,7 @@ import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import '../pos/receipt_dialog.dart';
 import '../../services/print_service.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 
 class SalesListScreen extends StatefulWidget {
@@ -1105,8 +1106,10 @@ class _SalesListScreenState extends State<SalesListScreen> {
                           elevation: 1,
                         ),
                         icon: const Icon(Icons.point_of_sale_rounded, size: 18),
-                        label: const Text('POS Terminal (F1) / نئی سیل کریں',
-                            style: TextStyle(
+                        label: Text(
+                            PosLocalization.tr('POS Terminal',
+                                settings: widget.settings),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: widget.onOpenPos,
                       ),

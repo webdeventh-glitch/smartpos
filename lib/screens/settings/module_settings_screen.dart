@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class ModuleSettingsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -42,14 +43,14 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
         // Enforce strictly 1 active business preset at a time
         _activePresets = {key};
         _activeModules.removeWhere((m) => [
-          BusinessSettings.presetRetailSuperStore,
-          BusinessSettings.presetPharmacy,
-          BusinessSettings.presetMobileElectronics,
-          BusinessSettings.presetSolarHardware,
-          BusinessSettings.presetRestaurantCafe,
-          BusinessSettings.moduleRestaurant,
-          BusinessSettings.moduleRepair,
-        ].contains(m));
+              BusinessSettings.presetRetailSuperStore,
+              BusinessSettings.presetPharmacy,
+              BusinessSettings.presetMobileElectronics,
+              BusinessSettings.presetSolarHardware,
+              BusinessSettings.presetRestaurantCafe,
+              BusinessSettings.moduleRestaurant,
+              BusinessSettings.moduleRepair,
+            ].contains(m));
 
         _activeModules.add(key);
         switch (key) {
@@ -98,20 +99,21 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
   }
 
   void _resetToDefaults() {
-    final defaults = BusinessSettings.defaultModulesForBusinessType(widget.settings.businessType);
+    final defaults = BusinessSettings.defaultModulesForBusinessType(
+        widget.settings.businessType);
     setState(() {
       _activeModules = defaults.map((k) => k.toLowerCase()).toSet();
       _activePresets = {BusinessSettings.presetRetailSuperStore};
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Reset to standard defaults for: ${widget.settings.businessTypeDisplayName}'),
+        content: Text(
+            'Reset to standard defaults for: ${widget.settings.businessTypeDisplayName}'),
         backgroundColor: const Color(0xFF4F46E5),
         duration: const Duration(seconds: 2),
       ),
     );
   }
-
 
   void _enableAll() {
     setState(() {
@@ -171,7 +173,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               children: [
                 Icon(Icons.check_circle, color: Colors.white, size: 20),
                 SizedBox(width: 8),
-                Text('Module configuration saved! Sidebar and navigation updated.'),
+                Text(
+                    'Module configuration saved! Sidebar and navigation updated.'),
               ],
             ),
             backgroundColor: Color(0xFF10B981),
@@ -243,7 +246,9 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             decoration: BoxDecoration(
               color: isEnabled
                   ? iconColor.withValues(alpha: 0.15)
-                  : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
+                  : (isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF1F5F9)),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -261,21 +266,25 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                   children: [
                     Flexible(
                       child: Text(
-                        title,
+                        PosLocalization.tr(title, settings: widget.settings),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: isEnabled
                             ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                            : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                            : (isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -285,7 +294,9 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                           fontWeight: FontWeight.bold,
                           color: isEnabled
                               ? const Color(0xFF10B981)
-                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                              : (isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
                         ),
                       ),
                     ),
@@ -296,18 +307,24 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                   subtitle,
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  urduDesc,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF0EA5E9),
-                    fontWeight: FontWeight.w500,
+                if ((widget.settings.hasEffectiveSecondaryLanguage ||
+                        widget.settings.activePrimaryLanguage == 'ur') &&
+                    urduDesc.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    urduDesc,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF0EA5E9),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -340,7 +357,9 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? color : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          color: isSelected
+              ? color
+              : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           width: isSelected ? 1.8 : 1.0,
         ),
       ),
@@ -372,11 +391,14 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? color.withValues(alpha: 0.15)
-                            : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                            : (isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -384,7 +406,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: isSelected ? color : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                          color: isSelected
+                              ? color
+                              : (isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
                         ),
                       ),
                     ),
@@ -396,7 +422,9 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                    color: isDark
+                        ? const Color(0xFFCBD5E1)
+                        : const Color(0xFF334155),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -404,7 +432,9 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                   features,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
                   ),
                 ),
               ],
@@ -426,7 +456,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -441,7 +472,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                     color: const Color(0xFF4F46E5).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.dashboard_customize_rounded, color: Color(0xFF6366F1), size: 28),
+                  child: const Icon(Icons.dashboard_customize_rounded,
+                      color: Color(0xFF6366F1), size: 28),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -452,18 +484,23 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                         children: [
                           const Text(
                             'Modular Engine & Feature Toggles',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: const Color(0xFF312E81),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               widget.settings.businessTypeDisplayName,
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFA5B4FC)),
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFA5B4FC)),
                             ),
                           ),
                         ],
@@ -471,21 +508,28 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                       const SizedBox(height: 4),
                       const Text(
                         'Customize active modules. Inactive features are hidden from the sidebar & POS to keep your workspace clean. (ماڈیولر کنفیگریشن)',
-                        style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                        style:
+                            TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                       ),
                     ],
                   ),
                 ),
                 ElevatedButton.icon(
                   icon: _isSaving
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.save_rounded, size: 18),
                   label: const Text('Save Modules (محفوظ کریں)'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: _isSaving ? null : _saveConfiguration,
                 ),
@@ -499,23 +543,31 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.tune_rounded, color: Color(0xFF4F46E5), size: 20),
+                      const Icon(Icons.tune_rounded,
+                          color: Color(0xFF4F46E5), size: 20),
                       const SizedBox(width: 8),
                       const Text(
                         'Quick Presets (فوری پری سیٹ)',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const Spacer(),
                       Text(
                         '${_activeModules.length} Modules Active',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                        style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF10B981)),
                       ),
                     ],
                   ),
@@ -526,7 +578,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                     children: [
                       OutlinedButton.icon(
                         icon: const Icon(Icons.restart_alt_rounded, size: 16),
-                        label: Text('Reset to ${widget.settings.businessTypeDisplayName} Defaults'),
+                        label: Text(
+                            'Reset to ${widget.settings.businessTypeDisplayName} Defaults'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF4F46E5),
                           side: const BorderSide(color: Color(0xFF4F46E5)),
@@ -558,17 +611,29 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                   Container(
                     height: 40,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0)),
                     ),
                     child: TextField(
-                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                      onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A)),
+                      onChanged: (val) =>
+                          setState(() => _searchQuery = val.trim()),
                       decoration: const InputDecoration(
-                        hintText: 'Search modules by name, keywords, or Urdu (تلاش کریں)...',
-                        hintStyle: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                        prefixIcon: Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                        hintText:
+                            'Search modules by name, keywords, or Urdu (تلاش کریں)...',
+                        hintStyle:
+                            TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                        prefixIcon: Icon(Icons.search,
+                            size: 18, color: Color(0xFF94A3B8)),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(vertical: 10),
                       ),
@@ -582,7 +647,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             // Section 0: Smart POS Industry Presets
             Row(
               children: [
-                const Icon(Icons.verified_rounded, color: Color(0xFF4F46E5), size: 20),
+                const Icon(Icons.verified_rounded,
+                    color: Color(0xFF4F46E5), size: 20),
                 const SizedBox(width: 8),
                 const Text(
                   'Smart POS Industry Presets (بنیادی تجارتی شعبہ جات)',
@@ -591,7 +657,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'Auto-enables domain workflows',
-                  style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? const Color(0xFF64748B)
+                          : const Color(0xFF94A3B8)),
                 ),
               ],
             ),
@@ -600,8 +670,10 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             _buildPresetCard(
               presetKey: BusinessSettings.presetPharmacy,
               title: 'A. Pharmacy / Medical Store & Agency Preset',
-              subtitle: 'Drug License, Formulas, Batch & Expiry FIFO Management',
-              features: 'Enables Drug License & DL Warrantor, Batch & Expiry Date tracking (FIFO), Medicine Formula search, Strip/Box units, and Pharmacy POS Dispensing.',
+              subtitle:
+                  'Drug License, Formulas, Batch & Expiry FIFO Management',
+              features:
+                  'Enables Drug License & DL Warrantor, Batch & Expiry Date tracking (FIFO), Medicine Formula search, Strip/Box units, and Pharmacy POS Dispensing.',
               icon: Icons.local_pharmacy_rounded,
               color: const Color(0xFF059669),
               isDark: isDark,
@@ -609,8 +681,10 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             _buildPresetCard(
               presetKey: BusinessSettings.presetRetailSuperStore,
               title: 'B. Super Store / Mart / General Retail Preset',
-              subtitle: 'High-Volume Barcode Retail & Departmental Store Management',
-              features: 'Enables fast barcode scanning, Weight-Scale barcode parsing, Multi-Unit pricing (Piece, Box, Carton), and Product Variations.',
+              subtitle:
+                  'High-Volume Barcode Retail & Departmental Store Management',
+              features:
+                  'Enables fast barcode scanning, Weight-Scale barcode parsing, Multi-Unit pricing (Piece, Box, Carton), and Product Variations.',
               icon: Icons.shopping_cart_rounded,
               color: const Color(0xFF0D9488),
               isDark: isDark,
@@ -619,7 +693,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               presetKey: BusinessSettings.presetMobileElectronics,
               title: 'C. Mobile & Electronics Agency Preset',
               subtitle: 'IMEI / Serialized Inventory & Warranty Management',
-              features: 'Enables mandatory IMEI / Serial Number (1 & 2) selection on Purchase & Sale, Warranty tracking, and Trade-in / Exchange support.',
+              features:
+                  'Enables mandatory IMEI / Serial Number (1 & 2) selection on Purchase & Sale, Warranty tracking, and Trade-in / Exchange support.',
               icon: Icons.phone_android_rounded,
               color: const Color(0xFF2563EB),
               isDark: isDark,
@@ -628,7 +703,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               presetKey: BusinessSettings.presetSolarHardware,
               title: 'D. Solar & Hardware Agency Preset',
               subtitle: 'Quotation Estimates & Solar Composite Packages / BOM',
-              features: 'Enables Quotation / Estimate Builder, Composite / Bundle Products (Panels + Inverter + Batteries + Structure + Labor), Site address tracking, and Warranty claims.',
+              features:
+                  'Enables Quotation / Estimate Builder, Composite / Bundle Products (Panels + Inverter + Batteries + Structure + Labor), Site address tracking, and Warranty claims.',
               icon: Icons.solar_power_rounded,
               color: const Color(0xFFD97706),
               isDark: isDark,
@@ -637,7 +713,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               presetKey: BusinessSettings.presetRestaurantCafe,
               title: 'E. Restaurant / Cafe Preset',
               subtitle: 'Food Service, Dine-In Tables & Kitchen Tickets (KOT)',
-              features: 'Enables Dine-In, Takeaway, Delivery modes, Table Floor Selection, Waiter assignment, and KOT (Kitchen Order Ticket) printing.',
+              features:
+                  'Enables Dine-In, Takeaway, Delivery modes, Table Floor Selection, Waiter assignment, and KOT (Kitchen Order Ticket) printing.',
               icon: Icons.restaurant_rounded,
               color: const Color(0xFFE11D48),
               isDark: isDark,
@@ -647,7 +724,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             // Section 1: Specialized Industry Modules
             Row(
               children: [
-                const Icon(Icons.hub_rounded, color: Color(0xFF6366F1), size: 20),
+                const Icon(Icons.hub_rounded,
+                    color: Color(0xFF6366F1), size: 20),
                 const SizedBox(width: 8),
                 const Text(
                   'Specialized Industry Modules (شعبہ جاتی ماڈیولز)',
@@ -656,17 +734,21 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'Turn off if not in this industry',
-                  style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? const Color(0xFF64748B)
+                          : const Color(0xFF94A3B8)),
                 ),
               ],
             ),
             const SizedBox(height: 12),
 
-
             _buildModuleCard(
               key: BusinessSettings.moduleRestaurant,
-              title: '️ Restaurant & Cafe (ٹیبل و کچن آرڈر)',
-              subtitle: 'Table floor plan, guest seating status, and live Kitchen Order Ticket (KOT) queue.',
+              title: 'Restaurant & Cafe',
+              subtitle:
+                  'Table floor plan, guest seating status, and live Kitchen Order Ticket (KOT) queue.',
               urduDesc: 'ڈائن اِن ٹیبل مینیجمنٹ اور لائیو کچن آرڈر ٹکٹ (KOT)',
               icon: Icons.restaurant_rounded,
               iconColor: const Color(0xFFF59E0B),
@@ -674,26 +756,31 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleRepair,
-              title: 'Repair Shop & Service Center (مرمت و جاب شیٹ)',
-              subtitle: 'Device Job Sheets with IMEI/Serial, defect diagnostics, technician assignment & estimate billing.',
-              urduDesc: 'موبائل، لیپ ٹاپ اور الیکٹرانکس کی جاب کارڈ اور ٹیکنیشن ورک فلو',
+              title: 'Repair Shop & Service Center',
+              subtitle:
+                  'Device Job Sheets with IMEI/Serial, defect diagnostics, technician assignment & estimate billing.',
+              urduDesc:
+                  'موبائل، لیپ ٹاپ اور الیکٹرانکس کی جاب کارڈ اور ٹیکنیشن ورک فلو',
               icon: Icons.build_circle_rounded,
               iconColor: const Color(0xFF3B82F6),
               isIndustryModule: true,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleHotel,
-              title: 'Hotel Management (ہوٹل روم و گیسٹ)',
-              subtitle: 'Rooms & suites grid, guest check-in/out with CNIC, room service bills and stay billing.',
-              urduDesc: 'کمروں کا کرایہ، گیسٹ چیک اِن / چیک آؤٹ اور روم سروس کھاتہ',
+              title: 'Hotel Management',
+              subtitle:
+                  'Rooms & suites grid, guest check-in/out with CNIC, room service bills and stay billing.',
+              urduDesc:
+                  'کمروں کا کرایہ، گیسٹ چیک اِن / چیک آؤٹ اور روم سروس کھاتہ',
               icon: Icons.hotel_rounded,
               iconColor: const Color(0xFF8B5CF6),
               isIndustryModule: true,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleGym,
-              title: '️ Gym & Fitness Center (جم و فٹنس ممبرشپ)',
-              subtitle: 'Member registry, subscription packages (Monthly/Annual), daily attendance & expiry renewal.',
+              title: 'Gym & Fitness Center',
+              subtitle:
+                  'Member registry, subscription packages (Monthly/Annual), daily attendance & expiry renewal.',
               urduDesc: 'جم ممبرشپ، فیس ایکسپائری الرٹس اور یومیہ حاضری لاگ',
               icon: Icons.fitness_center_rounded,
               iconColor: const Color(0xFFEC4899),
@@ -701,35 +788,42 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleManufacturing,
-              title: 'Manufacturing & BOM (پیداوار و خام مال)',
-              subtitle: 'Bill of Materials (BOM) recipes, raw material consumption, work orders and batch costing.',
-              urduDesc: 'خام مال کی کھپت سے تیار شدہ پروڈکٹ کا حساب اور پیداواری لاگت',
+              title: 'Manufacturing & BOM',
+              subtitle:
+                  'Bill of Materials (BOM) recipes, raw material consumption, work orders and batch costing.',
+              urduDesc:
+                  'خام مال کی کھپت سے تیار شدہ پروڈکٹ کا حساب اور پیداواری لاگت',
               icon: Icons.precision_manufacturing_rounded,
               iconColor: const Color(0xFF10B981),
               isIndustryModule: true,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleWooCommerce,
-              title: 'Online Store / WooCommerce (آن لائن اسٹور سنک)',
-              subtitle: 'WooCommerce REST API sync, automatic product catalog push and online order fetch.',
-              urduDesc: 'ورڈپریس / ووکامرس ویب سائٹ سے اسٹاک سنک اور آن لائن آرڈرز',
+              title: 'Online Store / WooCommerce',
+              subtitle:
+                  'WooCommerce REST API sync, automatic product catalog push and online order fetch.',
+              urduDesc:
+                  'ورڈپریس / ووکامرس ویب سائٹ سے اسٹاک سنک اور آن لائن آرڈرز',
               icon: Icons.shopping_bag_rounded,
               iconColor: const Color(0xFF6366F1),
               isIndustryModule: true,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleHrm,
-              title: 'HR & Employee Management (ملازمین و پی رول)',
-              subtitle: 'Staff directory, daily punch attendance register, salary calculations and pay-slips.',
-              urduDesc: 'اسٹاف حاضری، ماہانہ تنخواہ سلپ اور ایڈوانس کٹوتی رجسٹر',
+              title: 'HR & Employee Management',
+              subtitle:
+                  'Staff directory, daily punch attendance register, salary calculations and pay-slips.',
+              urduDesc:
+                  'اسٹاف حاضری، ماہانہ تنخواہ سلپ اور ایڈوانس کٹوتی رجسٹر',
               icon: Icons.badge_rounded,
               iconColor: const Color(0xFF0EA5E9),
               isIndustryModule: true,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleAccountingCrm,
-              title: 'Accounting & General Ledger (ڈبل انٹری کھاتہ)',
-              subtitle: 'Double-entry Chart of Accounts, Journal Vouchers (Debit/Credit), trial balance and ledgers.',
+              title: 'Accounting & General Ledger',
+              subtitle:
+                  'Double-entry Chart of Accounts, Journal Vouchers (Debit/Credit), trial balance and ledgers.',
               urduDesc: 'مکمل ڈبل انٹری فنانشل اکاؤنٹس اور جنرل جرنل واؤچرز',
               icon: Icons.account_balance_rounded,
               iconColor: const Color(0xFF14B8A6),
@@ -737,18 +831,22 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleFruitMandi,
-              title: 'Fruit & Vegetable Mandi (فروٹ و سبزی آڑھت)',
-              subtitle: 'Mandi Arhat auction register, Mun/Kg weight conversion, commission % & net Zamindar payables.',
-              urduDesc: 'منڈی کی روزانہ بولی، من اور کلو کا وزن اور آڑھتی کمیشن کاٹ کر ادائیگی',
+              title: 'Fruit & Vegetable Mandi',
+              subtitle:
+                  'Mandi Arhat auction register, Mun/Kg weight conversion, commission % & net Zamindar payables.',
+              urduDesc:
+                  'منڈی کی روزانہ بولی، من اور کلو کا وزن اور آڑھتی کمیشن کاٹ کر ادائیگی',
               icon: Icons.agriculture_rounded,
               iconColor: const Color(0xFFEF4444),
               isIndustryModule: true,
             ),
             _buildModuleCard(
               key: BusinessSettings.modulePoultry,
-              title: 'Poultry Farm & Trading (پولٹری فارم و برائلر)',
-              subtitle: 'Flock batches, daily mortality & feed consumption, live bird crate dispatches and egg trays.',
-              urduDesc: 'برائلر فلاک، یومیہ اموات، فیڈ کی کھپت، اور لائیو مرغی گاڑی کا وزن',
+              title: 'Poultry Farm & Trading',
+              subtitle:
+                  'Flock batches, daily mortality & feed consumption, live bird crate dispatches and egg trays.',
+              urduDesc:
+                  'برائلر فلاک، یومیہ اموات، فیڈ کی کھپت، اور لائیو مرغی گاڑی کا وزن',
               icon: Icons.egg_rounded,
               iconColor: const Color(0xFFF97316),
               isIndustryModule: true,
@@ -759,16 +857,23 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
             // Section 2: Standard Operations & Feature Toggles
             Row(
               children: [
-                const Icon(Icons.settings_suggest_rounded, color: Color(0xFF10B981), size: 20),
+                const Icon(Icons.settings_suggest_rounded,
+                    color: Color(0xFF10B981), size: 20),
                 const SizedBox(width: 8),
-                const Text(
-                  'Operational & Inventory Features (آپریشنل و انوینٹری فیچرز)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Text(
+                  PosLocalization.tr('Operational & Inventory Features',
+                      settings: widget.settings),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'Toggle core modules on/off',
-                  style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? const Color(0xFF64748B)
+                          : const Color(0xFF94A3B8)),
                 ),
               ],
             ),
@@ -776,63 +881,77 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
 
             _buildModuleCard(
               key: BusinessSettings.moduleVariations,
-              title: '️ Variations & Sizes (سائز و رنگ)',
-              subtitle: 'Product color/size matrices and multi-variant pricing for Garments, Shoes, and Boutiques.',
-              urduDesc: 'کپڑوں اور جوتوں کے سائز، رنگ اور مختلف ورائٹی کا الگ الگ اسٹاک',
+              title: 'Variations & Sizes',
+              subtitle:
+                  'Product color/size matrices and multi-variant pricing for Garments, Shoes, and Boutiques.',
+              urduDesc:
+                  'کپڑوں اور جوتوں کے سائز، رنگ اور مختلف ورائٹی کا الگ الگ اسٹاک',
               icon: Icons.style_rounded,
               iconColor: const Color(0xFF8B5CF6),
               isIndustryModule: false,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleBatchExpiry,
-              title: 'Batch Numbers & Expiry Tracking (بیچ و ایکسپائری)',
-              subtitle: 'Batch number tracking, expiry date alerts, and pack size bonus calculations.',
-              urduDesc: 'دوائیوں اور اشیاء خوردونوش کے بیچ نمبر اور ایکسپائری کی تاریخ کا الرٹ',
+              title: 'Batch Numbers & Expiry Tracking',
+              subtitle:
+                  'Batch number tracking, expiry date alerts, and pack size bonus calculations.',
+              urduDesc:
+                  'دوائیوں اور اشیاء خوردونوش کے بیچ نمبر اور ایکسپائری کی تاریخ کا الرٹ',
               icon: Icons.medical_services_rounded,
               iconColor: const Color(0xFFEC4899),
               isIndustryModule: false,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleStockTransfers,
-              title: 'Stock Transfers (اسٹاک ٹرانسفر)',
-              subtitle: 'Transfer inventory between main warehouse and retail branch stores.',
-              urduDesc: 'گودام اور مختلف برانچوں کے درمیان سامان کی منتقلی کا رجسٹر',
+              title: 'Stock Transfers',
+              subtitle:
+                  'Transfer inventory between main warehouse and retail branch stores.',
+              urduDesc:
+                  'گودام اور مختلف برانچوں کے درمیان سامان کی منتقلی کا رجسٹر',
               icon: Icons.sync_alt_rounded,
               iconColor: const Color(0xFF0EA5E9),
               isIndustryModule: false,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleStockAudit,
-              title: 'Stock & Expiry Audit (انوینٹری آڈٹ)',
-              subtitle: 'Physical stock counting, shelf auditing, and inventory variance adjustments.',
-              urduDesc: 'دکان اور گودام کے سامان کی گنتی اور اصل اسٹاک سے موازنہ',
+              title: 'Stock & Expiry Audit',
+              subtitle:
+                  'Physical stock counting, shelf auditing, and inventory variance adjustments.',
+              urduDesc:
+                  'دکان اور گودام کے سامان کی گنتی اور اصل اسٹاک سے موازنہ',
               icon: Icons.fact_check_rounded,
               iconColor: const Color(0xFFF59E0B),
               isIndustryModule: false,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleReturns,
-              title: '↩️ Returns Management (سیلز و پرچیز واپسی)',
-              subtitle: 'Credit Notes for customer returns and Debit Notes for supplier returns.',
-              urduDesc: 'گاہک کی سامان واپسی (Credit Note) اور سپلائر کو سامان واپسی (Debit Note)',
+              title: 'Returns Management',
+              subtitle:
+                  'Credit Notes for customer returns and Debit Notes for supplier returns.',
+              urduDesc:
+                  'گاہک کی سامان واپسی (Credit Note) اور سپلائر کو سامان واپسی (Debit Note)',
               icon: Icons.assignment_return_rounded,
               iconColor: const Color(0xFF6366F1),
               isIndustryModule: false,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleExpenses,
-              title: 'Expenses Tracker (دکان کے اخراجات)',
-              subtitle: 'Track daily shop expenses, utility bills, maintenance costs, and petty cash.',
-              urduDesc: 'بجلی، کرایہ، چائے، تنخواہ اور روزمرہ کے تمام اخراجات کا اندراج',
+              title: 'Expenses Tracker',
+              subtitle:
+                  'Track daily shop expenses, utility bills, maintenance costs, and petty cash.',
+              urduDesc:
+                  'بجلی، کرایہ، چائے، تنخواہ اور روزمرہ کے تمام اخراجات کا اندراج',
               icon: Icons.receipt_long_rounded,
               iconColor: const Color(0xFF10B981),
               isIndustryModule: false,
             ),
             _buildModuleCard(
               key: BusinessSettings.moduleFiscalClosing,
-              title: 'Annual Fiscal Closing (سالانہ کلوزنگ)',
-              subtitle: 'End of financial year audit, net profit distribution, and opening balance rollover.',
-              urduDesc: 'مالی سال کا اختتام، نفع و نقصان کا حتمی حساب اور نئے سال کا اوپننگ بیلنس',
+              title: 'Annual Fiscal Closing',
+              subtitle:
+                  'End of financial year audit, net profit distribution, and opening balance rollover.',
+              urduDesc:
+                  'مالی سال کا اختتام، نفع و نقصان کا حتمی حساب اور نئے سال کا اوپننگ بیلنس',
               icon: Icons.account_balance_wallet_rounded,
               iconColor: const Color(0xFF14B8A6),
               isIndustryModule: false,
@@ -846,14 +965,23 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                 width: 320,
                 child: ElevatedButton.icon(
                   icon: _isSaving
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.check_circle_rounded, size: 20),
-                  label: const Text('Save Module Settings (محفوظ کریں)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  label: Text(
+                      PosLocalization.tr('Save Module Settings',
+                          settings: widget.settings),
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: _isSaving ? null : _saveConfiguration,
                 ),

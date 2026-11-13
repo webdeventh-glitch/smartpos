@@ -21,4 +21,3 @@ class NavigationNotifier extends Notifier<AppRoute> {
 
 final navigationProvider =
     NotifierProvider<NavigationNotifier, AppRoute>(NavigationNotifier.new);
-

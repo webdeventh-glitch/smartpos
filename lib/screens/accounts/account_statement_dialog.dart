@@ -68,7 +68,8 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
 
     // Refresh current account details
     final refreshedAccs = await db.getPaymentAccounts();
-    final updated = refreshedAccs.where((a) => a.id == widget.account.id).firstOrNull;
+    final updated =
+        refreshedAccs.where((a) => a.id == widget.account.id).firstOrNull;
 
     if (mounted) {
       setState(() {
@@ -113,7 +114,8 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
       setState(() {
         _dateFilter = 'custom';
         _startDate = picked.start;
-        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
+        _endDate = DateTime(
+            picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
       });
       _loadStatement();
     }
@@ -130,12 +132,17 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
       buffer.writeln('A/C No: ${acc.accountNumber}');
     }
     buffer.writeln('Statement Period: ${_formatPeriod()}');
-    buffer.writeln('Opening Balance: $cur${_openingBalance.toStringAsFixed(2)}');
-    buffer.writeln('Total Inflows (Deposits): $cur${_totalInflow.toStringAsFixed(2)}');
-    buffer.writeln('Total Outflows (Withdrawals): $cur${_totalOutflow.toStringAsFixed(2)}');
-    buffer.writeln('Closing Balance: $cur${_closingBalance.toStringAsFixed(2)}');
+    buffer
+        .writeln('Opening Balance: $cur${_openingBalance.toStringAsFixed(2)}');
+    buffer.writeln(
+        'Total Inflows (Deposits): $cur${_totalInflow.toStringAsFixed(2)}');
+    buffer.writeln(
+        'Total Outflows (Withdrawals): $cur${_totalOutflow.toStringAsFixed(2)}');
+    buffer
+        .writeln('Closing Balance: $cur${_closingBalance.toStringAsFixed(2)}');
     buffer.writeln('========================================');
-    buffer.writeln('DATE\tREF #\tDESCRIPTION\tDEBIT (IN)\tCREDIT (OUT)\tBALANCE');
+    buffer
+        .writeln('DATE\tREF #\tDESCRIPTION\tDEBIT (IN)\tCREDIT (OUT)\tBALANCE');
 
     for (final e in _entries) {
       final date = e.date.length >= 10 ? e.date.substring(0, 10) : e.date;
@@ -158,7 +165,8 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
   String _formatPeriod() {
     final df = DateFormat('dd MMM yyyy');
     if (_dateFilter == 'today') return 'Today (${df.format(DateTime.now())})';
-    if (_dateFilter == 'month') return 'This Month (${DateFormat('MMMM yyyy').format(DateTime.now())})';
+    if (_dateFilter == 'month')
+      return 'This Month (${DateFormat('MMMM yyyy').format(DateTime.now())})';
     if (_dateFilter == '30days') return 'Last 30 Days';
     if (_dateFilter == 'custom' && _startDate != null && _endDate != null) {
       return '${df.format(_startDate!)} to ${df.format(_endDate!)}';
@@ -218,24 +226,33 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
     );
   }
 
-  Widget _buildHeader(PaymentAccount acc, String cur, bool isDark, bool isCash) {
+  Widget _buildHeader(
+      PaymentAccount acc, String cur, bool isDark, bool isCash) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+        border: Border(
+            bottom: BorderSide(
+                color: isDark
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFE2E8F0))),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: (isCash ? const Color(0xFF10B981) : const Color(0xFF0284C7)).withValues(alpha: 0.15),
+              color:
+                  (isCash ? const Color(0xFF10B981) : const Color(0xFF0284C7))
+                      .withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              isCash ? Icons.point_of_sale_rounded : Icons.account_balance_rounded,
+              isCash
+                  ? Icons.point_of_sale_rounded
+                  : Icons.account_balance_rounded,
               color: isCash ? const Color(0xFF059669) : const Color(0xFF0284C7),
               size: 26,
             ),
@@ -257,12 +274,19 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
                     ),
                     const SizedBox(width: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
-                        color: (isCash ? const Color(0xFF10B981) : const Color(0xFF0284C7)).withValues(alpha: 0.12),
+                        color: (isCash
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFF0284C7))
+                            .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: (isCash ? const Color(0xFF10B981) : const Color(0xFF0284C7)).withValues(alpha: 0.3),
+                          color: (isCash
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFF0284C7))
+                              .withValues(alpha: 0.3),
                         ),
                       ),
                       child: Text(
@@ -270,7 +294,9 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: isCash ? const Color(0xFF059669) : const Color(0xFF0284C7),
+                          color: isCash
+                              ? const Color(0xFF059669)
+                              : const Color(0xFF0284C7),
                         ),
                       ),
                     ),
@@ -281,7 +307,11 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
                   acc.accountNumber.isNotEmpty
                       ? 'A/C Number: ${acc.accountNumber}  •  ${acc.note.isNotEmpty ? acc.note : "Bank & Liquid Asset Passbook"}'
                       : 'Liquid Cash Drawer & Float Account',
-                  style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B)),
                 ),
               ],
             ),
@@ -302,7 +332,11 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF131D31) : const Color(0xFFFFFFFF),
-        border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF243247) : const Color(0xFFF1F5F9))),
+        border: Border(
+            bottom: BorderSide(
+                color: isDark
+                    ? const Color(0xFF243247)
+                    : const Color(0xFFF1F5F9))),
       ),
       child: Row(
         children: [
@@ -314,18 +348,26 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
           const SizedBox(width: 6),
           _filterChip('30days', 'Last 30 Days', Icons.history_rounded),
           const SizedBox(width: 6),
-          _filterChip('custom', _dateFilter == 'custom' ? _formatPeriod() : 'Custom Range', Icons.date_range_rounded,
+          _filterChip(
+              'custom',
+              _dateFilter == 'custom' ? _formatPeriod() : 'Custom Range',
+              Icons.date_range_rounded,
               isCustomPicker: true),
           const Spacer(),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
               foregroundColor: isDark ? Colors.white : const Color(0xFF334155),
-              side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+              side: BorderSide(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFCBD5E1)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             icon: const Icon(Icons.copy_all_rounded, size: 16),
-            label: const Text('Copy Statement', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            label: const Text('Copy Statement',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
             onPressed: _copyStatementToClipboard,
           ),
         ],
@@ -333,7 +375,8 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
     );
   }
 
-  Widget _filterChip(String id, String label, IconData icon, {bool isCustomPicker = false}) {
+  Widget _filterChip(String id, String label, IconData icon,
+      {bool isCustomPicker = false}) {
     final isSelected = _dateFilter == id;
     return InkWell(
       borderRadius: BorderRadius.circular(20),
@@ -350,13 +393,16 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
           color: isSelected ? const Color(0xFF0284C7) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+            color:
+                isSelected ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: isSelected ? Colors.white : const Color(0xFF64748B)),
+            Icon(icon,
+                size: 14,
+                color: isSelected ? Colors.white : const Color(0xFF64748B)),
             const SizedBox(width: 6),
             Text(
               label,
@@ -377,7 +423,11 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0B132B) : const Color(0xFFF8FAFC),
-        border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF243247) : const Color(0xFFE2E8F0))),
+        border: Border(
+            bottom: BorderSide(
+                color: isDark
+                    ? const Color(0xFF243247)
+                    : const Color(0xFFE2E8F0))),
       ),
       child: Row(
         children: [
@@ -414,14 +464,18 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
     );
   }
 
-  Widget _kpiItem(String title, String value, Color color, IconData icon, {bool highlight = false}) {
+  Widget _kpiItem(String title, String value, Color color, IconData icon,
+      {bool highlight = false}) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: highlight ? color.withValues(alpha: 0.1) : Colors.white,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: highlight ? color.withValues(alpha: 0.4) : const Color(0xFFE2E8F0)),
+          border: Border.all(
+              color: highlight
+                  ? color.withValues(alpha: 0.4)
+                  : const Color(0xFFE2E8F0)),
         ),
         child: Row(
           children: [
@@ -440,12 +494,18 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                    style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF64748B)),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     value,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color),
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: color),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -462,7 +522,10 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.receipt_long_outlined, size: 48, color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
+          Icon(Icons.receipt_long_outlined,
+              size: 48,
+              color:
+                  isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
           const SizedBox(height: 12),
           Text(
             'No transactions recorded for this period',
@@ -491,17 +554,42 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
           headingRowHeight: 40,
           dataRowMinHeight: 44,
           dataRowMaxHeight: 52,
-          headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF131D31) : const Color(0xFFF1F5F9)),
+          headingRowColor: WidgetStateProperty.all(
+              isDark ? const Color(0xFF131D31) : const Color(0xFFF1F5F9)),
           horizontalMargin: 20,
           columnSpacing: 16,
           columns: const [
-            DataColumn(label: Text('DATE & TIME', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-            DataColumn(label: Text('REF / VOUCHER #', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-            DataColumn(label: Text('DESCRIPTION / PARTICULARS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-            DataColumn(label: Text('METHOD', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-            DataColumn(numeric: true, label: Text('DEBIT (INFLOW)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-            DataColumn(numeric: true, label: Text('CREDIT (OUTFLOW)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-            DataColumn(numeric: true, label: Text('BALANCE', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+            DataColumn(
+                label: Text('DATE & TIME',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+            DataColumn(
+                label: Text('REF / VOUCHER #',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+            DataColumn(
+                label: Text('DESCRIPTION / PARTICULARS',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+            DataColumn(
+                label: Text('METHOD',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+            DataColumn(
+                numeric: true,
+                label: Text('DEBIT (INFLOW)',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+            DataColumn(
+                numeric: true,
+                label: Text('CREDIT (OUTFLOW)',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+            DataColumn(
+                numeric: true,
+                label: Text('BALANCE',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
           ],
           rows: _entries.map((e) {
             final isDr = e.debit > 0;
@@ -515,7 +603,10 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
                 )),
                 DataCell(Text(
                   e.refNo.isNotEmpty ? e.refNo : '-',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0284C7)),
                 )),
                 DataCell(
                   Container(
@@ -528,12 +619,15 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
                   ),
                 ),
                 DataCell(Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.grey.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(e.paymentMethod.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                  child: Text(e.paymentMethod.toUpperCase(),
+                      style: const TextStyle(
+                          fontSize: 10, fontWeight: FontWeight.w700)),
                 )),
                 DataCell(Text(
                   isDr ? '+$cur${e.debit.toStringAsFixed(2)}' : '-',
@@ -553,7 +647,8 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
                 )),
                 DataCell(Text(
                   '$cur${e.runningBalance.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w900),
                 )),
               ],
             );
@@ -569,7 +664,11 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-        border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+        border: Border(
+            top: BorderSide(
+                color: isDark
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFE2E8F0))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -583,10 +682,12 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
               backgroundColor: const Color(0xFF0284C7),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close Passbook', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Close Passbook',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

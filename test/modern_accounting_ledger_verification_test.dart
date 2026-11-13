@@ -17,7 +17,8 @@ void main() {
 
     setUp(() async {
       tempDir = Directory.systemTemp.createTempSync('smartpos_ledger_');
-      dbPath = path.join(tempDir.path, 'test_ledger_${DateTime.now().microsecondsSinceEpoch}.db');
+      dbPath = path.join(tempDir.path,
+          'test_ledger_${DateTime.now().microsecondsSinceEpoch}.db');
       dbService = await DatabaseService.initialize(customPath: dbPath);
     });
 
@@ -29,7 +30,9 @@ void main() {
       } catch (_) {}
     });
 
-    test('1. Customer Khata / Ledger: Invoices are Debit, Payments are Credit, Running Balances correct', () async {
+    test(
+        '1. Customer Khata / Ledger: Invoices are Debit, Payments are Credit, Running Balances correct',
+        () async {
       // 1. Add Customer
       final custId = await dbService.addContact(Contact(
         name: 'Haji Aslam Cloth House',
@@ -75,9 +78,11 @@ void main() {
       expect(custAfterSale?.balance, 10000.0);
 
       // 3. Customer Ledger Query
-      final ledger1 = await dbService.getContactLedger(contactId: custId, contactType: 'customer');
+      final ledger1 = await dbService.getContactLedger(
+          contactId: custId, contactType: 'customer');
       final entries1 = ledger1['entries'] as List<LedgerEntry>;
-      expect(entries1.length, 2); // 1. Invoice Dr 15000, 2. Counter Payment Cr 5000
+      expect(entries1.length,
+          2); // 1. Invoice Dr 15000, 2. Counter Payment Cr 5000
 
       expect(entries1[0].transactionType, 'sale_invoice');
       expect(entries1[0].debit, 15000.0);
@@ -105,7 +110,8 @@ void main() {
       final custAfterPay = await dbService.getContactById(custId);
       expect(custAfterPay?.balance, 4000.0);
 
-      final ledger2 = await dbService.getContactLedger(contactId: custId, contactType: 'customer');
+      final ledger2 = await dbService.getContactLedger(
+          contactId: custId, contactType: 'customer');
       final entries2 = ledger2['entries'] as List<LedgerEntry>;
       expect(entries2.length, 3);
       expect(entries2[2].transactionType, 'customer_payment');
@@ -114,7 +120,9 @@ void main() {
       expect(ledger2['closingBalance'], 4000.0);
     });
 
-    test('2. Supplier Khata / Ledger: Purchases are Credit, Payments are Debit, Running Balances correct', () async {
+    test(
+        '2. Supplier Khata / Ledger: Purchases are Credit, Payments are Debit, Running Balances correct',
+        () async {
       // 1. Add Supplier
       final suppId = await dbService.addContact(Contact(
         name: 'National Mills Lahore',
@@ -155,14 +163,16 @@ void main() {
         }
       ];
 
-      final purchaseId = await dbService.createPurchase(purchase: purchase, items: purchaseItems);
+      final purchaseId = await dbService.createPurchase(
+          purchase: purchase, items: purchaseItems);
       expect(purchaseId, isNonZero);
 
       // Verify contact balance
       final suppAfterPo = await dbService.getContactById(suppId);
       expect(suppAfterPo?.balance, 30000.0);
 
-      final ledger = await dbService.getContactLedger(contactId: suppId, contactType: 'supplier');
+      final ledger = await dbService.getContactLedger(
+          contactId: suppId, contactType: 'supplier');
       final entries = ledger['entries'] as List<LedgerEntry>;
       expect(entries.length, 2);
 
@@ -264,7 +274,8 @@ void main() {
       expect(hbl.currentBalance, 85000.0);
     });
 
-    test('5. Live Trial Balance Equation: Assets = Liabilities + Equity', () async {
+    test('5. Live Trial Balance Equation: Assets = Liabilities + Equity',
+        () async {
       final tb = await dbService.getFinancialTrialBalance();
       expect(tb.containsKey('totalAssets'), isTrue);
       expect(tb.containsKey('totalLiabilities'), isTrue);

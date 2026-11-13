@@ -22,11 +22,13 @@ class ReportsScreen extends StatefulWidget {
   State<ReportsScreen> createState() => _ReportsScreenState();
 }
 
-class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProviderStateMixin {
+class _ReportsScreenState extends State<ReportsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _loading = true;
 
-  String _dateFilter = 'month'; // 'today', 'yesterday', 'week', 'month', 'year', 'custom'
+  String _dateFilter =
+      'month'; // 'today', 'yesterday', 'week', 'month', 'year', 'custom'
   DateTime? _startDate;
   DateTime? _endDate;
 
@@ -45,7 +47,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   // Stock Expiry State
   List<Map<String, dynamic>> _stockExpiryReports = [];
-  String _stockExpiryFilter = 'all'; // 'all', 'expired', '30_days', '60_days', '90_days'
+  String _stockExpiryFilter =
+      'all'; // 'all', 'expired', '30_days', '60_days', '90_days'
   final TextEditingController _stockExpirySearchCtrl = TextEditingController();
 
   // Trending Products State
@@ -114,7 +117,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       setState(() {
         _dateFilter = 'custom';
         _startDate = picked.start;
-        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
+        _endDate = DateTime(
+            picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
       });
       _load();
     }
@@ -207,8 +211,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     if (_dateFilter == 'today') return 'Today (${df.format(DateTime.now())})';
     if (_dateFilter == 'yesterday') return 'Yesterday';
     if (_dateFilter == 'week') return 'Last 7 Days';
-    if (_dateFilter == 'month') return 'This Month (${DateFormat('MMMM yyyy').format(DateTime.now())})';
-    if (_dateFilter == 'year') return 'This Financial Year (${DateTime.now().year})';
+    if (_dateFilter == 'month')
+      return 'This Month (${DateFormat('MMMM yyyy').format(DateTime.now())})';
+    if (_dateFilter == 'year')
+      return 'This Financial Year (${DateTime.now().year})';
     if (_dateFilter == 'custom' && _startDate != null && _endDate != null) {
       return '${df.format(_startDate!)} to ${df.format(_endDate!)}';
     }
@@ -219,36 +225,52 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     final cur = widget.settings.currencySymbol;
     final buffer = StringBuffer();
     buffer.writeln('==============================================');
-    buffer.writeln('${widget.settings.businessName.isNotEmpty ? widget.settings.businessName : "SMART POS"} - BUSINESS REPORT');
+    buffer.writeln(
+        '${widget.settings.businessName.isNotEmpty ? widget.settings.businessName : "SMART POS"} - BUSINESS REPORT');
     buffer.writeln('Period: ${_formatPeriod()}');
-    buffer.writeln('Generated On: ${DateFormat('dd MMM yyyy HH:mm').format(DateTime.now())}');
+    buffer.writeln(
+        'Generated On: ${DateFormat('dd MMM yyyy HH:mm').format(DateTime.now())}');
     buffer.writeln('==============================================');
 
     buffer.writeln('1. FINANCIAL PROFIT & LOSS:');
-    buffer.writeln('Gross Sales: $cur${(_report['totalSales'] as double? ?? 0.0).toStringAsFixed(2)}');
-    buffer.writeln('Cost of Goods Sold (COGS): $cur${(_report['cogs'] as double? ?? 0.0).toStringAsFixed(2)}');
-    buffer.writeln('Gross Profit: $cur${(_report['grossProfit'] as double? ?? 0.0).toStringAsFixed(2)}');
-    buffer.writeln('Operating Expenses: $cur${(_report['totalExpenses'] as double? ?? 0.0).toStringAsFixed(2)}');
-    buffer.writeln('NET PROFIT: $cur${(_report['netProfit'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Gross Sales: $cur${(_report['totalSales'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Cost of Goods Sold (COGS): $cur${(_report['cogs'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Gross Profit: $cur${(_report['grossProfit'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Operating Expenses: $cur${(_report['totalExpenses'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'NET PROFIT: $cur${(_report['netProfit'] as double? ?? 0.0).toStringAsFixed(2)}');
     buffer.writeln('----------------------------------------------');
 
     buffer.writeln('2. PURCHASES & INVENTORY:');
-    buffer.writeln('Total Purchases: $cur${(_report['totalPurchases'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Total Purchases: $cur${(_report['totalPurchases'] as double? ?? 0.0).toStringAsFixed(2)}');
     final sv = _report['stockValuation'] as Map<String, dynamic>? ?? {};
-    buffer.writeln('Stock Valuation (Cost): $cur${(sv['stockValueCost'] as double? ?? 0.0).toStringAsFixed(2)}');
-    buffer.writeln('Stock Valuation (Retail): $cur${(sv['stockValueRetail'] as double? ?? 0.0).toStringAsFixed(2)}');
-    buffer.writeln('Potential Stock Margin: $cur${(sv['potentialProfit'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Stock Valuation (Cost): $cur${(sv['stockValueCost'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Stock Valuation (Retail): $cur${(sv['stockValueRetail'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Potential Stock Margin: $cur${(sv['potentialProfit'] as double? ?? 0.0).toStringAsFixed(2)}');
     buffer.writeln('----------------------------------------------');
 
     buffer.writeln('3. TAX SUMMARY:');
-    buffer.writeln('Output Tax (Sales): $cur${(_report['outputTax'] as double? ?? 0.0).toStringAsFixed(2)}');
-    buffer.writeln('Input Tax (Purchases): $cur${(_report['inputTax'] as double? ?? 0.0).toStringAsFixed(2)}');
-    buffer.writeln('Net Tax Payable: $cur${(_report['netTaxPayable'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Output Tax (Sales): $cur${(_report['outputTax'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Input Tax (Purchases): $cur${(_report['inputTax'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Net Tax Payable: $cur${(_report['netTaxPayable'] as double? ?? 0.0).toStringAsFixed(2)}');
     buffer.writeln('----------------------------------------------');
 
     buffer.writeln('4. RECEIVABLES & PAYABLES:');
-    buffer.writeln('Total Customer Dues (Receivable): $cur${(_report['totalCustomerDue'] as double? ?? 0.0).toStringAsFixed(2)}');
-    buffer.writeln('Total Supplier Dues (Payable): $cur${(_report['totalSupplierPayable'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Total Customer Dues (Receivable): $cur${(_report['totalCustomerDue'] as double? ?? 0.0).toStringAsFixed(2)}');
+    buffer.writeln(
+        'Total Supplier Dues (Payable): $cur${(_report['totalSupplierPayable'] as double? ?? 0.0).toStringAsFixed(2)}');
     buffer.writeln('==============================================');
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
@@ -293,8 +315,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     final expenses = (_report['totalExpenses'] as double?) ?? 0.0;
     final net = (_report['netProfit'] as double?) ?? 0.0;
     final purchases = (_report['totalPurchases'] as double?) ?? 0.0;
-    final canProfit = AuthService.currentUser?.hasPermission('report.view_profit') ?? true;
-    final canCost = AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true;
+    final canProfit =
+        AuthService.currentUser?.hasPermission('report.view_profit') ?? true;
+    final canCost =
+        AuthService.currentUser?.hasPermission('report.view_cost_price') ??
+            true;
 
     return PdfExportService.generateReportPdf(
       title: 'Executive Financial & Business Report',
@@ -304,18 +329,34 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         'Total Sales': '$cur${totalSales.toStringAsFixed(2)}',
         'Total Purchases': '$cur${purchases.toStringAsFixed(2)}',
         'Expenses': '$cur${expenses.toStringAsFixed(2)}',
-        'Net Profit': canProfit ? '$cur${net.toStringAsFixed(2)}' : 'Restricted',
+        'Net Profit':
+            canProfit ? '$cur${net.toStringAsFixed(2)}' : 'Restricted',
       },
       headers: const ['Metric / Ledger Account', 'Amount'],
       rows: [
         ['Total Final Sales Revenue', '$cur${totalSales.toStringAsFixed(2)}'],
-        ['Cost of Goods Sold (COGS)', canCost ? '$cur${cogs.toStringAsFixed(2)}' : 'Restricted'],
-        ['Gross Profit', canProfit ? '$cur${gross.toStringAsFixed(2)}' : 'Restricted'],
+        [
+          'Cost of Goods Sold (COGS)',
+          canCost ? '$cur${cogs.toStringAsFixed(2)}' : 'Restricted'
+        ],
+        [
+          'Gross Profit',
+          canProfit ? '$cur${gross.toStringAsFixed(2)}' : 'Restricted'
+        ],
         ['Total Operating Expenses', '$cur${expenses.toStringAsFixed(2)}'],
-        ['Net Business Profit', canProfit ? '$cur${net.toStringAsFixed(2)}' : 'Restricted'],
+        [
+          'Net Business Profit',
+          canProfit ? '$cur${net.toStringAsFixed(2)}' : 'Restricted'
+        ],
         ['Total Purchases', '$cur${purchases.toStringAsFixed(2)}'],
-        ['Customer Receivables (Due)', '$cur${((_report['totalCustomerDue'] as double?) ?? 0.0).toStringAsFixed(2)}'],
-        ['Supplier Payables (Due)', '$cur${((_report['totalSupplierPayable'] as double?) ?? 0.0).toStringAsFixed(2)}'],
+        [
+          'Customer Receivables (Due)',
+          '$cur${((_report['totalCustomerDue'] as double?) ?? 0.0).toStringAsFixed(2)}'
+        ],
+        [
+          'Supplier Payables (Due)',
+          '$cur${((_report['totalSupplierPayable'] as double?) ?? 0.0).toStringAsFixed(2)}'
+        ],
       ],
     );
   }
@@ -323,7 +364,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   Future<void> _exportExecutiveReportPdf() async {
     final messenger = ScaffoldMessenger.of(context);
     final bytes = await _buildExecutiveReportPdfBytes();
-    final file = await PdfExportService.savePdfFile(bytes, 'Executive_Business_Report');
+    final file =
+        await PdfExportService.savePdfFile(bytes, 'Executive_Business_Report');
     await PdfExportService.openPdfFile(file);
     messenger.showSnackBar(
       SnackBar(
@@ -404,9 +446,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           final isDark = Theme.of(context).brightness == Brightness.dark;
 
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             actionsPadding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
             title: Row(
               children: [
@@ -416,7 +460,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     color: const Color(0xFFF3E8FF),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF7C3AED), size: 24),
+                  child: const Icon(Icons.auto_awesome_rounded,
+                      color: Color(0xFF7C3AED), size: 24),
                 ),
                 const SizedBox(width: 12),
                 Column(
@@ -450,10 +495,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                           SizedBox(height: 16),
                           Text(
                             'AI is analyzing your store sales, margins, expenses, and batch expirations...',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                           SizedBox(height: 6),
-                          Text('Generating executive Roman Urdu summary and strategic advice...', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                          Text(
+                              'Generating executive Roman Urdu summary and strategic advice...',
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 11)),
                         ],
                       ),
                     )
@@ -461,16 +510,23 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       child: Container(
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                          color: isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                          border: Border.all(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE2E8F0)),
                         ),
                         child: SelectableText(
                           aiResponse,
                           style: TextStyle(
                             fontSize: 13,
                             height: 1.6,
-                            color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B),
+                            color: isDark
+                                ? const Color(0xFFF1F5F9)
+                                : const Color(0xFF1E293B),
                           ),
                         ),
                       ),
@@ -484,7 +540,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: aiResponse));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('AI Summary copied to clipboard!'), backgroundColor: Color(0xFF10B981)),
+                      const SnackBar(
+                          content: Text('AI Summary copied to clipboard!'),
+                          backgroundColor: Color(0xFF10B981)),
                     );
                   },
                 ),
@@ -517,7 +575,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     final user = AuthService.currentUser;
     if (user != null && !user.hasPermission('report.view')) {
       return Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        backgroundColor:
+            isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         body: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 480),
@@ -525,7 +584,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1E293B) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -536,7 +598,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     color: Color(0xFFFEE2E2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.lock_rounded, size: 48, color: Color(0xFFDC2626)),
+                  child: const Icon(Icons.lock_rounded,
+                      size: 48, color: Color(0xFFDC2626)),
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -551,7 +614,12 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 Text(
                   'Your account does not have permission to view Business Intelligence, Profit/Loss, and Sales Reports. Please contact your Super Administrator.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), height: 1.4),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                      height: 1.4),
                 ),
               ],
             ),
@@ -561,7 +629,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     }
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor:
+          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -580,7 +649,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.analytics_rounded, color: Color(0xFF4F46E5), size: 28),
+                        const Icon(Icons.analytics_rounded,
+                            color: Color(0xFF4F46E5), size: 28),
                         const SizedBox(width: 10),
                         Flexible(
                           child: Text(
@@ -588,7 +658,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
                             ),
                           ),
                         ),
@@ -597,7 +669,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     const SizedBox(height: 4),
                     Text(
                       'Multi-dimensional business analytics: Profit & Loss, Purchases, Sales, Taxes, Dues, and Stock Valuation.',
-                      style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                     ),
                   ],
                 ),
@@ -616,44 +692,56 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF7C3AED),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-                      label: const Text('Ask AI Business Advisor', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Ask AI Business Advisor',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _showAiReportAnalysisModal,
                     ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4F46E5),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.print_rounded, size: 18),
-                      label: const Text('Print Executive Report', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Print Executive Report',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _printExecutiveReport,
                     ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFDC2626),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
-                      label: const Text('Export PDF Report', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Export PDF Report',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _exportExecutiveReportPdf,
                     ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF059669),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.copy_all_rounded, size: 18),
-                      label: const Text('Export / Copy Report', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Export / Copy Report',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _copyFullReportSummary,
                     ),
                   ],
@@ -668,15 +756,22 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_month_rounded, size: 18, color: Color(0xFF4F46E5)),
+                  const Icon(Icons.calendar_month_rounded,
+                      size: 18, color: Color(0xFF4F46E5)),
                   const SizedBox(width: 8),
                   Text(
                     'Period: ',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF334155)),
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF334155)),
                   ),
                   const SizedBox(width: 6),
                   _filterBtn('today', 'Today'),
@@ -689,17 +784,23 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   const SizedBox(width: 6),
                   _filterBtn('year', 'This Year'),
                   const SizedBox(width: 6),
-                  _filterBtn('custom', _dateFilter == 'custom' ? _formatPeriod() : 'Custom Date', isCustom: true),
+                  _filterBtn('custom',
+                      _dateFilter == 'custom' ? _formatPeriod() : 'Custom Date',
+                      isCustom: true),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       _formatPeriod(),
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4F46E5)),
                     ),
                   ),
                 ],
@@ -710,7 +811,13 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             // 3. Top KPI Metric Cards
             Row(
               children: [
-                _topKpi('TOTAL SALES REVENUE', '$cur${totalSales.toStringAsFixed(2)}', '${_report['invoiceCount'] ?? 0} Invoices', const Color(0xFF4F46E5), Icons.point_of_sale_rounded, isDark),
+                _topKpi(
+                    'TOTAL SALES REVENUE',
+                    '$cur${totalSales.toStringAsFixed(2)}',
+                    '${_report['invoiceCount'] ?? 0} Invoices',
+                    const Color(0xFF4F46E5),
+                    Icons.point_of_sale_rounded,
+                    isDark),
                 const SizedBox(width: 14),
                 _topKpi(
                   'NET PROFIT / LOSS',
@@ -720,12 +827,20 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   (user?.hasPermission('report.view_profit') ?? true)
                       ? 'Gross Margin: $cur${((_report['grossProfit'] as double?) ?? 0.0).toStringAsFixed(2)}'
                       : 'Requires report.view_profit',
-                  netProfit >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  netProfit >= 0
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFFEF4444),
                   Icons.trending_up_rounded,
                   isDark,
                 ),
                 const SizedBox(width: 14),
-                _topKpi('TOTAL PURCHASES', '$cur${totalPurchases.toStringAsFixed(2)}', '${_report['poCount'] ?? 0} Purchase Orders', const Color(0xFFF59E0B), Icons.shopping_cart_checkout_rounded, isDark),
+                _topKpi(
+                    'TOTAL PURCHASES',
+                    '$cur${totalPurchases.toStringAsFixed(2)}',
+                    '${_report['poCount'] ?? 0} Purchase Orders',
+                    const Color(0xFFF59E0B),
+                    Icons.shopping_cart_checkout_rounded,
+                    isDark),
                 const SizedBox(width: 14),
                 _topKpi(
                   'INVENTORY ASSET VALUE',
@@ -746,29 +861,56 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               controller: _tabController,
               isScrollable: true,
               labelColor: const Color(0xFF4F46E5),
-              unselectedLabelColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              unselectedLabelColor:
+                  isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
               indicatorColor: const Color(0xFF4F46E5),
               indicatorWeight: 3,
               tabs: const [
-                Tab(icon: Icon(Icons.account_balance_wallet_outlined), text: 'Profit & Loss Statement'),
-                Tab(icon: Icon(Icons.compare_arrows_rounded), text: 'Purchase & Sale Report'),
-                Tab(icon: Icon(Icons.point_of_sale_rounded), text: 'Cash Register Shifts'),
-                Tab(icon: Icon(Icons.event_busy_rounded), text: 'Stock Expiry & Batches'),
-                Tab(icon: Icon(Icons.star_rounded), text: 'Trending Top Products'),
-                Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Stock Valuation & Audit'),
-                Tab(icon: Icon(Icons.pie_chart_outline_rounded), text: 'Expense Breakdown'),
-                Tab(icon: Icon(Icons.receipt_long_rounded), text: 'Tax / GST Report'),
-                Tab(icon: Icon(Icons.people_alt_outlined), text: 'Customer & Supplier Dues'),
-                Tab(icon: Icon(Icons.history_edu_rounded), text: 'Activity Log'),
-                Tab(icon: Icon(Icons.account_balance_outlined), text: 'Cheque Reports'),
-                Tab(icon: Icon(Icons.badge_outlined), text: 'Commission Agents'),
+                Tab(
+                    icon: Icon(Icons.account_balance_wallet_outlined),
+                    text: 'Profit & Loss Statement'),
+                Tab(
+                    icon: Icon(Icons.compare_arrows_rounded),
+                    text: 'Purchase & Sale Report'),
+                Tab(
+                    icon: Icon(Icons.point_of_sale_rounded),
+                    text: 'Cash Register Shifts'),
+                Tab(
+                    icon: Icon(Icons.event_busy_rounded),
+                    text: 'Stock Expiry & Batches'),
+                Tab(
+                    icon: Icon(Icons.star_rounded),
+                    text: 'Trending Top Products'),
+                Tab(
+                    icon: Icon(Icons.inventory_2_outlined),
+                    text: 'Stock Valuation & Audit'),
+                Tab(
+                    icon: Icon(Icons.pie_chart_outline_rounded),
+                    text: 'Expense Breakdown'),
+                Tab(
+                    icon: Icon(Icons.receipt_long_rounded),
+                    text: 'Tax / GST Report'),
+                Tab(
+                    icon: Icon(Icons.people_alt_outlined),
+                    text: 'Customer & Supplier Dues'),
+                Tab(
+                    icon: Icon(Icons.history_edu_rounded),
+                    text: 'Activity Log'),
+                Tab(
+                    icon: Icon(Icons.account_balance_outlined),
+                    text: 'Cheque Reports'),
+                Tab(
+                    icon: Icon(Icons.badge_outlined),
+                    text: 'Commission Agents'),
               ],
             ),
             const SizedBox(height: 16),
 
             // 5. Tab Views
             _loading
-                ? const Padding(padding: EdgeInsets.all(16), child: TableSkeletonView(rowCount: 6))
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: TableSkeletonView(rowCount: 6))
                 : SizedBox(
                     height: 640,
                     child: TabBarView(
@@ -834,7 +976,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF4F46E5) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFFCBD5E1)),
+          border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF4F46E5)
+                  : const Color(0xFFCBD5E1)),
         ),
         child: Text(
           label,
@@ -848,14 +993,17 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     );
   }
 
-  Widget _topKpi(String label, String value, String sub, Color color, IconData icon, bool isDark) {
+  Widget _topKpi(String label, String value, String sub, Color color,
+      IconData icon, bool isDark) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          border: Border.all(
+              color:
+                  isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         child: Row(
           children: [
@@ -872,11 +1020,22 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF64748B))),
                   const SizedBox(height: 3),
-                  Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: color), overflow: TextOverflow.ellipsis),
+                  Text(value,
+                      style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          color: color),
+                      overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
-                  Text(sub, style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                  Text(sub,
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFF94A3B8))),
                 ],
               ),
             ),
@@ -888,20 +1047,26 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   // ===================== TAB 1: PROFIT & LOSS =====================
   Widget _buildProfitAndLossTab(String cur, bool isDark) {
-    final canViewProfit = AuthService.currentUser?.hasPermission('report.view_profit') ?? true;
-    final canViewCost = AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true;
+    final canViewProfit =
+        AuthService.currentUser?.hasPermission('report.view_profit') ?? true;
+    final canViewCost =
+        AuthService.currentUser?.hasPermission('report.view_cost_price') ??
+            true;
     if (!canViewProfit) {
       return Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          border: Border.all(
+              color:
+                  isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         child: const Center(
           child: Text(
             'Profit & Loss Statement is restricted. Requires "report.view_profit" permission.',
-            style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+            style: TextStyle(
+                fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
           ),
         ),
       );
@@ -919,7 +1084,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -931,19 +1097,29 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 child: Text(
                   'Comprehensive Profit & Loss Statement (${_formatPeriod()})',
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: const Color(0xFF4F46E5).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                child: const Text('Accrual & Cash Integrated', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                    color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6)),
+                child: const Text('Accrual & Cash Integrated',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4F46E5))),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          _reportRow('Gross Sales Revenue (Final Invoices)', '$cur${totalSales.toStringAsFixed(2)}', isHeader: true),
+          _reportRow('Gross Sales Revenue (Final Invoices)',
+              '$cur${totalSales.toStringAsFixed(2)}',
+              isHeader: true),
           const Divider(),
           _reportRow(
             'Cost of Goods Sold (COGS based on purchase cost)',
@@ -951,19 +1127,30 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             color: Colors.red,
           ),
           const Divider(),
-          _reportRow('Gross Profit (Revenue - COGS)', '$cur${grossProfit.toStringAsFixed(2)}', isBold: true, color: const Color(0xFF10B981)),
+          _reportRow('Gross Profit (Revenue - COGS)',
+              '$cur${grossProfit.toStringAsFixed(2)}',
+              isBold: true, color: const Color(0xFF10B981)),
           const Divider(),
-          _reportRow('Total Operating Expenses', '($cur${totalExpenses.toStringAsFixed(2)})', color: Colors.red),
+          _reportRow('Total Operating Expenses',
+              '($cur${totalExpenses.toStringAsFixed(2)})',
+              color: Colors.red),
           const Divider(),
-          _reportRow('Stock Adjustment Recoveries', '+$cur${recovered.toStringAsFixed(2)}', color: const Color(0xFF0284C7)),
+          _reportRow('Stock Adjustment Recoveries',
+              '+$cur${recovered.toStringAsFixed(2)}',
+              color: const Color(0xFF0284C7)),
           const Divider(),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: netProfit >= 0 ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+              color: netProfit >= 0
+                  ? const Color(0xFFECFDF5)
+                  : const Color(0xFFFEF2F2),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: netProfit >= 0 ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA)),
+              border: Border.all(
+                  color: netProfit >= 0
+                      ? const Color(0xFFA7F3D0)
+                      : const Color(0xFFFECACA)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -971,9 +1158,21 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('NET BUSINESS PROFIT / OPERATING MARGIN:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: netProfit >= 0 ? const Color(0xFF065F46) : const Color(0xFF991B1B))),
+                    Text('NET BUSINESS PROFIT / OPERATING MARGIN:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: netProfit >= 0
+                                ? const Color(0xFF065F46)
+                                : const Color(0xFF991B1B))),
                     const SizedBox(height: 2),
-                    Text('Net Margin: ${totalSales > 0 ? ((netProfit / totalSales) * 100).toStringAsFixed(1) : "0.0"}%', style: TextStyle(fontSize: 11, color: netProfit >= 0 ? const Color(0xFF047857) : const Color(0xFFB91C1C))),
+                    Text(
+                        'Net Margin: ${totalSales > 0 ? ((netProfit / totalSales) * 100).toStringAsFixed(1) : "0.0"}%',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: netProfit >= 0
+                                ? const Color(0xFF047857)
+                                : const Color(0xFFB91C1C))),
                   ],
                 ),
                 Text(
@@ -981,7 +1180,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    color: netProfit >= 0 ? const Color(0xFF065F46) : const Color(0xFF991B1B),
+                    color: netProfit >= 0
+                        ? const Color(0xFF065F46)
+                        : const Color(0xFF991B1B),
                   ),
                 ),
               ],
@@ -1009,12 +1210,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Purchase & Sale Comparative Report', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          const Text('Purchase & Sale Comparative Report',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -1025,17 +1228,29 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   decoration: BoxDecoration(
                     color: const Color(0xFF4F46E5).withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.2)),
+                    border: Border.all(
+                        color: const Color(0xFF4F46E5).withValues(alpha: 0.2)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('SALES BREAKDOWN', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
+                      const Text('SALES BREAKDOWN',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF4F46E5))),
                       const SizedBox(height: 12),
-                      _miniPnl('Total Invoiced Sales', '$cur${totalSales.toStringAsFixed(2)}', isBold: true),
-                      _miniPnl('Received / Paid Amount', '$cur${paidSales.toStringAsFixed(2)}', color: const Color(0xFF10B981)),
-                      _miniPnl('Outstanding Sales Due', '$cur${dueSales.toStringAsFixed(2)}', color: const Color(0xFFEF4444)),
-                      _miniPnl('Total Invoice Count', '${_report['invoiceCount'] ?? 0} invoices'),
+                      _miniPnl('Total Invoiced Sales',
+                          '$cur${totalSales.toStringAsFixed(2)}',
+                          isBold: true),
+                      _miniPnl('Received / Paid Amount',
+                          '$cur${paidSales.toStringAsFixed(2)}',
+                          color: const Color(0xFF10B981)),
+                      _miniPnl('Outstanding Sales Due',
+                          '$cur${dueSales.toStringAsFixed(2)}',
+                          color: const Color(0xFFEF4444)),
+                      _miniPnl('Total Invoice Count',
+                          '${_report['invoiceCount'] ?? 0} invoices'),
                     ],
                   ),
                 ),
@@ -1048,17 +1263,29 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   decoration: BoxDecoration(
                     color: const Color(0xFFF59E0B).withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.2)),
+                    border: Border.all(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.2)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('PURCHASES BREAKDOWN', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
+                      const Text('PURCHASES BREAKDOWN',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFD97706))),
                       const SizedBox(height: 12),
-                      _miniPnl('Total Purchases (Stock)', '$cur${totalPurchases.toStringAsFixed(2)}', isBold: true),
-                      _miniPnl('Paid to Suppliers', '$cur${paidPurchases.toStringAsFixed(2)}', color: const Color(0xFF10B981)),
-                      _miniPnl('Supplier Due Payable', '$cur${duePurchases.toStringAsFixed(2)}', color: const Color(0xFFEF4444)),
-                      _miniPnl('Total Purchase Orders', '${_report['poCount'] ?? 0} orders'),
+                      _miniPnl('Total Purchases (Stock)',
+                          '$cur${totalPurchases.toStringAsFixed(2)}',
+                          isBold: true),
+                      _miniPnl('Paid to Suppliers',
+                          '$cur${paidPurchases.toStringAsFixed(2)}',
+                          color: const Color(0xFF10B981)),
+                      _miniPnl('Supplier Due Payable',
+                          '$cur${duePurchases.toStringAsFixed(2)}',
+                          color: const Color(0xFFEF4444)),
+                      _miniPnl('Total Purchase Orders',
+                          '${_report['poCount'] ?? 0} orders'),
                     ],
                   ),
                 ),
@@ -1066,34 +1293,56 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ],
           ),
           const SizedBox(height: 20),
-          _reportRow('Sales vs Purchase Net Trade Difference', '$cur${netTradeDifference.toStringAsFixed(2)}', isBold: true, color: netTradeDifference >= 0 ? const Color(0xFF10B981) : Colors.red),
+          _reportRow('Sales vs Purchase Net Trade Difference',
+              '$cur${netTradeDifference.toStringAsFixed(2)}',
+              isBold: true,
+              color: netTradeDifference >= 0
+                  ? const Color(0xFF10B981)
+                  : Colors.red),
           const Divider(),
-          _reportRow('Outstanding Trade Receivables (Customer Dues)', '$cur${dueSales.toStringAsFixed(2)}', color: const Color(0xFFEF4444)),
+          _reportRow('Outstanding Trade Receivables (Customer Dues)',
+              '$cur${dueSales.toStringAsFixed(2)}',
+              color: const Color(0xFFEF4444)),
           const Divider(),
-          _reportRow('Outstanding Trade Payables (Supplier Dues)', '$cur${duePurchases.toStringAsFixed(2)}', color: const Color(0xFFEF4444)),
+          _reportRow('Outstanding Trade Payables (Supplier Dues)',
+              '$cur${duePurchases.toStringAsFixed(2)}',
+              color: const Color(0xFFEF4444)),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFF0EA5E9).withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF0EA5E9).withValues(alpha: 0.25)),
+              border: Border.all(
+                  color: const Color(0xFF0EA5E9).withValues(alpha: 0.25)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'QUOTATION -> INVOICE CONVERSION FUNNEL',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0284C7)),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _kpiBox('Total Quotations', '${_quotationStats['totalQuotations'] ?? 0}', const Color(0xFF0F172A)),
+                    _kpiBox(
+                        'Total Quotations',
+                        '${_quotationStats['totalQuotations'] ?? 0}',
+                        const Color(0xFF0F172A)),
                     const SizedBox(width: 12),
-                    _kpiBox('Converted Invoices', '${_quotationStats['convertedQuotations'] ?? 0}', const Color(0xFF10B981)),
+                    _kpiBox(
+                        'Converted Invoices',
+                        '${_quotationStats['convertedQuotations'] ?? 0}',
+                        const Color(0xFF10B981)),
                     const SizedBox(width: 12),
-                    _kpiBox('Pending Quotes', '${_quotationStats['pendingQuotations'] ?? 0}', const Color(0xFFF59E0B)),
+                    _kpiBox(
+                        'Pending Quotes',
+                        '${_quotationStats['pendingQuotations'] ?? 0}',
+                        const Color(0xFFF59E0B)),
                     const SizedBox(width: 12),
                     _kpiBox(
                       'Conversion Rate',
@@ -1141,7 +1390,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1153,20 +1403,33 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Cash Register Sessions & Shift Reconciliation Audit', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                  const Text(
+                      'Cash Register Sessions & Shift Reconciliation Audit',
+                      style:
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 3),
-                  Text('Auditing cashier shifts, drawer cash floats, and discrepancy reconciliation in ${_formatPeriod()}', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                  Text(
+                      'Auditing cashier shifts, drawer cash floats, and discrepancy reconciliation in ${_formatPeriod()}',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B))),
                 ],
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4F46E5),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 icon: const Icon(Icons.print_rounded, size: 16),
-                label: const Text('Print Shift Audit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                label: const Text('Print Shift Audit',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 onPressed: _printRegisterReport,
               ),
             ],
@@ -1176,15 +1439,30 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           // Row 2: KPI Mini Cards
           Row(
             children: [
-              _kpiBox('Total Shifts Audited', '${_registerReports.length} Shifts', const Color(0xFF4F46E5)),
+              _kpiBox('Total Shifts Audited',
+                  '${_registerReports.length} Shifts', const Color(0xFF4F46E5)),
               const SizedBox(width: 12),
-              _kpiBox('Active Open Shifts', '$openCount Active', openCount > 0 ? const Color(0xFF10B981) : const Color(0xFF64748B)),
+              _kpiBox(
+                  'Active Open Shifts',
+                  '$openCount Active',
+                  openCount > 0
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFF64748B)),
               const SizedBox(width: 12),
-              _kpiBox('Total Cash Sales', '$cur${totalCash.toStringAsFixed(2)}', const Color(0xFF047857)),
+              _kpiBox('Total Cash Sales', '$cur${totalCash.toStringAsFixed(2)}',
+                  const Color(0xFF047857)),
               const SizedBox(width: 12),
-              _kpiBox('Total Digital / Card', '$cur${totalCard.toStringAsFixed(2)}', const Color(0xFF0284C7)),
+              _kpiBox(
+                  'Total Digital / Card',
+                  '$cur${totalCard.toStringAsFixed(2)}',
+                  const Color(0xFF0284C7)),
               const SizedBox(width: 12),
-              _kpiBox('Net Cash Variance', '${totalVariance >= 0 ? '+' : ''}$cur${totalVariance.toStringAsFixed(2)}', totalVariance >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
+              _kpiBox(
+                  'Net Cash Variance',
+                  '${totalVariance >= 0 ? '+' : ''}$cur${totalVariance.toStringAsFixed(2)}',
+                  totalVariance >= 0
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFFEF4444)),
             ],
           ),
           const SizedBox(height: 14),
@@ -1192,17 +1470,22 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           // Row 3: Filter & Search Bar
           Row(
             children: [
-              _statusChip('all', 'All Shifts (${_registerReports.length})', _registerStatusFilter == 'all', (val) {
+              _statusChip('all', 'All Shifts (${_registerReports.length})',
+                  _registerStatusFilter == 'all', (val) {
                 setState(() => _registerStatusFilter = val);
                 _reloadRegisters();
               }),
               const SizedBox(width: 8),
-              _statusChip('open', 'Open Shifts ($openCount)', _registerStatusFilter == 'open', (val) {
+              _statusChip('open', 'Open Shifts ($openCount)',
+                  _registerStatusFilter == 'open', (val) {
                 setState(() => _registerStatusFilter = val);
                 _reloadRegisters();
               }),
               const SizedBox(width: 8),
-              _statusChip('closed', 'Closed Shifts (${_registerReports.length - openCount})', _registerStatusFilter == 'closed', (val) {
+              _statusChip(
+                  'closed',
+                  'Closed Shifts (${_registerReports.length - openCount})',
+                  _registerStatusFilter == 'closed', (val) {
                 setState(() => _registerStatusFilter = val);
                 _reloadRegisters();
               }),
@@ -1217,7 +1500,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     hintStyle: const TextStyle(fontSize: 12),
                     prefixIcon: const Icon(Icons.search, size: 16),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onChanged: (_) => _reloadRegisters(),
                 ),
@@ -1229,50 +1513,130 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           // Row 4: Data Table
           Expanded(
             child: _registerReports.isEmpty
-                ? const Center(child: Text('No cash register shifts logged for this period.'))
+                ? const Center(
+                    child:
+                        Text('No cash register shifts logged for this period.'))
                 : SingleChildScrollView(
                     child: SizedBox(
                       width: double.infinity,
                       child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                        headingRowColor: WidgetStateProperty.all(isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC)),
                         columnSpacing: 18,
                         columns: const [
-                          DataColumn(label: Text('# SHIFT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('CASHIER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('STATUS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('SHIFT STARTED', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('SHIFT CLOSED', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('OPENING', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('CASH SALES', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('CARD / OTHER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('TOTAL SALES', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('COUNTED CASH', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('VARIANCE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('ACTION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                          DataColumn(
+                              label: Text('# SHIFT',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('CASHIER',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('STATUS',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('SHIFT STARTED',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('SHIFT CLOSED',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('OPENING',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('CASH SALES',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('CARD / OTHER',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('TOTAL SALES',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('COUNTED CASH',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('VARIANCE',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('ACTION',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
                         ],
                         rows: _registerReports.map((r) {
                           final id = r['id'] ?? 0;
-                          final cashier = (r['cashier_name'] as String?) ?? 'Unknown';
+                          final cashier =
+                              (r['cashier_name'] as String?) ?? 'Unknown';
                           final status = (r['status'] as String?) ?? 'closed';
                           final openedAt = (r['opened_at'] as String?) ?? '-';
-                          final closedAt = (r['closed_at'] as String?) ?? (status == 'open' ? 'Active' : '-');
-                          final opening = (r['opening_amount'] as num?)?.toDouble() ?? 0.0;
-                          final cash = (r['total_sales_cash'] as num?)?.toDouble() ?? 0.0;
-                          final card = (r['total_sales_card'] as num?)?.toDouble() ?? 0.0;
-                          final other = (r['total_sales_other'] as num?)?.toDouble() ?? 0.0;
-                          final totalSales = (r['total_sales'] as num?)?.toDouble() ?? (cash + card + other);
-                          final closing = (r['closing_amount'] as num?)?.toDouble() ?? 0.0;
-                          final diff = (r['difference'] as num?)?.toDouble() ?? 0.0;
+                          final closedAt = (r['closed_at'] as String?) ??
+                              (status == 'open' ? 'Active' : '-');
+                          final opening =
+                              (r['opening_amount'] as num?)?.toDouble() ?? 0.0;
+                          final cash =
+                              (r['total_sales_cash'] as num?)?.toDouble() ??
+                                  0.0;
+                          final card =
+                              (r['total_sales_card'] as num?)?.toDouble() ??
+                                  0.0;
+                          final other =
+                              (r['total_sales_other'] as num?)?.toDouble() ??
+                                  0.0;
+                          final totalSales =
+                              (r['total_sales'] as num?)?.toDouble() ??
+                                  (cash + card + other);
+                          final closing =
+                              (r['closing_amount'] as num?)?.toDouble() ?? 0.0;
+                          final diff =
+                              (r['difference'] as num?)?.toDouble() ?? 0.0;
 
                           return DataRow(
                             cells: [
-                              DataCell(Text('#$id', style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'))),
-                              DataCell(Text(cashier, style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataCell(Text('#$id',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'monospace'))),
+                              DataCell(Text(cashier,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold))),
                               DataCell(
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: status == 'open' ? const Color(0xFF10B981).withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.2),
+                                    color: status == 'open'
+                                        ? const Color(0xFF10B981)
+                                            .withValues(alpha: 0.15)
+                                        : Colors.grey.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
@@ -1280,35 +1644,62 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: status == 'open' ? const Color(0xFF047857) : const Color(0xFF475569),
+                                      color: status == 'open'
+                                          ? const Color(0xFF047857)
+                                          : const Color(0xFF475569),
                                     ),
                                   ),
                                 ),
                               ),
-                              DataCell(Text(openedAt, style: const TextStyle(fontSize: 11))),
-                              DataCell(Text(closedAt, style: const TextStyle(fontSize: 11))),
-                              DataCell(Text('$cur${opening.toStringAsFixed(2)}')),
-                              DataCell(Text('$cur${cash.toStringAsFixed(2)}', style: const TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.bold))),
-                              DataCell(Text('$cur${(card + other).toStringAsFixed(2)}', style: const TextStyle(color: Color(0xFF1E40AF)))),
-                              DataCell(Text('$cur${totalSales.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900))),
-                              DataCell(Text(status == 'closed' ? '$cur${closing.toStringAsFixed(2)}' : '--', style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataCell(Text(openedAt,
+                                  style: const TextStyle(fontSize: 11))),
+                              DataCell(Text(closedAt,
+                                  style: const TextStyle(fontSize: 11))),
+                              DataCell(
+                                  Text('$cur${opening.toStringAsFixed(2)}')),
+                              DataCell(Text('$cur${cash.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      color: Color(0xFF047857),
+                                      fontWeight: FontWeight.bold))),
+                              DataCell(Text(
+                                  '$cur${(card + other).toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      color: Color(0xFF1E40AF)))),
+                              DataCell(Text(
+                                  '$cur${totalSales.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w900))),
+                              DataCell(Text(
+                                  status == 'closed'
+                                      ? '$cur${closing.toStringAsFixed(2)}'
+                                      : '--',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold))),
                               DataCell(
                                 status == 'open'
                                     ? const Text('--')
                                     : Text(
                                         diff == 0.0
                                             ? 'Match'
-                                            : (diff > 0 ? '+$cur${diff.toStringAsFixed(2)}' : '-$cur${(-diff).toStringAsFixed(2)}'),
+                                            : (diff > 0
+                                                ? '+$cur${diff.toStringAsFixed(2)}'
+                                                : '-$cur${(-diff).toStringAsFixed(2)}'),
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: diff == 0.0 ? const Color(0xFF10B981) : (diff > 0 ? const Color(0xFF047857) : const Color(0xFFEF4444)),
+                                          color: diff == 0.0
+                                              ? const Color(0xFF10B981)
+                                              : (diff > 0
+                                                  ? const Color(0xFF047857)
+                                                  : const Color(0xFFEF4444)),
                                         ),
                                       ),
                               ),
                               DataCell(
                                 IconButton(
-                                  tooltip: 'View Shift Z-Report / Reconciliation',
-                                  icon: const Icon(Icons.receipt_long_rounded, size: 18, color: Color(0xFF4F46E5)),
+                                  tooltip:
+                                      'View Shift Z-Report / Reconciliation',
+                                  icon: const Icon(Icons.receipt_long_rounded,
+                                      size: 18, color: Color(0xFF4F46E5)),
                                   onPressed: () => _showShiftZReport(r),
                                 ),
                               ),
@@ -1352,7 +1743,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1364,20 +1756,32 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Stock Expiry & Batch Traceability Report', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                  const Text('Stock Expiry & Batch Traceability Report',
+                      style:
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 3),
-                  Text('Track batches, expiry dates, and quarantined items with potential financial loss at risk.', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                  Text(
+                      'Track batches, expiry dates, and quarantined items with potential financial loss at risk.',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B))),
                 ],
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFDC2626),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 icon: const Icon(Icons.print_rounded, size: 16),
-                label: const Text('Print Expiry List', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                label: const Text('Print Expiry List',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 onPressed: _printStockExpiryReport,
               ),
             ],
@@ -1387,15 +1791,24 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           // KPI Cards
           Row(
             children: [
-              _kpiBox('Already Expired', '$expiredCount Products', const Color(0xFFDC2626)),
+              _kpiBox('Already Expired', '$expiredCount Products',
+                  const Color(0xFFDC2626)),
               const SizedBox(width: 12),
-              _kpiBox('Expiring in ≤ 30 Days', '$criticalCount Products', const Color(0xFFEA580C)),
+              _kpiBox('Expiring in ≤ 30 Days', '$criticalCount Products',
+                  const Color(0xFFEA580C)),
               const SizedBox(width: 12),
-              _kpiBox('Expiring in 31-60 Days', '$warningCount Products', const Color(0xFFCA8A04)),
+              _kpiBox('Expiring in 31-60 Days', '$warningCount Products',
+                  const Color(0xFFCA8A04)),
               const SizedBox(width: 12),
-              _kpiBox('Cost Value at Risk', '$cur${costAtRisk.toStringAsFixed(2)}', const Color(0xFFDC2626)),
+              _kpiBox(
+                  'Cost Value at Risk',
+                  '$cur${costAtRisk.toStringAsFixed(2)}',
+                  const Color(0xFFDC2626)),
               const SizedBox(width: 12),
-              _kpiBox('Monitored Batches', '${_stockExpiryReports.length} Items', const Color(0xFF0284C7)),
+              _kpiBox(
+                  'Monitored Batches',
+                  '${_stockExpiryReports.length} Items',
+                  const Color(0xFF0284C7)),
             ],
           ),
           const SizedBox(height: 14),
@@ -1403,27 +1816,33 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           // Filter bar
           Row(
             children: [
-              _statusChip('all', 'All Tracked (${_stockExpiryReports.length})', _stockExpiryFilter == 'all', (val) {
+              _statusChip('all', 'All Tracked (${_stockExpiryReports.length})',
+                  _stockExpiryFilter == 'all', (val) {
                 setState(() => _stockExpiryFilter = val);
                 _reloadStockExpiry();
               }),
               const SizedBox(width: 6),
-              _statusChip('expired', 'Already Expired', _stockExpiryFilter == 'expired', (val) {
+              _statusChip(
+                  'expired', 'Already Expired', _stockExpiryFilter == 'expired',
+                  (val) {
                 setState(() => _stockExpiryFilter = val);
                 _reloadStockExpiry();
               }),
               const SizedBox(width: 6),
-              _statusChip('30_days', 'Expiring in 30 Days', _stockExpiryFilter == '30_days', (val) {
+              _statusChip('30_days', 'Expiring in 30 Days',
+                  _stockExpiryFilter == '30_days', (val) {
                 setState(() => _stockExpiryFilter = val);
                 _reloadStockExpiry();
               }),
               const SizedBox(width: 6),
-              _statusChip('60_days', 'Expiring in 60 Days', _stockExpiryFilter == '60_days', (val) {
+              _statusChip('60_days', 'Expiring in 60 Days',
+                  _stockExpiryFilter == '60_days', (val) {
                 setState(() => _stockExpiryFilter = val);
                 _reloadStockExpiry();
               }),
               const SizedBox(width: 6),
-              _statusChip('90_days', 'Expiring in 90 Days', _stockExpiryFilter == '90_days', (val) {
+              _statusChip('90_days', 'Expiring in 90 Days',
+                  _stockExpiryFilter == '90_days', (val) {
                 setState(() => _stockExpiryFilter = val);
                 _reloadStockExpiry();
               }),
@@ -1438,7 +1857,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     hintStyle: const TextStyle(fontSize: 12),
                     prefixIcon: const Icon(Icons.search, size: 16),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onChanged: (_) => _reloadStockExpiry(),
                 ),
@@ -1450,90 +1870,201 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           // Table
           Expanded(
             child: _stockExpiryReports.isEmpty
-                ? const Center(child: Text('No products matching expiry filter.'))
+                ? const Center(
+                    child: Text('No products matching expiry filter.'))
                 : SingleChildScrollView(
                     child: SizedBox(
                       width: double.infinity,
                       child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                        headingRowColor: WidgetStateProperty.all(isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC)),
                         columnSpacing: 16,
                         columns: const [
-                          DataColumn(label: Text('SKU / BARCODE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('PRODUCT NAME', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('CATEGORY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('BATCH #', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('EXPIRY DATE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('STATUS / DAYS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('STOCK', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('UNIT COST', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('COST AT RISK', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                          DataColumn(
+                              label: Text('SKU / BARCODE',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('PRODUCT NAME',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('CATEGORY',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('BATCH #',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('EXPIRY DATE',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('STATUS / DAYS',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('STOCK',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('UNIT COST',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('COST AT RISK',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('ACTIONS',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
                         ],
                         rows: _stockExpiryReports.map((item) {
                           final pId = item['product_id'] as int? ?? 0;
                           final sku = (item['sku'] as String?) ?? '-';
-                          final name = (item['product_name'] as String?) ?? 'Product';
-                          final category = (item['category_name'] as String?) ?? 'General';
-                          final batch = (item['batch_number'] as String?) ?? '-';
+                          final name =
+                              (item['product_name'] as String?) ?? 'Product';
+                          final category =
+                              (item['category_name'] as String?) ?? 'General';
+                          final batch =
+                              (item['batch_number'] as String?) ?? '-';
                           final exp = (item['expiry_date'] as String?) ?? '-';
                           final days = item['days_remaining'] as int?;
-                          final qty = (item['stock_quantity'] as num?)?.toDouble() ?? 0.0;
-                          final cost = (item['purchase_price'] as num?)?.toDouble() ?? 0.0;
-                          final costAtRisk = (item['stock_value_cost'] as num?)?.toDouble() ?? (qty * cost);
+                          final qty =
+                              (item['stock_quantity'] as num?)?.toDouble() ??
+                                  0.0;
+                          final cost =
+                              (item['purchase_price'] as num?)?.toDouble() ??
+                                  0.0;
+                          final costAtRisk =
+                              (item['stock_value_cost'] as num?)?.toDouble() ??
+                                  (qty * cost);
 
                           Widget badge;
                           if (days == null) {
                             badge = const Text('--');
                           } else if (days < 0) {
                             badge = Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(color: const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFFFCA5A5))),
-                              child: Text('EXPIRED (${-days}d ago)', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                  color: const Color(0xFFFEE2E2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                      color: const Color(0xFFFCA5A5))),
+                              child: Text('EXPIRED (${-days}d ago)',
+                                  style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFDC2626))),
                             );
                           } else if (days <= 30) {
                             badge = Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(color: const Color(0xFFFFEDD5), borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFFFDBA74))),
-                              child: Text('CRITICAL ($days days)', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFEA580C))),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                  color: const Color(0xFFFFEDD5),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                      color: const Color(0xFFFDBA74))),
+                              child: Text('CRITICAL ($days days)',
+                                  style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFEA580C))),
                             );
                           } else if (days <= 60) {
                             badge = Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(color: const Color(0xFFFEF9C3), borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFFFDE047))),
-                              child: Text('WARNING ($days days)', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFCA8A04))),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF9C3),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                      color: const Color(0xFFFDE047))),
+                              child: Text('WARNING ($days days)',
+                                  style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFCA8A04))),
                             );
                           } else {
                             badge = Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFFA7F3D0))),
-                              child: Text('VALID ($days days)', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                  color: const Color(0xFFECFDF5),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                      color: const Color(0xFFA7F3D0))),
+                              child: Text('VALID ($days days)',
+                                  style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF047857))),
                             );
                           }
 
                           return DataRow(
                             cells: [
-                              DataCell(Text(sku, style: const TextStyle(fontSize: 11, fontFamily: 'monospace'))),
-                              DataCell(Text(name, style: const TextStyle(fontWeight: FontWeight.bold))),
-                              DataCell(Text(category, style: const TextStyle(fontSize: 11))),
-                              DataCell(Text(batch, style: const TextStyle(fontSize: 11, fontFamily: 'monospace'))),
-                              DataCell(Text(exp, style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataCell(Text(sku,
+                                  style: const TextStyle(
+                                      fontSize: 11, fontFamily: 'monospace'))),
+                              DataCell(Text(name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold))),
+                              DataCell(Text(category,
+                                  style: const TextStyle(fontSize: 11))),
+                              DataCell(Text(batch,
+                                  style: const TextStyle(
+                                      fontSize: 11, fontFamily: 'monospace'))),
+                              DataCell(Text(exp,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold))),
                               DataCell(badge),
-                              DataCell(Text('${qty.toInt()}', style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataCell(Text('${qty.toInt()}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold))),
                               DataCell(Text(
-                                (AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true)
+                                (AuthService.currentUser?.hasPermission(
+                                            'report.view_cost_price') ??
+                                        true)
                                     ? '$cur${cost.toStringAsFixed(2)}'
                                     : 'Restricted',
                               )),
                               DataCell(Text(
-                                (AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true)
+                                (AuthService.currentUser?.hasPermission(
+                                            'report.view_cost_price') ??
+                                        true)
                                     ? '$cur${costAtRisk.toStringAsFixed(2)}'
                                     : 'Restricted',
-                                style: TextStyle(fontWeight: FontWeight.w900, color: (days != null && days <= 30) ? const Color(0xFFDC2626) : const Color(0xFF0F172A)),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    color: (days != null && days <= 30)
+                                        ? const Color(0xFFDC2626)
+                                        : const Color(0xFF0F172A)),
                               )),
                               DataCell(
                                 IconButton(
                                   tooltip: 'View Product Details',
-                                  icon: const Icon(Icons.visibility_rounded, size: 18, color: Color(0xFF4F46E5)),
+                                  icon: const Icon(Icons.visibility_rounded,
+                                      size: 18, color: Color(0xFF4F46E5)),
                                   onPressed: () => _viewProductDetails(pId),
                                 ),
                               ),
@@ -1551,7 +2082,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   // ===================== TAB 5: TRENDING TOP PRODUCTS (ENHANCED PHASE 5.3) =====================
   Widget _buildTrendingProductsTab(String cur, bool isDark) {
-    final rawList = List<Map<String, dynamic>>.from(_report['topSellingProducts'] as List<dynamic>? ?? []);
+    final rawList = List<Map<String, dynamic>>.from(
+        _report['topSellingProducts'] as List<dynamic>? ?? []);
 
     // Sort according to _trendingSort
     if (_trendingSort == 'rev') {
@@ -1579,7 +2111,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1590,23 +2123,40 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Top Selling & Trending Products Analysis', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                  const Text('Top Selling & Trending Products Analysis',
+                      style:
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 3),
-                  Text('Ranked performance in ${_formatPeriod()}', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                  Text('Ranked performance in ${_formatPeriod()}',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B))),
                 ],
               ),
               // Segmented sorting toggle
               Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFCBD5E1)),
                 ),
                 padding: const EdgeInsets.all(2),
                 child: Row(
                   children: [
-                    _toggleBtn('qty', 'By Units Sold (Volume)', _trendingSort == 'qty', (val) => setState(() => _trendingSort = val)),
-                    _toggleBtn('rev', 'By Revenue (Rs)', _trendingSort == 'rev', (val) => setState(() => _trendingSort = val)),
+                    _toggleBtn(
+                        'qty',
+                        'By Units Sold (Volume)',
+                        _trendingSort == 'qty',
+                        (val) => setState(() => _trendingSort = val)),
+                    _toggleBtn('rev', 'By Revenue (Rs)', _trendingSort == 'rev',
+                        (val) => setState(() => _trendingSort = val)),
                   ],
                 ),
               ),
@@ -1615,75 +2165,146 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           const SizedBox(height: 14),
           Expanded(
             child: rawList.isEmpty
-                ? const Center(child: Text('No sales records found for this period.'))
+                ? const Center(
+                    child: Text('No sales records found for this period.'))
                 : SingleChildScrollView(
                     child: SizedBox(
                       width: double.infinity,
                       child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                        headingRowColor: WidgetStateProperty.all(isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC)),
                         columnSpacing: 20,
                         columns: const [
-                          DataColumn(label: Text('# RANK', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('PRODUCT NAME', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('SKU / BARCODE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('MARKET SHARE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('QUANTITY SOLD', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(numeric: true, label: Text('TOTAL REVENUE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                          DataColumn(
+                              label: Text('# RANK',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('PRODUCT NAME',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('SKU / BARCODE',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              label: Text('MARKET SHARE',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('QUANTITY SOLD',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
+                          DataColumn(
+                              numeric: true,
+                              label: Text('TOTAL REVENUE',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11))),
                         ],
                         rows: List.generate(rawList.length, (idx) {
                           final item = rawList[idx];
-                          final qty = (item['quantity'] as num?)?.toDouble() ?? 0.0;
-                          final rev = (item['revenue'] as num?)?.toDouble() ?? 0.0;
+                          final qty =
+                              (item['quantity'] as num?)?.toDouble() ?? 0.0;
+                          final rev =
+                              (item['revenue'] as num?)?.toDouble() ?? 0.0;
                           final currentVal = _trendingSort == 'rev' ? rev : qty;
-                          final pct = maxVal > 0 ? (currentVal / maxVal).clamp(0.0, 1.0) : 0.0;
+                          final pct = maxVal > 0
+                              ? (currentVal / maxVal).clamp(0.0, 1.0)
+                              : 0.0;
 
-                          Color rankColor = isDark ? Colors.white38 : Colors.grey;
-                          if (idx == 0) rankColor = const Color(0xFFF59E0B); // Gold
-                          else if (idx == 1) rankColor = const Color(0xFF94A3B8); // Silver
-                          else if (idx == 2) rankColor = const Color(0xFFD97706); // Bronze
+                          Color rankColor =
+                              isDark ? Colors.white38 : Colors.grey;
+                          if (idx == 0)
+                            rankColor = const Color(0xFFF59E0B); // Gold
+                          else if (idx == 1)
+                            rankColor = const Color(0xFF94A3B8); // Silver
+                          else if (idx == 2)
+                            rankColor = const Color(0xFFD97706); // Bronze
 
                           return DataRow(
                             cells: [
                               DataCell(
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: rankColor.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: rankColor.withValues(alpha: 0.4)),
+                                    border: Border.all(
+                                        color:
+                                            rankColor.withValues(alpha: 0.4)),
                                   ),
                                   child: Text(
                                     '#${idx + 1}',
-                                    style: TextStyle(fontWeight: FontWeight.bold, color: idx < 3 ? rankColor : (isDark ? Colors.white70 : Colors.black87)),
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: idx < 3
+                                            ? rankColor
+                                            : (isDark
+                                                ? Colors.white70
+                                                : Colors.black87)),
                                   ),
                                 ),
                               ),
-                              DataCell(Text(item['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold))),
-                              DataCell(Text(item['sku'] as String, style: const TextStyle(fontSize: 12, fontFamily: 'monospace'))),
+                              DataCell(Text(item['name'] as String,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold))),
+                              DataCell(Text(item['sku'] as String,
+                                  style: const TextStyle(
+                                      fontSize: 12, fontFamily: 'monospace'))),
                               DataCell(
                                 SizedBox(
                                   width: 140,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(4),
                                         child: LinearProgressIndicator(
                                           value: pct,
-                                          backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                                          valueColor: AlwaysStoppedAnimation<Color>(idx == 0 ? const Color(0xFF10B981) : const Color(0xFF4F46E5)),
+                                          backgroundColor: isDark
+                                              ? const Color(0xFF334155)
+                                              : const Color(0xFFE2E8F0),
+                                          valueColor: AlwaysStoppedAnimation<
+                                                  Color>(
+                                              idx == 0
+                                                  ? const Color(0xFF10B981)
+                                                  : const Color(0xFF4F46E5)),
                                           minHeight: 6,
                                         ),
                                       ),
                                       const SizedBox(height: 3),
-                                      Text('${(pct * 100).toStringAsFixed(1)}% of top seller', style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                                      Text(
+                                          '${(pct * 100).toStringAsFixed(1)}% of top seller',
+                                          style: const TextStyle(
+                                              fontSize: 10,
+                                              color: Color(0xFF94A3B8))),
                                     ],
                                   ),
                                 ),
                               ),
-                              DataCell(Text('${qty.toInt()} units', style: TextStyle(fontWeight: FontWeight.bold, color: _trendingSort == 'qty' ? const Color(0xFF4F46E5) : null))),
-                              DataCell(Text('$cur${rev.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.w900, color: _trendingSort == 'rev' ? const Color(0xFF10B981) : null))),
+                              DataCell(Text('${qty.toInt()} units',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: _trendingSort == 'qty'
+                                          ? const Color(0xFF4F46E5)
+                                          : null))),
+                              DataCell(Text('$cur${rev.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: _trendingSort == 'rev'
+                                          ? const Color(0xFF10B981)
+                                          : null))),
                             ],
                           );
                         }),
@@ -1724,7 +2345,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     }
   }
 
-  Widget _statusChip(String val, String label, bool isSelected, Function(String) onSelect) {
+  Widget _statusChip(
+      String val, String label, bool isSelected, Function(String) onSelect) {
     return InkWell(
       borderRadius: BorderRadius.circular(6),
       onTap: () => onSelect(val),
@@ -1733,7 +2355,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF4F46E5) : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFFCBD5E1)),
+          border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF4F46E5)
+                  : const Color(0xFFCBD5E1)),
         ),
         child: Text(
           label,
@@ -1747,7 +2372,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     );
   }
 
-  Widget _toggleBtn(String val, String label, bool isSelected, Function(String) onSelect) {
+  Widget _toggleBtn(
+      String val, String label, bool isSelected, Function(String) onSelect) {
     return InkWell(
       borderRadius: BorderRadius.circular(6),
       onTap: () => onSelect(val),
@@ -1771,45 +2397,63 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   // ===================== TAB 4: STOCK VALUATION & AUDIT =====================
   Widget _buildStockValuationTab(String cur, bool isDark) {
-    final canViewCost = AuthService.currentUser?.hasPermission('report.view_cost_price') ?? true;
-    final canViewProfit = AuthService.currentUser?.hasPermission('report.view_profit') ?? true;
+    final canViewCost =
+        AuthService.currentUser?.hasPermission('report.view_cost_price') ??
+            true;
+    final canViewProfit =
+        AuthService.currentUser?.hasPermission('report.view_profit') ?? true;
     final sv = _report['stockValuation'] as Map<String, dynamic>? ?? {};
     final totalUnits = (sv['totalQuantity'] as num?)?.toDouble() ?? 0.0;
     final stockCost = (sv['stockValueCost'] as double?) ?? 0.0;
     final stockRetail = (sv['stockValueRetail'] as double?) ?? 0.0;
     final potentialProfit = (sv['potentialProfit'] as double?) ?? 0.0;
-    final costLabel = canViewCost ? '$cur${stockCost.toStringAsFixed(2)}' : 'Restricted';
-    final profitLabel = canViewProfit ? '$cur${potentialProfit.toStringAsFixed(2)}' : 'Restricted';
+    final costLabel =
+        canViewCost ? '$cur${stockCost.toStringAsFixed(2)}' : 'Restricted';
+    final profitLabel = canViewProfit
+        ? '$cur${potentialProfit.toStringAsFixed(2)}'
+        : 'Restricted';
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Inventory Valuation & Stock Audit Report', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          const Text('Inventory Valuation & Stock Audit Report',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           Row(
             children: [
-              _kpiBox('Total Stock Units', '${totalUnits.toInt()} units', const Color(0xFF004EEB)),
+              _kpiBox('Total Stock Units', '${totalUnits.toInt()} units',
+                  const Color(0xFF004EEB)),
               const SizedBox(width: 12),
-              _kpiBox('Stock Value by Cost', costLabel, const Color(0xFF64748B)),
+              _kpiBox(
+                  'Stock Value by Cost', costLabel, const Color(0xFF64748B)),
               const SizedBox(width: 12),
-              _kpiBox('Stock Value by Retail', '$cur${stockRetail.toStringAsFixed(2)}', const Color(0xFF10B981)),
+              _kpiBox(
+                  'Stock Value by Retail',
+                  '$cur${stockRetail.toStringAsFixed(2)}',
+                  const Color(0xFF10B981)),
               const SizedBox(width: 12),
-              _kpiBox('Potential Retail Margin', profitLabel, const Color(0xFF8B5CF6)),
+              _kpiBox('Potential Retail Margin', profitLabel,
+                  const Color(0xFF8B5CF6)),
             ],
           ),
           const SizedBox(height: 24),
-          _reportRow('Inventory Valuation at Purchase Price (Asset)', costLabel, isHeader: true),
+          _reportRow('Inventory Valuation at Purchase Price (Asset)', costLabel,
+              isHeader: true),
           const Divider(),
-          _reportRow('Projected Realizable Value at Selling Price', '$cur${stockRetail.toStringAsFixed(2)}', isHeader: true),
+          _reportRow('Projected Realizable Value at Selling Price',
+              '$cur${stockRetail.toStringAsFixed(2)}',
+              isHeader: true),
           const Divider(),
-          _reportRow('Estimated Unrealized Gross Margin', profitLabel, isBold: true, color: const Color(0xFF10B981)),
+          _reportRow('Estimated Unrealized Gross Margin', profitLabel,
+              isBold: true, color: const Color(0xFF10B981)),
           const Divider(),
           _reportRow(
             'Margin Return on Inventory Investment',
@@ -1818,7 +2462,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 : 'Restricted',
           ),
           const Divider(),
-          _reportRow('Products with Low Stock Alerts', '${_lowStock.length} items', color: _lowStock.isNotEmpty ? Colors.red : Colors.green),
+          _reportRow(
+              'Products with Low Stock Alerts', '${_lowStock.length} items',
+              color: _lowStock.isNotEmpty ? Colors.red : Colors.green),
         ],
       ),
     );
@@ -1834,7 +2480,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1842,14 +2489,18 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Operating Expenses by Category', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-              Text('Total Expenses: $cur${totalExpenses.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.red)),
+              const Text('Operating Expenses by Category',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              Text('Total Expenses: $cur${totalExpenses.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w900, color: Colors.red)),
             ],
           ),
           const SizedBox(height: 16),
           Expanded(
             child: expList.isEmpty
-                ? const Center(child: Text('No expense records logged for this period.'))
+                ? const Center(
+                    child: Text('No expense records logged for this period.'))
                 : ListView.separated(
                     itemCount: expList.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
@@ -1857,7 +2508,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       final item = expList[idx] as Map<String, dynamic>;
                       final amt = (item['amount'] as num?)?.toDouble() ?? 0.0;
                       final count = item['count'] as int? ?? 0;
-                      final pct = totalExpenses > 0 ? (amt / totalExpenses) * 100 : 0.0;
+                      final pct =
+                          totalExpenses > 0 ? (amt / totalExpenses) * 100 : 0.0;
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1865,23 +2517,37 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                           children: [
                             Container(
                               padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(color: const Color(0xFFEF4444).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                              child: const Icon(Icons.money_off_rounded, color: Color(0xFFEF4444), size: 18),
+                              decoration: BoxDecoration(
+                                  color: const Color(0xFFEF4444)
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8)),
+                              child: const Icon(Icons.money_off_rounded,
+                                  color: Color(0xFFEF4444), size: 18),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item['category'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  Text(item['category'] as String,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13)),
                                   const SizedBox(height: 2),
-                                  Text('$count vouchers  •  ${pct.toStringAsFixed(1)}% of total expenses', style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                                  Text(
+                                      '$count vouchers  •  ${pct.toStringAsFixed(1)}% of total expenses',
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF94A3B8))),
                                 ],
                               ),
                             ),
                             Text(
                               '$cur${amt.toStringAsFixed(2)}',
-                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFEF4444)),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                  color: Color(0xFFEF4444)),
                             ),
                           ],
                         ),
@@ -1905,34 +2571,50 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Tax / Sales Tax / VAT Summary', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          const Text('Tax / Sales Tax / VAT Summary',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          _reportRow('Output Tax (Sales Tax Collected from Customers)', '$cur${outputTax.toStringAsFixed(2)}', isHeader: true),
+          _reportRow('Output Tax (Sales Tax Collected from Customers)',
+              '$cur${outputTax.toStringAsFixed(2)}',
+              isHeader: true),
           const Divider(),
-          _reportRow('Input Tax (Sales Tax Paid on Supplier Purchases)', '($cur${inputTax.toStringAsFixed(2)})', color: const Color(0xFF10B981)),
+          _reportRow('Input Tax (Sales Tax Paid on Supplier Purchases)',
+              '($cur${inputTax.toStringAsFixed(2)})',
+              color: const Color(0xFF10B981)),
           const Divider(),
-          _reportRow('Net Tax Payable to Tax Authorities (Output - Input)', '$cur${netTaxPayable.toStringAsFixed(2)}', isBold: true, color: netTaxPayable >= 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981)),
+          _reportRow('Net Tax Payable to Tax Authorities (Output - Input)',
+              '$cur${netTaxPayable.toStringAsFixed(2)}',
+              isBold: true,
+              color: netTaxPayable >= 0
+                  ? const Color(0xFFEF4444)
+                  : const Color(0xFF10B981)),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFF4F46E5).withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.2)),
+              border: Border.all(
+                  color: const Color(0xFF4F46E5).withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline_rounded, color: Color(0xFF4F46E5)),
+                const Icon(Icons.info_outline_rounded,
+                    color: Color(0xFF4F46E5)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Net Tax Payable is calculated according to standard tax regulations (Output Tax on Sales minus Input Tax credit on Purchases).',
-                    style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : const Color(0xFF334155)),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            isDark ? Colors.white70 : const Color(0xFF334155)),
                   ),
                 ),
               ],
@@ -1955,7 +2637,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1968,14 +2651,22 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Top Customer Debtors (Receivables)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5))),
-                    Text('Total: $cur${custDue.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
+                    const Text('Top Customer Debtors (Receivables)',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF4F46E5))),
+                    Text('Total: $cur${custDue.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFEF4444))),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Expanded(
                   child: topDebtors.isEmpty
-                      ? const Center(child: Text('No outstanding customer receivables.'))
+                      ? const Center(
+                          child: Text('No outstanding customer receivables.'))
                       : ListView.separated(
                           itemCount: topDebtors.length,
                           separatorBuilder: (_, __) => const Divider(height: 1),
@@ -1984,9 +2675,16 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                             return ListTile(
                               dense: true,
                               contentPadding: EdgeInsets.zero,
-                              title: Text(d['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(d['phone'] as String, style: const TextStyle(fontSize: 11)),
-                              trailing: Text('$cur${(d['balance'] as double).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFEF4444))),
+                              title: Text(d['name'] as String,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                              subtitle: Text(d['phone'] as String,
+                                  style: const TextStyle(fontSize: 11)),
+                              trailing: Text(
+                                  '$cur${(d['balance'] as double).toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFFEF4444))),
                             );
                           },
                         ),
@@ -2003,14 +2701,22 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Top Supplier Creditors (Payables)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
-                    Text('Total: $cur${suppDue.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
+                    const Text('Top Supplier Creditors (Payables)',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFD97706))),
+                    Text('Total: $cur${suppDue.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFEF4444))),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Expanded(
                   child: topCreditors.isEmpty
-                      ? const Center(child: Text('No outstanding supplier payables.'))
+                      ? const Center(
+                          child: Text('No outstanding supplier payables.'))
                       : ListView.separated(
                           itemCount: topCreditors.length,
                           separatorBuilder: (_, __) => const Divider(height: 1),
@@ -2019,9 +2725,16 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                             return ListTile(
                               dense: true,
                               contentPadding: EdgeInsets.zero,
-                              title: Text(c['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(c['phone'] as String, style: const TextStyle(fontSize: 11)),
-                              trailing: Text('$cur${(c['balance'] as double).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFEF4444))),
+                              title: Text(c['name'] as String,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                              subtitle: Text(c['phone'] as String,
+                                  style: const TextStyle(fontSize: 11)),
+                              trailing: Text(
+                                  '$cur${(c['balance'] as double).toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFFEF4444))),
                             );
                           },
                         ),
@@ -2034,18 +2747,25 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     );
   }
 
-  Widget _reportRow(String title, String val, {bool isHeader = false, bool isBold = false, Color? color}) {
+  Widget _reportRow(String title, String val,
+      {bool isHeader = false, bool isBold = false, Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: TextStyle(fontSize: 13, fontWeight: isHeader || isBold ? FontWeight.bold : FontWeight.normal)),
+          Text(title,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isHeader || isBold
+                      ? FontWeight.bold
+                      : FontWeight.normal)),
           Text(
             val,
             style: TextStyle(
               fontSize: 14,
-              fontWeight: isHeader || isBold ? FontWeight.bold : FontWeight.w600,
+              fontWeight:
+                  isHeader || isBold ? FontWeight.bold : FontWeight.w600,
               color: color ?? const Color(0xFF0F172A),
             ),
           ),
@@ -2054,14 +2774,20 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     );
   }
 
-  Widget _miniPnl(String label, String val, {bool isBold = false, Color? color}) {
+  Widget _miniPnl(String label, String val,
+      {bool isBold = false, Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-          Text(val, style: TextStyle(fontSize: 12, fontWeight: isBold ? FontWeight.bold : FontWeight.w600, color: color)),
+          Text(label,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+          Text(val,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+                  color: color)),
         ],
       ),
     );
@@ -2075,14 +2801,24 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          border: Border.all(
+              color:
+                  isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w600)),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            Text(val, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color)),
+            Text(val,
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w900, color: color)),
           ],
         ),
       ),
@@ -2090,7 +2826,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   }
 
   Widget _buildActivityLogTab(bool isDark) {
-    final canViewAudit = AuthService.currentUser?.hasPermission('report.view_audit_log') ?? true;
+    final canViewAudit =
+        AuthService.currentUser?.hasPermission('report.view_audit_log') ?? true;
     if (!canViewAudit) {
       return Center(
         child: Container(
@@ -2098,16 +2835,21 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            border: Border.all(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           ),
           child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.lock_outline_rounded, size: 42, color: Color(0xFFDC2626)),
+              Icon(Icons.lock_outline_rounded,
+                  size: 42, color: Color(0xFFDC2626)),
               SizedBox(height: 10),
-              Text('Access Restricted', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('Access Restricted',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               SizedBox(height: 4),
-              Text('Permission "report.view_audit_log" is required to inspect system audit trails.'),
+              Text(
+                  'Permission "report.view_audit_log" is required to inspect system audit trails.'),
             ],
           ),
         ),
@@ -2130,7 +2872,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2144,15 +2887,20 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('System Activity & Audit Trail', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                  const Text('System Activity & Audit Trail',
+                      style:
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                   Text(
                     'Immutable CRUD history across sales, quotations, products, contacts, roles, and settings (${_activityLogs.length} records)',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
                 ],
               ),
               ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white),
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Refresh'),
                 onPressed: _reloadActivityLogs,
@@ -2169,19 +2917,51 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 child: DropdownButtonFormField<String>(
                   initialValue: _activityEntityFilter,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Entity Filter', isDense: true),
+                  decoration: const InputDecoration(
+                      labelText: 'Entity Filter', isDense: true),
                   items: const [
-                    DropdownMenuItem(value: 'All', child: Text('All Entities', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'sale', child: Text('Sales', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'quotation', child: Text('Quotations', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'product', child: Text('Products', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'purchase', child: Text('Purchases', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'contact', child: Text('Contacts', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'customer_group', child: Text('Customer Groups', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'tax_group', child: Text('Tax Groups', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'user', child: Text('Users', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'role', child: Text('Roles & RBAC', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'business_settings', child: Text('Settings', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'All',
+                        child: Text('All Entities',
+                            overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'sale',
+                        child: Text('Sales', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'quotation',
+                        child: Text('Quotations',
+                            overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'product',
+                        child:
+                            Text('Products', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'purchase',
+                        child:
+                            Text('Purchases', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'contact',
+                        child:
+                            Text('Contacts', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'customer_group',
+                        child: Text('Customer Groups',
+                            overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'tax_group',
+                        child: Text('Tax Groups',
+                            overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'user',
+                        child: Text('Users', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'role',
+                        child: Text('Roles & RBAC',
+                            overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'business_settings',
+                        child:
+                            Text('Settings', overflow: TextOverflow.ellipsis)),
                   ],
                   onChanged: (val) {
                     if (val == null) return;
@@ -2195,12 +2975,25 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 child: DropdownButtonFormField<String>(
                   initialValue: _activityActionFilter,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Action Filter', isDense: true),
+                  decoration: const InputDecoration(
+                      labelText: 'Action Filter', isDense: true),
                   items: const [
-                    DropdownMenuItem(value: 'All', child: Text('All Actions', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'created', child: Text('Created', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'updated', child: Text('Updated', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'deleted', child: Text('Deleted', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'All',
+                        child: Text('All Actions',
+                            overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'created',
+                        child:
+                            Text('Created', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'updated',
+                        child:
+                            Text('Updated', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(
+                        value: 'deleted',
+                        child:
+                            Text('Deleted', overflow: TextOverflow.ellipsis)),
                   ],
                   onChanged: (val) {
                     if (val == null) return;
@@ -2227,7 +3020,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           Expanded(
             child: _activityLogs.isEmpty
                 ? const Center(
-                    child: Text('No activity records matching filter.', style: TextStyle(color: Color(0xFF64748B))),
+                    child: Text('No activity records matching filter.',
+                        style: TextStyle(color: Color(0xFF64748B))),
                   )
                 : ListView.separated(
                     itemCount: _activityLogs.length,
@@ -2238,14 +3032,18 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       return ListTile(
                         dense: true,
                         leading: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: badgeCol.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             entry.action.toUpperCase(),
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: badgeCol),
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: badgeCol),
                           ),
                         ),
                         title: Wrap(
@@ -2254,11 +3052,13 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                           children: [
                             Text(
                               '${entry.entityType}${entry.entityId != null ? " #${entry.entityId}" : ""}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                             Text(
                               'by ${entry.userName}',
-                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                              style: const TextStyle(
+                                  fontSize: 12, color: Color(0xFF64748B)),
                             ),
                           ],
                         ),
@@ -2273,11 +3073,16 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
-                              entry.createdAt.length > 16 ? entry.createdAt.substring(0, 16) : entry.createdAt,
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              entry.createdAt.length > 16
+                                  ? entry.createdAt.substring(0, 16)
+                                  : entry.createdAt,
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFF64748B)),
                             ),
-                            if ((entry.oldValues != null && entry.oldValues!.isNotEmpty) ||
-                                (entry.newValues != null && entry.newValues!.isNotEmpty))
+                            if ((entry.oldValues != null &&
+                                    entry.oldValues!.isNotEmpty) ||
+                                (entry.newValues != null &&
+                                    entry.newValues!.isNotEmpty))
                               TextButton(
                                 onPressed: () {
                                   showDialog(
@@ -2290,19 +3095,33 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                                         width: 460,
                                         child: SingleChildScrollView(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text('Actor: ${entry.userName} (${entry.createdAt})'),
+                                              Text(
+                                                  'Actor: ${entry.userName} (${entry.createdAt})'),
                                               const SizedBox(height: 10),
-                                              if (entry.oldValues != null && entry.oldValues!.isNotEmpty) ...[
-                                                const Text('Old Values:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                                SelectableText(entry.oldValues!),
+                                              if (entry.oldValues != null &&
+                                                  entry.oldValues!
+                                                      .isNotEmpty) ...[
+                                                const Text('Old Values:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                SelectableText(
+                                                    entry.oldValues!),
                                                 const SizedBox(height: 8),
                                               ],
-                                              if (entry.newValues != null && entry.newValues!.isNotEmpty) ...[
-                                                const Text('New Values:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                                SelectableText(entry.newValues!),
+                                              if (entry.newValues != null &&
+                                                  entry.newValues!
+                                                      .isNotEmpty) ...[
+                                                const Text('New Values:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                SelectableText(
+                                                    entry.newValues!),
                                               ],
                                             ],
                                           ),
@@ -2317,7 +3136,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                                     ),
                                   );
                                 },
-                                child: const Text('Inspect Diff', style: TextStyle(fontSize: 11.5)),
+                                child: const Text('Inspect Diff',
+                                    style: TextStyle(fontSize: 11.5)),
                               ),
                           ],
                         ),
@@ -2332,43 +3152,73 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Widget _buildChequeReportTab(String cur, bool isDark) {
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            _topKpi('PENDING CHEQUES', '$cur${((_chequeReportSummary['pendingAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}', '${_chequeReportSummary['pendingCount'] ?? 0} Pending', const Color(0xFFF59E0B), Icons.pending_actions_rounded, isDark),
+            _topKpi(
+                'PENDING CHEQUES',
+                '$cur${((_chequeReportSummary['pendingAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}',
+                '${_chequeReportSummary['pendingCount'] ?? 0} Pending',
+                const Color(0xFFF59E0B),
+                Icons.pending_actions_rounded,
+                isDark),
             const SizedBox(width: 12),
-            _topKpi('CLEARED CHEQUES', '$cur${((_chequeReportSummary['clearedAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}', '${_chequeReportSummary['clearedCount'] ?? 0} Cleared', const Color(0xFF10B981), Icons.check_circle_outline_rounded, isDark),
+            _topKpi(
+                'CLEARED CHEQUES',
+                '$cur${((_chequeReportSummary['clearedAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}',
+                '${_chequeReportSummary['clearedCount'] ?? 0} Cleared',
+                const Color(0xFF10B981),
+                Icons.check_circle_outline_rounded,
+                isDark),
             const SizedBox(width: 12),
-            _topKpi('OVERDUE CHEQUES', '$cur${((_chequeReportSummary['overdueAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}', '${_chequeReportSummary['overdueCount'] ?? 0} Overdue', Colors.red, Icons.warning_amber_rounded, isDark),
+            _topKpi(
+                'OVERDUE CHEQUES',
+                '$cur${((_chequeReportSummary['overdueAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}',
+                '${_chequeReportSummary['overdueCount'] ?? 0} Overdue',
+                Colors.red,
+                Icons.warning_amber_rounded,
+                isDark),
           ],
         ),
         const SizedBox(height: 14),
         Expanded(
           child: Container(
-            decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor)),
+            decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: borderColor)),
             child: _chequeReportRows.isEmpty
-                ? const Center(child: Text('No cheque transactions recorded in this system.', style: TextStyle(color: Colors.grey)))
+                ? const Center(
+                    child: Text(
+                        'No cheque transactions recorded in this system.',
+                        style: TextStyle(color: Colors.grey)))
                 : ListView.separated(
                     itemCount: _chequeReportRows.length,
-                    separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+                    separatorBuilder: (_, __) =>
+                        Divider(height: 1, color: borderColor),
                     itemBuilder: (_, idx) {
                       final c = _chequeReportRows[idx];
-                      final st = c.isOverdueCheque ? 'OVERDUE' : c.chequeStatus.toUpperCase();
+                      final st = c.isOverdueCheque
+                          ? 'OVERDUE'
+                          : c.chequeStatus.toUpperCase();
                       return ListTile(
                         dense: true,
                         title: Text(
                           '${c.chequeNumber.isNotEmpty ? "Cheque #${c.chequeNumber}" : c.refNo} • ${c.contactName}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         subtitle: Text(
                           'Bank: ${c.bankName.isEmpty ? "-" : c.bankName} • Due: ${c.chequeDueDate.isEmpty ? "-" : c.chequeDueDate} • Status: $st',
                           style: const TextStyle(fontSize: 11.5),
                         ),
                         trailing: Text('$cur${c.amount.toStringAsFixed(2)}',
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 13)),
                       );
                     },
                   ),
@@ -2380,27 +3230,39 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Widget _buildCommissionReportTab(String cur, bool isDark) {
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     return Container(
-      decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor)),
+      decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor)),
       child: _commissionReportRows.isEmpty
-          ? const Center(child: Text('No commission agents registered yet.', style: TextStyle(color: Colors.grey)))
+          ? const Center(
+              child: Text('No commission agents registered yet.',
+                  style: TextStyle(color: Colors.grey)))
           : ListView.separated(
               itemCount: _commissionReportRows.length,
-              separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+              separatorBuilder: (_, __) =>
+                  Divider(height: 1, color: borderColor),
               itemBuilder: (_, idx) {
                 final r = _commissionReportRows[idx];
                 return ListTile(
                   dense: true,
-                  title: Text('${r['agentName']} (${((r['commissionPercent'] as double?) ?? 0.0).toStringAsFixed(1)}%)',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  title: Text(
+                      '${r['agentName']} (${((r['commissionPercent'] as double?) ?? 0.0).toStringAsFixed(1)}%)',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
                   subtitle: Text(
                     'Invoices: ${r['saleCount']} • Total Sales: $cur${((r['totalSales'] as double?) ?? 0.0).toStringAsFixed(2)}',
                     style: const TextStyle(fontSize: 11.5),
                   ),
                   trailing: Text(
                     '$cur${((r['totalCommission'] as double?) ?? 0.0).toStringAsFixed(2)}',
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF10B981)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: Color(0xFF10B981)),
                   ),
                 );
               },

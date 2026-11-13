@@ -26,14 +26,16 @@ class PdfExportService {
     return buf.toString();
   }
 
-  static PdfColor _parseHexColor(String hex, {PdfColor fallback = PdfColors.blueGrey900}) {
+  static PdfColor _parseHexColor(String hex,
+      {PdfColor fallback = PdfColors.blueGrey900}) {
     final clean = hex.trim().replaceFirst('#', '');
     if (clean.length == 6 || clean.length == 8) {
       try {
         final full = clean.length == 6 ? 'FF$clean' : clean;
         return PdfColor.fromInt(int.parse(full, radix: 16));
       } catch (e, st) {
-        AppLogger.warning('PdfExportService', 'Invalid hex color "$hex"', e, st);
+        AppLogger.warning(
+            'PdfExportService', 'Invalid hex color "$hex"', e, st);
       }
     }
     return fallback;
@@ -68,7 +70,8 @@ class PdfExportService {
       if (data.isEmpty) return null;
       return pw.MemoryImage(data);
     } catch (e, st) {
-      AppLogger.warning('PdfExportService', 'Failed reading image "$clean"', e, st);
+      AppLogger.warning(
+          'PdfExportService', 'Failed reading image "$clean"', e, st);
       return null;
     }
   }
@@ -88,12 +91,14 @@ class PdfExportService {
       paperSize: paperSize,
       orientation: activeLayout.paperOrientation,
     );
-    final isThermalRoll =
-        paperSize.toLowerCase().contains('58mm') || paperSize.toLowerCase().contains('80mm');
+    final isThermalRoll = paperSize.toLowerCase().contains('58mm') ||
+        paperSize.toLowerCase().contains('80mm');
     final accent = _parseHexColor(activeLayout.highlightColor);
-    final cur = _safeText(settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs');
+    final cur = _safeText(
+        settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs');
     final baseFont = activeLayout.fontSize.clamp(7.5, 14.0).toDouble();
-    final logoImg = activeLayout.showLogo ? _tryLoadImage(settings.logoPath) : null;
+    final logoImg =
+        activeLayout.showLogo ? _tryLoadImage(settings.logoPath) : null;
 
     final doc = pw.Document();
 
@@ -133,7 +138,8 @@ class PdfExportService {
                             pw.Text(
                               _safeText(settings.businessName.toUpperCase()),
                               style: pw.TextStyle(
-                                fontSize: isThermalRoll ? baseFont + 2 : baseFont + 6,
+                                fontSize:
+                                    isThermalRoll ? baseFont + 2 : baseFont + 6,
                                 fontWeight: pw.FontWeight.bold,
                                 color: accent,
                               ),
@@ -141,16 +147,28 @@ class PdfExportService {
                           if (settings.branchName.isNotEmpty)
                             pw.Text(
                               _safeText(settings.branchName),
-                              style: pw.TextStyle(fontSize: baseFont, fontWeight: pw.FontWeight.bold),
+                              style: pw.TextStyle(
+                                  fontSize: baseFont,
+                                  fontWeight: pw.FontWeight.bold),
                             ),
-                          if (activeLayout.showAddress && settings.address.isNotEmpty)
-                            pw.Text(_safeText(settings.address), style: pw.TextStyle(fontSize: baseFont - 1)),
-                          if (activeLayout.showPhone && settings.phone.isNotEmpty)
-                            pw.Text(_safeText('Tel: ${settings.phone}'), style: pw.TextStyle(fontSize: baseFont - 1)),
-                          if (activeLayout.showEmail && settings.email.isNotEmpty)
-                            pw.Text(_safeText('Email: ${settings.email}'), style: pw.TextStyle(fontSize: baseFont - 1)),
-                          if (activeLayout.showTaxNumber && settings.taxNumber.isNotEmpty)
-                            pw.Text(_safeText('NTN / Tax ID: ${settings.taxNumber}'), style: pw.TextStyle(fontSize: baseFont - 1)),
+                          if (activeLayout.showAddress &&
+                              settings.address.isNotEmpty)
+                            pw.Text(_safeText(settings.address),
+                                style: pw.TextStyle(fontSize: baseFont - 1)),
+                          if (activeLayout.showPhone &&
+                              settings.phone.isNotEmpty)
+                            pw.Text(_safeText('Tel: ${settings.phone}'),
+                                style: pw.TextStyle(fontSize: baseFont - 1)),
+                          if (activeLayout.showEmail &&
+                              settings.email.isNotEmpty)
+                            pw.Text(_safeText('Email: ${settings.email}'),
+                                style: pw.TextStyle(fontSize: baseFont - 1)),
+                          if (activeLayout.showTaxNumber &&
+                              settings.taxNumber.isNotEmpty)
+                            pw.Text(
+                                _safeText(
+                                    'NTN / Tax ID: ${settings.taxNumber}'),
+                                style: pw.TextStyle(fontSize: baseFont - 1)),
                         ],
                       ),
                     ),
@@ -158,10 +176,12 @@ class PdfExportService {
                 ),
               ),
               pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: pw.BoxDecoration(
                   color: accent,
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(4)),
                 ),
                 child: pw.Text(
                   headingText,
@@ -178,7 +198,8 @@ class PdfExportService {
             pw.SizedBox(height: 6),
             pw.Text(
               _safeText(activeLayout.headerText),
-              style: pw.TextStyle(fontSize: baseFont - 0.5, fontStyle: pw.FontStyle.italic),
+              style: pw.TextStyle(
+                  fontSize: baseFont - 0.5, fontStyle: pw.FontStyle.italic),
             ),
           ],
           pw.SizedBox(height: 8),
@@ -196,7 +217,8 @@ class PdfExportService {
                   children: [
                     pw.Text(
                       _safeText('Invoice #: ${sale.invoiceNo}'),
-                      style: pw.TextStyle(fontSize: baseFont, fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(
+                          fontSize: baseFont, fontWeight: pw.FontWeight.bold),
                     ),
                     pw.Text(
                       _safeText('Customer: ${sale.customerName}'),
@@ -212,7 +234,8 @@ class PdfExportService {
                       style: pw.TextStyle(fontSize: baseFont - 0.5),
                     ),
                     pw.Text(
-                      _safeText('Status: ${sale.saleStatus.toUpperCase()} | ${sale.paymentMethod.toUpperCase()}'),
+                      _safeText(
+                          'Status: ${sale.saleStatus.toUpperCase()} | ${sale.paymentMethod.toUpperCase()}'),
                       style: pw.TextStyle(fontSize: baseFont - 0.5),
                     ),
                   ],
@@ -250,7 +273,8 @@ class PdfExportService {
           children: headers
               .map(
                 (h) => pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+                  padding:
+                      const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 6),
                   child: pw.Text(
                     h,
                     style: pw.TextStyle(
@@ -274,9 +298,11 @@ class PdfExportService {
             ? _tryLoadImage(productImagePathsById[it.productId] ?? '')
             : null;
 
-        pw.Widget cell(String text, {pw.TextAlign align = pw.TextAlign.left, bool bold = false}) =>
+        pw.Widget cell(String text,
+                {pw.TextAlign align = pw.TextAlign.left, bool bold = false}) =>
             pw.Padding(
-              padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+              padding:
+                  const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 5),
               child: pw.Text(
                 _safeText(text),
                 textAlign: align,
@@ -297,12 +323,13 @@ class PdfExportService {
                 pw.Padding(
                   padding: const pw.EdgeInsets.all(3),
                   child: img != null
-                      ? pw.Image(img, width: 20, height: 20, fit: pw.BoxFit.cover)
-                      : pw.Text('-', style: pw.TextStyle(fontSize: baseFont - 1)),
+                      ? pw.Image(img,
+                          width: 20, height: 20, fit: pw.BoxFit.cover)
+                      : pw.Text('-',
+                          style: pw.TextStyle(fontSize: baseFont - 1)),
                 ),
               cell(
-                it.displayName +
-                    (activeLayout.showBrand ? '' : ''),
+                it.displayName + (activeLayout.showBrand ? '' : ''),
                 bold: true,
               ),
               if (showSku) cell(it.sku.isEmpty ? '-' : it.sku),
@@ -316,7 +343,8 @@ class PdfExportService {
                     : '0.00',
                 align: pw.TextAlign.right,
               ),
-              cell(it.subtotal.toStringAsFixed(2), align: pw.TextAlign.right, bold: true),
+              cell(it.subtotal.toStringAsFixed(2),
+                  align: pw.TextAlign.right, bold: true),
             ],
           ),
         );
@@ -338,7 +366,8 @@ class PdfExportService {
             )
           : '';
 
-      pw.Widget totalLine(String label, String val, {bool bold = false}) => pw.Padding(
+      pw.Widget totalLine(String label, String val, {bool bold = false}) =>
+          pw.Padding(
             padding: const pw.EdgeInsets.symmetric(vertical: 2),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -347,14 +376,16 @@ class PdfExportService {
                   _safeText(label),
                   style: pw.TextStyle(
                     fontSize: baseFont,
-                    fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+                    fontWeight:
+                        bold ? pw.FontWeight.bold : pw.FontWeight.normal,
                   ),
                 ),
                 pw.Text(
                   _safeText(val),
                   style: pw.TextStyle(
                     fontSize: baseFont,
-                    fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+                    fontWeight:
+                        bold ? pw.FontWeight.bold : pw.FontWeight.normal,
                   ),
                 ),
               ],
@@ -376,7 +407,9 @@ class PdfExportService {
                     if (words.isNotEmpty)
                       pw.Text(
                         _safeText('In Words: $words'),
-                        style: pw.TextStyle(fontSize: baseFont - 1, fontStyle: pw.FontStyle.italic),
+                        style: pw.TextStyle(
+                            fontSize: baseFont - 1,
+                            fontStyle: pw.FontStyle.italic),
                       ),
                     if (activeLayout.showCustomerBalance &&
                         customerPreviousBalance != null &&
@@ -386,14 +419,17 @@ class PdfExportService {
                         _safeText(
                           'Previous Khata Balance: $cur ${customerPreviousBalance.toStringAsFixed(2)}',
                         ),
-                        style: pw.TextStyle(fontSize: baseFont - 0.5, fontWeight: pw.FontWeight.bold),
+                        style: pw.TextStyle(
+                            fontSize: baseFont - 0.5,
+                            fontWeight: pw.FontWeight.bold),
                       ),
                     ],
                     if (activeLayout.showQrCode) ...[
                       pw.SizedBox(height: 8),
                       pw.BarcodeWidget(
                         barcode: pw.Barcode.qrCode(),
-                        data: 'INV:${sale.invoiceNo}|TOTAL:${sale.totalAmount.toStringAsFixed(2)}',
+                        data:
+                            'INV:${sale.invoiceNo}|TOTAL:${sale.totalAmount.toStringAsFixed(2)}',
                         width: isThermalRoll ? 48 : 58,
                         height: isThermalRoll ? 48 : 58,
                       ),
@@ -411,13 +447,17 @@ class PdfExportService {
                 ),
                 child: pw.Column(
                   children: [
-                    totalLine(activeLayout.subTotalLabel, '$cur ${sale.subtotal.toStringAsFixed(2)}'),
+                    totalLine(activeLayout.subTotalLabel,
+                        '$cur ${sale.subtotal.toStringAsFixed(2)}'),
                     if (sale.discount > 0)
-                      totalLine(activeLayout.discountLabel, '-$cur ${sale.discount.toStringAsFixed(2)}'),
+                      totalLine(activeLayout.discountLabel,
+                          '-$cur ${sale.discount.toStringAsFixed(2)}'),
                     if (sale.taxAmount > 0) ...[
                       for (final entry in sale.taxBreakdownMap.entries)
-                        totalLine(entry.key, '+$cur ${entry.value.toStringAsFixed(2)}'),
-                      totalLine(activeLayout.taxLabel, '+$cur ${sale.taxAmount.toStringAsFixed(2)}'),
+                        totalLine(entry.key,
+                            '+$cur ${entry.value.toStringAsFixed(2)}'),
+                      totalLine(activeLayout.taxLabel,
+                          '+$cur ${sale.taxAmount.toStringAsFixed(2)}'),
                     ],
                     pw.Divider(),
                     totalLine(
@@ -425,9 +465,12 @@ class PdfExportService {
                       '$cur ${sale.totalAmount.toStringAsFixed(2)}',
                       bold: true,
                     ),
-                    totalLine('Paid', '$cur ${sale.paidAmount.toStringAsFixed(2)}'),
+                    totalLine(
+                        'Paid', '$cur ${sale.paidAmount.toStringAsFixed(2)}'),
                     if (sale.dueAmount > 0)
-                      totalLine('Balance Due', '$cur ${sale.dueAmount.toStringAsFixed(2)}', bold: true),
+                      totalLine('Balance Due',
+                          '$cur ${sale.dueAmount.toStringAsFixed(2)}',
+                          bold: true),
                   ],
                 ),
               ),
@@ -449,7 +492,8 @@ class PdfExportService {
             pw.SizedBox(height: 10),
             pw.Text(
               _safeText('Terms & Conditions: ${activeLayout.termsText}'),
-              style: pw.TextStyle(fontSize: baseFont - 1.2, color: PdfColors.grey700),
+              style: pw.TextStyle(
+                  fontSize: baseFont - 1.2, color: PdfColors.grey700),
             ),
           ],
           if (activeLayout.showSignature && !isThermalRoll) ...[
@@ -459,7 +503,8 @@ class PdfExportService {
               children: [
                 pw.Column(
                   children: [
-                    pw.Container(width: 140, height: 0.8, color: PdfColors.grey600),
+                    pw.Container(
+                        width: 140, height: 0.8, color: PdfColors.grey600),
                     pw.SizedBox(height: 3),
                     pw.Text(
                       _safeText(activeLayout.signatureLabel),
@@ -475,7 +520,8 @@ class PdfExportService {
             pw.Center(
               child: pw.Text(
                 _safeText(activeLayout.footerText),
-                style: pw.TextStyle(fontSize: baseFont - 0.5, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                    fontSize: baseFont - 0.5, fontWeight: pw.FontWeight.bold),
               ),
             ),
           ],
@@ -534,8 +580,10 @@ class PdfExportService {
     required BusinessSettings settings,
   }) async {
     final doc = pw.Document();
-    final cur = _safeText(settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs');
-    final logoImg = settings.showLogoOnReceipt ? _tryLoadImage(settings.logoPath) : null;
+    final cur = _safeText(
+        settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs');
+    final logoImg =
+        settings.showLogoOnReceipt ? _tryLoadImage(settings.logoPath) : null;
     final items = purchase.getItems();
 
     doc.addPage(
@@ -556,21 +604,28 @@ class PdfExportService {
                     children: [
                       pw.Text(
                         _safeText(settings.businessName.toUpperCase()),
-                        style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                        style: const pw.TextStyle(
+                            fontSize: 16, fontWeight: pw.FontWeight.bold),
                       ),
-                      pw.Text(_safeText('Branch: ${purchase.locationName}'), style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text(_safeText('Branch: ${purchase.locationName}'),
+                          style: const pw.TextStyle(fontSize: 10)),
                       if (settings.phone.isNotEmpty)
-                        pw.Text(_safeText('Tel: ${settings.phone}'), style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text(_safeText('Tel: ${settings.phone}'),
+                            style: const pw.TextStyle(fontSize: 9)),
                     ],
                   ),
                 ],
               ),
               pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 color: PdfColors.indigo900,
                 child: pw.Text(
                   'PURCHASE VOUCHER / GRN',
-                  style: const pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 11),
+                  style: const pw.TextStyle(
+                      color: PdfColors.white,
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 11),
                 ),
               ),
             ],
@@ -588,15 +643,22 @@ class PdfExportService {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text(_safeText('PO / Ref No: ${purchase.refNo}'), style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                    pw.Text(_safeText('Supplier: ${purchase.supplierName}'), style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(_safeText('PO / Ref No: ${purchase.refNo}'),
+                        style: const pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    pw.Text(_safeText('Supplier: ${purchase.supplierName}'),
+                        style: const pw.TextStyle(fontSize: 10)),
                   ],
                 ),
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    pw.Text(_safeText('Date: ${purchase.createdAt}'), style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text(_safeText('Status: ${purchase.status.toUpperCase()} | Pay: ${purchase.paymentStatus.toUpperCase()}'), style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(_safeText('Date: ${purchase.createdAt}'),
+                        style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(
+                        _safeText(
+                            'Status: ${purchase.status.toUpperCase()} | Pay: ${purchase.paymentStatus.toUpperCase()}'),
+                        style: const pw.TextStyle(fontSize: 10)),
                   ],
                 ),
               ],
@@ -605,8 +667,12 @@ class PdfExportService {
           pw.SizedBox(height: 12),
           pw.TableHelper.fromTextArray(
             headers: const ['Product', 'Qty', 'Unit Cost', 'Subtotal'],
-            headerStyle: const pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10),
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.indigo900),
+            headerStyle: const pw.TextStyle(
+                color: PdfColors.white,
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 10),
+            headerDecoration:
+                const pw.BoxDecoration(color: PdfColors.indigo900),
             cellStyle: const pw.TextStyle(fontSize: 9.5),
             data: items.map((it) {
               final qty = (it['quantity'] as num?)?.toDouble() ?? 1.0;
@@ -628,23 +694,30 @@ class PdfExportService {
             child: pw.Container(
               width: 220,
               padding: const pw.EdgeInsets.all(8),
-              decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300)),
+              decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey300)),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('Total Purchase:', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                      pw.Text('$cur ${purchase.totalAmount.toStringAsFixed(2)}', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                      pw.Text('Total Purchase:',
+                          style: const pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                      pw.Text('$cur ${purchase.totalAmount.toStringAsFixed(2)}',
+                          style: const pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold, fontSize: 10)),
                     ],
                   ),
                   pw.SizedBox(height: 3),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('Paid Amount:', style: const pw.TextStyle(fontSize: 10)),
-                      pw.Text('$cur ${purchase.paidAmount.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text('Paid Amount:',
+                          style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text('$cur ${purchase.paidAmount.toStringAsFixed(2)}',
+                          style: const pw.TextStyle(fontSize: 10)),
                     ],
                   ),
                   if (purchase.dueAmount > 0) ...[
@@ -652,8 +725,12 @@ class PdfExportService {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('Payable Due:', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                        pw.Text('$cur ${purchase.dueAmount.toStringAsFixed(2)}', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        pw.Text('Payable Due:',
+                            style: const pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        pw.Text('$cur ${purchase.dueAmount.toStringAsFixed(2)}',
+                            style: const pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold, fontSize: 10)),
                       ],
                     ),
                   ],
@@ -677,7 +754,8 @@ class PdfExportService {
     Map<String, String>? summaryMetrics,
   }) async {
     final doc = pw.Document();
-    final logoImg = settings.showLogoOnReceipt ? _tryLoadImage(settings.logoPath) : null;
+    final logoImg =
+        settings.showLogoOnReceipt ? _tryLoadImage(settings.logoPath) : null;
 
     doc.addPage(
       pw.MultiPage(
@@ -697,17 +775,25 @@ class PdfExportService {
                     children: [
                       pw.Text(
                         _safeText(settings.businessName.toUpperCase()),
-                        style: const pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+                        style: const pw.TextStyle(
+                            fontSize: 15, fontWeight: pw.FontWeight.bold),
                       ),
-                      pw.Text(_safeText(title), style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900)),
-                      pw.Text(_safeText(subtitle), style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                      pw.Text(_safeText(title),
+                          style: const pw.TextStyle(
+                              fontSize: 12,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.indigo900)),
+                      pw.Text(_safeText(subtitle),
+                          style: const pw.TextStyle(
+                              fontSize: 9, color: PdfColors.grey700)),
                     ],
                   ),
                 ],
               ),
               pw.Text(
                 'Generated ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}',
-                style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey600),
+                style:
+                    const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey600),
               ),
             ],
           ),
@@ -719,7 +805,8 @@ class PdfExportService {
               children: summaryMetrics.entries
                   .map(
                     (e) => pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: pw.BoxDecoration(
                         color: PdfColors.grey100,
                         border: pw.Border.all(color: PdfColors.grey300),
@@ -727,8 +814,13 @@ class PdfExportService {
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text(_safeText(e.key), style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
-                          pw.Text(_safeText(e.value), style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                          pw.Text(_safeText(e.key),
+                              style: const pw.TextStyle(
+                                  fontSize: 8, color: PdfColors.grey700)),
+                          pw.Text(_safeText(e.value),
+                              style: const pw.TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: pw.FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -740,8 +832,12 @@ class PdfExportService {
           pw.TableHelper.fromTextArray(
             headers: headers.map(_safeText).toList(),
             data: rows.map((r) => r.map(_safeText).toList()).toList(),
-            headerStyle: const pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 9),
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey900),
+            headerStyle: const pw.TextStyle(
+                color: PdfColors.white,
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 9),
+            headerDecoration:
+                const pw.BoxDecoration(color: PdfColors.blueGrey900),
             cellStyle: const pw.TextStyle(fontSize: 8.5),
           ),
         ],
@@ -760,7 +856,8 @@ class PdfExportService {
     if (directoryOverride != null) {
       targetDir = directoryOverride;
     } else {
-      final userProfile = Platform.environment['USERPROFILE'] ?? Directory.systemTemp.path;
+      final userProfile =
+          Platform.environment['USERPROFILE'] ?? Directory.systemTemp.path;
       final dl = Directory('$userProfile\\Downloads');
       targetDir = dl.existsSync() ? dl : Directory.systemTemp;
     }
@@ -769,7 +866,8 @@ class PdfExportService {
     }
     final cleanBase = baseName.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
     final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-    final outFile = File('${targetDir.path}${Platform.pathSeparator}${cleanBase}_$stamp.pdf');
+    final outFile = File(
+        '${targetDir.path}${Platform.pathSeparator}${cleanBase}_$stamp.pdf');
     await outFile.writeAsBytes(bytes, flush: true);
     return outFile;
   }
@@ -784,7 +882,8 @@ class PdfExportService {
       await Process.run('open', [file.path]);
       return true;
     } catch (e, st) {
-      AppLogger.warning('PdfExportService', 'Failed opening PDF file "${file.path}"', e, st);
+      AppLogger.warning(
+          'PdfExportService', 'Failed opening PDF file "${file.path}"', e, st);
       return false;
     }
   }
@@ -809,14 +908,16 @@ class PdfExportService {
     final uri = Uri(
       scheme: 'mailto',
       path: recipientEmail.trim(),
-      query: 'subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(enrichedBody)}',
+      query:
+          'subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(enrichedBody)}',
     );
     try {
       if (Platform.isWindows) {
         await Process.run('cmd.exe', ['/c', 'start', '', uri.toString()]);
       }
     } catch (e, st) {
-      AppLogger.warning('PdfExportService', 'Failed opening mailto client', e, st);
+      AppLogger.warning(
+          'PdfExportService', 'Failed opening mailto client', e, st);
     }
     return savedFile;
   }

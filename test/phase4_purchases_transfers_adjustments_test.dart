@@ -10,7 +10,9 @@ void main() {
     sqfliteFfiInit();
   });
 
-  test('Phase 4: Purchases with Location, Stock Transfers, and Stock Adjustments', () async {
+  test(
+      'Phase 4: Purchases with Location, Stock Transfers, and Stock Adjustments',
+      () async {
     final tempDir = await Directory.systemTemp.createTemp('pos_phase4_test_');
     final dbPath = '${tempDir.path}/test_phase4.db';
 
@@ -61,7 +63,8 @@ void main() {
       }
     ];
 
-    final purchaseId = await dbService.createPurchase(purchase: purchase, items: purchaseItems);
+    final purchaseId = await dbService.createPurchase(
+        purchase: purchase, items: purchaseItems);
     expect(purchaseId, isNonZero);
 
     // Verify stock incremented by 20
@@ -71,7 +74,8 @@ void main() {
     // Verify purchases list
     final allPurchases = await dbService.getPurchases();
     expect(allPurchases.any((p) => p.refNo == purchaseRef), isTrue);
-    final savedPurchase = allPurchases.firstWhere((p) => p.refNo == purchaseRef);
+    final savedPurchase =
+        allPurchases.firstWhere((p) => p.refNo == purchaseRef);
     expect(savedPurchase.locationName, equals('Main Branch HQ'));
     expect(savedPurchase.dueAmount, equals(200.0));
 
@@ -144,7 +148,8 @@ void main() {
 
     // Stock should be further reduced by 2
     final afterAdjProd = await dbService.getProductById(targetProd.id!);
-    expect(afterAdjProd!.stockQuantity, equals(initialStock + 20.0 - 5.0 - 2.0));
+    expect(
+        afterAdjProd!.stockQuantity, equals(initialStock + 20.0 - 5.0 - 2.0));
 
     final adjustmentsList = await dbService.getStockAdjustments();
     expect(adjustmentsList.any((a) => a.refNo == adjRef), isTrue);

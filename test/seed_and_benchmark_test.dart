@@ -8,7 +8,8 @@ void main() {
   });
 
   test('High-Volume Seeding & Benchmark Stress Test', () async {
-    final db = await DatabaseService.initialize(customPath: inMemoryDatabasePath);
+    final db =
+        await DatabaseService.initialize(customPath: inMemoryDatabasePath);
 
     // 1. Purge data
     await db.purgeAllBusinessData();
@@ -48,6 +49,7 @@ void main() {
     print('Benchmark Results: $benchResult');
     expect(benchResult['transactions_inserted'], equals(10000));
     expect(benchResult['elapsed_ms'], greaterThan(0));
-    print('Speed: ${(benchResult['transactions_per_sec'] as num).toStringAsFixed(0)} tx/sec!');
+    print(
+        'Speed: ${(benchResult['transactions_per_sec'] as num).toStringAsFixed(0)} tx/sec!');
   });
 }

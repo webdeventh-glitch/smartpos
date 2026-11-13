@@ -14,7 +14,8 @@ void main() {
 
     setUp(() async {
       // Use in-memory SQLite database for isolated test execution
-      dbService = await DatabaseService.initialize(customPath: inMemoryDatabasePath);
+      dbService =
+          await DatabaseService.initialize(customPath: inMemoryDatabasePath);
       await dbService.seedInitialDataForBusinessType(businessType: 'pharmacy');
     });
 
@@ -66,7 +67,9 @@ void main() {
       expect(fetched.sellingPrice, equals(79.99));
     });
 
-    test('Completing a sale atomically creates invoice, deducts inventory and updates register', () async {
+    test(
+        'Completing a sale atomically creates invoice, deducts inventory and updates register',
+        () async {
       final product = (await dbService.getProductByCode('MED-001'))!;
       final initialStock = product.stockQuantity;
 
@@ -88,7 +91,8 @@ void main() {
         createdAt: DateTime.now().toIso8601String(),
       );
 
-      final completedSale = await dbService.createSale(sale: sale, items: [cartItem]);
+      final completedSale =
+          await dbService.createSale(sale: sale, items: [cartItem]);
       expect(completedSale.id, isNotNull);
 
       // Verify stock deducted
@@ -100,7 +104,9 @@ void main() {
       expect(sales.any((s) => s.invoiceNo == invoiceNo), isTrue);
     });
 
-    test('Stock receiving via purchase increases product inventory and sets supplier balance', () async {
+    test(
+        'Stock receiving via purchase increases product inventory and sets supplier balance',
+        () async {
       final product = (await dbService.getProductByCode('MED-002'))!;
       final initialStock = product.stockQuantity;
       final supplier = (await dbService.getContacts(type: 'supplier')).first;
@@ -133,7 +139,8 @@ void main() {
 
     test('Parked / Suspended sale can be saved and retrieved', () async {
       final product = (await dbService.getProducts()).first;
-      final cartItem = CartItem(product: product, quantity: 2, unitPrice: product.sellingPrice);
+      final cartItem = CartItem(
+          product: product, quantity: 2, unitPrice: product.sellingPrice);
 
       final parked = ParkedSale(
         customerName: 'Customer in line',
@@ -147,15 +154,18 @@ void main() {
       expect(id, greaterThan(0));
 
       final parkedList = await dbService.getParkedSales();
-      expect(parkedList.any((p) => p.customerName == 'Customer in line'), isTrue);
+      expect(
+          parkedList.any((p) => p.customerName == 'Customer in line'), isTrue);
 
-      final retrieved = parkedList.firstWhere((p) => p.customerName == 'Customer in line');
+      final retrieved =
+          parkedList.firstWhere((p) => p.customerName == 'Customer in line');
       final items = retrieved.getItems();
       expect(items.length, equals(1));
       expect(items.first.product.name, equals(product.name));
     });
 
-    test('Dashboard metrics aggregates sales, purchases, and expenses', () async {
+    test('Dashboard metrics aggregates sales, purchases, and expenses',
+        () async {
       final metrics = await dbService.getDashboardMetrics();
       expect(metrics.containsKey('totalSales'), isTrue);
       expect(metrics.containsKey('totalPurchases'), isTrue);

@@ -178,4 +178,3 @@ class ProductImageService {
     return false;
   }
 }
-

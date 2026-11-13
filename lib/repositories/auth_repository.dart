@@ -35,24 +35,35 @@ class AuthRepository extends BaseRepository {
       await db.update('users', map, where: 'id = ?', whereArgs: [existingId]);
       return existingId;
     }
-    final id = await db.insert('users', user.toMap(), conflictAlgorithm: ConflictAlgorithm.abort);
+    final id = await db.insert('users', user.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.abort);
     await recordActivity(
       action: 'created',
       entityType: 'user',
       entityId: id,
-      newValues: {'username': user.username, 'name': user.name, 'role': user.role},
+      newValues: {
+        'username': user.username,
+        'name': user.name,
+        'role': user.role
+      },
     );
     return id;
   }
 
   Future<void> updateUser(User user) async {
     if (user.id != null) {
-      await db.update('users', user.toMap(), where: 'id = ?', whereArgs: [user.id]);
+      await db
+          .update('users', user.toMap(), where: 'id = ?', whereArgs: [user.id]);
       await recordActivity(
         action: 'updated',
         entityType: 'user',
         entityId: user.id,
-        newValues: {'username': user.username, 'name': user.name, 'role': user.role, 'status': user.status},
+        newValues: {
+          'username': user.username,
+          'name': user.name,
+          'role': user.role,
+          'status': user.status
+        },
       );
     }
   }
@@ -116,7 +127,8 @@ class AuthRepository extends BaseRepository {
   Future<int> saveRole(AppRole role) async {
     final id = await db.transaction((txn) async {
       int roleId;
-      final normalizedName = role.name.trim().toLowerCase().replaceAll(' ', '_');
+      final normalizedName =
+          role.name.trim().toLowerCase().replaceAll(' ', '_');
       if (role.id != null) {
         await txn.update(
           'roles',
@@ -158,7 +170,8 @@ class AuthRepository extends BaseRepository {
         }
       }
 
-      await txn.delete('role_permissions', where: 'role_id = ?', whereArgs: [roleId]);
+      await txn.delete('role_permissions',
+          where: 'role_id = ?', whereArgs: [roleId]);
       for (final permKey in role.permissions.toSet()) {
         await txn.insert(
           'role_permissions',
@@ -182,9 +195,11 @@ class AuthRepository extends BaseRepository {
     return id;
   }
 
-  Future<void> setRolePermissions(int roleId, List<String> permissionKeys) async {
+  Future<void> setRolePermissions(
+      int roleId, List<String> permissionKeys) async {
     await db.transaction((txn) async {
-      await txn.delete('role_permissions', where: 'role_id = ?', whereArgs: [roleId]);
+      await txn.delete('role_permissions',
+          where: 'role_id = ?', whereArgs: [roleId]);
       for (final key in permissionKeys.toSet()) {
         await txn.insert(
           'role_permissions',
@@ -202,14 +217,17 @@ class AuthRepository extends BaseRepository {
   }
 
   Future<bool> deleteRole(int roleId) async {
-    final rows = await db.query('roles', where: 'id = ?', whereArgs: [roleId], limit: 1);
+    final rows =
+        await db.query('roles', where: 'id = ?', whereArgs: [roleId], limit: 1);
     if (rows.isEmpty) return false;
     if ((rows.first['is_system'] as int? ?? 0) == 1) {
       throw StateError('System default roles cannot be deleted.');
     }
-    await db.delete('role_permissions', where: 'role_id = ?', whereArgs: [roleId]);
+    await db
+        .delete('role_permissions', where: 'role_id = ?', whereArgs: [roleId]);
     await db.delete('roles', where: 'id = ?', whereArgs: [roleId]);
-    await recordActivity(action: 'deleted', entityType: 'role', entityId: roleId);
+    await recordActivity(
+        action: 'deleted', entityType: 'role', entityId: roleId);
     return true;
   }
 
@@ -221,7 +239,8 @@ class AuthRepository extends BaseRepository {
     final perms = <String>{};
     AppRole? dbRole;
     if (user.roleId != null) {
-      final rows = await db.query('roles', where: 'id = ?', whereArgs: [user.roleId], limit: 1);
+      final rows = await db.query('roles',
+          where: 'id = ?', whereArgs: [user.roleId], limit: 1);
       if (rows.isNotEmpty) {
         final list = await getRolePermissions(user.roleId!);
         dbRole = AppRole.fromMap(rows.first, permissions: list);
@@ -270,14 +289,13 @@ class AuthRepository extends BaseRepository {
   }) async {
     final activeUser = AuthService.currentUser;
     final resolvedUserId = userId ?? activeUser?.id;
-    final resolvedUserName =
-        (userName != null && userName.isNotEmpty)
-            ? userName
-            : (activeUser != null
-                ? (activeUser.name.isNotEmpty
-                    ? activeUser.name
-                    : activeUser.username)
-                : 'System');
+    final resolvedUserName = (userName != null && userName.isNotEmpty)
+        ? userName
+        : (activeUser != null
+            ? (activeUser.name.isNotEmpty
+                ? activeUser.name
+                : activeUser.username)
+            : 'System');
     final nowIso = DateTime.now().toIso8601String();
     final executor = txn ?? db;
 
@@ -312,7 +330,8 @@ class AuthRepository extends BaseRepository {
     }
     if (search != null && search.trim().isNotEmpty) {
       final q = '%${search.trim()}%';
-      conditions.add('(user_name LIKE ? OR entity_type LIKE ? OR new_values LIKE ? OR old_values LIKE ?)');
+      conditions.add(
+          '(user_name LIKE ? OR entity_type LIKE ? OR new_values LIKE ? OR old_values LIKE ?)');
       args.addAll([q, q, q, q]);
     }
 
@@ -352,7 +371,8 @@ class AuthRepository extends BaseRepository {
     return await db.insert('audit_logs', entry.toMap());
   }
 
-  Future<List<AuditLog>> getAuditLogs({int limit = 100, String? entityType}) async {
+  Future<List<AuditLog>> getAuditLogs(
+      {int limit = 100, String? entityType}) async {
     final where = entityType != null ? 'entity_type = ?' : null;
     final whereArgs = entityType != null ? [entityType] : null;
     final res = await db.query(

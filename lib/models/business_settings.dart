@@ -78,6 +78,7 @@ class BusinessSettings {
   final bool showSkuOnInvoice;
   final bool showWarrantyOnInvoice;
   final bool showTotalInWords;
+  final String primaryLanguage;
   final String totalInWordsLanguage;
   final bool enableSecondaryLanguage;
   final String secondaryLanguage;
@@ -176,6 +177,7 @@ class BusinessSettings {
     this.showSkuOnInvoice = true,
     this.showWarrantyOnInvoice = true,
     this.showTotalInWords = true,
+    this.primaryLanguage = 'en',
     this.totalInWordsLanguage = 'ur',
     this.enableSecondaryLanguage = false,
     this.secondaryLanguage = 'ur',
@@ -209,6 +211,27 @@ class BusinessSettings {
     }
     return '';
   }
+
+  /// Secondary language is ONLY allowed when Primary Language is English ('en')
+  bool get isSecondaryLanguageAllowed =>
+      primaryLanguage.toLowerCase().trim() == 'en';
+
+  /// Effective secondary language check: strictly requires primary to be 'en' and secondary enabled
+  bool get hasEffectiveSecondaryLanguage =>
+      isSecondaryLanguageAllowed &&
+      enableSecondaryLanguage &&
+      secondaryLanguage.trim().isNotEmpty &&
+      secondaryLanguage.toLowerCase().trim() != 'en';
+
+  /// Active primary language code (e.g. 'en', 'ur', 'fa', 'ar', 'ps')
+  String get activePrimaryLanguage => primaryLanguage.trim().isNotEmpty
+      ? primaryLanguage.toLowerCase().trim()
+      : 'en';
+
+  /// Effective secondary language code (null if primary is not 'en' or secondary disabled)
+  String? get effectiveSecondaryLanguage => hasEffectiveSecondaryLanguage
+      ? secondaryLanguage.toLowerCase().trim()
+      : null;
 
   bool get isHybridSync => syncMode == 'hybrid';
   bool get isOnlineOnly => syncMode == 'online';
@@ -626,6 +649,7 @@ class BusinessSettings {
     bool? showSkuOnInvoice,
     bool? showWarrantyOnInvoice,
     bool? showTotalInWords,
+    String? primaryLanguage,
     String? totalInWordsLanguage,
     bool? enableSecondaryLanguage,
     String? secondaryLanguage,
@@ -730,6 +754,7 @@ class BusinessSettings {
       showWarrantyOnInvoice:
           showWarrantyOnInvoice ?? this.showWarrantyOnInvoice,
       showTotalInWords: showTotalInWords ?? this.showTotalInWords,
+      primaryLanguage: primaryLanguage ?? this.primaryLanguage,
       totalInWordsLanguage: totalInWordsLanguage ?? this.totalInWordsLanguage,
       enableSecondaryLanguage:
           enableSecondaryLanguage ?? this.enableSecondaryLanguage,
@@ -838,6 +863,7 @@ class BusinessSettings {
         'show_sku_on_invoice': showSkuOnInvoice ? 1 : 0,
         'show_warranty_on_invoice': showWarrantyOnInvoice ? 1 : 0,
         'show_total_in_words': showTotalInWords ? 1 : 0,
+        'primary_language': primaryLanguage,
         'total_in_words_language': totalInWordsLanguage,
         'enable_secondary_language': enableSecondaryLanguage ? 1 : 0,
         'secondary_language': secondaryLanguage,
@@ -950,6 +976,7 @@ class BusinessSettings {
         showWarrantyOnInvoice:
             modelAsBool(map['show_warranty_on_invoice'], true),
         showTotalInWords: modelAsBool(map['show_total_in_words'], true),
+        primaryLanguage: modelAsString(map['primary_language'], 'en'),
         totalInWordsLanguage:
             modelAsString(map['total_in_words_language'], 'ur'),
         enableSecondaryLanguage:

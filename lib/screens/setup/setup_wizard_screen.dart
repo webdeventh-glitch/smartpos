@@ -11,6 +11,7 @@ import '../../services/mysql_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../services/currency_rate_service.dart';
 import '../../services/number_to_words_service.dart';
+import '../../services/localization_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class SetupWizardScreen extends StatefulWidget {
@@ -53,6 +54,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   String? _logoPath;
   String _timeZone = 'Asia/Karachi';
   CurrencyInfo? _selectedCurrency;
+  String _primaryLanguage = 'en';
   String _totalInWordsLanguage = 'ur';
   bool _enableSecondaryLanguage = false;
   String _secondaryLanguage = 'ur';
@@ -66,7 +68,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   BusinessSettings? _finalizedSettings;
 
   // Step 3: Network Topology & Hybrid Database Engine Controllers
-  String _deploymentMode = 'offline_server'; // 'offline_server', 'lan_secondary', 'cloud_hybrid'
+  String _deploymentMode =
+      'offline_server'; // 'offline_server', 'lan_secondary', 'cloud_hybrid'
   String _primaryDbType = 'mysql'; // 'mysql', 'postgresql', 'sqlite'
   late TextEditingController _serverPortCtrl;
   late TextEditingController _lanHostCtrl;
@@ -105,35 +108,65 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
     // Step 2 controllers
     _bizNameCtrl = TextEditingController(
-      text: widget.settings.businessName.isNotEmpty && widget.settings.businessName != 'Smart POS System'
+      text: widget.settings.businessName.isNotEmpty &&
+              widget.settings.businessName != 'Smart POS System'
           ? widget.settings.businessName
           : 'Smart POS Retail & Systems',
     );
     _branchCtrl = TextEditingController(
-      text: widget.settings.branchName.isNotEmpty ? widget.settings.branchName : 'Main Branch HQ',
+      text: widget.settings.branchName.isNotEmpty
+          ? widget.settings.branchName
+          : 'Main Branch HQ',
     );
-    _taxNumberCtrl = TextEditingController(text: widget.settings.taxNumber.isNotEmpty ? widget.settings.taxNumber : 'NTN-829104-5');
-    _phoneCtrl = TextEditingController(text: widget.settings.phone.isNotEmpty ? widget.settings.phone : '+92 300 1234567');
-    _emailCtrl = TextEditingController(text: widget.settings.email.isNotEmpty ? widget.settings.email : 'contact@smartpos.com');
+    _taxNumberCtrl = TextEditingController(
+        text: widget.settings.taxNumber.isNotEmpty
+            ? widget.settings.taxNumber
+            : 'NTN-829104-5');
+    _phoneCtrl = TextEditingController(
+        text: widget.settings.phone.isNotEmpty
+            ? widget.settings.phone
+            : '+92 300 1234567');
+    _emailCtrl = TextEditingController(
+        text: widget.settings.email.isNotEmpty
+            ? widget.settings.email
+            : 'contact@smartpos.com');
     _addressCtrl = TextEditingController(
-      text: widget.settings.address.isNotEmpty ? widget.settings.address : 'Commercial Plaza, Main Boulevard, Lahore',
+      text: widget.settings.address.isNotEmpty
+          ? widget.settings.address
+          : 'Commercial Plaza, Main Boulevard, Lahore',
     );
     _receiptFooterCtrl = TextEditingController(
       text: widget.settings.receiptFooter.isNotEmpty
           ? widget.settings.receiptFooter
           : 'Thank you for choosing Smart POS! Software Warranty & Hardware Guaranteed.',
     );
-    _currencySymCtrl = TextEditingController(text: widget.settings.currencySymbol.isNotEmpty ? widget.settings.currencySymbol : 'Rs');
-    _currencyCodeCtrl = TextEditingController(text: widget.settings.currencyCode.isNotEmpty ? widget.settings.currencyCode : 'PKR');
+    _currencySymCtrl = TextEditingController(
+        text: widget.settings.currencySymbol.isNotEmpty
+            ? widget.settings.currencySymbol
+            : 'Rs');
+    _currencyCodeCtrl = TextEditingController(
+        text: widget.settings.currencyCode.isNotEmpty
+            ? widget.settings.currencyCode
+            : 'PKR');
     _logoPath = widget.settings.logoPath;
-    _timeZone = widget.settings.timeZone.isNotEmpty ? widget.settings.timeZone : 'Asia/Karachi';
-    _selectedCurrency = RegionalDataService.findCurrency(_currencyCodeCtrl.text) ??
-        RegionalDataService.findCurrency('PKR');
+    _timeZone = widget.settings.timeZone.isNotEmpty
+        ? widget.settings.timeZone
+        : 'Asia/Karachi';
+    _selectedCurrency =
+        RegionalDataService.findCurrency(_currencyCodeCtrl.text) ??
+            RegionalDataService.findCurrency('PKR');
+    _primaryLanguage = widget.settings.primaryLanguage.isNotEmpty
+        ? widget.settings.primaryLanguage
+        : 'en';
     _totalInWordsLanguage = widget.settings.totalInWordsLanguage.isNotEmpty
         ? widget.settings.totalInWordsLanguage
-        : 'ur';
-    _enableSecondaryLanguage = widget.settings.enableSecondaryLanguage;
-    _secondaryLanguage = widget.settings.secondaryLanguage.isNotEmpty
+        : (_primaryLanguage == 'en' ? 'en' : _primaryLanguage);
+    // Secondary language is ONLY allowed when primary language is 'en'
+    _enableSecondaryLanguage = widget.settings.isSecondaryLanguageAllowed
+        ? widget.settings.enableSecondaryLanguage
+        : false;
+    _secondaryLanguage = (widget.settings.secondaryLanguage.isNotEmpty &&
+            widget.settings.secondaryLanguage != 'en')
         ? widget.settings.secondaryLanguage
         : 'ur';
 
@@ -142,29 +175,51 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     if (bType.isNotEmpty && allSupportedIndustries.any((i) => i.key == bType)) {
       _selectedPreset = bType;
     } else if (widget.settings.industryPresets.isNotEmpty) {
-      final p = widget.settings.industryPresets.split(',').first.trim().toLowerCase();
-      _selectedPreset = allSupportedIndustries.any((i) => i.key == p) ? p : 'universal';
+      final p =
+          widget.settings.industryPresets.split(',').first.trim().toLowerCase();
+      _selectedPreset =
+          allSupportedIndustries.any((i) => i.key == p) ? p : 'universal';
     } else {
       _selectedPreset = 'universal';
     }
 
     // Step 3 controllers
-    _deploymentMode = widget.settings.deploymentMode.isNotEmpty ? widget.settings.deploymentMode : 'offline_server';
-    _primaryDbType = widget.settings.primaryDbType.isNotEmpty ? widget.settings.primaryDbType : 'mysql';
-    _serverPortCtrl = TextEditingController(text: widget.settings.serverPort.toString());
-    _lanHostCtrl = TextEditingController(text: widget.settings.dbHost.isNotEmpty ? widget.settings.dbHost : 'localhost');
+    _deploymentMode = widget.settings.deploymentMode.isNotEmpty
+        ? widget.settings.deploymentMode
+        : 'offline_server';
+    _primaryDbType = widget.settings.primaryDbType.isNotEmpty
+        ? widget.settings.primaryDbType
+        : 'mysql';
+    _serverPortCtrl =
+        TextEditingController(text: widget.settings.serverPort.toString());
+    _lanHostCtrl = TextEditingController(
+        text: widget.settings.dbHost.isNotEmpty
+            ? widget.settings.dbHost
+            : 'localhost');
     final defaultDbPort = _primaryDbType == 'postgresql' ? 5432 : 3306;
-    _lanPortCtrl = TextEditingController(text: (widget.settings.dbPort > 0 ? widget.settings.dbPort : defaultDbPort).toString());
-    _lanDbNameCtrl = TextEditingController(text: widget.settings.dbName.isNotEmpty ? widget.settings.dbName : 'smartpos');
+    _lanPortCtrl = TextEditingController(
+        text: (widget.settings.dbPort > 0
+                ? widget.settings.dbPort
+                : defaultDbPort)
+            .toString());
+    _lanDbNameCtrl = TextEditingController(
+        text: widget.settings.dbName.isNotEmpty
+            ? widget.settings.dbName
+            : 'smartpos');
     _lanDbUserCtrl = TextEditingController(
-      text: widget.settings.dbUser.isNotEmpty ? widget.settings.dbUser : (_primaryDbType == 'postgresql' ? 'postgres' : 'root'),
+      text: widget.settings.dbUser.isNotEmpty
+          ? widget.settings.dbUser
+          : (_primaryDbType == 'postgresql' ? 'postgres' : 'root'),
     );
     _lanDbPassCtrl = TextEditingController(text: widget.settings.dbPassword);
     _cloudUrlCtrl = TextEditingController(
-      text: widget.settings.syncServerUrl.isNotEmpty ? widget.settings.syncServerUrl : 'http://localhost:8000/api',
+      text: widget.settings.syncServerUrl.isNotEmpty
+          ? widget.settings.syncServerUrl
+          : 'http://localhost:8000/api',
     );
     _cloudApiKeyCtrl = TextEditingController(text: widget.settings.syncApiKey);
-    _cloudBranchIdCtrl = TextEditingController(text: widget.settings.syncBranchId.toString());
+    _cloudBranchIdCtrl =
+        TextEditingController(text: widget.settings.syncBranchId.toString());
 
     // Step 4 controllers (no hardcoded default password/backdoor username)
     _adminNameCtrl = TextEditingController();
@@ -272,7 +327,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     setState(() => _isVerifyingLicense = true);
     try {
       final trialKey = QulopService.generateHardwareBoundKey(
-        clientName: _bizNameCtrl.text.trim().isNotEmpty ? _bizNameCtrl.text.trim() : 'Smart POS Evaluation',
+        clientName: _bizNameCtrl.text.trim().isNotEmpty
+            ? _bizNameCtrl.text.trim()
+            : 'Smart POS Evaluation',
         hardwareId: _hardwareId,
         tierCode: 'TRL',
       );
@@ -331,16 +388,24 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         setState(() {
           _isTestingConnection = false;
           _connectionSuccess = true;
-          _connectionTestResult = 'Local SQLite standalone active! Instant zero-latency offline POS ready.';
+          _connectionTestResult =
+              'Local SQLite standalone active! Instant zero-latency offline POS ready.';
         });
         return;
       }
 
-      final host = _lanHostCtrl.text.trim().isNotEmpty ? _lanHostCtrl.text.trim() : '127.0.0.1';
-      final port = int.tryParse(_lanPortCtrl.text.trim()) ?? (_primaryDbType == 'postgresql' ? 5432 : 3306);
-      final user = _lanDbUserCtrl.text.trim().isNotEmpty ? _lanDbUserCtrl.text.trim() : (_primaryDbType == 'postgresql' ? 'postgres' : 'root');
+      final host = _lanHostCtrl.text.trim().isNotEmpty
+          ? _lanHostCtrl.text.trim()
+          : '127.0.0.1';
+      final port = int.tryParse(_lanPortCtrl.text.trim()) ??
+          (_primaryDbType == 'postgresql' ? 5432 : 3306);
+      final user = _lanDbUserCtrl.text.trim().isNotEmpty
+          ? _lanDbUserCtrl.text.trim()
+          : (_primaryDbType == 'postgresql' ? 'postgres' : 'root');
       final pass = _lanDbPassCtrl.text;
-      final dbName = _lanDbNameCtrl.text.trim().isNotEmpty ? _lanDbNameCtrl.text.trim() : 'smartpos';
+      final dbName = _lanDbNameCtrl.text.trim().isNotEmpty
+          ? _lanDbNameCtrl.text.trim()
+          : 'smartpos';
 
       if (_primaryDbType == 'mysql') {
         final res = await MySqlService.testConnection(
@@ -370,21 +435,25 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
       final sw = Stopwatch()..start();
       try {
-        final socket = await Socket.connect(host, port, timeout: const Duration(seconds: 4));
+        final socket = await Socket.connect(host, port,
+            timeout: const Duration(seconds: 4));
         socket.destroy();
         sw.stop();
         setState(() {
           _isTestingConnection = false;
           _connectionSuccess = true;
-          _connectionTestResult = 'Connected to PostgreSQL Server at $host:$port (${sw.elapsedMilliseconds}ms)! Local SQLite offline sync buffer linked.';
+          _connectionTestResult =
+              'Connected to PostgreSQL Server at $host:$port (${sw.elapsedMilliseconds}ms)! Local SQLite offline sync buffer linked.';
         });
       } catch (e, st) {
         sw.stop();
-        AppLogger.warning('SetupWizard', 'PostgreSQL TCP probe failed at $host:$port', e, st);
+        AppLogger.warning(
+            'SetupWizard', 'PostgreSQL TCP probe failed at $host:$port', e, st);
         setState(() {
           _isTestingConnection = false;
           _connectionSuccess = false;
-          _connectionTestResult = 'Notice: PostgreSQL at $host:$port is currently offline. SQLite will capture sales locally and sync queued records automatically when online.';
+          _connectionTestResult =
+              'Notice: PostgreSQL at $host:$port is currently offline. SQLite will capture sales locally and sync queued records automatically when online.';
         });
       }
     } catch (e) {
@@ -490,7 +559,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     final adminUsername = _adminUserCtrl.text.trim();
     if (adminUsername.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Master Admin username cannot be empty.'), backgroundColor: Colors.redAccent),
+        const SnackBar(
+            content: Text('Master Admin username cannot be empty.'),
+            backgroundColor: Colors.redAccent),
       );
       return;
     }
@@ -506,14 +577,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     }
     if (pass != confirm) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match. Please re-enter.'), backgroundColor: Colors.redAccent),
+        const SnackBar(
+            content: Text('Passwords do not match. Please re-enter.'),
+            backgroundColor: Colors.redAccent),
       );
       return;
     }
 
     setState(() {
       _isSeeding = true;
-      _seedStatus = 'Securing environment & initializing Smart POS enterprise database...';
+      _seedStatus =
+          'Securing environment & initializing Smart POS enterprise database...';
     });
 
     try {
@@ -526,10 +600,18 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
       var updated = BusinessSettings(
         id: widget.settings.id,
-        businessName: _bizNameCtrl.text.trim().isNotEmpty ? _bizNameCtrl.text.trim() : 'Smart POS Enterprise',
-        branchName: _branchCtrl.text.trim().isNotEmpty ? _branchCtrl.text.trim() : 'Main Branch HQ',
-        currencySymbol: _currencySymCtrl.text.trim().isNotEmpty ? _currencySymCtrl.text.trim() : 'Rs',
-        currencyCode: _currencyCodeCtrl.text.trim().isNotEmpty ? _currencyCodeCtrl.text.trim() : 'PKR',
+        businessName: _bizNameCtrl.text.trim().isNotEmpty
+            ? _bizNameCtrl.text.trim()
+            : 'Smart POS Enterprise',
+        branchName: _branchCtrl.text.trim().isNotEmpty
+            ? _branchCtrl.text.trim()
+            : 'Main Branch HQ',
+        currencySymbol: _currencySymCtrl.text.trim().isNotEmpty
+            ? _currencySymCtrl.text.trim()
+            : 'Rs',
+        currencyCode: _currencyCodeCtrl.text.trim().isNotEmpty
+            ? _currencyCodeCtrl.text.trim()
+            : 'PKR',
         phone: _phoneCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
         address: _addressCtrl.text.trim(),
@@ -541,13 +623,22 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         industryPresets: _selectedPresets.join(','),
         enabledModules: enabledModsList.join(','),
         deploymentMode: _deploymentMode,
-        serverHost: _deploymentMode == 'lan_secondary' ? effectiveDbHost : '127.0.0.1',
-        serverPort: int.tryParse(_deploymentMode == 'lan_secondary' ? _lanPortCtrl.text.trim() : _serverPortCtrl.text.trim()) ?? 8080,
+        serverHost:
+            _deploymentMode == 'lan_secondary' ? effectiveDbHost : '127.0.0.1',
+        serverPort: int.tryParse(_deploymentMode == 'lan_secondary'
+                ? _lanPortCtrl.text.trim()
+                : _serverPortCtrl.text.trim()) ??
+            8080,
         primaryDbType: _primaryDbType,
         dbHost: effectiveDbHost,
-        dbPort: int.tryParse(_lanPortCtrl.text.trim()) ?? (_primaryDbType == 'postgresql' ? 5432 : 3306),
-        dbName: _lanDbNameCtrl.text.trim().isNotEmpty ? _lanDbNameCtrl.text.trim() : 'smartpos',
-        dbUser: _lanDbUserCtrl.text.trim().isNotEmpty ? _lanDbUserCtrl.text.trim() : (_primaryDbType == 'postgresql' ? 'postgres' : 'root'),
+        dbPort: int.tryParse(_lanPortCtrl.text.trim()) ??
+            (_primaryDbType == 'postgresql' ? 5432 : 3306),
+        dbName: _lanDbNameCtrl.text.trim().isNotEmpty
+            ? _lanDbNameCtrl.text.trim()
+            : 'smartpos',
+        dbUser: _lanDbUserCtrl.text.trim().isNotEmpty
+            ? _lanDbUserCtrl.text.trim()
+            : (_primaryDbType == 'postgresql' ? 'postgres' : 'root'),
         dbPassword: _lanDbPassCtrl.text,
         syncMode: _deploymentMode == 'cloud_hybrid' ? 'hybrid' : 'offline',
         syncServerUrl: _cloudUrlCtrl.text.trim(),
@@ -558,15 +649,21 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         isConfigured: true,
         multiCurrencyEnabled: true,
         showTotalInWords: true,
+        primaryLanguage: _primaryLanguage,
         totalInWordsLanguage: _totalInWordsLanguage,
-        enableSecondaryLanguage: _enableSecondaryLanguage,
+        enableSecondaryLanguage:
+            _primaryLanguage == 'en' ? _enableSecondaryLanguage : false,
         secondaryLanguage: _secondaryLanguage,
         exchangeRatesJson: CurrencyRateService.encodeRatesJson(
-          CurrencyRateService.defaultRatesForBase(_currencyCodeCtrl.text.trim().isNotEmpty ? _currencyCodeCtrl.text.trim() : 'PKR'),
+          CurrencyRateService.defaultRatesForBase(
+              _currencyCodeCtrl.text.trim().isNotEmpty
+                  ? _currencyCodeCtrl.text.trim()
+                  : 'PKR'),
         ),
       );
 
-      setState(() => _seedStatus = 'Writing system configuration and hardware profile...');
+      setState(() =>
+          _seedStatus = 'Writing system configuration and hardware profile...');
       final db = await DatabaseService.initialize();
       await db.updateBusinessSettings(updated);
 
@@ -578,7 +675,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         if (!hadSuperAdmin) {
           for (final existing in existingUsers) {
             if (existing.id != null &&
-                existing.username.toLowerCase() != adminUsername.toLowerCase()) {
+                existing.username.toLowerCase() !=
+                    adminUsername.toLowerCase()) {
               await db.deleteUser(existing.id!);
             }
           }
@@ -586,7 +684,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       }
       final hashedPassword = AuthService.hashPassword(pass);
       final adminUser = User(
-        name: _adminNameCtrl.text.trim().isNotEmpty ? _adminNameCtrl.text.trim() : 'Super Administrator',
+        name: _adminNameCtrl.text.trim().isNotEmpty
+            ? _adminNameCtrl.text.trim()
+            : 'Super Administrator',
         username: adminUsername,
         password: hashedPassword,
         email: _adminEmailCtrl.text.trim(),
@@ -619,7 +719,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           entityType: 'settings',
           entityId: '1',
           userName: adminUser.username,
-          details: 'Smart POS initial installation wizard completed. Presets: ${_selectedPresets.join(", ")}.',
+          details:
+              'Smart POS initial installation wizard completed. Presets: ${_selectedPresets.join(", ")}.',
         );
       } catch (e) {
         debugPrint('Audit logging notice: $e');
@@ -629,13 +730,15 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
       // 1. Seed initial data into local SQLite first if sample catalog requested
       if (_seedSampleData) {
-        setState(() => _seedStatus = 'Seeding starter commercial catalog for "$primaryType" into local database...');
+        setState(() => _seedStatus =
+            'Seeding starter commercial catalog for "$primaryType" into local database...');
         await db.seedInitialDataForBusinessType(businessType: primaryType);
       }
 
       // 2. Provision MySQL enterprise schema and mirror catalog if MySQL is selected
       if (_primaryDbType == 'mysql') {
-        setState(() => _seedStatus = 'Provisioning MySQL database "${updated.dbName}" on ${updated.dbHost}:${updated.dbPort}...');
+        setState(() => _seedStatus =
+            'Provisioning MySQL database "${updated.dbName}" on ${updated.dbHost}:${updated.dbPort}...');
         final mySqlRes = await MySqlService.initializeDatabaseAndTables(
           host: updated.dbHost,
           port: updated.dbPort,
@@ -647,16 +750,20 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         );
 
         if (mySqlRes['success'] != true) {
-          if (!mounted) throw Exception(mySqlRes['message'] ?? 'Failed to initialize MySQL schema.');
-          
+          if (!mounted)
+            throw Exception(
+                mySqlRes['message'] ?? 'Failed to initialize MySQL schema.');
+
           final useSqliteFallback = await showDialog<bool>(
             context: context,
             barrierDismissible: false,
             builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
               title: const Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+                  Icon(Icons.warning_amber_rounded,
+                      color: Colors.amber, size: 28),
                   SizedBox(width: 10),
                   Text('MySQL Connection Notice'),
                 ],
@@ -666,7 +773,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    mySqlRes['message']?.toString() ?? 'Unable to connect to MySQL database server.',
+                    mySqlRes['message']?.toString() ??
+                        'Unable to connect to MySQL database server.',
                     style: const TextStyle(fontSize: 13, color: Colors.black87),
                   ),
                   const SizedBox(height: 16),
@@ -679,7 +787,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     ),
                     child: const Text(
                       'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF065F46), height: 1.4),
+                      style: TextStyle(
+                          fontSize: 12, color: Color(0xFF065F46), height: 1.4),
                     ),
                   ),
                 ],
@@ -693,8 +802,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF10B981),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () => Navigator.pop(ctx, true),
                   icon: const Icon(Icons.rocket_launch_rounded, size: 16),
@@ -706,10 +817,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
           if (useSqliteFallback == true) {
             _primaryDbType = 'sqlite';
-            finalized = updated.copyWith(primaryDbType: 'sqlite', isConfigured: true);
+            finalized =
+                updated.copyWith(primaryDbType: 'sqlite', isConfigured: true);
             await db.updateBusinessSettings(finalized);
           } else {
-            throw Exception(mySqlRes['message'] ?? 'Failed to initialize MySQL schema.');
+            throw Exception(
+                mySqlRes['message'] ?? 'Failed to initialize MySQL schema.');
           }
         } else {
           // MySQL provisioned successfully!
@@ -730,7 +843,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           }
           // Push starter catalog (products, categories, brands, units, contacts) to MySQL
           if (_seedSampleData) {
-            setState(() => _seedStatus = 'Synchronizing starter commercial catalog into MySQL tables...');
+            setState(() => _seedStatus =
+                'Synchronizing starter commercial catalog into MySQL tables...');
             await MySqlService.syncAllLocalCatalogToMySql(
               settings: updated,
               localDb: db,
@@ -772,7 +886,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     title: const Text('Installation Error'),
                     content: SingleChildScrollView(child: Text('$e\n\n$stack')),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+                      TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Close')),
                     ],
                   ),
                 );
@@ -790,7 +906,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       if (_licenseStatus == null || !_licenseStatus!.isValid) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('A verified License Key or Active Free Trial is required to proceed.'),
+            content: Text(
+                'A verified License Key or Active Free Trial is required to proceed.'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -810,7 +927,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       if (_selectedPresets.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please select at least one Business Industry Preset.'),
+            content:
+                Text('Please select at least one Business Industry Preset.'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -818,10 +936,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       }
     } else if (_currentStep == 2) {
       // Step 3: Validate network inputs
-      if (_deploymentMode == 'lan_secondary' && _lanHostCtrl.text.trim().isEmpty) {
+      if (_deploymentMode == 'lan_secondary' &&
+          _lanHostCtrl.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please provide Primary Server IP for LAN terminal mode.'),
+            content:
+                Text('Please provide Primary Server IP for LAN terminal mode.'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -843,7 +963,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+      backgroundColor:
+          isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -860,12 +981,22 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 880),
                   width: double.infinity,
-                  padding: EdgeInsets.all(_isMobile ? 12 : (_isNarrow ? 16 : (_isCompact ? 20 : 28))),
+                  padding: EdgeInsets.all(_isMobile
+                      ? 12
+                      : (_isNarrow ? 16 : (_isCompact ? 20 : 28))),
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1E293B) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 28, offset: Offset(0, 10))],
+                    border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0)),
+                    boxShadow: const [
+                      BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 28,
+                          offset: Offset(0, 10))
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -878,16 +1009,21 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             height: _isMobile ? 44 : 52,
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(14),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF4F46E5).withValues(alpha: 0.18),
+                                  color: const Color(0xFF4F46E5)
+                                      .withValues(alpha: 0.18),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
-                              border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.25)),
+                              border: Border.all(
+                                  color: const Color(0xFF4F46E5)
+                                      .withValues(alpha: 0.25)),
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(10),
@@ -909,17 +1045,23 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                       style: TextStyle(
                                         fontSize: _isMobile ? 18 : 22,
                                         fontWeight: FontWeight.w900,
-                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A),
                                         letterSpacing: -0.5,
                                       ),
                                     ),
                                     const SizedBox(width: 10),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF4F46E5).withValues(alpha: 0.15),
+                                        color: const Color(0xFF4F46E5)
+                                            .withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.3)),
+                                        border: Border.all(
+                                            color: const Color(0xFF4F46E5)
+                                                .withValues(alpha: 0.3)),
                                       ),
                                       child: const Text(
                                         'ENTERPRISE v2026',
@@ -935,7 +1077,11 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   'Multi-Industry Commercial POS Ecosystem — Guided System Installation',
-                                  style: TextStyle(fontSize: _isMobile ? 11 : 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                  style: TextStyle(
+                                      fontSize: _isMobile ? 11 : 12,
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF64748B)),
                                 ),
                               ],
                             ),
@@ -950,17 +1096,21 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           children: [
                             Row(
                               children: [
-                                _stepPill(0, '1. License Lock', Icons.verified_user_rounded, isDark),
+                                _stepPill(0, '1. License Lock',
+                                    Icons.verified_user_rounded, isDark),
                                 const SizedBox(width: 8),
-                                _stepPill(1, '2. Business & Presets', Icons.storefront_rounded, isDark),
+                                _stepPill(1, '2. Business & Presets',
+                                    Icons.storefront_rounded, isDark),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                _stepPill(2, '3. Topology & DB', Icons.hub_rounded, isDark),
+                                _stepPill(2, '3. Topology & DB',
+                                    Icons.hub_rounded, isDark),
                                 const SizedBox(width: 8),
-                                _stepPill(3, '4. Master Admin', Icons.admin_panel_settings_rounded, isDark),
+                                _stepPill(3, '4. Master Admin',
+                                    Icons.admin_panel_settings_rounded, isDark),
                               ],
                             ),
                           ],
@@ -968,104 +1118,132 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       else
                         Row(
                           children: [
-                            _stepPill(0, '1. License Lock', Icons.verified_user_rounded, isDark),
+                            _stepPill(0, '1. License Lock',
+                                Icons.verified_user_rounded, isDark),
                             const SizedBox(width: 8),
-                            _stepPill(1, '2. Business & Presets', Icons.storefront_rounded, isDark),
+                            _stepPill(1, '2. Business & Presets',
+                                Icons.storefront_rounded, isDark),
                             const SizedBox(width: 8),
-                            _stepPill(2, '3. Topology & DB', Icons.hub_rounded, isDark),
+                            _stepPill(2, '3. Topology & DB', Icons.hub_rounded,
+                                isDark),
                             const SizedBox(width: 8),
-                            _stepPill(3, '4. Master Admin', Icons.admin_panel_settings_rounded, isDark),
+                            _stepPill(3, '4. Master Admin',
+                                Icons.admin_panel_settings_rounded, isDark),
                           ],
                         ),
                       const Divider(height: 32),
 
-                // Step Content Body
-                if (_isSeeding) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 48),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(
-                            width: 52,
-                            height: 52,
-                            child: CircularProgressIndicator(color: Color(0xFF4F46E5), strokeWidth: 4),
+                      // Step Content Body
+                      if (_isSeeding) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 48),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(
+                                  width: 52,
+                                  height: 52,
+                                  child: CircularProgressIndicator(
+                                      color: Color(0xFF4F46E5), strokeWidth: 4),
+                                ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  _seedStatus,
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF0F172A)),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _primaryDbType == 'mysql'
+                                      ? 'Please wait, enterprise MySQL configuration & table provisioning in progress...'
+                                      : 'Please wait, high-speed database transaction in progress...',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 24),
-                          Text(
-                            _seedStatus,
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _primaryDbType == 'mysql'
-                                ? 'Please wait, enterprise MySQL configuration & table provisioning in progress...'
-                                : 'Please wait, high-speed database transaction in progress...',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ] else if (_isInstallationComplete) ...[
-                  _buildInstallationCompleteScreen(isDark),
-                ] else if (_currentStep == 0) ...[
-                  _buildStep1License(isDark),
-                ] else if (_currentStep == 1) ...[
-                  _buildStep2BusinessProfile(isDark),
-                ] else if (_currentStep == 2) ...[
-                  _buildStep3Topology(isDark),
-                ] else ...[
-                  _buildStep4Admin(isDark),
-                ],
+                        ),
+                      ] else if (_isInstallationComplete) ...[
+                        _buildInstallationCompleteScreen(isDark),
+                      ] else if (_currentStep == 0) ...[
+                        _buildStep1License(isDark),
+                      ] else if (_currentStep == 1) ...[
+                        _buildStep2BusinessProfile(isDark),
+                      ] else if (_currentStep == 2) ...[
+                        _buildStep3Topology(isDark),
+                      ] else ...[
+                        _buildStep4Admin(isDark),
+                      ],
 
-                // Bottom Action Buttons
-                if (!_isSeeding && !_isInstallationComplete) ...[
-                  Divider(height: _isCompact ? 22 : 36),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (_currentStep > 0)
-                        OutlinedButton.icon(
-                          onPressed: _prevStep,
-                          icon: Icon(Icons.arrow_back, size: _isCompact ? 14 : 16),
-                          label: Text(_translateLabel('Back')),
-                          style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: _isCompact ? 14 : 20, vertical: _isCompact ? 10 : 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                        )
-                      else
-                        const SizedBox.shrink(),
-                      ElevatedButton.icon(
-                        onPressed: _currentStep == 3 ? _completeInstallation : _nextStep,
-                        icon: Icon(_currentStep == 3 ? Icons.rocket_launch_rounded : Icons.arrow_forward, size: _isCompact ? 16 : 18),
-                        label: Text(
-                          _translateLabel(_currentStep == 3 ? 'Complete Installation & Launch' : 'Continue to Next Step'),
-                          style: TextStyle(fontSize: _isCompact ? 12 : 14, fontWeight: FontWeight.bold),
+                      // Bottom Action Buttons
+                      if (!_isSeeding && !_isInstallationComplete) ...[
+                        Divider(height: _isCompact ? 22 : 36),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            if (_currentStep > 0)
+                              OutlinedButton.icon(
+                                onPressed: _prevStep,
+                                icon: Icon(Icons.arrow_back,
+                                    size: _isCompact ? 14 : 16),
+                                label: Text(_translateLabel('Back')),
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: _isCompact ? 14 : 20,
+                                      vertical: _isCompact ? 10 : 14),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                ),
+                              )
+                            else
+                              const SizedBox.shrink(),
+                            ElevatedButton.icon(
+                              onPressed: _currentStep == 3
+                                  ? _completeInstallation
+                                  : _nextStep,
+                              icon: Icon(
+                                  _currentStep == 3
+                                      ? Icons.rocket_launch_rounded
+                                      : Icons.arrow_forward,
+                                  size: _isCompact ? 16 : 18),
+                              label: Text(
+                                _translateLabel(_currentStep == 3
+                                    ? 'Complete Installation & Launch'
+                                    : 'Continue to Next Step'),
+                                style: TextStyle(
+                                    fontSize: _isCompact ? 12 : 14,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF4F46E5),
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: _isCompact ? 18 : 28,
+                                    vertical: _isCompact ? 10 : 14),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                                elevation: 2,
+                              ),
+                            ),
+                          ],
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4F46E5),
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(horizontal: _isCompact ? 18 : 28, vertical: _isCompact ? 10 : 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          elevation: 2,
-                        ),
-                      ),
+                      ],
                     ],
                   ),
-                ],
-              ],
-            ),
-          ),
+                ),
+              ),
+            );
+          },
         ),
-      );
-    },
-  ),
-),
-);
+      ),
+    );
   }
 
   // ================= STEP 1: Hardware-Bound License Activation =================
@@ -1077,12 +1255,16 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.security_rounded, color: Color(0xFF4F46E5), size: 20),
+            const Icon(Icons.security_rounded,
+                color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Step 1: Machine Hardware-Bound License Activation',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
               ),
             ),
           ],
@@ -1090,7 +1272,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         const SizedBox(height: 6),
         Text(
           'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine\'s Motherboard / MAC ID.',
-          style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          style: TextStyle(
+              fontSize: 13,
+              color:
+                  isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
         ),
         const SizedBox(height: 20),
 
@@ -1100,7 +1285,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            border: Border.all(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           ),
           child: Row(
             children: [
@@ -1110,22 +1297,33 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.fingerprint_rounded, color: Color(0xFF4F46E5), size: 28),
+                child: const Icon(Icons.fingerprint_rounded,
+                    color: Color(0xFF4F46E5), size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Detected Host Machine Hardware ID (HWID):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+                    const Text('Detected Host Machine Hardware ID (HWID):',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey)),
                     const SizedBox(height: 4),
                     SelectableText(
                       _hardwareId,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2, fontFamily: 'monospace'),
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                          fontFamily: 'monospace'),
                     ),
                     if (_macAddress.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text('Physical MAC: $_macAddress', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text('Physical MAC: $_macAddress',
+                          style: const TextStyle(
+                              fontSize: 11, color: Colors.grey)),
                     ],
                   ],
                 ),
@@ -1135,8 +1333,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 icon: const Icon(Icons.copy_rounded, size: 16),
                 label: const Text('Copy HWID'),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],
@@ -1157,25 +1357,35 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   hintText: 'e.g. QULOP-LFT-XXXX-XXXX or SPOS-YRL-...',
                   prefixIcon: const Icon(Icons.key_rounded, size: 20),
                   isDense: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 onChanged: (_) {
-                  if (_licenseError != null) setState(() => _licenseError = null);
+                  if (_licenseError != null)
+                    setState(() => _licenseError = null);
                 },
               ),
             ),
             const SizedBox(width: 12),
             ElevatedButton.icon(
-              onPressed: _isVerifyingLicense ? null : () => _verifyLicenseKey(_licenseKeyCtrl.text),
+              onPressed: _isVerifyingLicense
+                  ? null
+                  : () => _verifyLicenseKey(_licenseKeyCtrl.text),
               icon: _isVerifyingLicense
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.verified_rounded, size: 18),
               label: const Text('Verify & Activate'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ],
@@ -1193,14 +1403,20 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             children: [
               TextButton.icon(
                 onPressed: _isVerifyingLicense ? null : _activateTrialKey,
-                icon: const Icon(Icons.auto_awesome, color: Color(0xFF4F46E5), size: 18),
-                label: const Text('Activate Instant 30-Day Free Trial (Hardware Bound)'),
+                icon: const Icon(Icons.auto_awesome,
+                    color: Color(0xFF4F46E5), size: 18),
+                label: const Text(
+                    'Activate Instant 30-Day Free Trial (Hardware Bound)'),
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFF4F46E5),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
               ),
-              Text('No internet required for activation', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey : const Color(0xFF64748B))),
+              Text('No internet required for activation',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.grey : const Color(0xFF64748B))),
             ],
           ),
         ),
@@ -1213,16 +1429,21 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             decoration: BoxDecoration(
               color: Colors.redAccent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+              border:
+                  Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 22),
+                const Icon(Icons.error_outline_rounded,
+                    color: Colors.redAccent, size: 22),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     _licenseError!,
-                    style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -1234,11 +1455,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF10B981).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+              border: Border.all(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.4)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 32),
+                const Icon(Icons.check_circle_rounded,
+                    color: Color(0xFF10B981), size: 32),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -1248,28 +1471,41 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         children: [
                           Text(
                             _licenseStatus!.tierLabel,
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                            style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF10B981)),
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: const Color(0xFF10B981),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text('HARDWARE BOUND', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            child: const Text('HARDWARE BOUND',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Licensed to: ${_licenseStatus!.clientName ?? "Registered Customer"} • ${_licenseStatus!.remainingDays} days remaining',
-                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : const Color(0xFF334155)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: isDark
+                                ? Colors.white70
+                                : const Color(0xFF334155)),
                       ),
                       if (_licenseStatus!.expiryDate != null)
                         Text(
                           'Valid until: ${_licenseStatus!.expiryDate!.toIso8601String().split("T").first}',
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          style:
+                              const TextStyle(fontSize: 11, color: Colors.grey),
                         ),
                     ],
                   ),
@@ -1289,18 +1525,25 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.storefront_rounded, color: Color(0xFF4F46E5), size: 20),
+            const Icon(Icons.storefront_rounded,
+                color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
             Text(
               'Step 2: Business Profile & Industry Workflows',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A)),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
           'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).',
-          style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          style: TextStyle(
+              fontSize: 13,
+              color:
+                  isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
         ),
         const SizedBox(height: 20),
 
@@ -1317,13 +1560,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   width: 140,
                   height: 125,
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                    color: isDark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0),
                     ),
                   ),
-                  child: (_logoPath != null && _logoPath!.isNotEmpty && File(_logoPath!).existsSync())
+                  child: (_logoPath != null &&
+                          _logoPath!.isNotEmpty &&
+                          File(_logoPath!).existsSync())
                       ? Stack(
                           alignment: Alignment.center,
                           children: [
@@ -1350,7 +1599,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                     color: Colors.redAccent,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                  child: const Icon(Icons.close,
+                                      size: 14, color: Colors.white),
                                 ),
                               ),
                             ),
@@ -1358,7 +1608,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         )
                       : InkWell(
                           onTap: () async {
-                            final picked = await NativeFileHelper.pickBusinessLogo();
+                            final picked =
+                                await NativeFileHelper.pickBusinessLogo();
                             if (picked != null) {
                               setState(() => _logoPath = picked);
                             }
@@ -1368,7 +1619,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.add_photo_alternate_outlined,
-                                  size: 36, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                                  size: 36,
+                                  color: isDark
+                                      ? const Color(0xFF64748B)
+                                      : const Color(0xFF94A3B8)),
                               const SizedBox(height: 6),
                               const Text(
                                 'Upload Logo',
@@ -1382,14 +1636,18 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                 'PNG, JPG, WEBP',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                                  color: isDark
+                                      ? const Color(0xFF64748B)
+                                      : const Color(0xFF94A3B8),
                                 ),
                               ),
                             ],
                           ),
                         ),
                 ),
-                if (_logoPath != null && _logoPath!.isNotEmpty && File(_logoPath!).existsSync()) ...[
+                if (_logoPath != null &&
+                    _logoPath!.isNotEmpty &&
+                    File(_logoPath!).existsSync()) ...[
                   const SizedBox(height: 4),
                   TextButton.icon(
                     onPressed: () async {
@@ -1424,7 +1682,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             _fieldLabel('Business / Store Name *', isDark),
                             TextFormField(
                               controller: _bizNameCtrl,
-                              decoration: const InputDecoration(hintText: 'e.g. Al-Madina Super Store & Electronics', isDense: true),
+                              decoration: const InputDecoration(
+                                  hintText:
+                                      'e.g. Al-Madina Super Store & Electronics',
+                                  isDense: true),
                             ),
                           ],
                         ),
@@ -1438,7 +1699,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             _fieldLabel('Branch / Outlet', isDark),
                             TextFormField(
                               controller: _branchCtrl,
-                              decoration: const InputDecoration(hintText: 'e.g. Main Branch HQ', isDense: true),
+                              decoration: const InputDecoration(
+                                  hintText: 'e.g. Main Branch HQ',
+                                  isDense: true),
                             ),
                           ],
                         ),
@@ -1455,7 +1718,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             _fieldLabel('NTN / Tax ID', isDark),
                             TextFormField(
                               controller: _taxNumberCtrl,
-                              decoration: const InputDecoration(hintText: 'e.g. NTN: 948102-1', isDense: true),
+                              decoration: const InputDecoration(
+                                  hintText: 'e.g. NTN: 948102-1',
+                                  isDense: true),
                             ),
                           ],
                         ),
@@ -1468,7 +1733,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             _fieldLabel('Contact Phone', isDark),
                             TextFormField(
                               controller: _phoneCtrl,
-                              decoration: const InputDecoration(hintText: '+92 300 1234567', isDense: true),
+                              decoration: const InputDecoration(
+                                  hintText: '+92 300 1234567', isDense: true),
                             ),
                           ],
                         ),
@@ -1488,10 +1754,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           runSpacing: 8,
           children: [
             ActionChip(
-              avatar: const FaIcon(FontAwesomeIcons.coins, size: 11, color: Color(0xFF4F46E5)),
-              label: const Text('Pakistani Rupee (PKR / Rs)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              backgroundColor: _currencyCodeCtrl.text == 'PKR' ? const Color(0xFFEEF2FF) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-              side: BorderSide(color: _currencyCodeCtrl.text == 'PKR' ? const Color(0xFF4F46E5) : Colors.transparent),
+              avatar: const FaIcon(FontAwesomeIcons.coins,
+                  size: 11, color: Color(0xFF4F46E5)),
+              label: const Text('Pakistani Rupee (PKR / Rs)',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'PKR'
+                  ? const Color(0xFFEEF2FF)
+                  : (isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF1F5F9)),
+              side: BorderSide(
+                  color: _currencyCodeCtrl.text == 'PKR'
+                      ? const Color(0xFF4F46E5)
+                      : Colors.transparent),
               onPressed: () {
                 setState(() {
                   _currencySymCtrl.text = 'Rs';
@@ -1501,10 +1776,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               },
             ),
             ActionChip(
-              avatar: const FaIcon(FontAwesomeIcons.coins, size: 11, color: Color(0xFFD97706)),
-              label: const Text('Saudi Riyal (SAR)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              backgroundColor: _currencyCodeCtrl.text == 'SAR' ? const Color(0xFFFEF3C7) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-              side: BorderSide(color: _currencyCodeCtrl.text == 'SAR' ? const Color(0xFFD97706) : Colors.transparent),
+              avatar: const FaIcon(FontAwesomeIcons.coins,
+                  size: 11, color: Color(0xFFD97706)),
+              label: const Text('Saudi Riyal (SAR)',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'SAR'
+                  ? const Color(0xFFFEF3C7)
+                  : (isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF1F5F9)),
+              side: BorderSide(
+                  color: _currencyCodeCtrl.text == 'SAR'
+                      ? const Color(0xFFD97706)
+                      : Colors.transparent),
               onPressed: () {
                 setState(() {
                   _currencySymCtrl.text = 'SAR';
@@ -1514,10 +1798,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               },
             ),
             ActionChip(
-              avatar: const FaIcon(FontAwesomeIcons.coins, size: 11, color: Color(0xFF0284C7)),
-              label: const Text('UAE Dirham (AED)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              backgroundColor: _currencyCodeCtrl.text == 'AED' ? const Color(0xFFE0F2FE) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-              side: BorderSide(color: _currencyCodeCtrl.text == 'AED' ? const Color(0xFF0284C7) : Colors.transparent),
+              avatar: const FaIcon(FontAwesomeIcons.coins,
+                  size: 11, color: Color(0xFF0284C7)),
+              label: const Text('UAE Dirham (AED)',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'AED'
+                  ? const Color(0xFFE0F2FE)
+                  : (isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF1F5F9)),
+              side: BorderSide(
+                  color: _currencyCodeCtrl.text == 'AED'
+                      ? const Color(0xFF0284C7)
+                      : Colors.transparent),
               onPressed: () {
                 setState(() {
                   _currencySymCtrl.text = 'AED';
@@ -1527,10 +1820,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               },
             ),
             ActionChip(
-              avatar: const FaIcon(FontAwesomeIcons.dollarSign, size: 11, color: Color(0xFF10B981)),
-              label: const Text('US Dollar (USD / \$)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              backgroundColor: _currencyCodeCtrl.text == 'USD' ? const Color(0xFFD1FAE5) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-              side: BorderSide(color: _currencyCodeCtrl.text == 'USD' ? const Color(0xFF10B981) : Colors.transparent),
+              avatar: const FaIcon(FontAwesomeIcons.dollarSign,
+                  size: 11, color: Color(0xFF10B981)),
+              label: const Text('US Dollar (USD / \$)',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'USD'
+                  ? const Color(0xFFD1FAE5)
+                  : (isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF1F5F9)),
+              side: BorderSide(
+                  color: _currencyCodeCtrl.text == 'USD'
+                      ? const Color(0xFF10B981)
+                      : Colors.transparent),
               onPressed: () {
                 setState(() {
                   _currencySymCtrl.text = '\$';
@@ -1540,10 +1842,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               },
             ),
             ActionChip(
-              avatar: const FaIcon(FontAwesomeIcons.sterlingSign, size: 11, color: Color(0xFF7C3AED)),
-              label: const Text('British Pound (GBP / £)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              backgroundColor: _currencyCodeCtrl.text == 'GBP' ? const Color(0xFFEDE9FE) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-              side: BorderSide(color: _currencyCodeCtrl.text == 'GBP' ? const Color(0xFF7C3AED) : Colors.transparent),
+              avatar: const FaIcon(FontAwesomeIcons.sterlingSign,
+                  size: 11, color: Color(0xFF7C3AED)),
+              label: const Text('British Pound (GBP / £)',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'GBP'
+                  ? const Color(0xFFEDE9FE)
+                  : (isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF1F5F9)),
+              side: BorderSide(
+                  color: _currencyCodeCtrl.text == 'GBP'
+                      ? const Color(0xFF7C3AED)
+                      : Colors.transparent),
               onPressed: () {
                 setState(() {
                   _currencySymCtrl.text = '£';
@@ -1553,10 +1864,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               },
             ),
             ActionChip(
-              avatar: const FaIcon(FontAwesomeIcons.euroSign, size: 11, color: Color(0xFF0D9488)),
-              label: const Text('Euro (EUR / €)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              backgroundColor: _currencyCodeCtrl.text == 'EUR' ? const Color(0xFFCCFBF1) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-              side: BorderSide(color: _currencyCodeCtrl.text == 'EUR' ? const Color(0xFF0D9488) : Colors.transparent),
+              avatar: const FaIcon(FontAwesomeIcons.euroSign,
+                  size: 11, color: Color(0xFF0D9488)),
+              label: const Text('Euro (EUR / €)',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              backgroundColor: _currencyCodeCtrl.text == 'EUR'
+                  ? const Color(0xFFCCFBF1)
+                  : (isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF1F5F9)),
+              side: BorderSide(
+                  color: _currencyCodeCtrl.text == 'EUR'
+                      ? const Color(0xFF0D9488)
+                      : Colors.transparent),
               onPressed: () {
                 setState(() {
                   _currencySymCtrl.text = '€';
@@ -1600,7 +1920,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         },
                         child: const Row(
                           children: [
-                            Icon(Icons.search, size: 14, color: Color(0xFF4F46E5)),
+                            Icon(Icons.search,
+                                size: 14, color: Color(0xFF4F46E5)),
                             SizedBox(width: 4),
                             Text(
                               'Search 130+ Currencies',
@@ -1633,12 +1954,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFCBD5E1),
                         ),
                       ),
                       child: Row(
@@ -1646,7 +1972,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                              color: const Color(0xFF4F46E5)
+                                  .withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const FaIcon(
@@ -1663,9 +1990,11 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 1),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF4F46E5).withValues(alpha: 0.15),
+                                        color: const Color(0xFF4F46E5)
+                                            .withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
@@ -1683,17 +2012,22 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A),
                                       ),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  _selectedCurrency?.name ?? 'Pakistani Rupee (Pakistan)',
+                                  _selectedCurrency?.name ??
+                                      'Pakistani Rupee (Pakistan)',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -1701,7 +2035,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                               ],
                             ),
                           ),
-                          const Icon(Icons.arrow_drop_down, color: Color(0xFF4F46E5)),
+                          const Icon(Icons.arrow_drop_down,
+                              color: Color(0xFF4F46E5)),
                         ],
                       ),
                     ),
@@ -1736,7 +2071,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         },
                         child: const Row(
                           children: [
-                            Icon(Icons.search, size: 14, color: Color(0xFF0284C7)),
+                            Icon(Icons.search,
+                                size: 14, color: Color(0xFF0284C7)),
                             SizedBox(width: 4),
                             Text(
                               'Search 80+ Timezones',
@@ -1767,12 +2103,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFCBD5E1),
                         ),
                       ),
                       child: Row(
@@ -1780,10 +2121,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           Container(
                             padding: const EdgeInsets.all(5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0284C7).withValues(alpha: 0.12),
+                              color: const Color(0xFF0284C7)
+                                  .withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Icon(Icons.schedule, size: 18, color: Color(0xFF0284C7)),
+                            child: const Icon(Icons.schedule,
+                                size: 18, color: Color(0xFF0284C7)),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -1798,7 +2141,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                         style: TextStyle(
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.bold,
-                                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                          color: isDark
+                                              ? Colors.white
+                                              : const Color(0xFF0F172A),
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -1806,13 +2151,18 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 1),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF0284C7).withValues(alpha: 0.1),
+                                        color: const Color(0xFF0284C7)
+                                            .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
-                                        RegionalDataService.findTimeZone(_timeZone)?.offset ?? 'GMT+5',
+                                        RegionalDataService.findTimeZone(
+                                                    _timeZone)
+                                                ?.offset ??
+                                            'GMT+5',
                                         style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
@@ -1824,10 +2174,14 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  RegionalDataService.findTimeZone(_timeZone)?.city ?? _timeZone,
+                                  RegionalDataService.findTimeZone(_timeZone)
+                                          ?.city ??
+                                      _timeZone,
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -1835,7 +2189,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                               ],
                             ),
                           ),
-                          const Icon(Icons.arrow_drop_down, color: Color(0xFF0284C7)),
+                          const Icon(Icons.arrow_drop_down,
+                              color: Color(0xFF0284C7)),
                         ],
                       ),
                     ),
@@ -1847,7 +2202,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         ),
         const SizedBox(height: 14),
 
-        // Primary Language for Totals & Receipts (الفاظ کی زبان)
+        // Primary Language & Secondary Language Configuration
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
@@ -1860,6 +2215,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Row 1: Primary Language
               Row(
                 children: [
                   Container(
@@ -1868,7 +2224,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       color: const Color(0xFF10B981).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Icon(Icons.language, color: Color(0xFF10B981), size: 18),
+                    child: const Icon(Icons.language,
+                        color: Color(0xFF10B981), size: 18),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1877,24 +2234,37 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       children: [
                         Row(
                           children: [
-                            _fieldLabel('Language for Totals & Invoices *', isDark),
+                            _fieldLabel('Primary Language', isDark),
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text('Primary', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                              child: const Text(
+                                'Main',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF10B981),
+                                ),
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Choose primary language for invoice totals in words (Urdu, Pashto, Farsi, English, Spanish, Dutch)',
+                          _primaryLanguage == 'en'
+                              ? 'Default system language. Secondary language can optionally be enabled.'
+                              : 'Pure single-language mode: 100% of menus, screens, and receipts will run in this language.',
                           style: TextStyle(
                             fontSize: 11,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1904,11 +2274,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   ),
                   const SizedBox(width: 12),
                   DropdownButton<String>(
-                    value: _totalInWordsLanguage,
+                    value: _primaryLanguage,
                     underline: const SizedBox(),
                     borderRadius: BorderRadius.circular(8),
-                    dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                    items: NumberToWordsService.supportedLanguages.map((lang) {
+                    dropdownColor:
+                        isDark ? const Color(0xFF1E293B) : Colors.white,
+                    items: PosLocalization.supportedLanguages.map((lang) {
                       return DropdownMenuItem<String>(
                         value: lang.code,
                         child: Text(
@@ -1916,13 +2287,23 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color:
+                                isDark ? Colors.white : const Color(0xFF0F172A),
                           ),
                         ),
                       );
                     }).toList(),
                     onChanged: (val) {
-                      if (val != null) setState(() => _totalInWordsLanguage = val);
+                      if (val != null) {
+                        setState(() {
+                          _primaryLanguage = val;
+                          _totalInWordsLanguage = val;
+                          // If primary is NOT english, strictly disable secondary language!
+                          if (_primaryLanguage != 'en') {
+                            _enableSecondaryLanguage = false;
+                          }
+                        });
+                      }
                     },
                   ),
                 ],
@@ -1931,100 +2312,169 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               const Divider(height: 1),
               const SizedBox(height: 8),
 
-              // Secondary Language Toggle (Optional)
-              Row(
-                children: [
-                  Checkbox(
-                    value: _enableSecondaryLanguage,
-                    activeColor: const Color(0xFF4F46E5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                    onChanged: (val) {
-                      setState(() => _enableSecondaryLanguage = val ?? false);
-                    },
+              // Row 2: Secondary Language Toggle & Dropdown (ONLY active if Primary is English)
+              if (_primaryLanguage != 'en') ...[
+                // Disabled / Info Box when Primary is not English
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF0F172A).withValues(alpha: 0.5)
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0),
+                    ),
                   ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() => _enableSecondaryLanguage = !_enableSecondaryLanguage);
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _translateLabel(
+                              'Secondary Language is only available when Primary Language is English'),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                // Secondary Language Toggle (Optional, English removed from options)
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _enableSecondaryLanguage,
+                      activeColor: const Color(0xFF4F46E5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4)),
+                      onChanged: (val) {
+                        setState(() => _enableSecondaryLanguage = val ?? false);
                       },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'Enable Secondary Language (Optional / ثانوی زبان)',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: _enableSecondaryLanguage
-                                      ? const Color(0xFF4F46E5).withValues(alpha: 0.12)
-                                      : (isDark ? Colors.white10 : const Color(0xFFF1F5F9)),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  _enableSecondaryLanguage ? 'Active' : 'Unchecked (Clean UI)',
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() => _enableSecondaryLanguage =
+                              !_enableSecondaryLanguage);
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'Enable Secondary Language (Optional)',
                                   style: TextStyle(
-                                    fontSize: 9.5,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: _enableSecondaryLanguage ? const Color(0xFF4F46E5) : (isDark ? Colors.white54 : Colors.black45),
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF0F172A),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            _enableSecondaryLanguage
-                                ? 'Display bilingual labels and secondary translations on receipts'
-                                : 'When unchecked, only primary language is shown across the app',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: _enableSecondaryLanguage
+                                        ? const Color(0xFF4F46E5)
+                                            .withValues(alpha: 0.12)
+                                        : (isDark
+                                            ? Colors.white10
+                                            : const Color(0xFFF1F5F9)),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    _enableSecondaryLanguage
+                                        ? 'Active'
+                                        : 'Unchecked (Clean UI)',
+                                    style: TextStyle(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: _enableSecondaryLanguage
+                                          ? const Color(0xFF4F46E5)
+                                          : (isDark
+                                              ? Colors.white54
+                                              : Colors.black45),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                            Text(
+                              _enableSecondaryLanguage
+                                  ? 'Display bilingual labels and secondary translations on receipts'
+                                  : 'When unchecked, only primary language is shown across the app',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  if (_enableSecondaryLanguage) ...[
-                    const SizedBox(width: 10),
-                    DropdownButton<String>(
-                      value: _secondaryLanguage,
-                      underline: const SizedBox(),
-                      borderRadius: BorderRadius.circular(8),
-                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                      items: NumberToWordsService.supportedLanguages.map((lang) {
-                        return DropdownMenuItem<String>(
-                          value: lang.code,
-                          child: Text(
-                            '${lang.name} (${lang.nativeName})',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    if (_enableSecondaryLanguage) ...[
+                      const SizedBox(width: 10),
+                      DropdownButton<String>(
+                        value: _secondaryLanguage != 'en'
+                            ? _secondaryLanguage
+                            : 'ur',
+                        underline: const SizedBox(),
+                        borderRadius: BorderRadius.circular(8),
+                        dropdownColor:
+                            isDark ? const Color(0xFF1E293B) : Colors.white,
+                        // English is strictly excluded from secondary language options!
+                        items: PosLocalization.secondaryLanguageOptions
+                            .map((lang) {
+                          return DropdownMenuItem<String>(
+                            value: lang.code,
+                            child: Text(
+                              '${lang.name} (${lang.nativeName})',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
+                              ),
                             ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _secondaryLanguage = val);
-                      },
-                    ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null)
+                            setState(() => _secondaryLanguage = val);
+                        },
+                      ),
+                    ],
                   ],
-                ],
-              ),
+                ),
+              ],
               _buildLanguagePreviewBanner(isDark),
-        ],
-      ),
-    ),
-    SizedBox(height: _isCompact ? 10 : 14),
+            ],
+          ),
+        ),
+        SizedBox(height: _isCompact ? 10 : 14),
 
         // Contact Email and Address
         Row(
@@ -2037,7 +2487,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   _fieldLabel('Contact Email', isDark),
                   TextFormField(
                     controller: _emailCtrl,
-                    decoration: const InputDecoration(hintText: 'admin@smartpos.com', isDense: true),
+                    decoration: const InputDecoration(
+                        hintText: 'admin@smartpos.com', isDense: true),
                   ),
                 ],
               ),
@@ -2051,7 +2502,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   _fieldLabel('Physical Address', isDark),
                   TextFormField(
                     controller: _addressCtrl,
-                    decoration: const InputDecoration(hintText: 'Commercial Plaza, Sector 4, Main Boulevard', isDense: true),
+                    decoration: const InputDecoration(
+                        hintText: 'Commercial Plaza, Sector 4, Main Boulevard',
+                        isDense: true),
                   ),
                 ],
               ),
@@ -2063,18 +2516,24 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         _fieldLabel('Receipt Footer Note', isDark),
         TextFormField(
           controller: _receiptFooterCtrl,
-          decoration: const InputDecoration(hintText: 'Thank you for your business! Please visit again.', isDense: true),
+          decoration: const InputDecoration(
+              hintText: 'Thank you for your business! Please visit again.',
+              isDense: true),
         ),
         const SizedBox(height: 24),
 
         // Industry Presets Dropdown Selector (Single Exclusive Selection from all 16 supported models)
         Row(
           children: [
-            const Icon(Icons.business_center_rounded, color: Color(0xFF4F46E5), size: 18),
+            const Icon(Icons.business_center_rounded,
+                color: Color(0xFF4F46E5), size: 18),
             const SizedBox(width: 8),
             Text(
               'Select Business Industry Model (16 Supported Industries):',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A)),
             ),
             const Spacer(),
             Container(
@@ -2082,11 +2541,15 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFF10B981).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                border: Border.all(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.3)),
               ),
               child: const Text(
                 '1 Business Model At A Time',
-                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF10B981)),
               ),
             ),
           ],
@@ -2095,14 +2558,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
         // Dropdown Form Field for All 16 Business Models
         DropdownButtonFormField<String>(
-          initialValue: allSupportedIndustries.any((i) => i.key == _selectedPreset) ? _selectedPreset : 'universal',
+          initialValue:
+              allSupportedIndustries.any((i) => i.key == _selectedPreset)
+                  ? _selectedPreset
+                  : 'universal',
           decoration: InputDecoration(
             labelText: 'Business Industry / Domain Preset *',
             isDense: true,
             filled: true,
-            fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+            fillColor:
+                isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            prefixIcon: const Icon(Icons.category_rounded, color: Color(0xFF4F46E5)),
+            prefixIcon:
+                const Icon(Icons.category_rounded, color: Color(0xFF4F46E5)),
           ),
           isExpanded: true,
           items: allSupportedIndustries.map((ind) {
@@ -2133,14 +2601,18 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
                       color: ind.color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       ind.category,
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: ind.color),
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: ind.color),
                     ),
                   ),
                 ],
@@ -2170,7 +2642,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             border: Border.all(
               color: _seedSampleData
                   ? const Color(0xFF6366F1)
-                  : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                  : (isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFCBD5E1)),
               width: _seedSampleData ? 1.5 : 1.0,
             ),
           ),
@@ -2178,7 +2652,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             children: [
               Checkbox(
                 value: _seedSampleData,
-                onChanged: (val) => setState(() => _seedSampleData = val ?? false),
+                onChanged: (val) =>
+                    setState(() => _seedSampleData = val ?? false),
                 activeColor: const Color(0xFF4F46E5),
               ),
               const SizedBox(width: 8),
@@ -2190,18 +2665,24 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       children: [
                         const Text(
                           'Pre-load Starter Products, Categories & Suppliers',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                            color:
+                                const Color(0xFF10B981).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
                             'RECOMMENDED',
-                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                            style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF10B981)),
                           ),
                         ),
                       ],
@@ -2209,7 +2690,11 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     const SizedBox(height: 3),
                     Text(
                       'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing. (تجرباتی اشیاء، کیٹیگریز اور سپلائرز شامل کریں تاکہ سسٹم فوراً تیار ہو)',
-                      style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B)),
                     ),
                   ],
                 ),
@@ -2265,12 +2750,14 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: ind.color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -2292,7 +2779,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   ind.features,
                   style: TextStyle(
                     fontSize: 11.5,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF475569),
                     height: 1.4,
                   ),
                 ),
@@ -2315,14 +2804,20 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             const SizedBox(width: 8),
             Text(
               'Step 3: Network Topology & Hybrid Database Engine',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A)),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
           'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).',
-          style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          style: TextStyle(
+              fontSize: 13,
+              color:
+                  isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
         ),
         const SizedBox(height: 20),
 
@@ -2334,7 +2829,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 mode: 'offline_server',
                 title: 'Mode 1: Offline Primary Server',
                 badge: 'Default / Recommended',
-                desc: 'Runs locally on this PC using high-speed MySQL/SQLite. Hosts embedded REST/WebSocket API server for LAN terminals and Mobile Apps.',
+                desc:
+                    'Runs locally on this PC using high-speed MySQL/SQLite. Hosts embedded REST/WebSocket API server for LAN terminals and Mobile Apps.',
                 icon: Icons.dns_rounded,
                 isDark: isDark,
               ),
@@ -2345,7 +2841,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 mode: 'lan_secondary',
                 title: 'Mode 2: Offline LAN Secondary',
                 badge: 'Client Terminal',
-                desc: 'Connects over local Wi-Fi / Ethernet to Primary Server PC. Instant shared stock & billing with zero internet required.',
+                desc:
+                    'Connects over local Wi-Fi / Ethernet to Primary Server PC. Instant shared stock & billing with zero internet required.',
                 icon: Icons.computer_rounded,
                 isDark: isDark,
               ),
@@ -2356,7 +2853,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 mode: 'cloud_hybrid',
                 title: 'Mode 3: Online Cloud-Synced',
                 badge: 'Multi-Branch Cloud',
-                desc: 'Syncs with remote Laravel/MySQL cloud server. Works offline with SQLite queue and auto-syncs when internet restores.',
+                desc:
+                    'Syncs with remote Laravel/MySQL cloud server. Works offline with SQLite queue and auto-syncs when internet restores.',
                 icon: Icons.cloud_sync_rounded,
                 isDark: isDark,
               ),
@@ -2372,16 +2870,23 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.check_circle_outline, color: Color(0xFF10B981), size: 18),
+                    Icon(Icons.check_circle_outline,
+                        color: Color(0xFF10B981), size: 18),
                     SizedBox(width: 8),
-                    Text('Primary Server & Mobile REST API Server Configuration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(
+                        'Primary Server & Mobile REST API Server Configuration',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -2394,7 +2899,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           _fieldLabel('Local Embedded API Server Port', isDark),
                           TextFormField(
                             controller: _serverPortCtrl,
-                            decoration: const InputDecoration(hintText: '8080', isDense: true),
+                            decoration: const InputDecoration(
+                                hintText: '8080', isDense: true),
                           ),
                         ],
                       ),
@@ -2421,12 +2927,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Connect to Primary Server Machine:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const Text('Connect to Primary Server Machine:',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -2438,7 +2949,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           _fieldLabel('Primary Server Local IP *', isDark),
                           TextFormField(
                             controller: _lanHostCtrl,
-                            decoration: const InputDecoration(hintText: '192.168.1.100', isDense: true),
+                            decoration: const InputDecoration(
+                                hintText: '192.168.1.100', isDense: true),
                           ),
                         ],
                       ),
@@ -2452,7 +2964,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           _fieldLabel('API Port', isDark),
                           TextFormField(
                             controller: _lanPortCtrl,
-                            decoration: const InputDecoration(hintText: '8080', isDense: true),
+                            decoration: const InputDecoration(
+                                hintText: '8080', isDense: true),
                           ),
                         ],
                       ),
@@ -2468,12 +2981,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Cloud Sync Server Configuration:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const Text('Cloud Sync Server Configuration:',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -2485,7 +3003,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           _fieldLabel('Remote Cloud API URL *', isDark),
                           TextFormField(
                             controller: _cloudUrlCtrl,
-                            decoration: const InputDecoration(hintText: 'https://api.smartpos.com/api', isDense: true),
+                            decoration: const InputDecoration(
+                                hintText: 'https://api.smartpos.com/api',
+                                isDense: true),
                           ),
                         ],
                       ),
@@ -2499,7 +3019,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           _fieldLabel('Branch ID', isDark),
                           TextFormField(
                             controller: _cloudBranchIdCtrl,
-                            decoration: const InputDecoration(hintText: '1', isDense: true),
+                            decoration: const InputDecoration(
+                                hintText: '1', isDense: true),
                           ),
                         ],
                       ),
@@ -2510,7 +3031,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 _fieldLabel('Cloud API Secret Key', isDark),
                 TextFormField(
                   controller: _cloudApiKeyCtrl,
-                  decoration: const InputDecoration(hintText: 'Bearer token or API Secret Key', isDense: true),
+                  decoration: const InputDecoration(
+                      hintText: 'Bearer token or API Secret Key',
+                      isDense: true),
                 ),
               ],
             ),
@@ -2525,14 +3048,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            border: Border.all(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  const Icon(Icons.storage_rounded, color: Color(0xFF4F46E5), size: 20),
+                  const Icon(Icons.storage_rounded,
+                      color: Color(0xFF4F46E5), size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Primary Central Database Engine (Admin Choice)',
@@ -2547,7 +3073,11 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               const SizedBox(height: 4),
               Text(
                 'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.',
-                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B)),
               ),
               const SizedBox(height: 16),
 
@@ -2617,7 +3147,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           _fieldLabel('Primary Database Host / IP', isDark),
                           TextFormField(
                             controller: _lanHostCtrl,
-                            decoration: const InputDecoration(hintText: 'localhost or 192.168.1.100', isDense: true),
+                            decoration: const InputDecoration(
+                                hintText: 'localhost or 192.168.1.100',
+                                isDense: true),
                           ),
                         ],
                       ),
@@ -2632,7 +3164,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           TextFormField(
                             controller: _lanPortCtrl,
                             decoration: InputDecoration(
-                              hintText: _primaryDbType == 'postgresql' ? '5432' : '3306',
+                              hintText: _primaryDbType == 'postgresql'
+                                  ? '5432'
+                                  : '3306',
                               isDense: true,
                             ),
                           ),
@@ -2648,7 +3182,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           _fieldLabel('Database Name', isDark),
                           TextFormField(
                             controller: _lanDbNameCtrl,
-                            decoration: const InputDecoration(hintText: 'smartpos', isDense: true),
+                            decoration: const InputDecoration(
+                                hintText: 'smartpos', isDense: true),
                           ),
                         ],
                       ),
@@ -2666,7 +3201,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           TextFormField(
                             controller: _lanDbUserCtrl,
                             decoration: InputDecoration(
-                              hintText: _primaryDbType == 'postgresql' ? 'postgres' : 'root',
+                              hintText: _primaryDbType == 'postgresql'
+                                  ? 'postgres'
+                                  : 'root',
                               isDense: true,
                             ),
                           ),
@@ -2690,8 +3227,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                 children: [
                                   if (_lanDbPassCtrl.text.isNotEmpty)
                                     IconButton(
-                                      tooltip: 'Clear password for Laragon / XAMPP default root',
-                                      icon: const Icon(Icons.backspace_outlined, size: 16, color: Colors.orange),
+                                      tooltip:
+                                          'Clear password for Laragon / XAMPP default root',
+                                      icon: const Icon(Icons.backspace_outlined,
+                                          size: 16, color: Colors.orange),
                                       onPressed: () {
                                         setState(() {
                                           _lanDbPassCtrl.clear();
@@ -2700,7 +3239,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                     ),
                                   IconButton(
                                     icon: Icon(
-                                      _obscureLanDbPass ? Icons.visibility_off : Icons.visibility,
+                                      _obscureLanDbPass
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
                                       size: 18,
                                     ),
                                     onPressed: () {
@@ -2726,7 +3267,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password (DB Password خالی رکھیں). Or use "smartpos" / "smartpos123".',
                         style: TextStyle(
                           fontSize: 11,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
                         ),
                       ),
                     ),
@@ -2740,11 +3283,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         },
                         borderRadius: BorderRadius.circular(4),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: Colors.orange.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                            border: Border.all(
+                                color: Colors.orange.withValues(alpha: 0.4)),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
@@ -2753,7 +3298,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                               SizedBox(width: 4),
                               Text(
                                 'Clear for Laragon',
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange),
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange),
                               ),
                             ],
                           ),
@@ -2769,14 +3317,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.15 : 0.08),
+                  color: const Color(0xFF10B981)
+                      .withValues(alpha: isDark ? 0.15 : 0.08),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                  border: Border.all(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.sync_rounded, color: Color(0xFF10B981), size: 20),
+                    const Icon(Icons.sync_rounded,
+                        color: Color(0xFF10B981), size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -2787,7 +3338,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -2796,7 +3349,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             style: TextStyle(
                               fontSize: 11,
                               height: 1.35,
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF475569),
                             ),
                           ),
                         ],
@@ -2817,14 +3372,22 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             ElevatedButton.icon(
               onPressed: _isTestingConnection ? null : _testNetworkConnection,
               icon: _isTestingConnection
-                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.network_check_rounded, size: 18),
-              label: Text(_primaryDbType == 'sqlite' ? 'Check Local Engine' : 'Test $_primaryDbType Connection'),
+              label: Text(_primaryDbType == 'sqlite'
+                  ? 'Check Local Engine'
+                  : 'Test $_primaryDbType Connection'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0284C7),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
             ),
             const SizedBox(width: 16),
@@ -2835,7 +3398,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: (_connectionSuccess == true) ? const Color(0xFF10B981) : Colors.orangeAccent,
+                    color: (_connectionSuccess == true)
+                        ? const Color(0xFF10B981)
+                        : Colors.orangeAccent,
                   ),
                 ),
               ),
@@ -2865,7 +3430,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               : (isDark ? const Color(0xFF1E293B) : Colors.white),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? color : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            color: isSelected
+                ? color
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -2880,7 +3447,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
-                      color: isSelected ? color : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                      color: isSelected
+                          ? color
+                          : (isDark ? Colors.white : const Color(0xFF0F172A)),
                     ),
                   ),
                 ),
@@ -2892,20 +3461,28 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     badge,
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: color),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'Port: $port',
-                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B)),
                 ),
               ],
             ),
@@ -2936,11 +3513,15 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         height: 170,
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDark ? const Color(0xFF1E1B4B).withValues(alpha: 0.6) : const Color(0xFFEEF2FF))
+              ? (isDark
+                  ? const Color(0xFF1E1B4B).withValues(alpha: 0.6)
+                  : const Color(0xFFEEF2FF))
               : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF4F46E5) : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            color: isSelected
+                ? const Color(0xFF4F46E5)
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             width: isSelected ? 2.0 : 1.0,
           ),
         ),
@@ -2949,12 +3530,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           children: [
             Row(
               children: [
-                Icon(icon, color: isSelected ? const Color(0xFF4F46E5) : Colors.grey, size: 22),
+                Icon(icon,
+                    color: isSelected ? const Color(0xFF4F46E5) : Colors.grey,
+                    size: 22),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF4F46E5) : Colors.grey.withValues(alpha: 0.2),
+                    color: isSelected
+                        ? const Color(0xFF4F46E5)
+                        : Colors.grey.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -2974,14 +3560,21 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? const Color(0xFF4F46E5) : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                color: isSelected
+                    ? const Color(0xFF4F46E5)
+                    : (isDark ? Colors.white : const Color(0xFF0F172A)),
               ),
             ),
             const SizedBox(height: 6),
             Expanded(
               child: Text(
                 desc,
-                style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), height: 1.3),
+                style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                    height: 1.3),
               ),
             ),
           ],
@@ -2997,21 +3590,27 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF4F46E5), size: 20),
+            const Icon(Icons.admin_panel_settings_rounded,
+                color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
             Text(
               'Step 4: Super Admin Master Credentials',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A)),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
           'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.',
-          style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          style: TextStyle(
+              fontSize: 13,
+              color:
+                  isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
         ),
         const SizedBox(height: 20),
-
         Row(
           children: [
             Expanded(
@@ -3021,7 +3620,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   _fieldLabel('Admin Full Name *', isDark),
                   TextFormField(
                     controller: _adminNameCtrl,
-                    decoration: const InputDecoration(hintText: 'e.g. Irfan Khan', prefixIcon: Icon(Icons.person, size: 18), isDense: true),
+                    decoration: const InputDecoration(
+                        hintText: 'e.g. Irfan Khan',
+                        prefixIcon: Icon(Icons.person, size: 18),
+                        isDense: true),
                   ),
                 ],
               ),
@@ -3034,7 +3636,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   _fieldLabel('Master Username *', isDark),
                   TextFormField(
                     controller: _adminUserCtrl,
-                    decoration: const InputDecoration(hintText: 'e.g. admin / owner', prefixIcon: Icon(Icons.alternate_email, size: 18), isDense: true),
+                    decoration: const InputDecoration(
+                        hintText: 'e.g. admin / owner',
+                        prefixIcon: Icon(Icons.alternate_email, size: 18),
+                        isDense: true),
                   ),
                 ],
               ),
@@ -3042,7 +3647,6 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           ],
         ),
         const SizedBox(height: 14),
-
         Row(
           children: [
             Expanded(
@@ -3052,7 +3656,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   _fieldLabel('Email Address', isDark),
                   TextFormField(
                     controller: _adminEmailCtrl,
-                    decoration: const InputDecoration(hintText: 'admin@smartpos.com', prefixIcon: Icon(Icons.email, size: 18), isDense: true),
+                    decoration: const InputDecoration(
+                        hintText: 'admin@smartpos.com',
+                        prefixIcon: Icon(Icons.email, size: 18),
+                        isDense: true),
                   ),
                 ],
               ),
@@ -3065,7 +3672,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   _fieldLabel('Mobile Number', isDark),
                   TextFormField(
                     controller: _adminPhoneCtrl,
-                    decoration: const InputDecoration(hintText: '+92 300 1234567', prefixIcon: Icon(Icons.phone, size: 18), isDense: true),
+                    decoration: const InputDecoration(
+                        hintText: '+92 300 1234567',
+                        prefixIcon: Icon(Icons.phone, size: 18),
+                        isDense: true),
                   ),
                 ],
               ),
@@ -3073,7 +3683,6 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           ],
         ),
         const SizedBox(height: 14),
-
         Row(
           children: [
             Expanded(
@@ -3088,8 +3697,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       hintText: 'Enter strong password',
                       prefixIcon: const Icon(Icons.lock, size: 18),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility, size: 18),
-                        onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                        icon: Icon(
+                            _obscurePass
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            size: 18),
+                        onPressed: () =>
+                            setState(() => _obscurePass = !_obscurePass),
                       ),
                       isDense: true,
                     ),
@@ -3110,8 +3724,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       hintText: 'Confirm password',
                       prefixIcon: const Icon(Icons.lock_outline, size: 18),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureConfirmPass ? Icons.visibility_off : Icons.visibility, size: 18),
-                        onPressed: () => setState(() => _obscureConfirmPass = !_obscureConfirmPass),
+                        icon: Icon(
+                            _obscureConfirmPass
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            size: 18),
+                        onPressed: () => setState(
+                            () => _obscureConfirmPass = !_obscureConfirmPass),
                       ),
                       isDense: true,
                     ),
@@ -3122,13 +3741,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           ],
         ),
         const SizedBox(height: 20),
-
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: const Color(0xFF10B981).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+            border: Border.all(
+                color: const Color(0xFF10B981).withValues(alpha: 0.3)),
           ),
           child: const Row(
             children: [
@@ -3137,7 +3756,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               Expanded(
                 child: Text(
                   'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF047857), fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF047857),
+                      fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -3163,20 +3785,25 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         },
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: _isCompact ? 7 : 10, horizontal: _isCompact ? 6 : 8),
+          padding: EdgeInsets.symmetric(
+              vertical: _isCompact ? 7 : 10, horizontal: _isCompact ? 6 : 8),
           decoration: BoxDecoration(
             color: isActive
                 ? const Color(0xFF4F46E5)
                 : isDone
                     ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                    : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
+                    : (isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF1F5F9)),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isActive
                   ? const Color(0xFF4F46E5)
                   : isDone
                       ? const Color(0xFF10B981)
-                      : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      : (isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
             ),
           ),
           child: Row(
@@ -3189,7 +3816,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     ? Colors.white
                     : isDone
                         ? const Color(0xFF10B981)
-                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                        : (isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
               ),
               SizedBox(width: _isCompact ? 4 : 6),
               Flexible(
@@ -3202,7 +3831,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         ? Colors.white
                         : isDone
                             ? const Color(0xFF10B981)
-                            : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                            : (isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B)),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -3215,7 +3846,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   }
 
   Widget _buildInstallationCompleteScreen(bool isDark) {
-    final primaryType = _selectedPreset.replaceAll('preset_', '').replaceAll('_', ' ').toUpperCase();
+    final primaryType = _selectedPreset
+        .replaceAll('preset_', '')
+        .replaceAll('_', ' ')
+        .toUpperCase();
     final dbModeStr = _primaryDbType == 'mysql'
         ? 'Enterprise Primary Server (MySQL: ${_lanDbNameCtrl.text.trim()} @ ${_lanHostCtrl.text.trim()}:${_lanPortCtrl.text.trim()})'
         : 'High-Speed Embedded SQLite Database Engine';
@@ -3235,7 +3869,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               border: Border.all(color: const Color(0xFF10B981), width: 3),
             ),
             child: const Center(
-              child: Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 46),
+              child: Icon(Icons.check_circle_rounded,
+                  color: Color(0xFF10B981), size: 46),
             ),
           ),
           const SizedBox(height: 16),
@@ -3268,14 +3903,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
             ),
             child: Column(
               children: [
                 _buildSummaryRow(
                   icon: Icons.storefront_rounded,
                   label: 'Store / Business Name',
-                  value: _bizNameCtrl.text.trim().isNotEmpty ? _bizNameCtrl.text.trim() : 'Smart POS Retail',
+                  value: _bizNameCtrl.text.trim().isNotEmpty
+                      ? _bizNameCtrl.text.trim()
+                      : 'Smart POS Retail',
                   isDark: isDark,
                 ),
                 const Divider(height: 18),
@@ -3305,7 +3945,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 _buildSummaryRow(
                   icon: Icons.admin_panel_settings_rounded,
                   label: 'Master Admin Username',
-                  value: _adminUserCtrl.text.trim().isNotEmpty ? _adminUserCtrl.text.trim() : '(required)',
+                  value: _adminUserCtrl.text.trim().isNotEmpty
+                      ? _adminUserCtrl.text.trim()
+                      : '(required)',
                   isDark: isDark,
                   isHighlight: true,
                 ),
@@ -3320,11 +3962,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF4F46E5).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: const Color(0xFF4F46E5).withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.lock_outline_rounded, color: Color(0xFF4F46E5), size: 24),
+                const Icon(Icons.lock_outline_rounded,
+                    color: Color(0xFF4F46E5), size: 24),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -3332,12 +3976,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     children: [
                       const Text(
                         'Direct Login Bypassed for Security',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF4F46E5)),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Color(0xFF4F46E5)),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials ("${_adminUserCtrl.text.trim()}").',
-                        style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF475569)),
                       ),
                     ],
                   ),
@@ -3354,18 +4005,23 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             child: ElevatedButton.icon(
               onPressed: () {
                 AuthService.currentUserNotifier.value = null;
-                final targetSettings = (_finalizedSettings ?? widget.settings).copyWith(isConfigured: true);
+                final targetSettings = (_finalizedSettings ?? widget.settings)
+                    .copyWith(isConfigured: true);
                 widget.onSetupComplete(targetSettings);
               },
               icon: const Icon(Icons.login_rounded, size: 20),
               label: const Text(
                 'Proceed to Login Screen (لاگ ان اسکرین پر جائیں)',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4F46E5),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 3,
               ),
             ),
@@ -3384,11 +4040,18 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: isHighlight ? const Color(0xFF4F46E5) : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+        Icon(icon,
+            size: 18,
+            color: isHighlight
+                ? const Color(0xFF4F46E5)
+                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
         const SizedBox(width: 10),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          style: TextStyle(
+              fontSize: 12,
+              color:
+                  isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
         ),
         const Spacer(),
         Flexible(
@@ -3397,7 +4060,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
-              color: isHighlight ? const Color(0xFF4F46E5) : (isDark ? Colors.white : const Color(0xFF0F172A)),
+              color: isHighlight
+                  ? const Color(0xFF4F46E5)
+                  : (isDark ? Colors.white : const Color(0xFF0F172A)),
             ),
             textAlign: TextAlign.right,
             overflow: TextOverflow.ellipsis,
@@ -3410,31 +4075,50 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   Widget _buildLanguagePreviewBanner(bool isDark) {
     const previewAmount1 = 865.0;
     const previewAmount2 = 1255.0;
-    final curSymbol = _currencySymCtrl.text.trim().isNotEmpty ? _currencySymCtrl.text.trim() : 'Rs';
-    final curCode = _currencyCodeCtrl.text.trim().isNotEmpty ? _currencyCodeCtrl.text.trim() : 'PKR';
-    final words1 = NumberToWordsService.convert(previewAmount1, language: _totalInWordsLanguage, currencySymbol: curSymbol, currencyCode: curCode);
-    final words2 = NumberToWordsService.convert(previewAmount2, language: _totalInWordsLanguage, currencySymbol: curSymbol, currencyCode: curCode);
+    final curSymbol = _currencySymCtrl.text.trim().isNotEmpty
+        ? _currencySymCtrl.text.trim()
+        : 'Rs';
+    final curCode = _currencyCodeCtrl.text.trim().isNotEmpty
+        ? _currencyCodeCtrl.text.trim()
+        : 'PKR';
+    final words1 = NumberToWordsService.convert(previewAmount1,
+        language: _totalInWordsLanguage,
+        currencySymbol: curSymbol,
+        currencyCode: curCode);
+    final words2 = NumberToWordsService.convert(previewAmount2,
+        language: _totalInWordsLanguage,
+        currencySymbol: curSymbol,
+        currencyCode: curCode);
     final isRtl = NumberToWordsService.isRtl(_totalInWordsLanguage);
 
     String? secWords1;
     String? secWords2;
     bool secRtl = false;
-    if (_enableSecondaryLanguage) {
-      secWords1 = NumberToWordsService.convert(previewAmount1, language: _secondaryLanguage, currencySymbol: curSymbol, currencyCode: curCode);
-      secWords2 = NumberToWordsService.convert(previewAmount2, language: _secondaryLanguage, currencySymbol: curSymbol, currencyCode: curCode);
+    if (_enableSecondaryLanguage && _primaryLanguage == 'en') {
+      secWords1 = NumberToWordsService.convert(previewAmount1,
+          language: _secondaryLanguage,
+          currencySymbol: curSymbol,
+          currencyCode: curCode);
+      secWords2 = NumberToWordsService.convert(previewAmount2,
+          language: _secondaryLanguage,
+          currencySymbol: curSymbol,
+          currencyCode: curCode);
       secRtl = NumberToWordsService.isRtl(_secondaryLanguage);
     }
 
     String title;
     switch (_totalInWordsLanguage) {
       case 'fa':
-        title = 'پیش‌نمایش زنده مبالغ به حروف (Live Preview):';
+        title = 'پیش‌نمایش زنده مبالغ به حروف:';
         break;
       case 'ur':
-        title = 'رقم کی لفظی صورت کا براہ راست پیش منظر (Live Preview):';
+        title = 'رقم کی لفظی صورت کا براہ راست پیش منظر:';
+        break;
+      case 'ar':
+        title = 'معاينة حية للمبالغ بالكلمات:';
         break;
       case 'ps':
-        title = 'په تورو کې د پیسو ژوندی بڼه (Live Preview):';
+        title = 'په تورو کې د پیسو ژوندی بڼه:';
         break;
       case 'es':
         title = 'Vista previa de totales en letras:';
@@ -3448,39 +4132,57 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
     return Container(
       margin: EdgeInsets.only(top: _isCompact ? 6 : 8),
-      padding: EdgeInsets.symmetric(horizontal: _isCompact ? 10 : 12, vertical: _isCompact ? 6 : 8),
+      padding: EdgeInsets.symmetric(
+          horizontal: _isCompact ? 10 : 12, vertical: _isCompact ? 6 : 8),
       decoration: BoxDecoration(
         color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.15 : 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+        border:
+            Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.check_circle_outline, color: Color(0xFF10B981), size: 14),
+              const Icon(Icons.check_circle_outline,
+                  color: Color(0xFF10B981), size: 14),
               const SizedBox(width: 6),
               Text(
                 title,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF10B981)),
               ),
               const Spacer(),
               Text(
                 'Currency: $curSymbol ($curCode)',
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF059669)),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              Text('865.00 ➔ ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : const Color(0xFF334155))),
+              Text('865.00 ➔ ',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          isDark ? Colors.white70 : const Color(0xFF334155))),
               Expanded(
                 child: Text(
                   words1,
-                  textDirection: isRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF059669)),
+                  textDirection:
+                      isRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF059669)),
                 ),
               ),
             ],
@@ -3490,20 +4192,35 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               padding: const EdgeInsets.only(left: 48, top: 1),
               child: Text(
                 '↳ ($curCode): $secWords1',
-                textDirection: secRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFA7F3D0) : const Color(0xFF047857)),
+                textDirection:
+                    secRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFFA7F3D0)
+                        : const Color(0xFF047857)),
               ),
             ),
           ],
           const SizedBox(height: 2),
           Row(
             children: [
-              Text('1,255.00 ➔ ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : const Color(0xFF334155))),
+              Text('1,255.00 ➔ ',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          isDark ? Colors.white70 : const Color(0xFF334155))),
               Expanded(
                 child: Text(
                   words2,
-                  textDirection: isRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF059669)),
+                  textDirection:
+                      isRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF059669)),
                 ),
               ),
             ],
@@ -3513,8 +4230,14 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               padding: const EdgeInsets.only(left: 56, top: 1),
               child: Text(
                 '↳ ($curCode): $secWords2',
-                textDirection: secRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFA7F3D0) : const Color(0xFF047857)),
+                textDirection:
+                    secRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFFA7F3D0)
+                        : const Color(0xFF047857)),
               ),
             ),
           ],
@@ -3524,19 +4247,13 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   }
 
   String _translateLabel(String label) {
-    if (!_enableSecondaryLanguage) {
-      return label; // When secondary language is unchecked/disabled, return only the primary clean label!
-    }
-    final langDict = _labelTranslations[_secondaryLanguage];
-    if (langDict != null && langDict.containsKey(label)) {
-      return langDict[label]!;
-    }
-    final clean = label.replaceAll('*', '').trim();
-    if (langDict != null && langDict.containsKey(clean)) {
-      final trans = langDict[clean]!;
-      return label.contains('*') ? '$trans *' : trans;
-    }
-    return label;
+    return PosLocalization.tr(
+      label,
+      primaryOverride: _primaryLanguage,
+      secondaryOverride: _secondaryLanguage,
+      enableSecondaryOverride:
+          _primaryLanguage == 'en' ? _enableSecondaryLanguage : false,
+    );
   }
 
   Widget _fieldLabel(String label, bool isDark) {
@@ -3571,7 +4288,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       'Contact Phone': 'شماره تماس (Phone)',
       'Official Currency *': 'واحد پول رسمی (Currency) *',
       'Regional Time Zone *': 'منطقه زمانی (Time Zone) *',
-      'Language for Totals & Invoices *': 'زبان مبالغ به حروف (در فاکتور و رسید) *',
+      'Language for Totals & Invoices *':
+          'زبان مبالغ به حروف (در فاکتور و رسید) *',
       'Contact Email': 'ایمیل تماس (Email)',
       'Physical Address': 'آدرس فیزیکی (Address)',
       'Receipt Footer Note': 'یادداشت پایین رسید (Receipt Footer)',
@@ -3609,7 +4327,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       'Contact Phone': 'رابطہ فون نمبر',
       'Official Currency *': 'سرکاری کرنسی (Currency) *',
       'Regional Time Zone *': 'علاقائی ٹائم زون (Time Zone) *',
-      'Language for Totals & Invoices *': 'رقم کی لفظی زبان (انوائس اور رسید) *',
+      'Language for Totals & Invoices *':
+          'رقم کی لفظی زبان (انوائس اور رسید) *',
       'Contact Email': 'رابطہ ای میل (Email)',
       'Physical Address': 'کاروبار کا پتہ (Address)',
       'Receipt Footer Note': 'رسید کا نچلا نوٹ (Receipt Footer)',

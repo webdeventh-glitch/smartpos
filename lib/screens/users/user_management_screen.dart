@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
-import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class UserManagementScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -156,7 +157,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: (_roles.isNotEmpty && _roles.any((r) => r.name == role))
+                          value: (_roles.isNotEmpty &&
+                                  _roles.any((r) => r.name == role))
                               ? role
                               : (_roles.isNotEmpty ? _roles.first.name : role),
                           decoration: const InputDecoration(
@@ -173,13 +175,15 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                               : const [
                                   DropdownMenuItem(
                                       value: 'salesman',
-                                      child: Text('Salesman (Counter / Field)')),
+                                      child:
+                                          Text('Salesman (Counter / Field)')),
                                   DropdownMenuItem(
                                       value: 'cashier',
                                       child: Text('Cashier (Front Desk)')),
                                   DropdownMenuItem(
                                       value: 'manager',
-                                      child: Text('Store Manager / Supervisor')),
+                                      child:
+                                          Text('Store Manager / Supervisor')),
                                   DropdownMenuItem(
                                       value: 'admin',
                                       child: Text('Admin (Operations)')),
@@ -379,13 +383,14 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content:
-                          Text('Staff account for "$name" created successfully!'),
+                      content: Text(
+                          'Staff account for "$name" created successfully!'),
                       backgroundColor: const Color(0xFF10B981),
                     ),
                   );
                 } catch (e, st) {
-                  AppLogger.error('UserManagement', 'Failed creating user "$username"', e, st);
+                  AppLogger.error('UserManagement',
+                      'Failed creating user "$username"', e, st);
                   if (mounted) {
                     await AppErrorHandler.showErrorDialog(
                       context,
@@ -459,7 +464,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: (_roles.isNotEmpty && _roles.any((r) => r.name == role))
+                          value: (_roles.isNotEmpty &&
+                                  _roles.any((r) => r.name == role))
                               ? role
                               : (_roles.isNotEmpty ? _roles.first.name : role),
                           decoration: const InputDecoration(
@@ -475,11 +481,13 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                                   .toList()
                               : const [
                                   DropdownMenuItem(
-                                      value: 'salesman', child: Text('Salesman')),
+                                      value: 'salesman',
+                                      child: Text('Salesman')),
                                   DropdownMenuItem(
                                       value: 'cashier', child: Text('Cashier')),
                                   DropdownMenuItem(
-                                      value: 'manager', child: Text('Store Manager')),
+                                      value: 'manager',
+                                      child: Text('Store Manager')),
                                   DropdownMenuItem(
                                       value: 'admin', child: Text('Admin')),
                                   DropdownMenuItem(
@@ -939,12 +947,14 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // SECTION 1: POS COUNTER & SALES CONTROLS
-                    _sectionHeader(
-                        '1. POS COUNTER & SALE CONTROLS (کاؤنٹر سیلز پر کنٹرول)'),
+                    _sectionHeader(PosLocalization.tr(
+                        '1. POS COUNTER & SALE CONTROLS',
+                        settings: widget.settings)),
                     _permissionSwitch(
                       icon: Icons.price_change_outlined,
-                      title:
-                          'Allow Altering Unit Prices at Counter (سیلنگ پرائس تبدیل کرنے کا اختیار)',
+                      title: PosLocalization.tr(
+                          'Allow Altering Unit Prices at Counter',
+                          settings: widget.settings),
                       subtitle:
                           'When OFF, the salesman CANNOT change item retail prices on the counter.',
                       value: canEditPrice,
@@ -953,7 +963,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     ),
                     _permissionSwitch(
                       icon: Icons.discount_outlined,
-                      title: 'Allow Giving Discounts (ڈسکاؤنٹ دینے کا اختیار)',
+                      title: PosLocalization.tr('Allow Giving Discounts',
+                          settings: widget.settings),
                       subtitle:
                           'Enable or disable invoice & item discounts for this salesman.',
                       value: canGiveDiscount,
@@ -1015,8 +1026,9 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       ),
                     _permissionSwitch(
                       icon: Icons.delete_sweep_outlined,
-                      title:
-                          'Allow Voiding & Deleting Completed Sales (بل ڈیلیٹ یا کینسل کرنا)',
+                      title: PosLocalization.tr(
+                          'Allow Voiding & Deleting Completed Sales',
+                          settings: widget.settings),
                       subtitle:
                           'Prevents salesmen from voiding invoices or erasing records without owner authorization.',
                       value: canDeleteSale,
@@ -1026,12 +1038,14 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
                     const SizedBox(height: 12),
                     // SECTION 2: PROFIT & FINANCIAL CONFIDENTIALITY
-                    _sectionHeader(
-                        '2. PROFIT & FINANCIAL CONFIDENTIALITY (خریداری قیمت اور منافع کا تحفظ)'),
+                    _sectionHeader(PosLocalization.tr(
+                        '2. PROFIT & FINANCIAL CONFIDENTIALITY',
+                        settings: widget.settings)),
                     _permissionSwitch(
                       icon: Icons.visibility_off_outlined,
-                      title:
-                          'View Purchase / Cost Price & Profit Margins (خریداری ریٹ اور نفع دیکھنا)',
+                      title: PosLocalization.tr(
+                          'View Purchase / Cost Price & Profit Margins',
+                          settings: widget.settings),
                       subtitle:
                           'When OFF, purchase cost & profit margins are hidden (••••••) from the salesman.',
                       value: canViewCostPrice,
@@ -1040,8 +1054,9 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     ),
                     _permissionSwitch(
                       icon: Icons.keyboard_return_rounded,
-                      title:
-                          'Authorize Sales Returns & Cash Refunds (سیلز واپسی اور کیش ریفنڈ)',
+                      title: PosLocalization.tr(
+                          'Authorize Sales Returns & Cash Refunds',
+                          settings: widget.settings),
                       subtitle:
                           'Requires manager approval for accepting product returns and paying out cash.',
                       value: canProcessReturn,
@@ -1050,8 +1065,9 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     ),
                     _permissionSwitch(
                       icon: Icons.menu_book_rounded,
-                      title:
-                          'Access Customer Khata & Credit Ledgers (کسٹمر ادھار کھاتہ)',
+                      title: PosLocalization.tr(
+                          'Access Customer Khata & Credit Ledgers',
+                          settings: widget.settings),
                       subtitle:
                           'Allows salesman to view customer debit/credit balance & record ledger recoveries.',
                       value: canAccessKhata,
@@ -1061,12 +1077,14 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
                     const SizedBox(height: 12),
                     // SECTION 3: BACK-OFFICE & ADMINISTRATIVE POWERS
-                    _sectionHeader(
-                        '3. BACK-OFFICE & SYSTEM POWERS (بیک آفس اور سسٹم کنٹرول)'),
+                    _sectionHeader(PosLocalization.tr(
+                        '3. BACK-OFFICE & SYSTEM POWERS',
+                        settings: widget.settings)),
                     _permissionSwitch(
                       icon: Icons.inventory_2_outlined,
-                      title:
-                          'Inventory Stock Transfers & Adjustments (اسٹاک ٹرانسفر اور آڈٹ)',
+                      title: PosLocalization.tr(
+                          'Inventory Stock Transfers & Adjustments',
+                          settings: widget.settings),
                       subtitle:
                           'Allows stock adjustments, warehouse transfers, and inventory balance changes.',
                       value: canAccessInventory,
@@ -1076,8 +1094,9 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     ),
                     _permissionSwitch(
                       icon: Icons.bar_chart_rounded,
-                      title:
-                          'View Sales, Tax & Profit/Loss Reports (رپورٹس اور منافع دیکھنا)',
+                      title: PosLocalization.tr(
+                          'View Sales, Tax & Profit/Loss Reports',
+                          settings: widget.settings),
                       subtitle:
                           'Access to business performance analytics, annual turnover, and tax summaries.',
                       value: canAccessReports,
@@ -1086,8 +1105,9 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     ),
                     _permissionSwitch(
                       icon: Icons.settings_suggest_rounded,
-                      title:
-                          'Access Store Settings & Configurations (سسٹم سیٹنگز)',
+                      title: PosLocalization.tr(
+                          'Access Store Settings & Configurations',
+                          settings: widget.settings),
                       subtitle:
                           'Modify store profile, invoice templates, tax setup, and cloud sync parameters.',
                       value: canAccessSettings,
@@ -1097,8 +1117,9 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     ),
                     _permissionSwitch(
                       icon: Icons.supervisor_account_rounded,
-                      title:
-                          'Manage Other Users & Staff Permissions (دیگر اسٹاف کے اختیارات)',
+                      title: PosLocalization.tr(
+                          'Manage Other Users & Staff Permissions',
+                          settings: widget.settings),
                       subtitle:
                           'Grant or revoke permissions for other employees.',
                       value: canManageUsers,
@@ -1157,13 +1178,21 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   }
 
                   syncFlag('pos.edit_price', user.canEditPrice, canEditPrice);
-                  syncFlag('pos.give_discount', user.canGiveDiscount, canGiveDiscount);
-                  syncFlag('report.view_cost_price', user.canViewCostPrice, canViewCostPrice);
+                  syncFlag('pos.give_discount', user.canGiveDiscount,
+                      canGiveDiscount);
+                  syncFlag('report.view_cost_price', user.canViewCostPrice,
+                      canViewCostPrice);
                   syncFlag('sale.delete', user.canDeleteSale, canDeleteSale);
-                  syncFlag('sale.return', user.canProcessReturn, canProcessReturn);
-                  syncFlag('contact.khata_payment', user.canAccessKhata, canAccessKhata);
+                  syncFlag(
+                      'sale.return', user.canProcessReturn, canProcessReturn);
+                  syncFlag('contact.khata_payment', user.canAccessKhata,
+                      canAccessKhata);
                   syncGroup(
-                    const ['inventory.transfer', 'inventory.adjust', 'inventory.audit'],
+                    const [
+                      'inventory.transfer',
+                      'inventory.adjust',
+                      'inventory.audit'
+                    ],
                     user.canAccessInventory,
                     canAccessInventory,
                   );
@@ -1172,7 +1201,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     user.canAccessReports,
                     canAccessReports,
                   );
-                  syncFlag('settings.manage', user.canAccessSettings, canAccessSettings);
+                  syncFlag('settings.manage', user.canAccessSettings,
+                      canAccessSettings);
                   syncFlag('user.manage', user.canManageUsers, canManageUsers);
 
                   final updated = user.copyWith(
@@ -1196,7 +1226,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   // Update currently logged-in user session if self
                   if (AuthService.currentUser?.id == user.id ||
                       AuthService.currentUser?.username == user.username) {
-                    final eff = await db.getEffectivePermissionsForUser(updated);
+                    final eff =
+                        await db.getEffectivePermissionsForUser(updated);
                     AuthService.currentUserNotifier.value = updated.copyWith(
                       permissions: {'__rbac__', ...eff}.join(','),
                     );
@@ -1388,7 +1419,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                                     'User Management & Authorization Control Center',
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                        fontSize: 19, fontWeight: FontWeight.w900),
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.w900),
                                   ),
                                 ),
                               ],
@@ -1868,14 +1900,16 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     if (!canManageRoles) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Permission denied: Only users with "role.manage" can modify roles.'),
+          content: Text(
+              'Permission denied: Only users with "role.manage" can modify roles.'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    final displayCtrl = TextEditingController(text: existing?.displayName ?? '');
+    final displayCtrl =
+        TextEditingController(text: existing?.displayName ?? '');
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final descCtrl = TextEditingController(text: existing?.description ?? '');
     final selectedKeys = Set<String>.from(existing?.permissions ?? <String>[]);
@@ -1889,20 +1923,28 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: Row(
             children: [
-              const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF4F46E5)),
+              const Icon(Icons.admin_panel_settings_rounded,
+                  color: Color(0xFF4F46E5)),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  existing == null ? 'Create Custom Role' : 'Edit Role: ${existing.displayName}',
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  existing == null
+                      ? 'Create Custom Role'
+                      : 'Edit Role: ${existing.displayName}',
+                  style: const TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.bold),
                 ),
               ),
               Text(
                 '${selectedKeys.length} / ${PermissionCatalog.all.length}',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF4F46E5)),
               ),
             ],
           ),
@@ -1918,7 +1960,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       child: TextField(
                         controller: displayCtrl,
                         decoration: const InputDecoration(
-                          labelText: 'Role Display Name * (e.g. Senior Cashier)',
+                          labelText:
+                              'Role Display Name * (e.g. Senior Cashier)',
                           isDense: true,
                         ),
                       ),
@@ -1993,8 +2036,11 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                             dense: true,
                             contentPadding: const EdgeInsets.only(left: 8),
                             value: checked,
-                            title: Text(perm.label, style: const TextStyle(fontSize: 12.5)),
-                            subtitle: Text(perm.key, style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
+                            title: Text(perm.label,
+                                style: const TextStyle(fontSize: 12.5)),
+                            subtitle: Text(perm.key,
+                                style: const TextStyle(
+                                    fontSize: 10.5, color: Color(0xFF64748B))),
                             onChanged: (v) {
                               setDlgState(() {
                                 if (v == true) {
@@ -2050,9 +2096,10 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                         cur.role.toLowerCase() == roleObj.name.toLowerCase())) {
                   final dbUsers = await db.getUsers();
                   final freshCur = dbUsers.cast<User?>().firstWhere(
-                        (u) => u?.id == cur.id || u?.username == cur.username,
-                        orElse: () => cur,
-                      ) ??
+                            (u) =>
+                                u?.id == cur.id || u?.username == cur.username,
+                            orElse: () => cur,
+                          ) ??
                       cur;
                   final eff = await db.getEffectivePermissionsForUser(freshCur);
                   AuthService.currentUserNotifier.value = freshCur.copyWith(
@@ -2110,7 +2157,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   ),
                   Text(
                     '${_roles.length} configured roles across ${PermissionCatalog.all.length} fine-grained permissions',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
                 ],
               ),
@@ -2176,34 +2224,47 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                                   children: [
                                     Wrap(
                                       spacing: 8,
-                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
                                       children: [
                                         Text(
                                           role.displayName,
                                           style: const TextStyle(
-                                              fontWeight: FontWeight.bold, fontSize: 16),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16),
                                         ),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                                            borderRadius: BorderRadius.circular(4),
+                                            color: isDark
+                                                ? const Color(0xFF0F172A)
+                                                : const Color(0xFFF1F5F9),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
                                           ),
                                           child: Text(
                                             role.name,
-                                            style: const TextStyle(fontSize: 10.5, fontFamily: 'monospace'),
+                                            style: const TextStyle(
+                                                fontSize: 10.5,
+                                                fontFamily: 'monospace'),
                                           ),
                                         ),
                                         if (role.isSystem)
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
                                               color: const Color(0xFFE0E7FF),
-                                              borderRadius: BorderRadius.circular(4),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                             child: const Text(
                                               'SYSTEM',
-                                              style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF3730A3)),
+                                              style: TextStyle(
+                                                  fontSize: 9.5,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF3730A3)),
                                             ),
                                           ),
                                       ],
@@ -2212,7 +2273,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                                       Text(
                                         role.description,
                                         style: const TextStyle(
-                                            fontSize: 12, color: Color(0xFF64748B)),
+                                            fontSize: 12,
+                                            color: Color(0xFF64748B)),
                                       ),
                                   ],
                                 ),
@@ -2239,12 +2301,14 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                             ),
                             OutlinedButton.icon(
                               icon: const Icon(Icons.tune_rounded, size: 15),
-                              label: const Text('Edit Permissions', style: TextStyle(fontSize: 12)),
+                              label: const Text('Edit Permissions',
+                                  style: TextStyle(fontSize: 12)),
                               onPressed: () => _showRoleEditorDialog(role),
                             ),
                             if (!role.isSystem)
                               IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                icon: const Icon(Icons.delete_outline,
+                                    color: Colors.redAccent),
                                 tooltip: 'Delete Custom Role',
                                 onPressed: () async {
                                   if (role.id == null) return;
@@ -2285,7 +2349,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                               const SizedBox(width: 5),
                               Text(permLookup[rt] ?? rt,
                                   style: const TextStyle(
-                                      fontSize: 11, fontWeight: FontWeight.w600)),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600)),
                             ],
                           ),
                         );

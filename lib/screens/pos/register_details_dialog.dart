@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 import 'pos_power_dialogs.dart';
 import 'open_register_dialog.dart';
 
@@ -444,7 +445,9 @@ class _RegisterDetailsDialogState extends State<RegisterDetailsDialog> {
                                             size: 18, color: Color(0xFF4F46E5)),
                                         const SizedBox(width: 8),
                                         Text(
-                                          'Physical Note Counter (کرنسی نوٹ کاؤنٹر)',
+                                          PosLocalization.tr(
+                                              'Physical Note Counter',
+                                              settings: widget.settings),
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,

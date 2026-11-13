@@ -62,4 +62,3 @@ final industryModulesRepositoryProvider = Provider<IndustryModulesRepository>(
 final seederRepositoryProvider = Provider<SeederRepository>(
   (ref) => ref.watch(databaseServiceProvider).seederRepo,
 );
-

@@ -66,7 +66,8 @@ class AppRole {
       AppRole(
         id: map['id'] as int?,
         name: map['name'] as String? ?? '',
-        displayName: map['display_name'] as String? ?? (map['name'] as String? ?? ''),
+        displayName:
+            map['display_name'] as String? ?? (map['name'] as String? ?? ''),
         description: map['description'] as String? ?? '',
         isSystem: (map['is_system'] as int? ?? 0) == 1,
         permissions: permissions,
@@ -80,61 +81,172 @@ class PermissionCatalog {
 
   static const List<AppPermission> all = [
     // Products & Catalog (6)
-    AppPermission(key: 'product.view', label: 'View Products Catalog', category: 'Products'),
-    AppPermission(key: 'product.create', label: 'Create Products', category: 'Products'),
-    AppPermission(key: 'product.edit', label: 'Edit Products & Pricing', category: 'Products'),
-    AppPermission(key: 'product.delete', label: 'Delete Products', category: 'Products'),
-    AppPermission(key: 'product.import', label: 'Import Bulk Products (CSV/Excel)', category: 'Products'),
-    AppPermission(key: 'product.print_labels', label: 'Print Barcode Labels', category: 'Products'),
+    AppPermission(
+        key: 'product.view',
+        label: 'View Products Catalog',
+        category: 'Products'),
+    AppPermission(
+        key: 'product.create', label: 'Create Products', category: 'Products'),
+    AppPermission(
+        key: 'product.edit',
+        label: 'Edit Products & Pricing',
+        category: 'Products'),
+    AppPermission(
+        key: 'product.delete', label: 'Delete Products', category: 'Products'),
+    AppPermission(
+        key: 'product.import',
+        label: 'Import Bulk Products (CSV/Excel)',
+        category: 'Products'),
+    AppPermission(
+        key: 'product.print_labels',
+        label: 'Print Barcode Labels',
+        category: 'Products'),
 
     // POS & Sales (11)
-    AppPermission(key: 'pos.access', label: 'Access POS Checkout Terminal', category: 'POS & Sales'),
-    AppPermission(key: 'sale.view', label: 'View Sales Invoices', category: 'POS & Sales'),
-    AppPermission(key: 'sale.create', label: 'Create Sales / Checkout', category: 'POS & Sales'),
-    AppPermission(key: 'sale.edit', label: 'Edit / Resume Sales', category: 'POS & Sales'),
-    AppPermission(key: 'sale.delete', label: 'Void / Delete Sales Invoices', category: 'POS & Sales'),
-    AppPermission(key: 'sale.return', label: 'Process Sales Returns & Refunds', category: 'POS & Sales'),
-    AppPermission(key: 'quotation.manage', label: 'Create & Manage Quotations', category: 'POS & Sales'),
-    AppPermission(key: 'quotation.convert', label: 'Convert Quotation to Final Invoice', category: 'POS & Sales'),
-    AppPermission(key: 'pos.give_discount', label: 'Apply Line & Order Discounts', category: 'POS & Sales'),
-    AppPermission(key: 'pos.edit_price', label: 'Override Selling Price on POS Counter', category: 'POS & Sales'),
-    AppPermission(key: 'pos.register_manage', label: 'Open / Close Cash Register Shift', category: 'POS & Sales'),
+    AppPermission(
+        key: 'pos.access',
+        label: 'Access POS Checkout Terminal',
+        category: 'POS & Sales'),
+    AppPermission(
+        key: 'sale.view',
+        label: 'View Sales Invoices',
+        category: 'POS & Sales'),
+    AppPermission(
+        key: 'sale.create',
+        label: 'Create Sales / Checkout',
+        category: 'POS & Sales'),
+    AppPermission(
+        key: 'sale.edit',
+        label: 'Edit / Resume Sales',
+        category: 'POS & Sales'),
+    AppPermission(
+        key: 'sale.delete',
+        label: 'Void / Delete Sales Invoices',
+        category: 'POS & Sales'),
+    AppPermission(
+        key: 'sale.return',
+        label: 'Process Sales Returns & Refunds',
+        category: 'POS & Sales'),
+    AppPermission(
+        key: 'quotation.manage',
+        label: 'Create & Manage Quotations',
+        category: 'POS & Sales'),
+    AppPermission(
+        key: 'quotation.convert',
+        label: 'Convert Quotation to Final Invoice',
+        category: 'POS & Sales'),
+    AppPermission(
+        key: 'pos.give_discount',
+        label: 'Apply Line & Order Discounts',
+        category: 'POS & Sales'),
+    AppPermission(
+        key: 'pos.edit_price',
+        label: 'Override Selling Price on POS Counter',
+        category: 'POS & Sales'),
+    AppPermission(
+        key: 'pos.register_manage',
+        label: 'Open / Close Cash Register Shift',
+        category: 'POS & Sales'),
 
     // Purchases (5)
-    AppPermission(key: 'purchase.view', label: 'View Purchases & Orders', category: 'Purchases'),
-    AppPermission(key: 'purchase.create', label: 'Create Purchases & GRNs', category: 'Purchases'),
-    AppPermission(key: 'purchase.edit', label: 'Update Purchase Status', category: 'Purchases'),
-    AppPermission(key: 'purchase.delete', label: 'Delete Purchase Records', category: 'Purchases'),
-    AppPermission(key: 'purchase.return', label: 'Process Purchase Returns', category: 'Purchases'),
+    AppPermission(
+        key: 'purchase.view',
+        label: 'View Purchases & Orders',
+        category: 'Purchases'),
+    AppPermission(
+        key: 'purchase.create',
+        label: 'Create Purchases & GRNs',
+        category: 'Purchases'),
+    AppPermission(
+        key: 'purchase.edit',
+        label: 'Update Purchase Status',
+        category: 'Purchases'),
+    AppPermission(
+        key: 'purchase.delete',
+        label: 'Delete Purchase Records',
+        category: 'Purchases'),
+    AppPermission(
+        key: 'purchase.return',
+        label: 'Process Purchase Returns',
+        category: 'Purchases'),
 
     // Contacts & Khata (5)
-    AppPermission(key: 'customer.view', label: 'View Customers', category: 'Contacts'),
-    AppPermission(key: 'customer.manage', label: 'Add / Edit Customers & Customer Groups', category: 'Contacts'),
-    AppPermission(key: 'supplier.view', label: 'View Suppliers', category: 'Contacts'),
-    AppPermission(key: 'supplier.manage', label: 'Add / Edit Suppliers', category: 'Contacts'),
-    AppPermission(key: 'contact.khata_payment', label: 'Record Khata / Due Payments', category: 'Contacts'),
+    AppPermission(
+        key: 'customer.view', label: 'View Customers', category: 'Contacts'),
+    AppPermission(
+        key: 'customer.manage',
+        label: 'Add / Edit Customers & Customer Groups',
+        category: 'Contacts'),
+    AppPermission(
+        key: 'supplier.view', label: 'View Suppliers', category: 'Contacts'),
+    AppPermission(
+        key: 'supplier.manage',
+        label: 'Add / Edit Suppliers',
+        category: 'Contacts'),
+    AppPermission(
+        key: 'contact.khata_payment',
+        label: 'Record Khata / Due Payments',
+        category: 'Contacts'),
 
     // Expenses & Accounts (3)
-    AppPermission(key: 'expense.view', label: 'View Expenses', category: 'Finance'),
-    AppPermission(key: 'expense.add', label: 'Add / Record Expenses', category: 'Finance'),
-    AppPermission(key: 'account.manage', label: 'Manage Payment Accounts & Transfers', category: 'Finance'),
+    AppPermission(
+        key: 'expense.view', label: 'View Expenses', category: 'Finance'),
+    AppPermission(
+        key: 'expense.add',
+        label: 'Add / Record Expenses',
+        category: 'Finance'),
+    AppPermission(
+        key: 'account.manage',
+        label: 'Manage Payment Accounts & Transfers',
+        category: 'Finance'),
 
     // Inventory Control (3)
-    AppPermission(key: 'inventory.transfer', label: 'Manage Stock Transfers', category: 'Inventory'),
-    AppPermission(key: 'inventory.adjust', label: 'Perform Stock Adjustments', category: 'Inventory'),
-    AppPermission(key: 'inventory.audit', label: 'Perform Stock & Expiry Audits', category: 'Inventory'),
+    AppPermission(
+        key: 'inventory.transfer',
+        label: 'Manage Stock Transfers',
+        category: 'Inventory'),
+    AppPermission(
+        key: 'inventory.adjust',
+        label: 'Perform Stock Adjustments',
+        category: 'Inventory'),
+    AppPermission(
+        key: 'inventory.audit',
+        label: 'Perform Stock & Expiry Audits',
+        category: 'Inventory'),
 
     // Reports & Audit (4)
-    AppPermission(key: 'report.view', label: 'Access Business Intelligence Reports', category: 'Reports'),
-    AppPermission(key: 'report.view_profit', label: 'View Profit & Loss / Margin Data', category: 'Reports'),
-    AppPermission(key: 'report.view_cost_price', label: 'View Purchase Cost Prices', category: 'Reports'),
-    AppPermission(key: 'report.view_audit_log', label: 'View System Activity & Audit Log', category: 'Reports'),
+    AppPermission(
+        key: 'report.view',
+        label: 'Access Business Intelligence Reports',
+        category: 'Reports'),
+    AppPermission(
+        key: 'report.view_profit',
+        label: 'View Profit & Loss / Margin Data',
+        category: 'Reports'),
+    AppPermission(
+        key: 'report.view_cost_price',
+        label: 'View Purchase Cost Prices',
+        category: 'Reports'),
+    AppPermission(
+        key: 'report.view_audit_log',
+        label: 'View System Activity & Audit Log',
+        category: 'Reports'),
 
     // Administration (4)
-    AppPermission(key: 'settings.manage', label: 'Manage Store, Tax & Cloud Settings', category: 'Admin'),
-    AppPermission(key: 'user.manage', label: 'Manage Staff Accounts', category: 'Admin'),
-    AppPermission(key: 'role.manage', label: 'Manage Roles & Permissions Matrix', category: 'Admin'),
-    AppPermission(key: 'fiscal.close', label: 'Run Annual Fiscal Year Closing', category: 'Admin'),
+    AppPermission(
+        key: 'settings.manage',
+        label: 'Manage Store, Tax & Cloud Settings',
+        category: 'Admin'),
+    AppPermission(
+        key: 'user.manage', label: 'Manage Staff Accounts', category: 'Admin'),
+    AppPermission(
+        key: 'role.manage',
+        label: 'Manage Roles & Permissions Matrix',
+        category: 'Admin'),
+    AppPermission(
+        key: 'fiscal.close',
+        label: 'Run Annual Fiscal Year Closing',
+        category: 'Admin'),
   ];
 
   static List<String> get allKeys => all.map((p) => p.key).toList();
@@ -180,4 +292,3 @@ class PermissionCatalog {
     }
   }
 }
-

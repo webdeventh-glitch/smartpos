@@ -41,7 +41,8 @@ class QulopGeneratorScreen extends StatefulWidget {
 class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
   final TextEditingController _clientNameCtrl = TextEditingController();
   final TextEditingController _macCtrl = TextEditingController();
-  final TextEditingController _customDaysCtrl = TextEditingController(text: '30');
+  final TextEditingController _customDaysCtrl =
+      TextEditingController(text: '30');
 
   String _selectedTier = 'YRL'; // TRL, QTR, HLF, YRL, CST, LFT
   DateTime? _customExpiryDate;
@@ -80,14 +81,18 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
 
     if (client.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter client business or customer name'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Please enter client business or customer name'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
 
     if (mac.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter client machine MAC address'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Please enter client machine MAC address'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -127,7 +132,9 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
         'mac': mac,
         'tier': QulopService.getTierLabel(_selectedTier),
         'key': key,
-        'expiry': expiry != null ? '${expiry.day}/${expiry.month}/${expiry.year}' : 'Lifetime',
+        'expiry': expiry != null
+            ? '${expiry.day}/${expiry.month}/${expiry.year}'
+            : 'Lifetime',
         'generatedAt': DateTime.now().toIso8601String(),
       });
     });
@@ -168,7 +175,8 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
     Clipboard.setData(ClipboardData(text: msg));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('WhatsApp Template copied! You can now paste and send to customer.'),
+        content: Text(
+            'WhatsApp Template copied! You can now paste and send to customer.'),
         backgroundColor: Color(0xFF059669),
       ),
     );
@@ -201,9 +209,12 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.computer_rounded, size: 16, color: Color(0xFF38BDF8)),
+                const Icon(Icons.computer_rounded,
+                    size: 16, color: Color(0xFF38BDF8)),
                 const SizedBox(width: 6),
-                Text('Vendor PC MAC: $_hostMac', style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+                Text('Vendor PC MAC: $_hostMac',
+                    style: const TextStyle(
+                        fontSize: 12, color: Color(0xFF94A3B8))),
               ],
             ),
           ),
@@ -232,33 +243,45 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.auto_fix_high_rounded, color: Color(0xFF818CF8)),
+                            Icon(Icons.auto_fix_high_rounded,
+                                color: Color(0xFF818CF8)),
                             SizedBox(width: 10),
                             Text(
                               'Generate Qulop License Key',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
                             ),
                           ],
                         ),
                         const SizedBox(height: 6),
                         const Text(
                           'Generate cryptographically signed, machine-bound Qulop licenses for your SaaS clients.',
-                          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                          style:
+                              TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
                         ),
                         const Divider(height: 32, color: Color(0xFF334155)),
 
                         // Client Name
-                        const Text('1. Client Store / Business Name *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFCBD5E1))),
+                        const Text('1. Client Store / Business Name *',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Color(0xFFCBD5E1))),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _clientNameCtrl,
                           decoration: InputDecoration(
                             hintText: 'e.g. Al-Madina Pharmacy & Medicos',
-                            hintStyle: const TextStyle(color: Color(0xFF64748B)),
+                            hintStyle:
+                                const TextStyle(color: Color(0xFF64748B)),
                             filled: true,
                             fillColor: const Color(0xFF0F172A),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            prefixIcon: const Icon(Icons.storefront_rounded, color: Color(0xFF818CF8)),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            prefixIcon: const Icon(Icons.storefront_rounded,
+                                color: Color(0xFF818CF8)),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -267,15 +290,27 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('2. Client Hardware Machine ID (MAC Address) *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFCBD5E1))),
+                            const Text(
+                                '2. Client Hardware Machine ID (MAC Address) *',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Color(0xFFCBD5E1))),
                             Row(
                               children: [
                                 TextButton.icon(
-                                  style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-                                  icon: const Icon(Icons.paste_rounded, size: 14, color: Color(0xFF38BDF8)),
-                                  label: const Text('Paste MAC', style: TextStyle(fontSize: 12, color: Color(0xFF38BDF8))),
+                                  style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact),
+                                  icon: const Icon(Icons.paste_rounded,
+                                      size: 14, color: Color(0xFF38BDF8)),
+                                  label: const Text('Paste MAC',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF38BDF8))),
                                   onPressed: () async {
-                                    final data = await Clipboard.getData(Clipboard.kTextPlain);
+                                    final data = await Clipboard.getData(
+                                        Clipboard.kTextPlain);
                                     if (data?.text != null) {
                                       _macCtrl.text = data!.text!.trim();
                                     }
@@ -283,9 +318,15 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                                 ),
                                 const SizedBox(width: 10),
                                 TextButton.icon(
-                                  style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-                                  icon: const Icon(Icons.laptop_chromebook, size: 14, color: Color(0xFF34D399)),
-                                  label: const Text('Use My PC MAC', style: TextStyle(fontSize: 12, color: Color(0xFF34D399))),
+                                  style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact),
+                                  icon: const Icon(Icons.laptop_chromebook,
+                                      size: 14, color: Color(0xFF34D399)),
+                                  label: const Text('Use My PC MAC',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF34D399))),
                                   onPressed: () {
                                     _macCtrl.text = _hostMac;
                                   },
@@ -297,31 +338,46 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _macCtrl,
-                          style: const TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontFamily: 'Courier',
+                              fontWeight: FontWeight.bold),
                           decoration: InputDecoration(
                             hintText: 'e.g. C8-3A-35-1C-4B-40',
-                            hintStyle: const TextStyle(color: Color(0xFF64748B)),
+                            hintStyle:
+                                const TextStyle(color: Color(0xFF64748B)),
                             filled: true,
                             fillColor: const Color(0xFF0F172A),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            prefixIcon: const Icon(Icons.fingerprint_rounded, color: Color(0xFF818CF8)),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            prefixIcon: const Icon(Icons.fingerprint_rounded,
+                                color: Color(0xFF818CF8)),
                           ),
                         ),
                         const SizedBox(height: 20),
 
                         // License Tier Selection
-                        const Text('3. Qulop Subscription Tier & Duration *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFCBD5E1))),
+                        const Text('3. Qulop Subscription Tier & Duration *',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Color(0xFFCBD5E1))),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 10,
                           runSpacing: 10,
                           children: [
-                            _tierChip('TRL', '30-Day Trial', Icons.access_time_filled, Colors.amber),
-                            _tierChip('QTR', 'Quarterly (90 Days)', Icons.calendar_today_rounded, Colors.cyan),
-                            _tierChip('HLF', 'Half-Yearly (180 Days)', Icons.date_range_rounded, Colors.blue),
-                            _tierChip('YRL', 'Yearly Plan (365 Days)', Icons.star_rounded, Colors.indigoAccent),
-                            _tierChip('CST', 'Custom Days / Date', Icons.tune_rounded, Colors.purpleAccent),
-                            _tierChip('LFT', 'Lifetime Commercial', Icons.all_inclusive_rounded, Colors.green),
+                            _tierChip('TRL', '30-Day Trial',
+                                Icons.access_time_filled, Colors.amber),
+                            _tierChip('QTR', 'Quarterly (90 Days)',
+                                Icons.calendar_today_rounded, Colors.cyan),
+                            _tierChip('HLF', 'Half-Yearly (180 Days)',
+                                Icons.date_range_rounded, Colors.blue),
+                            _tierChip('YRL', 'Yearly Plan (365 Days)',
+                                Icons.star_rounded, Colors.indigoAccent),
+                            _tierChip('CST', 'Custom Days / Date',
+                                Icons.tune_rounded, Colors.purpleAccent),
+                            _tierChip('LFT', 'Lifetime Commercial',
+                                Icons.all_inclusive_rounded, Colors.green),
                           ],
                         ),
 
@@ -333,7 +389,8 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFF0F172A),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFF334155)),
+                              border:
+                                  Border.all(color: const Color(0xFF334155)),
                             ),
                             child: Row(
                               children: [
@@ -354,23 +411,30 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF334155),
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 12),
                                   ),
-                                  icon: const Icon(Icons.calendar_month, size: 16),
+                                  icon: const Icon(Icons.calendar_month,
+                                      size: 16),
                                   label: Text(_customExpiryDate != null
                                       ? '${_customExpiryDate!.day}/${_customExpiryDate!.month}/${_customExpiryDate!.year}'
                                       : 'Pick Specific Date'),
                                   onPressed: () async {
                                     final picked = await showDatePicker(
                                       context: context,
-                                      initialDate: DateTime.now().add(const Duration(days: 30)),
+                                      initialDate: DateTime.now()
+                                          .add(const Duration(days: 30)),
                                       firstDate: DateTime.now(),
-                                      lastDate: DateTime.now().add(const Duration(days: 3650)),
+                                      lastDate: DateTime.now()
+                                          .add(const Duration(days: 3650)),
                                     );
                                     if (picked != null) {
                                       setState(() {
                                         _customExpiryDate = picked;
-                                        _customDaysCtrl.text = picked.difference(DateTime.now()).inDays.toString();
+                                        _customDaysCtrl.text = picked
+                                            .difference(DateTime.now())
+                                            .inDays
+                                            .toString();
                                       });
                                     }
                                   },
@@ -390,13 +454,16 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF4F46E5),
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
                               elevation: 4,
                             ),
-                            icon: const Icon(Icons.auto_awesome_rounded, size: 20),
+                            icon: const Icon(Icons.auto_awesome_rounded,
+                                size: 20),
                             label: const Text(
                               'Generate Qulop License Key',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                             onPressed: _generateKey,
                           ),
@@ -421,14 +488,18 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                           gradient: LinearGradient(
                             colors: [
                               const Color(0xFF1E293B),
-                              _generatedKey.isNotEmpty ? const Color(0xFF1E1B4B) : const Color(0xFF1E293B),
+                              _generatedKey.isNotEmpty
+                                  ? const Color(0xFF1E1B4B)
+                                  : const Color(0xFF1E293B),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: _generatedKey.isNotEmpty ? const Color(0xFF6366F1) : const Color(0xFF334155),
+                            color: _generatedKey.isNotEmpty
+                                ? const Color(0xFF6366F1)
+                                : const Color(0xFF334155),
                             width: 1.5,
                           ),
                         ),
@@ -440,33 +511,47 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                               children: [
                                 const Text(
                                   'Qulop Certificate Output',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.white),
                                 ),
                                 if (_generatedKey.isNotEmpty)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                      color: const Color(0xFF10B981)
+                                          .withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: const Color(0xFF10B981)),
+                                      border: Border.all(
+                                          color: const Color(0xFF10B981)),
                                     ),
-                                    child: const Text('CRYPTOGRAPHICALLY SIGNED', style: TextStyle(color: Color(0xFF34D399), fontSize: 10, fontWeight: FontWeight.bold)),
+                                    child: const Text(
+                                        'CRYPTOGRAPHICALLY SIGNED',
+                                        style: TextStyle(
+                                            color: Color(0xFF34D399),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold)),
                                   ),
                               ],
                             ),
                             const Divider(height: 24, color: Color(0xFF334155)),
-
                             if (_generatedKey.isEmpty) ...[
                               const Center(
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(vertical: 36),
                                   child: Column(
                                     children: [
-                                      Icon(Icons.vpn_key_outlined, size: 48, color: Color(0xFF475569)),
+                                      Icon(Icons.vpn_key_outlined,
+                                          size: 48, color: Color(0xFF475569)),
                                       SizedBox(height: 12),
-                                      Text('Enter client details on the left and click\n"Generate Qulop License Key"',
+                                      Text(
+                                          'Enter client details on the left and click\n"Generate Qulop License Key"',
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+                                          style: TextStyle(
+                                              color: Color(0xFF64748B),
+                                              fontSize: 13)),
                                     ],
                                   ),
                                 ),
@@ -474,7 +559,8 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                             ] else ...[
                               _metaRow('Client Store:', _clientNameCtrl.text),
                               _metaRow('Bound Machine ID:', _macCtrl.text),
-                              _metaRow('Subscription Plan:', QulopService.getTierLabel(_selectedTier)),
+                              _metaRow('Subscription Plan:',
+                                  QulopService.getTierLabel(_selectedTier)),
                               _metaRow(
                                 'Expiry Date:',
                                 _calcExpiry != null
@@ -483,7 +569,11 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                               ),
                               const SizedBox(height: 16),
 
-                              const Text('Qulop Activation Key String:', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold)),
+                              const Text('Qulop Activation Key String:',
+                                  style: TextStyle(
+                                      color: Color(0xFF94A3B8),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold)),
                               const SizedBox(height: 6),
                               Container(
                                 width: double.infinity,
@@ -491,7 +581,8 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF0F172A),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0xFF475569)),
+                                  border: Border.all(
+                                      color: const Color(0xFF475569)),
                                 ),
                                 child: SelectableText(
                                   _generatedKey,
@@ -512,9 +603,11 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                                   Expanded(
                                     child: ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF334155),
+                                        backgroundColor:
+                                            const Color(0xFF334155),
                                         foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
                                       ),
                                       icon: const Icon(Icons.copy, size: 16),
                                       label: const Text('Copy Key'),
@@ -526,12 +619,18 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                                     flex: 2,
                                     child: ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF059669),
+                                        backgroundColor:
+                                            const Color(0xFF059669),
                                         foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
                                       ),
-                                      icon: const Icon(Icons.send_rounded, size: 16),
-                                      label: const Text('Copy WhatsApp Template', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      icon: const Icon(Icons.send_rounded,
+                                          size: 16),
+                                      label: const Text(
+                                          'Copy WhatsApp Template',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold)),
                                       onPressed: _copyWhatsAppTemplate,
                                     ),
                                   ),
@@ -559,41 +658,67 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Generated Keys History', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)),
-                                Text('${_recentKeys.length} keys issued', style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+                                const Text('Generated Keys History',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Colors.white)),
+                                Text('${_recentKeys.length} keys issued',
+                                    style: const TextStyle(
+                                        color: Color(0xFF64748B),
+                                        fontSize: 12)),
                               ],
                             ),
                             const SizedBox(height: 12),
                             if (_recentKeys.isEmpty)
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 12),
-                                child: Text('No keys generated in this session yet.', style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+                                child: Text(
+                                    'No keys generated in this session yet.',
+                                    style: TextStyle(
+                                        color: Color(0xFF64748B),
+                                        fontSize: 12)),
                               )
                             else
                               ListView.separated(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: _recentKeys.length.clamp(0, 5),
-                                separatorBuilder: (_, __) => const Divider(height: 12, color: Color(0xFF334155)),
+                                separatorBuilder: (_, __) => const Divider(
+                                    height: 12, color: Color(0xFF334155)),
                                 itemBuilder: (ctx, idx) {
                                   final item = _recentKeys[idx];
                                   return Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text(item['client'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
-                                          Text('${item['tier']} • Expires: ${item['expiry']}', style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                                          Text(item['client'],
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                  color: Colors.white)),
+                                          Text(
+                                              '${item['tier']} • Expires: ${item['expiry']}',
+                                              style: const TextStyle(
+                                                  fontSize: 10,
+                                                  color: Color(0xFF94A3B8))),
                                         ],
                                       ),
                                       IconButton(
                                         tooltip: 'Copy Key',
-                                        icon: const Icon(Icons.copy, size: 15, color: Color(0xFF818CF8)),
+                                        icon: const Icon(Icons.copy,
+                                            size: 15, color: Color(0xFF818CF8)),
                                         onPressed: () {
-                                          Clipboard.setData(ClipboardData(text: item['key']));
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Key copied!')),
+                                          Clipboard.setData(
+                                              ClipboardData(text: item['key']));
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content: Text('Key copied!')),
                                           );
                                         },
                                       ),
@@ -621,8 +746,13 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
-          SelectableText(value, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12)),
+          Text(label,
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+          SelectableText(value,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 12)),
         ],
       ),
     );
@@ -636,7 +766,9 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.2) : const Color(0xFF0F172A),
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : const Color(0xFF0F172A),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? color : const Color(0xFF334155),
@@ -646,7 +778,8 @@ class _QulopGeneratorScreenState extends State<QulopGeneratorScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: isSelected ? color : const Color(0xFF64748B)),
+            Icon(icon,
+                size: 14, color: isSelected ? color : const Color(0xFF64748B)),
             const SizedBox(width: 6),
             Text(
               label,

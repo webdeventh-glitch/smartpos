@@ -14,7 +14,9 @@ void main() {
     WindowsCredentialStore.useInMemoryForTest = true;
   });
 
-  group('Manual Core Operations Verification: Add Product, Purchase, Sale, Return, Khata', () {
+  group(
+      'Manual Core Operations Verification: Add Product, Purchase, Sale, Return, Khata',
+      () {
     late Directory tempDir;
     late DatabaseService db;
 
@@ -50,12 +52,14 @@ void main() {
       );
 
       final insertedId = await db.addProduct(newProd);
-      expect(insertedId, greaterThan(0), reason: 'Product should be assigned a positive ID');
+      expect(insertedId, greaterThan(0),
+          reason: 'Product should be assigned a positive ID');
 
       // Verify retrieval by ID
       final retrieved = await db.getProductById(insertedId);
       expect(retrieved, isNotNull);
-      expect(retrieved!.name, equals('Super High-Speed USB 3.0 Flash Drive 64GB'));
+      expect(
+          retrieved!.name, equals('Super High-Speed USB 3.0 Flash Drive 64GB'));
       expect(retrieved.sku, equals('USB-64GB-PRO'));
       expect(retrieved.purchasePrice, equals(650.0));
       expect(retrieved.sellingPrice, equals(1100.0));
@@ -66,10 +70,12 @@ void main() {
       expect(byBarcode, isNotNull);
       expect(byBarcode!.id, equals(insertedId));
 
-      print('[VERIFIED] Step 1: Product successfully added with SKU USB-64GB-PRO, Stock=50.0');
+      print(
+          '[VERIFIED] Step 1: Product successfully added with SKU USB-64GB-PRO, Stock=50.0');
     });
 
-    test('STEP 2: Create Purchase (خریداری) & Verify Automatic Stock Increment', () async {
+    test('STEP 2: Create Purchase (خریداری) & Verify Automatic Stock Increment',
+        () async {
       final productBefore = await db.getProductByCode('890123456789');
       expect(productBefore, isNotNull);
       final initialStock = productBefore!.stockQuantity; // 50.0
@@ -118,10 +124,13 @@ void main() {
       final purchases = await db.getPurchases();
       expect(purchases.any((p) => p.refNo == 'PUR-2026-0001'), isTrue);
 
-      print('[VERIFIED] Step 2: Purchase PUR-2026-0001 recorded. Stock atomically incremented from $initialStock to 80.0');
+      print(
+          '[VERIFIED] Step 2: Purchase PUR-2026-0001 recorded. Stock atomically incremented from $initialStock to 80.0');
     });
 
-    test('STEP 3: Process POS Sale (فروخت) & Verify Automatic Stock Decrement and Invoice', () async {
+    test(
+        'STEP 3: Process POS Sale (فروخت) & Verify Automatic Stock Decrement and Invoice',
+        () async {
       final productBefore = await db.getProductByCode('890123456789');
       expect(productBefore, isNotNull);
       final stockBefore = productBefore!.stockQuantity; // 80.0
@@ -172,10 +181,13 @@ void main() {
       final sales = await db.getSales();
       expect(sales.any((s) => s.invoiceNo == invoiceNo), isTrue);
 
-      print('[VERIFIED] Step 3: POS Sale $invoiceNo executed for 5 units. Stock atomically decremented from $stockBefore to 75.0');
+      print(
+          '[VERIFIED] Step 3: POS Sale $invoiceNo executed for 5 units. Stock atomically decremented from $stockBefore to 75.0');
     });
 
-    test('STEP 4: Process Sales Return (سیلز واپسی / ریٹرن) & Verify Stock Restored', () async {
+    test(
+        'STEP 4: Process Sales Return (سیلز واپسی / ریٹرن) & Verify Stock Restored',
+        () async {
       final productBefore = await db.getProductByCode('890123456789');
       final stockBefore = productBefore!.stockQuantity; // 75.0
 
@@ -218,10 +230,13 @@ void main() {
       final returns = await db.getSaleReturns();
       expect(returns.any((r) => r.returnNo == 'SR-2026-0001'), isTrue);
 
-      print('[VERIFIED] Step 4: Sales Return SR-2026-0001 processed. 2 units restocked atomically, Stock restored to 77.0');
+      print(
+          '[VERIFIED] Step 4: Sales Return SR-2026-0001 processed. 2 units restocked atomically, Stock restored to 77.0');
     });
 
-    test('STEP 5: Customer Khata / Credit Ledger & Payment Recovery (ادھار کھاتہ اور وصولی)', () async {
+    test(
+        'STEP 5: Customer Khata / Credit Ledger & Payment Recovery (ادھار کھاتہ اور وصولی)',
+        () async {
       // Create Khata Client
       final khataClient = Contact(
         name: 'Chaudhry Akram Super Store',
@@ -287,10 +302,12 @@ void main() {
       final payments = await db.getContactPayments(clientId);
       expect(payments.any((p) => p.refNo == paymentRef), isTrue);
 
-      print('[VERIFIED] Step 5: Customer Khata verified. Credit: 45,000 -> Cash Wasooli: 20,000 -> Remaining Balance: 25,000');
+      print(
+          '[VERIFIED] Step 5: Customer Khata verified. Credit: 45,000 -> Cash Wasooli: 20,000 -> Remaining Balance: 25,000');
     });
 
-    test('STEP 6: Owner vs Salesman Operational Authorization Enforcement', () async {
+    test('STEP 6: Owner vs Salesman Operational Authorization Enforcement',
+        () async {
       await db.addUser(User(
         name: 'Store Owner',
         username: 'owner_test',
@@ -322,7 +339,8 @@ void main() {
 
       // Rule 1: Selling Price alteration
       expect(owner.canEditPrice, isTrue, reason: 'Owner can change price');
-      expect(salesman.canEditPrice, isFalse, reason: 'Salesman cannot change fixed counter prices');
+      expect(salesman.canEditPrice, isFalse,
+          reason: 'Salesman cannot change fixed counter prices');
 
       // Rule 2: Maximum Discount Rate
       expect(owner.maxDiscountPercent, equals(100.0));
@@ -340,7 +358,8 @@ void main() {
       expect(owner.canProcessReturn, isTrue);
       expect(salesman.canProcessReturn, isFalse);
 
-      print('[VERIFIED] Step 6: All 5 Owner security restrictions actively enforced on salesman.');
+      print(
+          '[VERIFIED] Step 6: All 5 Owner security restrictions actively enforced on salesman.');
     });
   });
 }

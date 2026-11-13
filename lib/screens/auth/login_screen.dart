@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -56,21 +57,27 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         setState(() {
           _isAuthenticating = true;
-          _loginStatusMessage = 'Verifying security credentials... / سیکورٹی تصدیق جاری ہے';
+          _loginStatusMessage = PosLocalization.tr(
+              'Verifying security credentials...',
+              settings: widget.settings);
           _loginProgress = 0.35;
         });
 
         await Future.delayed(const Duration(milliseconds: 800));
         if (!mounted) return;
         setState(() {
-          _loginStatusMessage = 'Initializing POS Engine & Data Cache... / ڈیٹا بیس اور ٹرمینل کیشے لوڈ ہو رہا ہے';
+          _loginStatusMessage = PosLocalization.tr(
+              'Initializing POS Engine & Data Cache...',
+              settings: widget.settings);
           _loginProgress = 0.75;
         });
 
         await Future.delayed(const Duration(milliseconds: 900));
         if (!mounted) return;
         setState(() {
-          _loginStatusMessage = 'Access Granted! Launching Smart POS... / خوش آمدید! رسائی منظور ہو گئی';
+          _loginStatusMessage = PosLocalization.tr(
+              'Access Granted! Launching Smart POS...',
+              settings: widget.settings);
           _loginProgress = 1.0;
         });
 
@@ -155,47 +162,119 @@ class _LoginScreenState extends State<LoginScreen> {
     switch (widget.settings.businessType.toLowerCase()) {
       case 'pharmacy':
         return [
-          {'icon': Icons.medical_services_rounded, 'text': 'Medicine & Pharmacy Agency Ready (Form 2A & 236H)'},
-          {'icon': Icons.bolt_rounded, 'text': 'Blazing Fast POS Terminal with [F1] Hotkeys'},
-          {'icon': Icons.inventory_2_rounded, 'text': 'Automated Sales & Purchase Returns Restocking'},
-          {'icon': Icons.calendar_month_rounded, 'text': 'Annual Financial Closing & Ledger Carry-Forward'},
+          {
+            'icon': Icons.medical_services_rounded,
+            'text': 'Medicine & Pharmacy Agency Ready (Form 2A & 236H)'
+          },
+          {
+            'icon': Icons.bolt_rounded,
+            'text': 'Blazing Fast POS Terminal with [F1] Hotkeys'
+          },
+          {
+            'icon': Icons.inventory_2_rounded,
+            'text': 'Automated Sales & Purchase Returns Restocking'
+          },
+          {
+            'icon': Icons.calendar_month_rounded,
+            'text': 'Annual Financial Closing & Ledger Carry-Forward'
+          },
         ];
       case 'supermarket':
         return [
-          {'icon': Icons.qr_code_scanner_rounded, 'text': 'Barcode & Weight Scale Terminal Integration'},
-          {'icon': Icons.print_rounded, 'text': 'Dynamic Shelf Label & Barcode Sticker Printing'},
-          {'icon': Icons.local_offer_rounded, 'text': 'Selling Price Groups & Volume Wholesale Discounts'},
-          {'icon': Icons.point_of_sale_rounded, 'text': 'Parked Sales, Shift Registers & Fast Multi-Pay'},
+          {
+            'icon': Icons.qr_code_scanner_rounded,
+            'text': 'Barcode & Weight Scale Terminal Integration'
+          },
+          {
+            'icon': Icons.print_rounded,
+            'text': 'Dynamic Shelf Label & Barcode Sticker Printing'
+          },
+          {
+            'icon': Icons.local_offer_rounded,
+            'text': 'Selling Price Groups & Volume Wholesale Discounts'
+          },
+          {
+            'icon': Icons.point_of_sale_rounded,
+            'text': 'Parked Sales, Shift Registers & Fast Multi-Pay'
+          },
         ];
       case 'restaurant':
       case 'cafe':
         return [
-          {'icon': Icons.table_restaurant_rounded, 'text': 'Visual Table Plan & Real-Time Floor Layout'},
-          {'icon': Icons.outdoor_grill_rounded, 'text': 'Instant Kitchen Order Tickets (KOT) Dispatch'},
-          {'icon': Icons.delivery_dining_rounded, 'text': 'Dine-In, Takeaway & Home Delivery Tracking'},
-          {'icon': Icons.receipt_long_rounded, 'text': 'Bill Splitting, Service Charges & Tips Management'},
+          {
+            'icon': Icons.table_restaurant_rounded,
+            'text': 'Visual Table Plan & Real-Time Floor Layout'
+          },
+          {
+            'icon': Icons.outdoor_grill_rounded,
+            'text': 'Instant Kitchen Order Tickets (KOT) Dispatch'
+          },
+          {
+            'icon': Icons.delivery_dining_rounded,
+            'text': 'Dine-In, Takeaway & Home Delivery Tracking'
+          },
+          {
+            'icon': Icons.receipt_long_rounded,
+            'text': 'Bill Splitting, Service Charges & Tips Management'
+          },
         ];
       case 'gym':
         return [
-          {'icon': Icons.fitness_center_rounded, 'text': 'Member Subscriptions & Auto-Expiry Alerts'},
-          {'icon': Icons.lock_clock_rounded, 'text': 'Smart Locker Allocation & Monthly Rentals'},
-          {'icon': Icons.sports_mma_rounded, 'text': 'Personal Trainer Packages & Performance Logs'},
-          {'icon': Icons.badge_rounded, 'text': 'Instant Check-in & Member Attendance Ledger'},
+          {
+            'icon': Icons.fitness_center_rounded,
+            'text': 'Member Subscriptions & Auto-Expiry Alerts'
+          },
+          {
+            'icon': Icons.lock_clock_rounded,
+            'text': 'Smart Locker Allocation & Monthly Rentals'
+          },
+          {
+            'icon': Icons.sports_mma_rounded,
+            'text': 'Personal Trainer Packages & Performance Logs'
+          },
+          {
+            'icon': Icons.badge_rounded,
+            'text': 'Instant Check-in & Member Attendance Ledger'
+          },
         ];
       case 'repair':
       case 'service':
         return [
-          {'icon': Icons.build_circle_rounded, 'text': 'Device Repair Job Sheets & Barcode Tracking'},
-          {'icon': Icons.sms_rounded, 'text': 'SMS Status Updates to Customers on Job Done'},
-          {'icon': Icons.precision_manufacturing_rounded, 'text': 'Spare Parts Consumption & Cost Auditing'},
-          {'icon': Icons.verified_user_rounded, 'text': 'Service Warranty & Defect Return Tracking'},
+          {
+            'icon': Icons.build_circle_rounded,
+            'text': 'Device Repair Job Sheets & Barcode Tracking'
+          },
+          {
+            'icon': Icons.sms_rounded,
+            'text': 'SMS Status Updates to Customers on Job Done'
+          },
+          {
+            'icon': Icons.precision_manufacturing_rounded,
+            'text': 'Spare Parts Consumption & Cost Auditing'
+          },
+          {
+            'icon': Icons.verified_user_rounded,
+            'text': 'Service Warranty & Defect Return Tracking'
+          },
         ];
       default:
         return [
-          {'icon': Icons.speed_rounded, 'text': 'Sub-Millisecond Offline SQLite Transactions'},
-          {'icon': Icons.sync_rounded, 'text': 'Hybrid Cloud Sync to MySQL / Laravel Web Portal'},
-          {'icon': Icons.menu_book_rounded, 'text': 'Customer & Supplier Double-Entry Ledgers'},
-          {'icon': Icons.analytics_rounded, 'text': 'Comprehensive Profit & Loss and Stock Auditing'},
+          {
+            'icon': Icons.speed_rounded,
+            'text': 'Sub-Millisecond Offline SQLite Transactions'
+          },
+          {
+            'icon': Icons.sync_rounded,
+            'text': 'Hybrid Cloud Sync to MySQL / Laravel Web Portal'
+          },
+          {
+            'icon': Icons.menu_book_rounded,
+            'text': 'Customer & Supplier Double-Entry Ledgers'
+          },
+          {
+            'icon': Icons.analytics_rounded,
+            'text': 'Comprehensive Profit & Loss and Stock Auditing'
+          },
         ];
     }
   }
@@ -266,7 +345,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.25)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.2),
@@ -471,7 +551,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -479,7 +560,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Authenticate to open register & billing terminal',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
                         ),
                       ),
                     ],
@@ -499,7 +582,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEF3C7),
                       borderRadius: BorderRadius.circular(8),
@@ -507,7 +591,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.timer_off_outlined, color: Color(0xFFD97706), size: 18),
+                        const Icon(Icons.timer_off_outlined,
+                            color: Color(0xFFD97706), size: 18),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -529,7 +614,8 @@ class _LoginScreenState extends State<LoginScreen> {
             // Error Message Banner
             if (_errorMessage != null) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFEF2F2),
                   borderRadius: BorderRadius.circular(8),
@@ -537,7 +623,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 18),
+                    const Icon(Icons.error_outline_rounded,
+                        color: Color(0xFFDC2626), size: 18),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -561,7 +648,8 @@ class _LoginScreenState extends State<LoginScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                color:
+                    isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
               ),
             ),
             const SizedBox(height: 6),
@@ -577,31 +665,42 @@ class _LoginScreenState extends State<LoginScreen> {
                 hintText: 'e.g. admin, cashier1, or salesman',
                 hintStyle: TextStyle(
                   fontSize: 12,
-                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                  color: isDark
+                      ? const Color(0xFF64748B)
+                      : const Color(0xFF94A3B8),
                 ),
                 prefixIcon: const Icon(Icons.person_outline_rounded, size: 18),
                 filled: true,
-                fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                fillColor:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFCBD5E1),
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
                 ),
               ),
-              validator: (v) => v == null || v.trim().isEmpty ? 'Please enter username' : null,
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? 'Please enter username'
+                  : null,
               onFieldSubmitted: (_) => _handleLogin(),
             ),
             const SizedBox(height: 14),
@@ -612,7 +711,8 @@ class _LoginScreenState extends State<LoginScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                color:
+                    isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
               ),
             ),
             const SizedBox(height: 6),
@@ -629,39 +729,52 @@ class _LoginScreenState extends State<LoginScreen> {
                 hintText: 'Enter account password',
                 hintStyle: TextStyle(
                   fontSize: 12,
-                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                  color: isDark
+                      ? const Color(0xFF64748B)
+                      : const Color(0xFF94A3B8),
                 ),
                 prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                     size: 18,
                     color: const Color(0xFF64748B),
                   ),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 ),
                 filled: true,
-                fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                fillColor:
+                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFCBD5E1),
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
                 ),
               ),
-              validator: (v) => v == null || v.isEmpty ? 'Please enter password' : null,
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Please enter password' : null,
               onFieldSubmitted: (_) => _handleLogin(),
             ),
             const SizedBox(height: 16),
@@ -670,7 +783,8 @@ class _LoginScreenState extends State<LoginScreen> {
             if (widget.settings.sessionTimeoutMinutes > 0)
               Row(
                 children: [
-                  const Icon(Icons.shield_outlined, size: 15, color: Color(0xFF4F46E5)),
+                  const Icon(Icons.shield_outlined,
+                      size: 15, color: Color(0xFF4F46E5)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -680,7 +794,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           : 'Workstation auto-locks after ${widget.settings.sessionTimeoutMinutes} minute(s) of inactivity',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B),
                       ),
                     ),
                   ),
@@ -691,9 +807,12 @@ class _LoginScreenState extends State<LoginScreen> {
             // Submit Button or Authentication Progress Sequence
             if (_isAuthenticating)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEEF2FF),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFEEF2FF),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: _loginProgress == 1.0
@@ -703,7 +822,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: (_loginProgress == 1.0 ? const Color(0xFF10B981) : const Color(0xFF4F46E5))
+                      color: (_loginProgress == 1.0
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF4F46E5))
                           .withValues(alpha: 0.15),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
@@ -718,7 +839,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: 22,
                           height: 22,
                           child: _loginProgress == 1.0
-                              ? const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 22)
+                              ? const Icon(Icons.check_circle_rounded,
+                                  color: Color(0xFF10B981), size: 22)
                               : const CircularProgressIndicator(
                                   strokeWidth: 2.5,
                                   color: Color(0xFF4F46E5),
@@ -733,7 +855,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontWeight: FontWeight.w700,
                               color: _loginProgress == 1.0
                                   ? const Color(0xFF059669)
-                                  : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                                  : (isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1E293B)),
                             ),
                           ),
                         ),
@@ -744,8 +868,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: _loginProgress,
-                        backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                        color: _loginProgress == 1.0 ? const Color(0xFF10B981) : const Color(0xFF4F46E5),
+                        backgroundColor: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0),
+                        color: _loginProgress == 1.0
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF4F46E5),
                         minHeight: 5,
                       ),
                     ),
@@ -760,13 +888,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 child: _isLoading
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
                       )
                     : const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -775,7 +905,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           SizedBox(width: 8),
                           Text(
                             'Sign In to Terminal',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                         ],
                       ),
@@ -786,7 +917,8 @@ class _LoginScreenState extends State<LoginScreen> {
             Center(
               child: TextButton.icon(
                 onPressed: () => _handleReconfigureDatabase(context),
-                icon: const Icon(Icons.settings_suggest_rounded, size: 15, color: Color(0xFF64748B)),
+                icon: const Icon(Icons.settings_suggest_rounded,
+                    size: 15, color: Color(0xFF64748B)),
                 label: const Text(
                   'Run Installation & Database Setup Wizard',
                   style: TextStyle(
@@ -805,7 +937,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 'Smart POS Enterprise Edition • 256-bit Local AES Encryption',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                  color: isDark
+                      ? const Color(0xFF64748B)
+                      : const Color(0xFF94A3B8),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -834,10 +968,12 @@ class _LoginScreenState extends State<LoginScreen> {
         barrierDismissible: false,
         builder: (ctx) => StatefulBuilder(
           builder: (ctx, setDlgState) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Row(
               children: [
-                Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF4F46E5), size: 24),
+                Icon(Icons.admin_panel_settings_rounded,
+                    color: Color(0xFF4F46E5), size: 24),
                 SizedBox(width: 8),
                 Expanded(child: Text('Super Admin Verification Required')),
               ],
@@ -856,7 +992,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 10),
                     Text(
                       dialogError!,
-                      style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                          color: Color(0xFFDC2626),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
                     ),
                   ],
                   const SizedBox(height: 12),
@@ -897,7 +1036,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         final u = adminUserCtrl.text.trim();
                         final p = adminPassCtrl.text.trim();
                         if (u.isEmpty || p.isEmpty) {
-                          setDlgState(() => dialogError = 'Username and password are required.');
+                          setDlgState(() => dialogError =
+                              'Username and password are required.');
                           return;
                         }
                         setDlgState(() {
@@ -908,7 +1048,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (!res.success || res.user == null) {
                           setDlgState(() {
                             verifying = false;
-                            dialogError = res.errorMessage ?? 'Invalid credentials.';
+                            dialogError =
+                                res.errorMessage ?? 'Invalid credentials.';
                           });
                           return;
                         }
@@ -917,7 +1058,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (!isSuper) {
                           setDlgState(() {
                             verifying = false;
-                            dialogError = 'Only an Owner / Super Admin can reconfigure the database.';
+                            dialogError =
+                                'Only an Owner / Super Admin can reconfigure the database.';
                           });
                           return;
                         }
@@ -937,7 +1079,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
               Icon(Icons.tune_rounded, color: Color(0xFF4F46E5), size: 24),
@@ -950,7 +1093,9 @@ class _LoginScreenState extends State<LoginScreen> {
             style: TextStyle(fontSize: 13, height: 1.4),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4F46E5),
@@ -980,7 +1125,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+      backgroundColor:
+          isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -996,12 +1142,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
                     width: 1,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.08),
+                      color:
+                          Colors.black.withValues(alpha: isDark ? 0.45 : 0.08),
                       blurRadius: 32,
                       offset: const Offset(0, 12),
                     ),

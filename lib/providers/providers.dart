@@ -6,4 +6,3 @@ export 'navigation_provider.dart';
 export 'phase3_providers.dart';
 export 'product_list_provider.dart';
 export 'settings_provider.dart';
-

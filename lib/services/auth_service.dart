@@ -56,7 +56,8 @@ class AuthService {
   static DateTime Function() nowProvider = DateTime.now;
 
   // Legacy salt used strictly for one-time migration of pre-Argon2id hashes
-  static const String _legacyMigrationSalt = 'SMART_POS_SALT_v1_2026_SECURE_AUTH';
+  static const String _legacyMigrationSalt =
+      'SMART_POS_SALT_v1_2026_SECURE_AUTH';
 
   static int get sessionTimeoutMinutes => _sessionTimeoutMinutes;
   static DateTime? get loginTime => _loginTime;
@@ -94,7 +95,8 @@ class AuthService {
         'Session timed out for "${currentUserNotifier.value?.username}" after $hoursLabel of inactivity.',
       );
       await logout(
-        reason: 'Your session timed out after $hoursLabel of inactivity. Please sign in again.',
+        reason:
+            'Your session timed out after $hoursLabel of inactivity. Please sign in again.',
       );
       return false;
     }
@@ -188,7 +190,8 @@ class AuthService {
           derivator.process(Uint8List.fromList(utf8.encode(cleanInput)));
       return _constantTimeEquals(actualHash, expectedHash);
     } catch (e, st) {
-      AppLogger.warning('AuthService', 'Malformed password hash encountered', e, st);
+      AppLogger.warning(
+          'AuthService', 'Malformed password hash encountered', e, st);
       return false;
     }
   }
@@ -196,7 +199,8 @@ class AuthService {
   /// Legacy SHA-256 verification ONLY used to upgrade old accounts during login.
   static bool _verifyLegacySha256(String inputPassword, String legacyHash) {
     if (!legacyHash.startsWith('sha256\$')) return false;
-    final bytes = utf8.encode('$_legacyMigrationSalt:$inputPassword:$_legacyMigrationSalt');
+    final bytes = utf8
+        .encode('$_legacyMigrationSalt:$inputPassword:$_legacyMigrationSalt');
     final digest = sha256.convert(bytes);
     return 'sha256\$${digest.toString()}' == legacyHash;
   }
@@ -211,7 +215,8 @@ class AuthService {
   }
 
   /// Validates password strength for user creation & forced password rotation.
-  static String? validatePasswordStrength(String password, {String? oldPassword}) {
+  static String? validatePasswordStrength(String password,
+      {String? oldPassword}) {
     final p = password.trim();
     if (p.length < 8) {
       return 'Password must be at least 8 characters long.';
@@ -278,7 +283,8 @@ class AuthService {
             errorMessage:
                 'Too many failed login attempts. Try again in $remainingMins minute(s).',
           );
-        } else if (state.lockedUntil != null && !now.isBefore(state.lockedUntil!)) {
+        } else if (state.lockedUntil != null &&
+            !now.isBefore(state.lockedUntil!)) {
           state.attempts = 0;
           state.lockedUntil = null;
         }
@@ -301,7 +307,8 @@ class AuthService {
         }
 
         final remaining = maxFailedAttempts - state.attempts;
-        AppLogger.warning('AuthService', 'Failed login attempt for unknown username "$cleanUser".');
+        AppLogger.warning('AuthService',
+            'Failed login attempt for unknown username "$cleanUser".');
         return AuthResult(
           success: false,
           remainingAttempts: remaining,
@@ -380,7 +387,8 @@ class AuthService {
                 : 'Failed login attempt ($newAttempts/$maxFailedAttempts).',
           );
         } catch (auditErr, auditSt) {
-          AppLogger.warning('AuthService', 'Audit log failed on login failure', auditErr, auditSt);
+          AppLogger.warning('AuthService', 'Audit log failed on login failure',
+              auditErr, auditSt);
         }
 
         if (lockTime != null) {
@@ -428,11 +436,14 @@ class AuthService {
       final baseUser = matched.copyWith(
         failedLoginAttempts: 0,
         clearLockedUntil: true,
-        password: upgradedFromLegacyHash ? hashPassword(cleanPass) : matched.password,
-        canViewCostPrice: matched.isSuperAdmin ? true : matched.canViewCostPrice,
+        password:
+            upgradedFromLegacyHash ? hashPassword(cleanPass) : matched.password,
+        canViewCostPrice:
+            matched.isSuperAdmin ? true : matched.canViewCostPrice,
         permissions: cleanedDbPermissions,
       );
-      final effectivePerms = await db.authRepo.getEffectivePermissionsForUser(baseUser);
+      final effectivePerms =
+          await db.authRepo.getEffectivePermissionsForUser(baseUser);
       final effectiveUser = baseUser.copyWith(
         permissions: {'__rbac__', ...effectivePerms}.join(','),
       );
@@ -451,7 +462,8 @@ class AuthService {
       sessionMessageNotifier.value = null;
       currentUserNotifier.value = effectiveUser;
 
-      AppLogger.info('AuthService', 'User "${effectiveUser.username}" signed in.');
+      AppLogger.info(
+          'AuthService', 'User "${effectiveUser.username}" signed in.');
       try {
         await db.logAuditAction(
           action: 'login_success',
@@ -464,7 +476,8 @@ class AuthService {
               : 'Signed in successfully.',
         );
       } catch (auditErr, auditSt) {
-        AppLogger.warning('AuthService', 'Audit log failed on login success', auditErr, auditSt);
+        AppLogger.warning('AuthService', 'Audit log failed on login success',
+            auditErr, auditSt);
       }
 
       return AuthResult(
@@ -586,10 +599,12 @@ class AuthService {
         details: 'User updated account password.',
       );
     } catch (e, st) {
-      AppLogger.warning('AuthService', 'Audit log failed after password change', e, st);
+      AppLogger.warning(
+          'AuthService', 'Audit log failed after password change', e, st);
     }
 
-    AppLogger.info('AuthService', 'Password rotated for "${updated.username}".');
+    AppLogger.info(
+        'AuthService', 'Password rotated for "${updated.username}".');
     return AuthResult(success: true, user: updated, mustChangePassword: false);
   }
 
@@ -605,11 +620,13 @@ class AuthService {
       try {
         await DatabaseEncryptionService.sealVaultSnapshot(openDb.dbFilePath!);
       } catch (e, st) {
-        AppLogger.warning('AuthService', 'Vault snapshot seal on logout skipped', e, st);
+        AppLogger.warning(
+            'AuthService', 'Vault snapshot seal on logout skipped', e, st);
       }
     }
     if (username != null) {
-      AppLogger.info('AuthService', 'User "$username" logged out${reason != null ? ' ($reason)' : ''}.');
+      AppLogger.info('AuthService',
+          'User "$username" logged out${reason != null ? ' ($reason)' : ''}.');
     }
   }
 

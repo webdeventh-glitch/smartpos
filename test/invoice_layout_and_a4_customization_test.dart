@@ -4,7 +4,8 @@ import 'package:desktop_starter/services/print_service.dart';
 
 void main() {
   group('Invoice Layout & A4 Customization Tests', () {
-    test('1. BusinessSettings serialization preserves Invoice Layout toggles', () {
+    test('1. BusinessSettings serialization preserves Invoice Layout toggles',
+        () {
       final settings = BusinessSettings(
         invoiceLayoutDesign: 'detailed',
         showBatchOnInvoice: true,
@@ -37,7 +38,9 @@ void main() {
       expect(reconstructed.invoiceHeading, 'COMMERCIAL INVOICE');
     });
 
-    test('2. generateA4AgencyInvoiceHtml includes Batch and Expiry when enabled', () {
+    test(
+        '2. generateA4AgencyInvoiceHtml includes Batch and Expiry when enabled',
+        () {
       final settings = BusinessSettings(
         businessName: 'Al-Madina Pharma & Distribution',
         branchName: 'Main Agency HQ',
@@ -89,7 +92,9 @@ void main() {
       expect(html.contains('Amount in Words:'), true);
     });
 
-    test('3. generateA4AgencyInvoiceHtml excludes Batch and Expiry when disabled in Classic mode', () {
+    test(
+        '3. generateA4AgencyInvoiceHtml excludes Batch and Expiry when disabled in Classic mode',
+        () {
       final settings = BusinessSettings(
         businessName: 'General Store Wholesale',
         branchName: 'Warehouse 1',

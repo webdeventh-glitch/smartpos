@@ -10,7 +10,8 @@ class AddProductDialog extends StatefulWidget {
   final Product? productToEdit;
   final VoidCallback onProductSaved;
 
-  const AddProductDialog({super.key, this.productToEdit, required this.onProductSaved});
+  const AddProductDialog(
+      {super.key, this.productToEdit, required this.onProductSaved});
 
   @override
   State<AddProductDialog> createState() => _AddProductDialogState();
@@ -52,20 +53,27 @@ class _AddProductDialogState extends State<AddProductDialog> {
     _nameController = TextEditingController(text: p?.name ?? '');
     _skuController = TextEditingController(text: p?.sku ?? '');
     _barcodeController = TextEditingController(text: p?.barcode ?? '');
-    _purchasePriceController = TextEditingController(text: p != null ? p.purchasePrice.toStringAsFixed(2) : '0.00');
-    _sellingPriceController = TextEditingController(text: p != null ? p.sellingPrice.toStringAsFixed(2) : '');
-    
+    _purchasePriceController = TextEditingController(
+        text: p != null ? p.purchasePrice.toStringAsFixed(2) : '0.00');
+    _sellingPriceController = TextEditingController(
+        text: p != null ? p.sellingPrice.toStringAsFixed(2) : '');
+
     final cost = p != null && p.purchasePrice > 0 ? p.purchasePrice : 100.0;
     final sell = p != null && p.sellingPrice > 0 ? p.sellingPrice : 125.0;
     final margin = cost > 0 ? ((sell - cost) / cost) * 100 : 25.0;
-    _marginController = TextEditingController(text: p != null ? margin.toStringAsFixed(1) : '25.0');
+    _marginController = TextEditingController(
+        text: p != null ? margin.toStringAsFixed(1) : '25.0');
 
-    _stockController = TextEditingController(text: p != null ? p.stockQuantity.toInt().toString() : '20');
-    _alertController = TextEditingController(text: p != null ? p.alertQuantity.toInt().toString() : '5');
+    _stockController = TextEditingController(
+        text: p != null ? p.stockQuantity.toInt().toString() : '20');
+    _alertController = TextEditingController(
+        text: p != null ? p.alertQuantity.toInt().toString() : '5');
     _batchController = TextEditingController(text: p?.batchNumber ?? '');
     _expiryController = TextEditingController(text: p?.expiryDate ?? '');
-    _bonusController = TextEditingController(text: p?.bonusQty != null ? p!.bonusQty.toString() : '0');
-    _packSizeController = TextEditingController(text: p?.packSize != null ? p!.packSize.toString() : '1');
+    _bonusController = TextEditingController(
+        text: p?.bonusQty != null ? p!.bonusQty.toString() : '0');
+    _packSizeController = TextEditingController(
+        text: p?.packSize != null ? p!.packSize.toString() : '1');
     if (p != null) _selectedUnit = p.unit;
 
     _loadMeta();
@@ -111,12 +119,14 @@ class _AddProductDialogState extends State<AddProductDialog> {
         _settings = settings;
         if (cats.isNotEmpty) {
           _selectedCategory = widget.productToEdit?.categoryId != null
-              ? cats.firstWhere((c) => c.id == widget.productToEdit!.categoryId, orElse: () => cats.first)
+              ? cats.firstWhere((c) => c.id == widget.productToEdit!.categoryId,
+                  orElse: () => cats.first)
               : cats.first;
         }
         if (brs.isNotEmpty) {
           _selectedBrand = widget.productToEdit?.brandId != null
-              ? brs.firstWhere((b) => b.id == widget.productToEdit!.brandId, orElse: () => brs.first)
+              ? brs.firstWhere((b) => b.id == widget.productToEdit!.brandId,
+                  orElse: () => brs.first)
               : brs.first;
         }
         _loading = false;
@@ -125,7 +135,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
   }
 
   void _generateSku() {
-    final code = '${_selectedCategory?.code ?? "PRD"}-${1000 + Random().nextInt(9000)}';
+    final code =
+        '${_selectedCategory?.code ?? "PRD"}-${1000 + Random().nextInt(9000)}';
     setState(() {
       _skuController.text = code;
       if (_barcodeController.text.isEmpty) {
@@ -144,8 +155,13 @@ class _AddProductDialogState extends State<AddProductDialog> {
     if (_stockController.text.trim().isEmpty) {
       _stockController.text = '0';
     }
-    if (_nameController.text.trim().isEmpty && _selectedBrand != null && _selectedBrand!.name.isNotEmpty && _selectedBrand!.name != 'Standard') {
-      final catPart = (_selectedCategory != null && _selectedCategory!.name.isNotEmpty && _selectedCategory!.name != 'General')
+    if (_nameController.text.trim().isEmpty &&
+        _selectedBrand != null &&
+        _selectedBrand!.name.isNotEmpty &&
+        _selectedBrand!.name != 'Standard') {
+      final catPart = (_selectedCategory != null &&
+              _selectedCategory!.name.isNotEmpty &&
+              _selectedCategory!.name != 'General')
           ? ' ${_selectedCategory!.name}'
           : '';
       _nameController.text = '${_selectedBrand!.name}$catPart'.trim();
@@ -153,16 +169,17 @@ class _AddProductDialogState extends State<AddProductDialog> {
 
     if (!_formKey.currentState!.validate()) {
       final missing = <String>[];
-      if (_nameController.text.trim().isEmpty) missing.add('Product Name (پروڈکٹ کا نام)');
-      if (_sellingPriceController.text.trim().isEmpty) missing.add('Selling Price (فروخت قیمت)');
+      if (_nameController.text.trim().isEmpty) missing.add('Product Name');
+      if (_sellingPriceController.text.trim().isEmpty)
+        missing.add('Selling Price');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.red.shade700,
           behavior: SnackBarBehavior.floating,
           content: Text(
             missing.isNotEmpty
-                ? 'براہ کرم ضروری خانے پر کریں: ${missing.join(", ")}'
-                : 'براہ کرم سرخ نشان والے خانے درست کریں (Please fill required fields)',
+                ? 'Please fill required fields: ${missing.join(", ")}'
+                : 'Please fill all required fields',
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
@@ -177,22 +194,30 @@ class _AddProductDialogState extends State<AddProductDialog> {
         id: widget.productToEdit?.id,
         name: _nameController.text.trim(),
         sku: _skuController.text.trim(),
-        barcode: _barcodeController.text.trim().isEmpty ? _skuController.text.trim() : _barcodeController.text.trim(),
+        barcode: _barcodeController.text.trim().isEmpty
+            ? _skuController.text.trim()
+            : _barcodeController.text.trim(),
         categoryId: _selectedCategory?.id,
         categoryName: _selectedCategory?.name ?? 'General',
         brandId: _selectedBrand?.id,
         brandName: _selectedBrand?.name ?? 'Standard',
         unit: _selectedUnit,
-        purchasePrice: double.tryParse(_purchasePriceController.text.trim()) ?? 0.0,
-        sellingPrice: double.tryParse(_sellingPriceController.text.trim()) ?? 0.0,
+        purchasePrice:
+            double.tryParse(_purchasePriceController.text.trim()) ?? 0.0,
+        sellingPrice:
+            double.tryParse(_sellingPriceController.text.trim()) ?? 0.0,
         stockQuantity: double.tryParse(_stockController.text.trim()) ?? 0.0,
         alertQuantity: double.tryParse(_alertController.text.trim()) ?? 5.0,
         imageColor: (widget.productToEdit?.imageColor?.startsWith('#') ?? false)
             ? widget.productToEdit!.imageColor
             : '#004EEB',
         imagePath: _pickedImagePath,
-        batchNumber: _batchController.text.trim().isNotEmpty ? _batchController.text.trim() : null,
-        expiryDate: _expiryController.text.trim().isNotEmpty ? _expiryController.text.trim() : null,
+        batchNumber: _batchController.text.trim().isNotEmpty
+            ? _batchController.text.trim()
+            : null,
+        expiryDate: _expiryController.text.trim().isNotEmpty
+            ? _expiryController.text.trim()
+            : null,
         bonusQty: double.tryParse(_bonusController.text.trim()) ?? 0.0,
         packSize: double.tryParse(_packSizeController.text.trim()) ?? 1.0,
         isFeatured: _isFeatured,
@@ -211,11 +236,12 @@ class _AddProductDialogState extends State<AddProductDialog> {
             behavior: SnackBarBehavior.floating,
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const Icon(Icons.check_circle_rounded,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'کامیابی: پروڈکٹ "${product.name}" اور ${product.stockQuantity.toInt()} یونٹ سٹاک کامیابی سے شامل ہو گیا!',
+                    'Success: Product "${product.name}" and ${product.stockQuantity.toInt()} units stock saved successfully!',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -272,7 +298,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
           }
         }
       } catch (e, st) {
-        AppLogger.warning('AddProductDialog', 'Failed parsing expiry date "$text"', e, st);
+        AppLogger.warning(
+            'AddProductDialog', 'Failed parsing expiry date "$text"', e, st);
       }
     }
 
@@ -286,7 +313,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
     );
 
     if (picked != null) {
-      final formatted = '${picked.month.toString().padLeft(2, '0')}-${picked.year}';
+      final formatted =
+          '${picked.month.toString().padLeft(2, '0')}-${picked.year}';
       setState(() {
         _expiryController.text = formatted;
       });
@@ -319,7 +347,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        side: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Container(
         width: 620,
@@ -343,28 +372,43 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           Row(
                             children: [
                               Icon(
-                                widget.productToEdit == null ? Icons.add_box_outlined : Icons.edit_note,
-                                color: isDark ? const Color(0xFF818CF8) : const Color(0xFF004EEB),
+                                widget.productToEdit == null
+                                    ? Icons.add_box_outlined
+                                    : Icons.edit_note,
+                                color: isDark
+                                    ? const Color(0xFF818CF8)
+                                    : const Color(0xFF004EEB),
                                 size: 24,
                               ),
                               const SizedBox(width: 10),
                               Text(
-                                widget.productToEdit == null ? 'Add New Product' : 'Edit Product',
+                                widget.productToEdit == null
+                                    ? 'Add New Product'
+                                    : 'Edit Product',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A),
                                 ),
                               ),
                             ],
                           ),
                           IconButton(
-                            icon: Icon(Icons.close, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                            icon: Icon(Icons.close,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B)),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                         ],
                       ),
-                      Divider(height: 20, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      Divider(
+                          height: 20,
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0)),
 
                       // Name
                       TextFormField(
@@ -374,7 +418,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           hintText: 'e.g. Wireless Ergonomic Mouse',
                           isDense: true,
                         ),
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Product name is required' : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Product name is required'
+                            : null,
                       ),
                       const SizedBox(height: 14),
 
@@ -390,11 +436,14 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                 isDense: true,
                                 suffixIcon: IconButton(
                                   tooltip: 'Generate SKU',
-                                  icon: const Icon(Icons.auto_fix_high, size: 18, color: Color(0xFF004EEB)),
+                                  icon: const Icon(Icons.auto_fix_high,
+                                      size: 18, color: Color(0xFF004EEB)),
                                   onPressed: _generateSku,
                                 ),
                               ),
-                              validator: (v) => v == null || v.trim().isEmpty ? 'SKU is required' : null,
+                              validator: (v) => v == null || v.trim().isEmpty
+                                  ? 'SKU is required'
+                                  : null,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -417,31 +466,53 @@ class _AddProductDialogState extends State<AddProductDialog> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<Category>(
-                              decoration: const InputDecoration(labelText: 'Category', isDense: true),
+                              decoration: const InputDecoration(
+                                  labelText: 'Category', isDense: true),
                               initialValue: _selectedCategory,
-                              items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
-                              onChanged: (val) => setState(() => _selectedCategory = val),
+                              items: _categories
+                                  .map((c) => DropdownMenuItem(
+                                      value: c, child: Text(c.name)))
+                                  .toList(),
+                              onChanged: (val) =>
+                                  setState(() => _selectedCategory = val),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<Brand>(
-                              decoration: const InputDecoration(labelText: 'Brand', isDense: true),
+                              decoration: const InputDecoration(
+                                  labelText: 'Brand', isDense: true),
                               initialValue: _selectedBrand,
-                              items: _brands.map((b) => DropdownMenuItem(value: b, child: Text(b.name))).toList(),
-                              onChanged: (val) => setState(() => _selectedBrand = val),
+                              items: _brands
+                                  .map((b) => DropdownMenuItem(
+                                      value: b, child: Text(b.name)))
+                                  .toList(),
+                              onChanged: (val) =>
+                                  setState(() => _selectedBrand = val),
                             ),
                           ),
                           const SizedBox(width: 12),
                           SizedBox(
                             width: 110,
                             child: DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(labelText: 'Unit', isDense: true),
+                              decoration: const InputDecoration(
+                                  labelText: 'Unit', isDense: true),
                               initialValue: _selectedUnit,
-                              items: ['Pc', 'Kg', 'Ltr', 'Box', 'Pack', 'Can', 'Bottle', 'Bag']
-                                  .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                              items: [
+                                'Pc',
+                                'Kg',
+                                'Ltr',
+                                'Box',
+                                'Pack',
+                                'Can',
+                                'Bottle',
+                                'Bag'
+                              ]
+                                  .map((u) => DropdownMenuItem(
+                                      value: u, child: Text(u)))
                                   .toList(),
-                              onChanged: (val) => setState(() => _selectedUnit = val ?? 'Pc'),
+                              onChanged: (val) =>
+                                  setState(() => _selectedUnit = val ?? 'Pc'),
                             ),
                           ),
                         ],
@@ -455,7 +526,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                             flex: 4,
                             child: TextFormField(
                               controller: _purchasePriceController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
                               onChanged: _onCostChanged,
                               decoration: InputDecoration(
                                 labelText: 'Cost Price',
@@ -463,7 +536,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                 isDense: true,
                               ),
                               validator: (v) {
-                                if (v != null && v.trim().isNotEmpty && double.tryParse(v.trim()) == null) {
+                                if (v != null &&
+                                    v.trim().isNotEmpty &&
+                                    double.tryParse(v.trim()) == null) {
                                   return 'Invalid cost';
                                 }
                                 return null;
@@ -475,9 +550,13 @@ class _AddProductDialogState extends State<AddProductDialog> {
                             flex: 3,
                             child: TextFormField(
                               controller: _marginController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
                               onChanged: _onMarginChanged,
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF10B981)),
                               decoration: const InputDecoration(
                                 labelText: 'Margin %',
                                 suffixText: '%',
@@ -490,14 +569,18 @@ class _AddProductDialogState extends State<AddProductDialog> {
                             flex: 4,
                             child: TextFormField(
                               controller: _sellingPriceController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
                               onChanged: _onSellingChanged,
                               decoration: InputDecoration(
                                 labelText: 'Selling Price *',
                                 prefixText: '$currency ',
                                 isDense: true,
                               ),
-                              validator: (v) => v == null || v.trim().isEmpty ? 'Selling price is required' : null,
+                              validator: (v) => v == null || v.trim().isEmpty
+                                  ? 'Selling price is required'
+                                  : null,
                             ),
                           ),
                         ],
@@ -510,7 +593,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           Expanded(
                             child: TextFormField(
                               controller: _stockController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
                               decoration: const InputDecoration(
                                 labelText: 'Opening Stock Quantity',
                                 isDense: true,
@@ -521,7 +606,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           Expanded(
                             child: TextFormField(
                               controller: _alertController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
                               decoration: const InputDecoration(
                                 labelText: 'Alert Quantity (Reorder Point)',
                                 isDense: true,
@@ -533,7 +620,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
                       const SizedBox(height: 14),
 
                       // Optional: Batch Number & Expiry Date (ONLY if enabled in settings)
-                      if (_settings?.isBatchExpiryEnabled == true || _settings?.isPharmacy == true) ...[
+                      if (_settings?.isBatchExpiryEnabled == true ||
+                          _settings?.isPharmacy == true) ...[
                         const SizedBox(height: 14),
                         Row(
                           children: [
@@ -556,7 +644,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                   hintText: 'e.g. 12-2028',
                                   isDense: true,
                                   suffixIcon: IconButton(
-                                    icon: const Icon(Icons.calendar_month, size: 18, color: Color(0xFF004EEB)),
+                                    icon: const Icon(Icons.calendar_month,
+                                        size: 18, color: Color(0xFF004EEB)),
                                     tooltip: 'Select Expiry Date',
                                     onPressed: _pickExpiryDate,
                                   ),
@@ -588,14 +677,16 @@ class _AddProductDialogState extends State<AddProductDialog> {
                         children: [
                           ProductThumbnail(
                             imagePath: _pickedImagePath,
-                            imageColor: widget.productToEdit?.imageColor ?? '#004EEB',
+                            imageColor:
+                                widget.productToEdit?.imageColor ?? '#004EEB',
                             size: 48,
                             borderRadius: 8,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: _isPickingImage ? null : _pickProductImage,
+                              onPressed:
+                                  _isPickingImage ? null : _pickProductImage,
                               icon: const Icon(Icons.image_outlined, size: 18),
                               label: Text(
                                 _isPickingImage
@@ -610,8 +701,10 @@ class _AddProductDialogState extends State<AddProductDialog> {
                             const SizedBox(width: 8),
                             IconButton(
                               tooltip: 'Remove Image',
-                              onPressed: () => setState(() => _pickedImagePath = null),
-                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                              onPressed: () =>
+                                  setState(() => _pickedImagePath = null),
+                              icon: const Icon(Icons.delete_outline,
+                                  color: Colors.redAccent),
                             ),
                           ],
                         ],
@@ -620,7 +713,10 @@ class _AddProductDialogState extends State<AddProductDialog> {
                       SwitchListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Featured Product (Show in POS Featured filter)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        title: const Text(
+                            'Featured Product (Show in POS Featured filter)',
+                            style: TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600)),
                         value: _isFeatured,
                         onChanged: (val) => setState(() => _isFeatured = val),
                       ),
@@ -632,7 +728,11 @@ class _AddProductDialogState extends State<AddProductDialog> {
                         children: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                            child: Text('Cancel',
+                                style: TextStyle(
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B))),
                           ),
                           const SizedBox(width: 12),
                           ElevatedButton.icon(
@@ -640,13 +740,16 @@ class _AddProductDialogState extends State<AddProductDialog> {
                               backgroundColor: const Color(0xFF4F46E5),
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
                             ),
                             icon: const Icon(Icons.save, size: 18),
                             label: Text(
                               _isSaving ? 'Saving...' : 'Save Product',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             onPressed: _isSaving ? null : _save,
                           ),

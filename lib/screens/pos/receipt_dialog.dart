@@ -10,6 +10,7 @@ import '../../services/pdf_export_service.dart';
 import '../../services/print_service.dart';
 import '../../services/thermal_printer_service.dart';
 import '../../services/number_to_words_service.dart';
+import '../../services/localization_service.dart';
 
 class ReceiptDialog extends StatefulWidget {
   final Sale sale;
@@ -695,9 +696,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
 
                     final completeBtn = ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(0, 42),
+                        minimumSize: Size(isUltraNarrow ? 70 : 110, 42),
                         padding: EdgeInsets.symmetric(
-                            horizontal: isNarrow ? 14 : 18, vertical: 10),
+                            horizontal: isNarrow ? 12 : 16, vertical: 10),
                         backgroundColor: const Color(0xFF10B981),
                         foregroundColor: Colors.white,
                         elevation: 0,
@@ -706,7 +707,14 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                       ),
                       icon: const Icon(Icons.check_circle_rounded, size: 16),
                       label: Text(
-                        isUltraNarrow ? 'Done' : 'Complete (New Sale)',
+                        isUltraNarrow
+                            ? PosLocalization.tr('Done',
+                                settings: widget.settings)
+                            : (isNarrow
+                                ? PosLocalization.tr('Done',
+                                    settings: widget.settings)
+                                : PosLocalization.tr('Complete (New Sale)',
+                                    settings: widget.settings)),
                         maxLines: 1,
                         softWrap: false,
                         overflow: TextOverflow.ellipsis,
@@ -1156,27 +1164,23 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _ledgerItem(
-                  widget.settings.enableSecondaryLanguage
-                      ? 'PREVIOUS BALANCE (پچھلا بقایا)'
-                      : 'PREVIOUS BALANCE',
+                  PosLocalization.tr('PREVIOUS BALANCE',
+                      settings: widget.settings),
                   '$currency${(widget.customerPreviousBalance ?? 0.0).toStringAsFixed(2)}',
                 ),
                 _ledgerItem(
-                  widget.settings.enableSecondaryLanguage
-                      ? 'CURRENT INVOICE (موجودہ بل)'
-                      : 'CURRENT INVOICE',
+                  PosLocalization.tr('CURRENT INVOICE',
+                      settings: widget.settings),
                   '$currency${widget.sale.totalAmount.toStringAsFixed(2)}',
                 ),
                 _ledgerItem(
-                  widget.settings.enableSecondaryLanguage
-                      ? 'RECEIVED TODAY (آج وصولی)'
-                      : 'RECEIVED TODAY',
+                  PosLocalization.tr('RECEIVED TODAY',
+                      settings: widget.settings),
                   '$currency${widget.sale.paidAmount.toStringAsFixed(2)}',
                 ),
                 _ledgerItem(
-                  widget.settings.enableSecondaryLanguage
-                      ? 'NET CLOSING KHATA (کل واجب الادا)'
-                      : 'NET CLOSING KHATA',
+                  PosLocalization.tr('NET CLOSING KHATA',
+                      settings: widget.settings),
                   '$currency${((widget.customerPreviousBalance ?? 0.0) + widget.sale.totalAmount - widget.sale.paidAmount).toStringAsFixed(2)}',
                   isBoldRed: true,
                 ),
@@ -1219,22 +1223,24 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             children: [
               const Text('Checked By _______________________',
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-              if (widget.settings.enableSecondaryLanguage)
-                const Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: Text(
-                    'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: Color(0xFFB91C1C)),
+              Directionality(
+                textDirection: PosLocalization.textDirection(
+                    widget.settings.activePrimaryLanguage),
+                child: Text(
+                  PosLocalization.tr(
+                    'Note: Report expiries with original bill.',
+                    settings: widget.settings,
                   ),
-                )
-              else
-                const Text(
-                  'Note: Report expiries with original bill.',
-                  style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: widget.settings.isSecondaryLanguageAllowed &&
+                            !widget.settings.enableSecondaryLanguage
+                        ? 10
+                        : 11,
+                    color: const Color(0xFFB91C1C),
+                  ),
                 ),
+              ),
             ],
           ),
         ] else ...[
@@ -1517,20 +1523,24 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
 
         if (widget.settings.isPharmacy) ...[
           const SizedBox(height: 14),
-          const Text(
-            'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
+          Text(
+            PosLocalization.tr('Note: Report expiries with original bill.',
+                settings: widget.settings),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFFB91C1C)),
           ),
         ] else ...[
           const SizedBox(height: 12),
-          const Text(
-            'Thank you for shopping with us!\nPlease retain this receipt for returns/exchange.',
+          Text(
+            PosLocalization.tr(
+              'Thank you for shopping with us! Please retain this receipt for returns/exchange.',
+              settings: widget.settings,
+            ),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF475569)),

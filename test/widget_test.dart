@@ -39,7 +39,9 @@ void main() {
     }
   });
 
-  testWidgets('Fresh SetupWizardScreen renders without prefilled default credentials', (tester) async {
+  testWidgets(
+      'Fresh SetupWizardScreen renders without prefilled default credentials',
+      (tester) async {
     tester.view.physicalSize = const Size(1440, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);

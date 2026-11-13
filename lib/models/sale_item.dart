@@ -46,8 +46,8 @@ class SaleItem {
     double? discountValue,
     this.taxAmount = 0.0,
     this.taxName,
-  }) : discountValue = discountValue ??
-            (packDiscount > 0 ? packDiscount : discount);
+  }) : discountValue =
+            discountValue ?? (packDiscount > 0 ? packDiscount : discount);
 
   String get displayName =>
       (variationName != null && variationName!.trim().isNotEmpty)
@@ -111,10 +111,9 @@ class SaleItem {
     final discAmt = (map['discount'] as num?)?.toDouble() ?? 0.0;
     final packDisc = (map['pack_discount'] as num?)?.toDouble() ?? 0.0;
     final rawType = map['discount_type'] as String?;
-    final resolvedType =
-        (rawType != null && rawType.isNotEmpty)
-            ? rawType
-            : (packDisc > 0 ? 'percentage' : 'fixed');
+    final resolvedType = (rawType != null && rawType.isNotEmpty)
+        ? rawType
+        : (packDisc > 0 ? 'percentage' : 'fixed');
     final resolvedVal = (map['discount_value'] as num?)?.toDouble() ??
         (resolvedType == 'percentage' ? packDisc : discAmt);
     return SaleItem(

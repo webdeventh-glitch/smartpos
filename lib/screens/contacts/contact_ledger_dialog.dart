@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/record_contact_payment_dialog.dart';
 import 'contact_ledger_screen.dart';
 import 'payment_reminder_dialog.dart';
@@ -105,13 +106,16 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
       lastDate: DateTime(2035),
       initialDateRange: _startDate != null && _endDate != null
           ? DateTimeRange(start: _startDate!, end: _endDate!)
-          : DateTimeRange(start: DateTime.now().subtract(const Duration(days: 30)), end: DateTime.now()),
+          : DateTimeRange(
+              start: DateTime.now().subtract(const Duration(days: 30)),
+              end: DateTime.now()),
     );
     if (picked != null) {
       setState(() {
         _dateFilter = 'custom';
         _startDate = picked.start;
-        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
+        _endDate = DateTime(
+            picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
       });
       _loadLedger();
     }
@@ -124,23 +128,30 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
     final contact = _updatedContact ?? widget.contact;
 
     buffer.writeln('========================================');
-    buffer.writeln('${widget.settings.businessName.toUpperCase()} - ACCOUNT STATEMENT');
+    buffer.writeln(
+        '${widget.settings.businessName.toUpperCase()} - ACCOUNT STATEMENT');
     buffer.writeln('========================================');
     buffer.writeln('${isCustomer ? "Customer" : "Supplier"}: ${contact.name}');
     if (contact.phone.isNotEmpty) buffer.writeln('Phone: ${contact.phone}');
-    buffer.writeln('Generated: ${DateFormat("dd-MMM-yyyy HH:mm").format(DateTime.now())}');
+    buffer.writeln(
+        'Generated: ${DateFormat("dd-MMM-yyyy HH:mm").format(DateTime.now())}');
     buffer.writeln('Period: ${_dateFilter.toUpperCase()}');
     buffer.writeln('----------------------------------------');
-    buffer.writeln('Opening Balance: $cur${_openingBalance.toStringAsFixed(2)}');
+    buffer
+        .writeln('Opening Balance: $cur${_openingBalance.toStringAsFixed(2)}');
     buffer.writeln('Total Debits (Dr): $cur${_totalDebit.toStringAsFixed(2)}');
-    buffer.writeln('Total Credits (Cr): $cur${_totalCredit.toStringAsFixed(2)}');
-    buffer.writeln('Current Closing Balance: $cur${_closingBalance.toStringAsFixed(2)}');
+    buffer
+        .writeln('Total Credits (Cr): $cur${_totalCredit.toStringAsFixed(2)}');
+    buffer.writeln(
+        'Current Closing Balance: $cur${_closingBalance.toStringAsFixed(2)}');
     buffer.writeln('----------------------------------------');
     buffer.writeln('TRANSACTIONS:');
     for (final e in _entries) {
       final drStr = e.debit > 0 ? "Dr: $cur${e.debit.toStringAsFixed(2)}" : "";
-      final crStr = e.credit > 0 ? "Cr: $cur${e.credit.toStringAsFixed(2)}" : "";
-      buffer.writeln('${e.date.split(" ").first} | ${e.refNo} | ${e.description} | $drStr $crStr | Bal: $cur${e.runningBalance.toStringAsFixed(2)}');
+      final crStr =
+          e.credit > 0 ? "Cr: $cur${e.credit.toStringAsFixed(2)}" : "";
+      buffer.writeln(
+          '${e.date.split(" ").first} | ${e.refNo} | ${e.description} | $drStr $crStr | Bal: $cur${e.runningBalance.toStringAsFixed(2)}');
     }
     buffer.writeln('========================================');
     buffer.writeln('Thank you for your business!');
@@ -148,7 +159,8 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
     Clipboard.setData(ClipboardData(text: buffer.toString()));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Account statement copied to clipboard! Ready to share via WhatsApp or print.'),
+        content: Text(
+            'Account statement copied to clipboard! Ready to share via WhatsApp or print.'),
         backgroundColor: Color(0xFF059669),
       ),
     );
@@ -200,11 +212,15 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFEEF2FF),
+                        color: isDark
+                            ? const Color(0xFF1E3A8A).withValues(alpha: 0.4)
+                            : const Color(0xFFEEF2FF),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        isCustomer ? Icons.receipt_long_rounded : Icons.account_balance_wallet_rounded,
+                        isCustomer
+                            ? Icons.receipt_long_rounded
+                            : Icons.account_balance_wallet_rounded,
                         color: const Color(0xFF4F46E5),
                         size: 24,
                       ),
@@ -220,22 +236,31 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: isCustomer ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
+                                color: isCustomer
+                                    ? const Color(0xFFD1FAE5)
+                                    : const Color(0xFFFEF3C7),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                isCustomer ? 'CUSTOMER KHATA' : 'SUPPLIER PAYABLE',
+                                isCustomer
+                                    ? 'CUSTOMER KHATA'
+                                    : 'SUPPLIER PAYABLE',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: isCustomer ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                                  color: isCustomer
+                                      ? const Color(0xFF065F46)
+                                      : const Color(0xFF92400E),
                                 ),
                               ),
                             ),
@@ -244,7 +269,11 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                         const SizedBox(height: 2),
                         Text(
                           'Phone: ${contact.phone.isNotEmpty ? contact.phone : "N/A"}  |  Address: ${contact.address.isNotEmpty ? contact.address : "Main Market"}',
-                          style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
                         ),
                       ],
                     ),
@@ -254,9 +283,14 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                   children: [
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
-                        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        foregroundColor:
+                            isDark ? Colors.white : const Color(0xFF0F172A),
+                        side: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFCBD5E1)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.share_rounded, size: 16),
                       label: const Text('Copy / Share Statement'),
@@ -267,19 +301,23 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF059669),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.payments_rounded, size: 16),
-                      label: Text(isCustomer ? 'Receive Payment' : 'Pay Supplier'),
+                      label:
+                          Text(isCustomer ? 'Receive Payment' : 'Pay Supplier'),
                       onPressed: _openQuickPaymentModal,
                     ),
-                    if (isCustomer && (_closingBalance > 0 || contact.balance > 0)) ...[
+                    if (isCustomer &&
+                        (_closingBalance > 0 || contact.balance > 0)) ...[
                       const SizedBox(width: 8),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF10B981),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 15),
                         label: const Text('WhatsApp Reminder'),
@@ -289,7 +327,8 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                             builder: (_) => PaymentReminderDialog(
                               contact: _updatedContact ?? widget.contact,
                               settings: widget.settings,
-                              specificDue: _closingBalance > 0 ? _closingBalance : null,
+                              specificDue:
+                                  _closingBalance > 0 ? _closingBalance : null,
                             ),
                           );
                         },
@@ -297,7 +336,8 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                     ],
                     const SizedBox(width: 8),
                     IconButton(
-                      tooltip: 'Open Full Page / مکمل فل پیج پر کھولیں',
+                      tooltip: PosLocalization.tr('Open Full Page',
+                          settings: widget.settings),
                       icon: const Icon(Icons.fullscreen_rounded),
                       onPressed: () {
                         Navigator.pop(context);
@@ -330,7 +370,9 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
             // Date Filters Row
             Row(
               children: [
-                const Text('Period: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const Text('Period: ',
+                    style:
+                        TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 const SizedBox(width: 8),
                 _filterChip('All Time', 'all', isDark),
                 const SizedBox(width: 6),
@@ -343,9 +385,14 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
                     side: BorderSide(
-                      color: _dateFilter == 'custom' ? const Color(0xFF4F46E5) : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                      color: _dateFilter == 'custom'
+                          ? const Color(0xFF4F46E5)
+                          : (isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFCBD5E1)),
                     ),
                   ),
                   icon: const Icon(Icons.date_range, size: 14),
@@ -357,7 +404,12 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                 const Spacer(),
                 Text(
                   'Entries: ${_entries.length}',
-                  style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                      fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -376,19 +428,27 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                 ),
                 const SizedBox(width: 12),
                 _kpiCard(
-                  title: isCustomer ? 'Total Invoices / Billed (Dr)' : 'Total Purchases (Cr)',
+                  title: isCustomer
+                      ? 'Total Invoices / Billed (Dr)'
+                      : 'Total Purchases (Cr)',
                   amount: isCustomer ? _totalDebit : _totalCredit,
                   currency: cur,
-                  subtitle: isCustomer ? 'Total merchandise billed' : 'Total inventory received',
+                  subtitle: isCustomer
+                      ? 'Total merchandise billed'
+                      : 'Total inventory received',
                   color: const Color(0xFF4F46E5),
                   isDark: isDark,
                 ),
                 const SizedBox(width: 12),
                 _kpiCard(
-                  title: isCustomer ? 'Total Paid / Recoveries (Cr)' : 'Total Payments Made (Dr)',
+                  title: isCustomer
+                      ? 'Total Paid / Recoveries (Cr)'
+                      : 'Total Payments Made (Dr)',
                   amount: isCustomer ? _totalCredit : _totalDebit,
                   currency: cur,
-                  subtitle: isCustomer ? 'Cash & bank settlements' : 'Payments disbursed',
+                  subtitle: isCustomer
+                      ? 'Cash & bank settlements'
+                      : 'Payments disbursed',
                   color: const Color(0xFF10B981),
                   isDark: isDark,
                 ),
@@ -398,9 +458,13 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                   amount: _closingBalance,
                   currency: cur,
                   subtitle: _closingBalance > 0
-                      ? (isCustomer ? 'Amount Customer Owes You' : 'Amount You Owe Supplier')
+                      ? (isCustomer
+                          ? 'Amount Customer Owes You'
+                          : 'Amount You Owe Supplier')
                       : 'Account Balanced / Cleared',
-                  color: _closingBalance > 0 ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                  color: _closingBalance > 0
+                      ? const Color(0xFFEF4444)
+                      : const Color(0xFF10B981),
                   isDark: isDark,
                   isHighlight: true,
                 ),
@@ -412,9 +476,14 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                  color: isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
                 ),
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
@@ -423,9 +492,18 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.history_toggle_off, size: 40, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                                Icon(Icons.history_toggle_off,
+                                    size: 40,
+                                    color: isDark
+                                        ? const Color(0xFF64748B)
+                                        : const Color(0xFF94A3B8)),
                                 const SizedBox(height: 8),
-                                Text('No ledger entries recorded for this period.', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                                Text(
+                                    'No ledger entries recorded for this period.',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF64748B))),
                               ],
                             ),
                           )
@@ -433,39 +511,93 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                             child: SizedBox(
                               width: double.infinity,
                               child: DataTable(
-                                headingRowColor: WidgetStateProperty.all(isDark ? const Color(0xFF0F172A) : const Color(0xFFEDE9FE)),
+                                headingRowColor: WidgetStateProperty.all(isDark
+                                    ? const Color(0xFF0F172A)
+                                    : const Color(0xFFEDE9FE)),
                                 columnSpacing: 16,
                                 columns: const [
-                                  DataColumn(label: Text('DATE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                                  DataColumn(label: Text('TYPE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                                  DataColumn(label: Text('REF / INVOICE #', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                                  DataColumn(label: Text('NARRATION / DESCRIPTION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                                  DataColumn(label: Text('DEBIT (DR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                                  DataColumn(label: Text('CREDIT (CR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                                  DataColumn(label: Text('RUNNING BALANCE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                                  DataColumn(
+                                      label: Text('DATE',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11))),
+                                  DataColumn(
+                                      label: Text('TYPE',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11))),
+                                  DataColumn(
+                                      label: Text('REF / INVOICE #',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11))),
+                                  DataColumn(
+                                      label: Text('NARRATION / DESCRIPTION',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11))),
+                                  DataColumn(
+                                      label: Text('DEBIT (DR)',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11))),
+                                  DataColumn(
+                                      label: Text('CREDIT (CR)',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11))),
+                                  DataColumn(
+                                      label: Text('RUNNING BALANCE',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11))),
                                 ],
                                 rows: _entries.map((e) {
                                   final isDebit = e.debit > 0;
                                   final isCredit = e.credit > 0;
                                   return DataRow(cells: [
-                                    DataCell(Text(e.date.length > 16 ? e.date.substring(0, 16) : e.date, style: const TextStyle(fontSize: 11))),
-                                    DataCell(_typeBadge(e.transactionType, isDark)),
-                                    DataCell(Text(e.refNo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF4F46E5)))),
-                                    DataCell(Text(e.description, style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
                                     DataCell(Text(
-                                      isDebit ? '$cur${e.debit.toStringAsFixed(2)}' : '-',
+                                        e.date.length > 16
+                                            ? e.date.substring(0, 16)
+                                            : e.date,
+                                        style: const TextStyle(fontSize: 11))),
+                                    DataCell(
+                                        _typeBadge(e.transactionType, isDark)),
+                                    DataCell(Text(e.refNo,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11,
+                                            color: Color(0xFF4F46E5)))),
+                                    DataCell(Text(e.description,
+                                        style: const TextStyle(fontSize: 11),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis)),
+                                    DataCell(Text(
+                                      isDebit
+                                          ? '$cur${e.debit.toStringAsFixed(2)}'
+                                          : '-',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        fontWeight: isDebit ? FontWeight.bold : FontWeight.normal,
-                                        color: isDebit ? const Color(0xFF4338CA) : Colors.grey,
+                                        fontWeight: isDebit
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: isDebit
+                                            ? const Color(0xFF4338CA)
+                                            : Colors.grey,
                                       ),
                                     )),
                                     DataCell(Text(
-                                      isCredit ? '$cur${e.credit.toStringAsFixed(2)}' : '-',
+                                      isCredit
+                                          ? '$cur${e.credit.toStringAsFixed(2)}'
+                                          : '-',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        fontWeight: isCredit ? FontWeight.bold : FontWeight.normal,
-                                        color: isCredit ? const Color(0xFF059669) : Colors.grey,
+                                        fontWeight: isCredit
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: isCredit
+                                            ? const Color(0xFF059669)
+                                            : Colors.grey,
                                       ),
                                     )),
                                     DataCell(Text(
@@ -473,7 +605,9 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
                                       style: TextStyle(
                                         fontWeight: FontWeight.w900,
                                         fontSize: 11,
-                                        color: e.runningBalance > 0 ? const Color(0xFFDC2626) : const Color(0xFF059669),
+                                        color: e.runningBalance > 0
+                                            ? const Color(0xFFDC2626)
+                                            : const Color(0xFF059669),
                                       ),
                                     )),
                                   ]);
@@ -492,11 +626,18 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
   Widget _filterChip(String label, String value, bool isDark) {
     final selected = _dateFilter == value;
     return ChoiceChip(
-      label: Text(label, style: TextStyle(fontSize: 11, fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+      label: Text(label,
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
       selected: selected,
       selectedColor: const Color(0xFF4F46E5),
-      labelStyle: TextStyle(color: selected ? Colors.white : (isDark ? Colors.white : const Color(0xFF0F172A))),
-      backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+      labelStyle: TextStyle(
+          color: selected
+              ? Colors.white
+              : (isDark ? Colors.white : const Color(0xFF0F172A))),
+      backgroundColor:
+          isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
       onSelected: (_) => _applyDateFilter(value),
     );
   }
@@ -519,21 +660,33 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
               : (isDark ? const Color(0xFF1E293B) : Colors.white),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isHighlight ? color : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            color: isHighlight
+                ? color
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             width: isHighlight ? 1.5 : 1.0,
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B))),
             const SizedBox(height: 4),
             Text(
               '$currency${amount.toStringAsFixed(2)}',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color),
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w900, color: color),
             ),
             const SizedBox(height: 2),
-            Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(subtitle,
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
           ],
         ),
       ),
@@ -558,8 +711,11 @@ class _ContactLedgerDialogState extends State<ContactLedgerDialog> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
-      child: Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: fg)),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
+      child: Text(label,
+          style:
+              TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: fg)),
     );
   }
 }

@@ -4,7 +4,8 @@ import 'package:desktop_starter/services/qulop_service.dart';
 
 void main() {
   group('Smart POS Qulop Security & Licensing Engine Tests', () {
-    test('1. Fresh installation automatically grants 30-Day Free Trial', () async {
+    test('1. Fresh installation automatically grants 30-Day Free Trial',
+        () async {
       final now = DateTime.now();
       final settings = BusinessSettings(
         purchaseKey: '',
@@ -33,7 +34,9 @@ void main() {
       expect(status.message, contains('30-Day Free Trial expired'));
     });
 
-    test('3. Qulop Key Generator creates signed keys for all tiers with QULOP prefix', () async {
+    test(
+        '3. Qulop Key Generator creates signed keys for all tiers with QULOP prefix',
+        () async {
       final hostMac = await QulopService.getDeviceMacAddress();
 
       // Yearly Key (365 days)
@@ -123,7 +126,9 @@ void main() {
       expect(status.message, contains('expired'));
     });
 
-    test('6. WhatsApp template generator creates complete message for customer with Qulop branding', () {
+    test(
+        '6. WhatsApp template generator creates complete message for customer with Qulop branding',
+        () {
       final template = QulopService.generateWhatsAppTemplate(
         clientName: 'Al-Madina Pharmacy',
         macAddress: 'C8-3A-35-1C-4B-40',

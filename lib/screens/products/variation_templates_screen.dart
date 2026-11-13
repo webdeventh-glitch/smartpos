@@ -10,7 +10,8 @@ class VariationTemplatesScreen extends StatefulWidget {
   const VariationTemplatesScreen({super.key, required this.settings});
 
   @override
-  State<VariationTemplatesScreen> createState() => _VariationTemplatesScreenState();
+  State<VariationTemplatesScreen> createState() =>
+      _VariationTemplatesScreenState();
 }
 
 class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
@@ -50,7 +51,8 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
           return Dialog(
             backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
               child: Padding(
@@ -63,37 +65,53 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          toEdit == null ? 'Add Variation Template' : 'Edit Variation Template',
+                          toEdit == null
+                              ? 'Add Variation Template'
+                              : 'Edit Variation Template',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color:
+                                isDark ? Colors.white : const Color(0xFF0F172A),
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                          icon: Icon(Icons.close,
+                              size: 20,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
                           onPressed: () => Navigator.pop(ctx),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _fieldLabel('Variation Name * (e.g. Size, Color, Capacity)', isDark: isDark),
+                    _fieldLabel('Variation Name * (e.g. Size, Color, Capacity)',
+                        isDark: isDark),
                     const SizedBox(height: 6),
                     TextField(
                       controller: nameCtrl,
-                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                      style: TextStyle(
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A)),
                       decoration: _inputDeco('e.g. Size', isDark: isDark),
                     ),
                     const SizedBox(height: 16),
-                    _fieldLabel('Add Variation Values (e.g. Small, Medium, Large)', isDark: isDark),
+                    _fieldLabel(
+                        'Add Variation Values (e.g. Small, Medium, Large)',
+                        isDark: isDark),
                     const SizedBox(height: 6),
                     Row(
                       children: [
                         Expanded(
                           child: TextField(
                             controller: valCtrl,
-                            style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                            decoration: _inputDeco('Type a value and click Add', isDark: isDark),
+                            style: TextStyle(
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A)),
+                            decoration: _inputDeco('Type a value and click Add',
+                                isDark: isDark),
                             onSubmitted: (text) {
                               final val = text.trim();
                               if (val.isNotEmpty && !values.contains(val)) {
@@ -106,11 +124,17 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                         const SizedBox(width: 8),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isDark ? const Color(0xFF312E81).withValues(alpha: 0.5) : const Color(0xFFEEF2FF),
-                            foregroundColor: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
+                            backgroundColor: isDark
+                                ? const Color(0xFF312E81).withValues(alpha: 0.5)
+                                : const Color(0xFFEEF2FF),
+                            foregroundColor: isDark
+                                ? const Color(0xFF818CF8)
+                                : const Color(0xFF4F46E5),
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           icon: const Icon(Icons.add_rounded, size: 16),
                           label: const Text('Add Value'),
@@ -131,15 +155,24 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       padding: const EdgeInsets.all(12),
                       constraints: const BoxConstraints(minHeight: 60),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
                       ),
                       child: values.isEmpty
                           ? Center(
                               child: Text(
                                 'No values added yet. Add at least 1 value.',
-                                style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? const Color(0xFF64748B)
+                                        : const Color(0xFF94A3B8)),
                               ),
                             )
                           : Wrap(
@@ -148,11 +181,27 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                               children: values
                                   .map(
                                     (v) => Chip(
-                                      label: Text(v, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                                      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                      side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFC7D2FE)),
-                                      deleteIcon: Icon(Icons.close, size: 14, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                                      onDeleted: () => setDlgState(() => values.remove(v)),
+                                      label: Text(v,
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : const Color(0xFF0F172A))),
+                                      backgroundColor: isDark
+                                          ? const Color(0xFF1E293B)
+                                          : Colors.white,
+                                      side: BorderSide(
+                                          color: isDark
+                                              ? const Color(0xFF334155)
+                                              : const Color(0xFFC7D2FE)),
+                                      deleteIcon: Icon(Icons.close,
+                                          size: 14,
+                                          color: isDark
+                                              ? const Color(0xFF94A3B8)
+                                              : const Color(0xFF64748B)),
+                                      onDeleted: () =>
+                                          setDlgState(() => values.remove(v)),
                                     ),
                                   )
                                   .toList(),
@@ -164,7 +213,11 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                          child: Text('Cancel',
+                              style: TextStyle(
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B))),
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton(
@@ -172,35 +225,48 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                             backgroundColor: const Color(0xFF4F46E5),
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           onPressed: () async {
                             final name = nameCtrl.text.trim();
                             if (name.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Please enter variation template name')),
+                                const SnackBar(
+                                    content: Text(
+                                        'Please enter variation template name')),
                               );
                               return;
                             }
                             if (values.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Please add at least one value')),
+                                const SnackBar(
+                                    content:
+                                        Text('Please add at least one value')),
                               );
                               return;
                             }
 
                             final db = await DatabaseService.initialize();
                             if (toEdit == null) {
-                              await db.addVariationTemplate(VariationTemplate(name: name, values: values));
+                              await db.addVariationTemplate(VariationTemplate(
+                                  name: name, values: values));
                             } else {
-                              await db.updateVariationTemplate(VariationTemplate(id: toEdit.id, name: name, values: values));
+                              await db.updateVariationTemplate(
+                                  VariationTemplate(
+                                      id: toEdit.id,
+                                      name: name,
+                                      values: values));
                             }
 
                             if (ctx.mounted) Navigator.pop(ctx);
                             _load();
                           },
-                          child: Text(toEdit == null ? 'Save Template' : 'Update Template'),
+                          child: Text(toEdit == null
+                              ? 'Save Template'
+                              : 'Update Template'),
                         ),
                       ],
                     ),
@@ -220,15 +286,28 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        title: Text('Delete Template?', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A))),
-        content: Text('Are you sure you want to delete variation template "${tmpl.name}"?', style: TextStyle(color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155))),
+        title: Text('Delete Template?',
+            style: TextStyle(
+                color: isDark ? Colors.white : const Color(0xFF0F172A))),
+        content: Text(
+            'Are you sure you want to delete variation template "${tmpl.name}"?',
+            style: TextStyle(
+                color: isDark
+                    ? const Color(0xFFCBD5E1)
+                    : const Color(0xFF334155))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+            child: Text('Cancel',
+                style: TextStyle(
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B))),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -257,18 +336,22 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
   InputDecoration _inputDeco(String hint, {bool isDark = false}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+      hintStyle: TextStyle(
+          fontSize: 13,
+          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       isDense: true,
       filled: true,
       fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+        borderSide: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+        borderSide: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
       ),
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -281,7 +364,8 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
   Widget build(BuildContext context) {
     final filtered = _templates.where((t) {
       if (_search.isEmpty) return true;
-      return t.name.toLowerCase().contains(_search) || t.values.any((v) => v.toLowerCase().contains(_search));
+      return t.name.toLowerCase().contains(_search) ||
+          t.values.any((v) => v.toLowerCase().contains(_search));
     }).toList();
 
     final totalFiltered = filtered.length;
@@ -289,7 +373,9 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
     final currentPage = totalPages == 0 ? 1 : _currentPage.clamp(1, totalPages);
     final startIndex = (currentPage - 1) * _pageSize;
     final endIndex = min(startIndex + _pageSize, totalFiltered);
-    final paginatedTemplates = (startIndex < totalFiltered) ? filtered.sublist(startIndex, endIndex) : <VariationTemplate>[];
+    final paginatedTemplates = (startIndex < totalFiltered)
+        ? filtered.sublist(startIndex, endIndex)
+        : <VariationTemplate>[];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -308,12 +394,19 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                     children: [
                       const Text(
                         'Variation Templates',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.3),
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
+                            letterSpacing: -0.3),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Pre-configure attributes like Size, Color, and Specs for Variable Products.',
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
@@ -324,11 +417,14 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Template', style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: const Text('Add Template',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
                   onPressed: () => _openTemplateDialog(),
                 ),
               ],
@@ -353,25 +449,38 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       }),
                       decoration: InputDecoration(
                         hintText: 'Search variation templates...',
-                        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                        prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                        hintStyle: const TextStyle(
+                            fontSize: 13, color: Color(0xFF94A3B8)),
+                        prefixIcon: const Icon(Icons.search,
+                            size: 18, color: Color(0xFF94A3B8)),
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 10),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFE2E8F0))),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFE2E8F0))),
                       ),
                     ),
                   ),
                   const SizedBox(width: 14),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEEF2FF),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '${filtered.length} Templates defined',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4F46E5)),
                     ),
                   ),
                 ],
@@ -381,7 +490,10 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
 
             // Data Table
             if (_loading)
-              const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+              const Center(
+                  child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: CircularProgressIndicator()))
             else if (filtered.isEmpty)
               Container(
                 padding: const EdgeInsets.all(40),
@@ -393,11 +505,17 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.style_outlined, size: 48, color: Colors.grey.shade400),
+                    Icon(Icons.style_outlined,
+                        size: 48, color: Colors.grey.shade400),
                     const SizedBox(height: 12),
-                    const Text('No Variation Templates Found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text('No Variation Templates Found',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text('Click "Add Template" to configure variation templates.', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    Text(
+                        'Click "Add Template" to configure variation templates.',
+                        style: TextStyle(
+                            color: Colors.grey.shade600, fontSize: 13)),
                   ],
                 ),
               )
@@ -408,13 +526,17 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: const [
-                    BoxShadow(color: Color(0x04000000), blurRadius: 6, offset: Offset(0, 2)),
+                    BoxShadow(
+                        color: Color(0x04000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2)),
                   ],
                 ),
                 child: Column(
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(12)),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final minWidth = max(constraints.maxWidth, 640.0);
@@ -430,7 +552,8 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                                 },
                                 children: [
                                   TableRow(
-                                    decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                                    decoration: const BoxDecoration(
+                                        color: Color(0xFFF8FAFC)),
                                     children: [
                                       _th('Template Name'),
                                       _th('Variation Values'),
@@ -440,33 +563,53 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                                   ...paginatedTemplates.map((t) {
                                     return TableRow(
                                       decoration: const BoxDecoration(
-                                        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                                        border: Border(
+                                            top: BorderSide(
+                                                color: Color(0xFFE2E8F0))),
                                       ),
                                       children: [
                                         Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 14),
                                           child: Text(
                                             t.name,
-                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                                color: Color(0xFF0F172A)),
                                           ),
                                         ),
                                         Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 10),
                                           child: Wrap(
                                             spacing: 6,
                                             runSpacing: 6,
                                             children: t.values
                                                 .map(
                                                   (v) => Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3),
                                                     decoration: BoxDecoration(
-                                                      color: const Color(0xFFEEF2FF),
-                                                      borderRadius: BorderRadius.circular(6),
-                                                      border: Border.all(color: const Color(0xFFC7D2FE)),
+                                                      color: const Color(
+                                                          0xFFEEF2FF),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              6),
+                                                      border: Border.all(
+                                                          color: const Color(
+                                                              0xFFC7D2FE)),
                                                     ),
                                                     child: Text(
                                                       v,
-                                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF4F46E5)),
+                                                      style: const TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color: Color(
+                                                              0xFF4F46E5)),
                                                     ),
                                                   ),
                                                 )
@@ -474,19 +617,30 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                                           ),
                                         ),
                                         Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 10),
                                           child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
                                             children: [
                                               IconButton(
                                                 tooltip: 'Edit Template',
-                                                icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
-                                                onPressed: () => _openTemplateDialog(t),
+                                                icon: const Icon(
+                                                    Icons.edit_outlined,
+                                                    size: 18,
+                                                    color: Color(0xFF4F46E5)),
+                                                onPressed: () =>
+                                                    _openTemplateDialog(t),
                                               ),
                                               IconButton(
                                                 tooltip: 'Delete Template',
-                                                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
-                                                onPressed: () => _deleteTemplate(t),
+                                                icon: const Icon(
+                                                    Icons
+                                                        .delete_outline_rounded,
+                                                    size: 18,
+                                                    color: Color(0xFFDC2626)),
+                                                onPressed: () =>
+                                                    _deleteTemplate(t),
                                               ),
                                             ],
                                           ),
@@ -505,7 +659,8 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       currentPage: currentPage,
                       pageSize: _pageSize,
                       totalItems: totalFiltered,
-                      onPageChanged: (newPage) => setState(() => _currentPage = newPage),
+                      onPageChanged: (newPage) =>
+                          setState(() => _currentPage = newPage),
                       onPageSizeChanged: (newSize) => setState(() {
                         _pageSize = newSize;
                         _currentPage = 1;
@@ -526,7 +681,10 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
       child: Text(
         text,
         textAlign: alignRight ? TextAlign.right : TextAlign.left,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+        style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF475569)),
       ),
     );
   }

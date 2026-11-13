@@ -27,16 +27,106 @@ abstract class NumberToWordsConverter {
 /// Urdu (اردو) Number to Words Converter
 class UrduNumberToWordsConverter implements NumberToWordsConverter {
   static const List<String> _urduNumbers = [
-    'صفر', 'ایک', 'دو', 'تین', 'چار', 'پانچ', 'چھ', 'سات', 'آٹھ', 'نو',
-    'دس', 'گیارہ', 'بارہ', 'تیرہ', 'چودہ', 'پندرہ', 'سولہ', 'سترہ', 'اٹھارہ', 'انیس',
-    'بیس', 'اکیس', 'بائیس', 'تئیس', 'چوبیس', 'پچیس', 'چھبیس', 'ستائیس', 'اٹھائیس', 'انتیس',
-    'تیس', 'اکتیس', 'بتیس', 'تینتیس', 'چونتیس', 'پینتیس', 'چھتیس', 'سینتیس', 'اڑتیس', 'انتالیس',
-    'چالیس', 'اکتالیس', 'بیالیس', 'تینتالیس', 'چوالیس', 'پینتالیس', 'چھیالیس', 'سینتالیس', 'اڑتالیس', 'انچاس',
-    'پچاس', 'اکیاون', 'باون', 'ترپن', 'چون', 'پچپن', 'چھپن', 'ستاون', 'اٹھاون', 'انسٹھ',
-    'ساٹھ', 'اکسٹھ', 'باسٹھ', 'تریسٹھ', 'چوسٹھ', 'پینسٹھ', 'چھیاسٹھ', 'سڑسٹھ', 'اڑسٹھ', 'انہتر',
-    'ستر', 'اکہتر', 'بہتر', 'تہتر', 'چوہتر', 'پچہتر', 'چھہتر', 'ستتر', 'اٹھتر', 'اناسی',
-    'اسی', 'اکیاسی', 'بیاسی', 'تراسی', 'چوراسی', 'پچاسی', 'چھیاسی', 'ستاسی', 'اٹھاسی', 'نواسی',
-    'نوے', 'اکیانوے', 'بانوے', 'ترانوے', 'چورانوے', 'پچانوے', 'چھیانوے', 'ستانوے', 'اٹھانوے', 'ننانوے'
+    'صفر',
+    'ایک',
+    'دو',
+    'تین',
+    'چار',
+    'پانچ',
+    'چھ',
+    'سات',
+    'آٹھ',
+    'نو',
+    'دس',
+    'گیارہ',
+    'بارہ',
+    'تیرہ',
+    'چودہ',
+    'پندرہ',
+    'سولہ',
+    'سترہ',
+    'اٹھارہ',
+    'انیس',
+    'بیس',
+    'اکیس',
+    'بائیس',
+    'تئیس',
+    'چوبیس',
+    'پچیس',
+    'چھبیس',
+    'ستائیس',
+    'اٹھائیس',
+    'انتیس',
+    'تیس',
+    'اکتیس',
+    'بتیس',
+    'تینتیس',
+    'چونتیس',
+    'پینتیس',
+    'چھتیس',
+    'سینتیس',
+    'اڑتیس',
+    'انتالیس',
+    'چالیس',
+    'اکتالیس',
+    'بیالیس',
+    'تینتالیس',
+    'چوالیس',
+    'پینتالیس',
+    'چھیالیس',
+    'سینتالیس',
+    'اڑتالیس',
+    'انچاس',
+    'پچاس',
+    'اکیاون',
+    'باون',
+    'ترپن',
+    'چون',
+    'پچپن',
+    'چھپن',
+    'ستاون',
+    'اٹھاون',
+    'انسٹھ',
+    'ساٹھ',
+    'اکسٹھ',
+    'باسٹھ',
+    'تریسٹھ',
+    'چوسٹھ',
+    'پینسٹھ',
+    'چھیاسٹھ',
+    'سڑسٹھ',
+    'اڑسٹھ',
+    'انہتر',
+    'ستر',
+    'اکہتر',
+    'بہتر',
+    'تہتر',
+    'چوہتر',
+    'پچہتر',
+    'چھہتر',
+    'ستتر',
+    'اٹھتر',
+    'اناسی',
+    'اسی',
+    'اکیاسی',
+    'بیاسی',
+    'تراسی',
+    'چوراسی',
+    'پچاسی',
+    'چھیاسی',
+    'ستاسی',
+    'اٹھاسی',
+    'نواسی',
+    'نوے',
+    'اکیانوے',
+    'بانوے',
+    'ترانوے',
+    'چورانوے',
+    'پچانوے',
+    'چھیانوے',
+    'ستانوے',
+    'اٹھانوے',
+    'ننانوے'
   ];
 
   String _convertBelowThousand(int n) {
@@ -102,7 +192,8 @@ class UrduNumberToWordsConverter implements NumberToWordsConverter {
     final intPart = absAmount.floor();
     final decimalPart = ((absAmount - intPart) * 100).round();
 
-    final currency = NumberToWordsService.resolveCurrencyWord('ur', symbol: currencySymbol, code: currencyCode);
+    final currency = NumberToWordsService.resolveCurrencyWord('ur',
+        symbol: currencySymbol, code: currencyCode);
     final words = _convertInteger(intPart);
 
     final buffer = StringBuffer();
@@ -121,12 +212,39 @@ class UrduNumberToWordsConverter implements NumberToWordsConverter {
 /// Pashto (پښتو) Number to Words Converter
 class PashtoNumberToWordsConverter implements NumberToWordsConverter {
   static const List<String> _units = [
-    'صفر', 'یو', 'دوه', 'درې', 'څلور', 'پنځه', 'شپږ', 'اووه', 'اته', 'نهه',
-    'لس', 'یوولس', 'دوولس', 'دیارلس', 'څوارلس', 'پنځلس', 'شپاړس', 'اوولس', 'اتلس', 'نولس'
+    'صفر',
+    'یو',
+    'دوه',
+    'درې',
+    'څلور',
+    'پنځه',
+    'شپږ',
+    'اووه',
+    'اته',
+    'نهه',
+    'لس',
+    'یوولس',
+    'دوولس',
+    'دیارلس',
+    'څوارلس',
+    'پنځلس',
+    'شپاړس',
+    'اوولس',
+    'اتلس',
+    'نولس'
   ];
 
   static const List<String> _tens = [
-    '', '', 'شل', 'دېرش', 'څلوېښت', 'پنځوس', 'شپېته', 'اویا', 'اتیا', 'نوي'
+    '',
+    '',
+    'شل',
+    'دېرش',
+    'څلوېښت',
+    'پنځوس',
+    'شپېته',
+    'اویا',
+    'اتیا',
+    'نوي'
   ];
 
   String _underHundred(int n) {
@@ -136,7 +254,18 @@ class PashtoNumberToWordsConverter implements NumberToWordsConverter {
     if (u == 0) return _tens[t];
     // Special Pashto 20s
     if (t == 2) {
-      const twenties = ['', 'یوویشت', 'دوه ویشت', 'درویشت', 'څلیرویشت', 'پنځه ویشت', 'شپږویشت', 'اووه ویشت', 'اتویشت', 'نهه ویشت'];
+      const twenties = [
+        '',
+        'یوویشت',
+        'دوه ویشت',
+        'درویشت',
+        'څلیرویشت',
+        'پنځه ویشت',
+        'شپږویشت',
+        'اووه ویشت',
+        'اتویشت',
+        'نهه ویشت'
+      ];
       return twenties[u];
     }
     return '${_units[u]} ${_tens[t]}';
@@ -189,7 +318,8 @@ class PashtoNumberToWordsConverter implements NumberToWordsConverter {
     final absAmount = amount.abs();
     final intPart = absAmount.floor();
     final words = _convertInteger(intPart);
-    final currency = NumberToWordsService.resolveCurrencyWord('ps', symbol: currencySymbol, code: currencyCode);
+    final currency = NumberToWordsService.resolveCurrencyWord('ps',
+        symbol: currencySymbol, code: currencyCode);
     return '$words $currency'.trim();
   }
 }
@@ -197,16 +327,52 @@ class PashtoNumberToWordsConverter implements NumberToWordsConverter {
 /// Farsi / Persian (فارسی) Number to Words Converter
 class FarsiNumberToWordsConverter implements NumberToWordsConverter {
   static const List<String> _units = [
-    'صفر', 'یک', 'دو', 'سه', 'چهار', 'پنج', 'شش', 'هفت', 'هشت', 'نه',
-    'ده', 'یازده', 'دوازده', 'سیزده', 'چهارده', 'پانزده', 'شانزده', 'هفده', 'هجده', 'نوزده'
+    'صفر',
+    'یک',
+    'دو',
+    'سه',
+    'چهار',
+    'پنج',
+    'شش',
+    'هفت',
+    'هشت',
+    'نه',
+    'ده',
+    'یازده',
+    'دوازده',
+    'سیزده',
+    'چهارده',
+    'پانزده',
+    'شانزده',
+    'هفده',
+    'هجده',
+    'نوزده'
   ];
 
   static const List<String> _tens = [
-    '', '', 'بیست', 'سی', 'چهل', 'پنجاه', 'شصت', 'هفتاد', 'هشتاد', 'نود'
+    '',
+    '',
+    'بیست',
+    'سی',
+    'چهل',
+    'پنجاه',
+    'شصت',
+    'هفتاد',
+    'هشتاد',
+    'نود'
   ];
 
   static const List<String> _hundreds = [
-    '', 'صد', 'دویست', 'سیصد', 'چهارصد', 'پانصد', 'ششصد', 'هفتصد', 'هشتصد', 'نهصد'
+    '',
+    'صد',
+    'دویست',
+    'سیصد',
+    'چهارصد',
+    'پانصد',
+    'ششصد',
+    'هفتصد',
+    'هشتصد',
+    'نهصد'
   ];
 
   String _convertBelowThousand(int n) {
@@ -262,7 +428,8 @@ class FarsiNumberToWordsConverter implements NumberToWordsConverter {
     final absAmount = amount.abs();
     final intPart = absAmount.floor();
     final words = _convertInteger(intPart);
-    final currency = NumberToWordsService.resolveCurrencyWord('fa', symbol: currencySymbol, code: currencyCode);
+    final currency = NumberToWordsService.resolveCurrencyWord('fa',
+        symbol: currencySymbol, code: currencyCode);
     return '$words $currency'.trim();
   }
 }
@@ -270,17 +437,62 @@ class FarsiNumberToWordsConverter implements NumberToWordsConverter {
 /// Spanish (Español) Number to Words Converter
 class SpanishNumberToWordsConverter implements NumberToWordsConverter {
   static const List<String> _units = [
-    'cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
-    'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve',
-    'veinte', 'veintiuno', 'veintidós', 'veintitrés', 'veinticuatro', 'veinticinco', 'veintiséis', 'veintisiete', 'veintiocho', 'veintinueve'
+    'cero',
+    'uno',
+    'dos',
+    'tres',
+    'cuatro',
+    'cinco',
+    'seis',
+    'siete',
+    'ocho',
+    'nueve',
+    'diez',
+    'once',
+    'doce',
+    'trece',
+    'catorce',
+    'quince',
+    'dieciséis',
+    'diecisiete',
+    'dieciocho',
+    'diecinueve',
+    'veinte',
+    'veintiuno',
+    'veintidós',
+    'veintitrés',
+    'veinticuatro',
+    'veinticinco',
+    'veintiséis',
+    'veintisiete',
+    'veintiocho',
+    'veintinueve'
   ];
 
   static const List<String> _tens = [
-    '', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'
+    '',
+    '',
+    'veinte',
+    'treinta',
+    'cuarenta',
+    'cincuenta',
+    'sesenta',
+    'setenta',
+    'ochenta',
+    'noventa'
   ];
 
   static const List<String> _hundreds = [
-    '', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'
+    '',
+    'ciento',
+    'doscientos',
+    'trescientos',
+    'cuatrocientos',
+    'quinientos',
+    'seiscientos',
+    'setecientos',
+    'ochocientos',
+    'novecientos'
   ];
 
   String _convertBelowThousand(int n) {
@@ -332,7 +544,8 @@ class SpanishNumberToWordsConverter implements NumberToWordsConverter {
     final absAmount = amount.abs();
     final intPart = absAmount.floor();
     final words = _convertInteger(intPart);
-    final currency = NumberToWordsService.resolveCurrencyWord('es', symbol: currencySymbol, code: currencyCode);
+    final currency = NumberToWordsService.resolveCurrencyWord('es',
+        symbol: currencySymbol, code: currencyCode);
     return '$words $currency'.trim();
   }
 }
@@ -340,12 +553,39 @@ class SpanishNumberToWordsConverter implements NumberToWordsConverter {
 /// Dutch (Nederlands) Number to Words Converter
 class DutchNumberToWordsConverter implements NumberToWordsConverter {
   static const List<String> _units = [
-    'nul', 'één', 'twee', 'drie', 'vier', 'vijf', 'zes', 'zeven', 'acht', 'negen',
-    'tien', 'elf', 'twaalf', 'dertien', 'veertien', 'vijftien', 'zestien', 'zeventien', 'achttien', 'negentien'
+    'nul',
+    'één',
+    'twee',
+    'drie',
+    'vier',
+    'vijf',
+    'zes',
+    'zeven',
+    'acht',
+    'negen',
+    'tien',
+    'elf',
+    'twaalf',
+    'dertien',
+    'veertien',
+    'vijftien',
+    'zestien',
+    'zeventien',
+    'achttien',
+    'negentien'
   ];
 
   static const List<String> _tens = [
-    '', '', 'twintig', 'dertig', 'veertig', 'vijftig', 'zestig', 'zeventig', 'tachtig', 'negentig'
+    '',
+    '',
+    'twintig',
+    'dertig',
+    'veertig',
+    'vijftig',
+    'zestig',
+    'zeventig',
+    'tachtig',
+    'negentig'
   ];
 
   String _convertBelowHundred(int n) {
@@ -401,7 +641,8 @@ class DutchNumberToWordsConverter implements NumberToWordsConverter {
     final absAmount = amount.abs();
     final intPart = absAmount.floor();
     final words = _convertInteger(intPart);
-    final currency = NumberToWordsService.resolveCurrencyWord('nl', symbol: currencySymbol, code: currencyCode);
+    final currency = NumberToWordsService.resolveCurrencyWord('nl',
+        symbol: currencySymbol, code: currencyCode);
     return '$words $currency'.trim();
   }
 }
@@ -409,18 +650,46 @@ class DutchNumberToWordsConverter implements NumberToWordsConverter {
 /// English Number to Words Converter (Pakistani & International scale)
 class EnglishNumberToWordsConverter implements NumberToWordsConverter {
   static const List<String> _units = [
-    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
-    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+    '',
+    'One',
+    'Two',
+    'Three',
+    'Four',
+    'Five',
+    'Six',
+    'Seven',
+    'Eight',
+    'Nine',
+    'Ten',
+    'Eleven',
+    'Twelve',
+    'Thirteen',
+    'Fourteen',
+    'Fifteen',
+    'Sixteen',
+    'Seventeen',
+    'Eighteen',
+    'Nineteen'
   ];
 
   static const List<String> _tens = [
-    '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'
+    '',
+    '',
+    'Twenty',
+    'Thirty',
+    'Forty',
+    'Fifty',
+    'Sixty',
+    'Seventy',
+    'Eighty',
+    'Ninety'
   ];
 
   String _convertBelowThousand(int n) {
     if (n == 0) return '';
     if (n < 20) return _units[n];
-    if (n < 100) return '${_tens[n ~/ 10]}${n % 10 != 0 ? ' ${_units[n % 10]}' : ''}';
+    if (n < 100)
+      return '${_tens[n ~/ 10]}${n % 10 != 0 ? ' ${_units[n % 10]}' : ''}';
     return '${_units[n ~/ 100]} Hundred${n % 100 != 0 ? ' and ${_convertBelowThousand(n % 100)}' : ''}';
   }
 
@@ -431,8 +700,10 @@ class EnglishNumberToWordsConverter implements NumberToWordsConverter {
     String? currencyCode,
     bool includeDecimals = true,
   }) {
-    final currency = NumberToWordsService.resolveCurrencyWord('en', symbol: currencySymbol, code: currencyCode);
-    if (amount.isNaN || amount.isInfinite || amount <= 0) return 'Zero $currency Only';
+    final currency = NumberToWordsService.resolveCurrencyWord('en',
+        symbol: currencySymbol, code: currencyCode);
+    if (amount.isNaN || amount.isInfinite || amount <= 0)
+      return 'Zero $currency Only';
     int intPart = amount.floor();
 
     final parts = <String>[];
@@ -469,15 +740,27 @@ class NumberToWordsService {
     final c = (code ?? '').trim().toUpperCase();
 
     // Identify standard currency family
-    final isPkr = c == 'PKR' || sym == 'Rs' || sym == '₨' || sym.toLowerCase() == 'rs';
+    final isPkr =
+        c == 'PKR' || sym == 'Rs' || sym == '₨' || sym.toLowerCase() == 'rs';
     final isUsd = c == 'USD' || sym == '\$' || sym.toLowerCase() == 'usd';
     final isSar = c == 'SAR' || sym.toUpperCase() == 'SAR' || sym == '﷼';
     final isAed = c == 'AED' || sym.toUpperCase() == 'AED' || sym == 'د.إ';
     final isEur = c == 'EUR' || sym == '€' || sym.toLowerCase() == 'eur';
     final isGbp = c == 'GBP' || sym == '£' || sym.toLowerCase() == 'gbp';
     final isAfn = c == 'AFN' || sym == '؋' || sym.toLowerCase() == 'afn';
-    final isIrr = c == 'IRR' || c == 'TOMAN' || sym.toLowerCase() == 'toman' || sym == 'تومان';
-    final isCustom = sym.isNotEmpty && !isPkr && !isUsd && !isSar && !isAed && !isEur && !isGbp && !isAfn && !isIrr;
+    final isIrr = c == 'IRR' ||
+        c == 'TOMAN' ||
+        sym.toLowerCase() == 'toman' ||
+        sym == 'تومان';
+    final isCustom = sym.isNotEmpty &&
+        !isPkr &&
+        !isUsd &&
+        !isSar &&
+        !isAed &&
+        !isEur &&
+        !isGbp &&
+        !isAfn &&
+        !isIrr;
 
     final langCode = lang.toLowerCase().trim();
 
@@ -558,6 +841,7 @@ class NumberToWordsService {
     if (isCustom) return sym;
     return 'Rupees';
   }
+
   /// Registered language converters
   static final Map<String, NumberToWordsConverter> _converters = {
     'ur': UrduNumberToWordsConverter(),
@@ -570,12 +854,18 @@ class NumberToWordsService {
 
   /// Supported languages catalog for UI dropdowns
   static const List<NumberLanguageOption> supportedLanguages = [
-    NumberLanguageOption(code: 'ur', name: 'Urdu', nativeName: 'اردو', isRtl: true),
-    NumberLanguageOption(code: 'ps', name: 'Pashto', nativeName: 'پښتو', isRtl: true),
-    NumberLanguageOption(code: 'fa', name: 'Farsi', nativeName: 'فارسی', isRtl: true),
-    NumberLanguageOption(code: 'en', name: 'English', nativeName: 'English', isRtl: false),
-    NumberLanguageOption(code: 'es', name: 'Spanish', nativeName: 'Español', isRtl: false),
-    NumberLanguageOption(code: 'nl', name: 'Dutch', nativeName: 'Nederlands', isRtl: false),
+    NumberLanguageOption(
+        code: 'ur', name: 'Urdu', nativeName: 'اردو', isRtl: true),
+    NumberLanguageOption(
+        code: 'ps', name: 'Pashto', nativeName: 'پښتو', isRtl: true),
+    NumberLanguageOption(
+        code: 'fa', name: 'Farsi', nativeName: 'فارسی', isRtl: true),
+    NumberLanguageOption(
+        code: 'en', name: 'English', nativeName: 'English', isRtl: false),
+    NumberLanguageOption(
+        code: 'es', name: 'Spanish', nativeName: 'Español', isRtl: false),
+    NumberLanguageOption(
+        code: 'nl', name: 'Dutch', nativeName: 'Nederlands', isRtl: false),
   ];
 
   /// Checks if a language is Right-to-Left (e.g. Urdu, Pashto, Farsi, Arabic)
@@ -585,7 +875,8 @@ class NumberToWordsService {
   }
 
   /// Registers or overrides a converter for a language code (for future expansion)
-  static void registerConverter(String languageCode, NumberToWordsConverter converter) {
+  static void registerConverter(
+      String languageCode, NumberToWordsConverter converter) {
     _converters[languageCode.toLowerCase().trim()] = converter;
   }
 
@@ -607,4 +898,3 @@ class NumberToWordsService {
     );
   }
 }
-

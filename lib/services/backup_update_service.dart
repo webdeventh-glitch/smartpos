@@ -13,7 +13,8 @@ import 'database_service.dart';
 /// Enterprise Software Update & Encrypted Database Backup Center Service
 class BackupUpdateService {
   static BackupUpdateService? _instance;
-  static BackupUpdateService get instance => _instance ??= BackupUpdateService._();
+  static BackupUpdateService get instance =>
+      _instance ??= BackupUpdateService._();
 
   BackupUpdateService._();
   Timer? _autoBackupTimer;
@@ -26,7 +27,9 @@ class BackupUpdateService {
       case 'weekly':
         return const Duration(days: 7);
       case 'custom':
-        final hours = settings.backupIntervalHours > 0 ? settings.backupIntervalHours : 24;
+        final hours = settings.backupIntervalHours > 0
+            ? settings.backupIntervalHours
+            : 24;
         return Duration(hours: hours);
       case 'daily':
       default:
@@ -77,7 +80,8 @@ class BackupUpdateService {
       );
       return dest;
     } catch (e, st) {
-      AppLogger.warning('BackupUpdateService', 'Pre-migration backup failed', e, st);
+      AppLogger.warning(
+          'BackupUpdateService', 'Pre-migration backup failed', e, st);
       return null;
     }
   }
@@ -96,14 +100,16 @@ class BackupUpdateService {
         .where((f) => f.path.endsWith('.db.enc') || f.path.endsWith('.db'))
         .toList();
     if (files.length <= keepCount) return 0;
-    files.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+    files
+        .sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
     int deleted = 0;
     for (final stale in files.skip(keepCount)) {
       try {
         await stale.delete();
         deleted++;
       } catch (e, st) {
-        AppLogger.warning('BackupUpdateService', 'Failed deleting old backup ${stale.path}', e, st);
+        AppLogger.warning('BackupUpdateService',
+            'Failed deleting old backup ${stale.path}', e, st);
       }
     }
     return deleted;
@@ -129,7 +135,8 @@ class BackupUpdateService {
       keepCount: settings.backupRetentionCount,
       targetDir: targetDir,
     );
-    final updated = settings.copyWith(lastAutoBackupAt: checkNow.toIso8601String());
+    final updated =
+        settings.copyWith(lastAutoBackupAt: checkNow.toIso8601String());
     if (db != null) {
       await db.updateBusinessSettings(updated);
     } else if (DatabaseService.instanceOrNull != null) {
@@ -139,7 +146,8 @@ class BackupUpdateService {
   }
 
   /// Starts periodic background check for due scheduled backups (skipped in flutter test).
-  void startAutoBackupScheduler({Duration checkInterval = const Duration(minutes: 15)}) {
+  void startAutoBackupScheduler(
+      {Duration checkInterval = const Duration(minutes: 15)}) {
     if (Platform.environment.containsKey('FLUTTER_TEST')) return;
     _autoBackupTimer?.cancel();
     _autoBackupTimer = Timer.periodic(checkInterval, (_) async {
@@ -149,7 +157,8 @@ class BackupUpdateService {
         final settings = await db.getBusinessSettings();
         await runScheduledBackupIfDue(settings: settings, db: db);
       } catch (e, st) {
-        AppLogger.warning('BackupUpdateService', 'Scheduled backup tick failed', e, st);
+        AppLogger.warning(
+            'BackupUpdateService', 'Scheduled backup tick failed', e, st);
       }
     });
   }
@@ -256,7 +265,8 @@ class BackupUpdateService {
   }) async {
     final backupFile = File(backupFilePath);
     if (!backupFile.existsSync()) {
-      AppLogger.warning('BackupUpdateService', 'Backup not found: $backupFilePath');
+      AppLogger.warning(
+          'BackupUpdateService', 'Backup not found: $backupFilePath');
       return false;
     }
 
@@ -284,10 +294,12 @@ class BackupUpdateService {
           reason: 'Database was restored from backup. Please sign in again.',
         );
       }
-      AppLogger.info('BackupUpdateService', 'Restored database from $backupFilePath');
+      AppLogger.info(
+          'BackupUpdateService', 'Restored database from $backupFilePath');
       return true;
     } catch (e, st) {
-      AppLogger.error('BackupUpdateService', 'Failed restoring backup $backupFilePath', e, st);
+      AppLogger.error('BackupUpdateService',
+          'Failed restoring backup $backupFilePath', e, st);
       return false;
     }
   }
@@ -302,18 +314,22 @@ class BackupUpdateService {
       'release_date': '2026-10-23',
       'release_notes':
           '• Multi-Industry POS presets (Super Store, Mobile IMEI, Solar BOM, Restaurant KOT)\n'
-          '• Strict Walk-in Upfront payment rule & Customer Credit Ledger\n'
-          '• Cash Register X-Report & Z-Report Shift Reconciliation\n'
-          '• Embedded REST API server for companion Flutter Mobile App',
+              '• Strict Walk-in Upfront payment rule & Customer Credit Ledger\n'
+              '• Cash Register X-Report & Z-Report Shift Reconciliation\n'
+              '• Embedded REST API server for companion Flutter Mobile App',
       'download_size_mb': 18.4,
     };
   }
 
   /// Offline Package Verification and Migration
-  Future<Map<String, dynamic>> applyOfflineUpdatePackage(String packagePath) async {
+  Future<Map<String, dynamic>> applyOfflineUpdatePackage(
+      String packagePath) async {
     final file = File(packagePath);
     if (!file.existsSync()) {
-      return {'success': false, 'error': 'Update package file not found at $packagePath'};
+      return {
+        'success': false,
+        'error': 'Update package file not found at $packagePath'
+      };
     }
 
     await Future.delayed(const Duration(milliseconds: 800));
@@ -322,7 +338,8 @@ class BackupUpdateService {
 
     return {
       'success': true,
-      'message': 'Offline update package verified and database schema successfully migrated without data loss!',
+      'message':
+          'Offline update package verified and database schema successfully migrated without data loss!',
       'migrated_tables': [
         'payment_transactions',
         'product_serials_batches',

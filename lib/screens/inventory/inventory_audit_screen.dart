@@ -4,7 +4,8 @@ import '../../services/database_service.dart';
 
 class InventoryAuditScreen extends StatefulWidget {
   final BusinessSettings settings;
-  final int initialTab; // 0: Stock Overview, 1: Dead Stock, 2: Expiring Soon, 3: Out of Stock
+  final int
+      initialTab; // 0: Stock Overview, 1: Dead Stock, 2: Expiring Soon, 3: Out of Stock
 
   const InventoryAuditScreen({
     super.key,
@@ -16,7 +17,8 @@ class InventoryAuditScreen extends StatefulWidget {
   State<InventoryAuditScreen> createState() => _InventoryAuditScreenState();
 }
 
-class _InventoryAuditScreenState extends State<InventoryAuditScreen> with SingleTickerProviderStateMixin {
+class _InventoryAuditScreenState extends State<InventoryAuditScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Product> _allProducts = [];
   List<Product> _deadStock = [];
@@ -28,7 +30,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTab);
+    _tabController =
+        TabController(length: 4, vsync: this, initialIndex: widget.initialTab);
     _loadInventoryData();
   }
 
@@ -43,7 +46,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
     final prods = await db.getProducts();
     final dead = await db.getDeadStockProducts();
     final expiring = await db.getExpiringProducts(monthsAhead: 6);
-    final oos = prods.where((p) => p.isOutOfStock || p.stockQuantity <= 0).toList();
+    final oos =
+        prods.where((p) => p.isOutOfStock || p.stockQuantity <= 0).toList();
 
     if (mounted) {
       setState(() {
@@ -59,10 +63,13 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
   @override
   Widget build(BuildContext context) {
     final currency = widget.settings.currencySymbol;
-    final totalUnits = _allProducts.fold(0.0, (sum, p) => sum + p.stockQuantity);
-    final totalValuation = _allProducts.fold(0.0, (sum, p) => sum + (p.stockQuantity * p.purchasePrice));
+    final totalUnits =
+        _allProducts.fold(0.0, (sum, p) => sum + p.stockQuantity);
+    final totalValuation = _allProducts.fold(
+        0.0, (sum, p) => sum + (p.stockQuantity * p.purchasePrice));
     final deadUnits = _deadStock.fold(0.0, (sum, p) => sum + p.stockQuantity);
-    final deadValuation = _deadStock.fold(0.0, (sum, p) => sum + (p.stockQuantity * p.purchasePrice));
+    final deadValuation = _deadStock.fold(
+        0.0, (sum, p) => sum + (p.stockQuantity * p.purchasePrice));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -80,12 +87,17 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
                   children: [
                     const Text(
                       'Stock Audit, Dead Stock & Expiry Center',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.3),
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.3),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Track current on-hand quantities, stagnant/dead inventory, and impending batch expiries.',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      style:
+                          TextStyle(fontSize: 13, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -93,11 +105,14 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Refresh Stock Stats', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text('Refresh Stock Stats',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   onPressed: () {
                     setState(() => _loading = true);
                     _loadInventoryData();
@@ -113,7 +128,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
                 _metricCard(
                   title: 'Total Stock In Hand',
                   value: '${totalUnits.toInt()} Units',
-                  subtitle: '$currency${totalValuation.toStringAsFixed(2)} Cost Value',
+                  subtitle:
+                      '$currency${totalValuation.toStringAsFixed(2)} Cost Value',
                   icon: Icons.inventory_2_rounded,
                   color: const Color(0xFF4F46E5),
                   bgColor: const Color(0xFFEEF2FF),
@@ -122,7 +138,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
                 _metricCard(
                   title: 'Dead Stock (No Sales)',
                   value: '${_deadStock.length} Items',
-                  subtitle: '$currency${deadValuation.toStringAsFixed(2)} Tied Up',
+                  subtitle:
+                      '$currency${deadValuation.toStringAsFixed(2)} Tied Up',
                   icon: Icons.hourglass_disabled_rounded,
                   color: const Color(0xFFD97706),
                   bgColor: const Color(0xFFFEF3C7),
@@ -161,10 +178,18 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
                 indicatorColor: const Color(0xFF4F46E5),
                 indicatorWeight: 3,
                 tabs: [
-                  Tab(icon: const Icon(Icons.list_alt_rounded), text: 'Full Stock Inventory (${_allProducts.length})'),
-                  Tab(icon: const Icon(Icons.hourglass_bottom_rounded), text: 'Dead Stock (${_deadStock.length})'),
-                  Tab(icon: const Icon(Icons.event_available_rounded), text: 'Expiring Soon (6M) (${_expiringProducts.length})'),
-                  Tab(icon: const Icon(Icons.warning_amber_rounded), text: 'Out of Stock / Critical (${_outOfStock.length})'),
+                  Tab(
+                      icon: const Icon(Icons.list_alt_rounded),
+                      text: 'Full Stock Inventory (${_allProducts.length})'),
+                  Tab(
+                      icon: const Icon(Icons.hourglass_bottom_rounded),
+                      text: 'Dead Stock (${_deadStock.length})'),
+                  Tab(
+                      icon: const Icon(Icons.event_available_rounded),
+                      text: 'Expiring Soon (6M) (${_expiringProducts.length})'),
+                  Tab(
+                      icon: const Icon(Icons.warning_amber_rounded),
+                      text: 'Out of Stock / Critical (${_outOfStock.length})'),
                 ],
               ),
             ),
@@ -180,7 +205,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: TextField(
-                onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+                onChanged: (val) =>
+                    setState(() => _searchQuery = val.trim().toLowerCase()),
                 decoration: const InputDecoration(
                   icon: Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
                   hintText: 'Search product by name, SKU, or batch number...',
@@ -193,20 +219,32 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
 
             // TabBar Views
             _loading
-                ? const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5))))
+                ? const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(
+                        child: CircularProgressIndicator(
+                            color: Color(0xFF4F46E5))))
                 : SizedBox(
                     height: 560,
                     child: TabBarView(
                       controller: _tabController,
                       children: [
                         // TAB 0: Full Stock
-                        _buildProductTable(_filterProducts(_allProducts), currency, isDeadTab: false),
+                        _buildProductTable(
+                            _filterProducts(_allProducts), currency,
+                            isDeadTab: false),
                         // TAB 1: Dead Stock
-                        _buildProductTable(_filterProducts(_deadStock), currency, isDeadTab: true),
+                        _buildProductTable(
+                            _filterProducts(_deadStock), currency,
+                            isDeadTab: true),
                         // TAB 2: Expiring Soon
-                        _buildProductTable(_filterProducts(_expiringProducts), currency, isExpiringTab: true),
+                        _buildProductTable(
+                            _filterProducts(_expiringProducts), currency,
+                            isExpiringTab: true),
                         // TAB 3: Out of Stock
-                        _buildProductTable(_filterProducts(_outOfStock), currency, isOutOfStockTab: true),
+                        _buildProductTable(
+                            _filterProducts(_outOfStock), currency,
+                            isOutOfStockTab: true),
                       ],
                     ),
                   ),
@@ -222,7 +260,9 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
       final name = p.name.toLowerCase();
       final sku = p.sku.toLowerCase();
       final batch = (p.batchNumber ?? '').toLowerCase();
-      return name.contains(_searchQuery) || sku.contains(_searchQuery) || batch.contains(_searchQuery);
+      return name.contains(_searchQuery) ||
+          sku.contains(_searchQuery) ||
+          batch.contains(_searchQuery);
     }).toList();
   }
 
@@ -248,7 +288,9 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
               Icon(
                 isDeadTab
                     ? Icons.thumb_up_alt_outlined
-                    : (isExpiringTab ? Icons.verified_outlined : Icons.check_circle_outline),
+                    : (isExpiringTab
+                        ? Icons.verified_outlined
+                        : Icons.check_circle_outline),
                 size: 44,
                 color: const Color(0xFF10B981),
               ),
@@ -259,7 +301,10 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
                     : (isExpiringTab
                         ? 'No Products Expiring within 6 months! Shelf life is healthy.'
                         : 'No Products in this category.'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF334155)),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Color(0xFF334155)),
               ),
             ],
           ),
@@ -297,96 +342,141 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
                 ),
                 headingTextStyle: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                  color: isDark
+                      ? const Color(0xFFCBD5E1)
+                      : const Color(0xFF475569),
                   fontSize: 12,
                 ),
                 dataRowMinHeight: 50,
                 dataRowMaxHeight: 56,
-              columns: const [
-                DataColumn(label: Text('PRODUCT ITEM')),
-                DataColumn(label: Text('SKU / BATCH')),
-                DataColumn(label: Text('EXPIRY DATE')),
-                DataColumn(label: Text('ON HAND STOCK')),
-                DataColumn(label: Text('COST PRICE')),
-                DataColumn(label: Text('SELLING PRICE')),
-                DataColumn(label: Text('STOCK VALUE')),
-                DataColumn(label: Text('ALERT STATUS')),
-              ],
-              rows: products.map((p) {
-                final stockValue = p.stockQuantity * p.purchasePrice;
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
-                          Text('${p.categoryName} • ${p.brandName}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                        ],
-                      ),
-                    ),
-                    DataCell(
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(p.sku, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF334155))),
-                          if (p.batchNumber != null && p.batchNumber!.isNotEmpty)
-                            Text('Batch: ${p.batchNumber}', style: const TextStyle(fontSize: 11, color: Color(0xFF0284C7), fontWeight: FontWeight.w600))
-                          else
-                            const Text('-', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                    DataCell(
-                      p.expiryDate != null && p.expiryDate!.isNotEmpty
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: isExpiringTab ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: isExpiringTab ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0)),
-                              ),
-                              child: Text(
-                                p.expiryDate!,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: isExpiringTab ? const Color(0xFFDC2626) : const Color(0xFF1E293B),
-                                ),
-                              ),
-                            )
-                          : const Text('Non-expiring', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                    ),
-                    DataCell(
-                      Text(
-                        '${p.stockQuantity.toInt()} ${p.unit}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 13,
-                          color: p.stockQuantity <= 0 ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
+                columns: const [
+                  DataColumn(label: Text('PRODUCT ITEM')),
+                  DataColumn(label: Text('SKU / BATCH')),
+                  DataColumn(label: Text('EXPIRY DATE')),
+                  DataColumn(label: Text('ON HAND STOCK')),
+                  DataColumn(label: Text('COST PRICE')),
+                  DataColumn(label: Text('SELLING PRICE')),
+                  DataColumn(label: Text('STOCK VALUE')),
+                  DataColumn(label: Text('ALERT STATUS')),
+                ],
+                rows: products.map((p) {
+                  final stockValue = p.stockQuantity * p.purchasePrice;
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(p.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Color(0xFF0F172A))),
+                            Text('${p.categoryName} • ${p.brandName}',
+                                style: const TextStyle(
+                                    fontSize: 11, color: Color(0xFF64748B))),
+                          ],
                         ),
                       ),
-                    ),
-                    DataCell(Text('$currency${p.purchasePrice.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Color(0xFF475569)))),
-                    DataCell(Text('$currency${p.sellingPrice.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)))),
-                    DataCell(Text('$currency${stockValue.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF4F46E5)))),
-                    DataCell(
-                      _buildStockStatusBadge(p, isDeadTab: isDeadTab, isExpiringTab: isExpiringTab),
-                    ),
-                  ],
-                );
-              }).toList(),
+                      DataCell(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(p.sku,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                    color: Color(0xFF334155))),
+                            if (p.batchNumber != null &&
+                                p.batchNumber!.isNotEmpty)
+                              Text('Batch: ${p.batchNumber}',
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF0284C7),
+                                      fontWeight: FontWeight.w600))
+                            else
+                              const Text('-',
+                                  style: TextStyle(
+                                      fontSize: 11, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                      DataCell(
+                        p.expiryDate != null && p.expiryDate!.isNotEmpty
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: isExpiringTab
+                                      ? const Color(0xFFFEF2F2)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                      color: isExpiringTab
+                                          ? const Color(0xFFFECACA)
+                                          : const Color(0xFFE2E8F0)),
+                                ),
+                                child: Text(
+                                  p.expiryDate!,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: isExpiringTab
+                                        ? const Color(0xFFDC2626)
+                                        : const Color(0xFF1E293B),
+                                  ),
+                                ),
+                              )
+                            : const Text('Non-expiring',
+                                style: TextStyle(
+                                    fontSize: 11, color: Colors.grey)),
+                      ),
+                      DataCell(
+                        Text(
+                          '${p.stockQuantity.toInt()} ${p.unit}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            color: p.stockQuantity <= 0
+                                ? const Color(0xFFDC2626)
+                                : const Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                      DataCell(Text(
+                          '$currency${p.purchasePrice.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                              fontSize: 12, color: Color(0xFF475569)))),
+                      DataCell(Text(
+                          '$currency${p.sellingPrice.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF10B981)))),
+                      DataCell(Text('$currency${stockValue.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF4F46E5)))),
+                      DataCell(
+                        _buildStockStatusBadge(p,
+                            isDeadTab: isDeadTab, isExpiringTab: isExpiringTab),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-  Widget _buildStockStatusBadge(Product p, {bool isDeadTab = false, bool isExpiringTab = false}) {
+  Widget _buildStockStatusBadge(Product p,
+      {bool isDeadTab = false, bool isExpiringTab = false}) {
     if (isDeadTab) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -395,7 +485,11 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: const Color(0xFFFDE68A)),
         ),
-        child: const Text('Dead Stock (Slow)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB45309))),
+        child: const Text('Dead Stock (Slow)',
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFB45309))),
       );
     }
     if (isExpiringTab) {
@@ -406,7 +500,11 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: const Color(0xFFFECACA)),
         ),
-        child: const Text('Expiring Soon', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
+        child: const Text('Expiring Soon',
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFDC2626))),
       );
     }
     if (p.isOutOfStock || p.stockQuantity <= 0) {
@@ -417,7 +515,11 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: const Color(0xFFFECACA)),
         ),
-        child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
+        child: const Text('OUT OF STOCK',
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFDC2626))),
       );
     }
     if (p.isLowStock) {
@@ -428,7 +530,11 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: const Color(0xFFFDE68A)),
         ),
-        child: const Text('LOW STOCK', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
+        child: const Text('LOW STOCK',
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFD97706))),
       );
     }
     return Container(
@@ -438,7 +544,11 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: const Color(0xFFA7F3D0)),
       ),
-      child: const Text('Optimal Stock', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+      child: const Text('Optimal Stock',
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF059669))),
     );
   }
 
@@ -474,11 +584,21 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen> with Single
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+                  Text(value,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: color)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                  Text(subtitle,
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFF94A3B8))),
                 ],
               ),
             ),

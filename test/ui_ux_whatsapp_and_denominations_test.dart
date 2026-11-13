@@ -7,7 +7,9 @@ import 'package:desktop_starter/screens/pos/receipt_dialog.dart';
 
 void main() {
   group('UI/UX Modernization & WhatsApp Bill Engine Tests', () {
-    testWidgets('1. SmartSidebar renders modernized sections and quick POS button', (tester) async {
+    testWidgets(
+        '1. SmartSidebar renders modernized sections and quick POS button',
+        (tester) async {
       await tester.binding.setSurfaceSize(const Size(1280, 800));
 
       AppRoute selectedRoute = AppRoute.dashboard;
@@ -41,7 +43,9 @@ void main() {
       expect(find.textContaining('v1.0'), findsOneWidget);
     });
 
-    testWidgets('2. ReceiptDialog renders WhatsApp bill button and formats invoice message', (tester) async {
+    testWidgets(
+        '2. ReceiptDialog renders WhatsApp bill button and formats invoice message',
+        (tester) async {
       await tester.binding.setSurfaceSize(const Size(1000, 800));
 
       final sale = Sale(
@@ -125,15 +129,17 @@ void main() {
       expect(find.text('Send via WhatsApp'), findsOneWidget);
     });
 
-    test('3. Denomination logic correctly computes cash amounts and discrepancy', () {
+    test(
+        '3. Denomination logic correctly computes cash amounts and discrepancy',
+        () {
       final denoms = {
         5000: 2, // 10,000
         1000: 5, // 5,000
-        500: 4,  // 2,000
+        500: 4, // 2,000
         100: 10, // 1,000
-        50: 8,   // 400
-        20: 5,   // 100
-        10: 10,  // 100
+        50: 8, // 400
+        20: 5, // 100
+        10: 10, // 100
       };
       final double coins = 25.50;
 
@@ -164,4 +170,3 @@ void main() {
     });
   });
 }
-

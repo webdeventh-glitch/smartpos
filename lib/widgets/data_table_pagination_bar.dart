@@ -32,7 +32,11 @@ class DataTablePaginationBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+        border: Border(
+            top: BorderSide(
+                color: isDark
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFE2E8F0))),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
       ),
       child: LayoutBuilder(
@@ -47,7 +51,9 @@ class DataTablePaginationBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  color: isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF64748B),
                 ),
               ),
               const SizedBox(width: 14),
@@ -56,14 +62,22 @@ class DataTablePaginationBar extends StatelessWidget {
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                  border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFCBD5E1)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
-                    dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                    value: pageSizeOptions.contains(pageSize) ? pageSize : pageSizeOptions.first,
+                    dropdownColor:
+                        isDark ? const Color(0xFF1E293B) : Colors.white,
+                    value: pageSizeOptions.contains(pageSize)
+                        ? pageSize
+                        : pageSizeOptions.first,
                     isDense: true,
                     style: TextStyle(
                       fontSize: 12,
@@ -159,12 +173,18 @@ class DataTablePaginationBar extends StatelessWidget {
             decoration: BoxDecoration(
               color: enabled
                   ? (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9))
-                  : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                  : (isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF8FAFC)),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
                 color: enabled
-                    ? (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1))
-                    : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+                    ? (isDark
+                        ? const Color(0xFF475569)
+                        : const Color(0xFFCBD5E1))
+                    : (isDark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFE2E8F0)),
               ),
             ),
             child: Icon(
@@ -172,7 +192,9 @@ class DataTablePaginationBar extends StatelessWidget {
               size: 18,
               color: enabled
                   ? (isDark ? Colors.white : const Color(0xFF334155))
-                  : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
+                  : (isDark
+                      ? const Color(0xFF475569)
+                      : const Color(0xFFCBD5E1)),
             ),
           ),
         ),
@@ -192,7 +214,8 @@ class DataTablePaginationBar extends StatelessWidget {
       if (start > 2) {
         widgets.add(const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Text('...', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+          child: Text('...',
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
         ));
       }
     }
@@ -205,7 +228,8 @@ class DataTablePaginationBar extends StatelessWidget {
       if (end < totalPages - 1) {
         widgets.add(const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Text('...', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+          child: Text('...',
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
         ));
       }
       widgets.add(_buildPagePill(context, totalPages));
@@ -236,7 +260,9 @@ class DataTablePaginationBar extends StatelessWidget {
               border: Border.all(
                 color: isSelected
                     ? const Color(0xFF4F46E5)
-                    : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                    : (isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFCBD5E1)),
               ),
             ),
             child: Text(
@@ -246,7 +272,9 @@ class DataTablePaginationBar extends StatelessWidget {
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 color: isSelected
                     ? Colors.white
-                    : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+                    : (isDark
+                        ? const Color(0xFFCBD5E1)
+                        : const Color(0xFF334155)),
               ),
             ),
           ),

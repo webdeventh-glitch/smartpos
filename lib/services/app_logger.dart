@@ -14,7 +14,8 @@ enum LogLevel {
 /// Centralized application logger with daily files, size-based rotation,
 /// and automatic retention cleanup under `%LOCALAPPDATA%\SmartPOS\logs`.
 class AppLogger {
-  static const int defaultMaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB per log file
+  static const int defaultMaxFileSizeBytes =
+      5 * 1024 * 1024; // 5 MB per log file
   static const int defaultMaxLogFiles = 14;
 
   static Directory? _overrideLogsDir;
@@ -196,12 +197,15 @@ class AppLogger {
     final files = dir
         .listSync()
         .whereType<File>()
-        .where((f) => p.basename(f.path).startsWith('smartpos_') && f.path.endsWith('.log'))
+        .where((f) =>
+            p.basename(f.path).startsWith('smartpos_') &&
+            f.path.endsWith('.log'))
         .toList();
 
     if (files.length <= maxLogFiles) return;
 
-    files.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+    files
+        .sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
     for (int i = maxLogFiles; i < files.length; i++) {
       try {
         files[i].deleteSync();
@@ -228,7 +232,8 @@ class AppLogger {
         .whereType<File>()
         .where((f) => f.path.endsWith('.log'))
         .toList();
-    files.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
+    files
+        .sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
     return files;
   }
 }
@@ -257,12 +262,14 @@ class AppErrorHandler {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: Row(
           children: [
-            const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 24),
+            const Icon(Icons.error_outline_rounded,
+                color: Color(0xFFDC2626), size: 24),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -274,14 +281,16 @@ class AppErrorHandler {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(message, style: const TextStyle(fontSize: 13, height: 1.45)),
+                Text(message,
+                    style: const TextStyle(fontSize: 13, height: 1.45)),
                 if (details.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   ExpansionTile(
                     tilePadding: EdgeInsets.zero,
                     title: const Text(
                       'Technical Details',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                     children: [
                       Container(
@@ -312,10 +321,12 @@ class AppErrorHandler {
           if (details.isNotEmpty)
             TextButton.icon(
               onPressed: () {
-                Clipboard.setData(ClipboardData(text: '$title\n$message\n\n$details'));
+                Clipboard.setData(
+                    ClipboardData(text: '$title\n$message\n\n$details'));
                 if (ctx.mounted) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('Error details copied to clipboard.')),
+                    const SnackBar(
+                        content: Text('Error details copied to clipboard.')),
                   );
                 }
               },
@@ -324,7 +335,8 @@ class AppErrorHandler {
             ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF4F46E5)),
+            style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF4F46E5)),
             child: const Text('OK'),
           ),
         ],
@@ -332,4 +344,3 @@ class AppErrorHandler {
     );
   }
 }
-

@@ -17,8 +17,11 @@ void main() {
     sqfliteFfiInit();
   });
 
-  test('Products Module: Complete CRUD for Variations, Units, Brands, Price Groups, Warranties', () async {
-    final tempDir = await Directory.systemTemp.createTemp('pos_products_mod_test_');
+  test(
+      'Products Module: Complete CRUD for Variations, Units, Brands, Price Groups, Warranties',
+      () async {
+    final tempDir =
+        await Directory.systemTemp.createTemp('pos_products_mod_test_');
     final dbPath = '${tempDir.path}/test_products_mod.db';
     final dbService = await DatabaseService.initialize(customPath: dbPath);
 
@@ -34,7 +37,11 @@ void main() {
 
     // 2. Units
     final newUnitId = await dbService.addUnit(
-      Unit(actualName: 'Carton', shortName: 'Ctn', allowDecimal: false, baseUnitMultiplier: 24.0),
+      Unit(
+          actualName: 'Carton',
+          shortName: 'Ctn',
+          allowDecimal: false,
+          baseUnitMultiplier: 24.0),
     );
     expect(newUnitId, isNonZero);
     final units = await dbService.getUnits();
@@ -50,7 +57,8 @@ void main() {
 
     // 4. Selling Price Groups
     final newPgId = await dbService.addSellingPriceGroup(
-      SellingPriceGroup(name: 'Corporate Partner Price', description: '10% flat rebate'),
+      SellingPriceGroup(
+          name: 'Corporate Partner Price', description: '10% flat rebate'),
     );
     expect(newPgId, isNonZero);
     final pgs = await dbService.getSellingPriceGroups();
@@ -58,11 +66,15 @@ void main() {
 
     // 5. Warranties
     final newWarId = await dbService.addWarranty(
-      Warranty(name: '2 Years Extended AppleCare', duration: 24, durationType: 'months'),
+      Warranty(
+          name: '2 Years Extended AppleCare',
+          duration: 24,
+          durationType: 'months'),
     );
     expect(newWarId, isNonZero);
     final warranties = await dbService.getWarranties();
-    expect(warranties.any((w) => w.name == '2 Years Extended AppleCare'), isTrue);
+    expect(
+        warranties.any((w) => w.name == '2 Years Extended AppleCare'), isTrue);
 
     // 6. Variable Product Create and Update with Variations
     final product = Product(
@@ -96,7 +108,8 @@ void main() {
       ),
     ];
 
-    final prodId = await dbService.addProductWithVariations(product, initialVars);
+    final prodId =
+        await dbService.addProductWithVariations(product, initialVars);
     expect(prodId, isNonZero);
 
     final loadedProd = await dbService.getProductById(prodId);
@@ -123,10 +136,12 @@ void main() {
     final reloadedProd = await dbService.getProductById(prodId);
     expect(reloadedProd!.name, equals('MacBook Pro 14" M3 Pro'));
     expect(reloadedProd.variations!.length, equals(3));
-    expect(reloadedProd.variations!.any((v) => v.subSku == 'MAC-14-2TB'), isTrue);
+    expect(
+        reloadedProd.variations!.any((v) => v.subSku == 'MAC-14-2TB'), isTrue);
   });
 
-  testWidgets('Products Module: Screens render cleanly without exceptions', (tester) async {
+  testWidgets('Products Module: Screens render cleanly without exceptions',
+      (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -138,7 +153,8 @@ void main() {
     final settings = BusinessSettings();
 
     // 1. Brands Screen
-    await tester.pumpWidget(MaterialApp(home: BrandsScreen(settings: settings)));
+    await tester
+        .pumpWidget(MaterialApp(home: BrandsScreen(settings: settings)));
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
@@ -156,7 +172,8 @@ void main() {
     expect(find.text('Add Unit'), findsOneWidget);
 
     // 3. Variation Templates Screen
-    await tester.pumpWidget(MaterialApp(home: VariationTemplatesScreen(settings: settings)));
+    await tester.pumpWidget(
+        MaterialApp(home: VariationTemplatesScreen(settings: settings)));
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
@@ -165,7 +182,8 @@ void main() {
     expect(find.text('Add Template'), findsOneWidget);
 
     // 4. Warranties Screen
-    await tester.pumpWidget(MaterialApp(home: WarrantiesScreen(settings: settings)));
+    await tester
+        .pumpWidget(MaterialApp(home: WarrantiesScreen(settings: settings)));
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
@@ -174,7 +192,8 @@ void main() {
     expect(find.text('Add Warranty'), findsOneWidget);
 
     // 5. Selling Price Groups Screen
-    await tester.pumpWidget(MaterialApp(home: SellingPriceGroupsScreen(settings: settings)));
+    await tester.pumpWidget(
+        MaterialApp(home: SellingPriceGroupsScreen(settings: settings)));
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
@@ -183,7 +202,8 @@ void main() {
     expect(find.text('Add Price Group'), findsOneWidget);
 
     // 6. Import Products Screen
-    await tester.pumpWidget(MaterialApp(home: ImportProductsScreen(settings: settings)));
+    await tester.pumpWidget(
+        MaterialApp(home: ImportProductsScreen(settings: settings)));
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
@@ -192,7 +212,8 @@ void main() {
     expect(find.text('Instructions & Column Mapping'), findsOneWidget);
 
     // 7. Print Labels Screen
-    await tester.pumpWidget(MaterialApp(home: PrintLabelsScreen(settings: settings)));
+    await tester
+        .pumpWidget(MaterialApp(home: PrintLabelsScreen(settings: settings)));
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });

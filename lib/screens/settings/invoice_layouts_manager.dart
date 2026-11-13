@@ -41,7 +41,8 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
         });
       }
     } catch (e, st) {
-      AppLogger.warning('InvoiceLayoutsManager', 'Failed loading layouts', e, st);
+      AppLogger.warning(
+          'InvoiceLayoutsManager', 'Failed loading layouts', e, st);
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -57,18 +58,26 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
     double fontSize = existing?.fontSize ?? 10.0;
     String highlightColor = existing?.highlightColor ?? '#0F172A';
 
-    final headingCtrl = TextEditingController(text: existing?.invoiceHeading ?? 'TAX INVOICE');
-    final headerTextCtrl = TextEditingController(text: existing?.headerText ?? '');
-    final subLabelCtrl = TextEditingController(text: existing?.subTotalLabel ?? 'Subtotal');
-    final discLabelCtrl = TextEditingController(text: existing?.discountLabel ?? 'Discount');
-    final taxLabelCtrl = TextEditingController(text: existing?.taxLabel ?? 'Tax');
-    final totalLabelCtrl = TextEditingController(text: existing?.totalLabel ?? 'Grand Total');
-    final footerCtrl = TextEditingController(text: existing?.footerText ?? 'Thank you for shopping with us!');
+    final headingCtrl =
+        TextEditingController(text: existing?.invoiceHeading ?? 'TAX INVOICE');
+    final headerTextCtrl =
+        TextEditingController(text: existing?.headerText ?? '');
+    final subLabelCtrl =
+        TextEditingController(text: existing?.subTotalLabel ?? 'Subtotal');
+    final discLabelCtrl =
+        TextEditingController(text: existing?.discountLabel ?? 'Discount');
+    final taxLabelCtrl =
+        TextEditingController(text: existing?.taxLabel ?? 'Tax');
+    final totalLabelCtrl =
+        TextEditingController(text: existing?.totalLabel ?? 'Grand Total');
+    final footerCtrl = TextEditingController(
+        text: existing?.footerText ?? 'Thank you for shopping with us!');
     final termsCtrl = TextEditingController(
       text: existing?.termsText ??
           'Goods once sold can only be exchanged within 7 days with original receipt.',
     );
-    final signCtrl = TextEditingController(text: existing?.signatureLabel ?? 'Authorized Signature');
+    final signCtrl = TextEditingController(
+        text: existing?.signatureLabel ?? 'Authorized Signature');
 
     bool showLogo = existing?.showLogo ?? true;
     bool showBizName = existing?.showBusinessName ?? true;
@@ -97,12 +106,15 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: Row(
             children: [
               const Icon(Icons.view_quilt_rounded, color: Color(0xFF4F46E5)),
               const SizedBox(width: 8),
-              Text(existing == null ? 'Create Invoice Layout Template' : 'Edit Layout: ${existing.name}'),
+              Text(existing == null
+                  ? 'Create Invoice Layout Template'
+                  : 'Edit Layout: ${existing.name}'),
             ],
           ),
           content: SizedBox(
@@ -136,10 +148,14 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                             border: OutlineInputBorder(),
                           ),
                           items: const [
-                            DropdownMenuItem(value: 'detailed', child: Text('Detailed')),
-                            DropdownMenuItem(value: 'classic', child: Text('Classic')),
-                            DropdownMenuItem(value: 'elegant', child: Text('Elegant')),
-                            DropdownMenuItem(value: 'slim', child: Text('Slim')),
+                            DropdownMenuItem(
+                                value: 'detailed', child: Text('Detailed')),
+                            DropdownMenuItem(
+                                value: 'classic', child: Text('Classic')),
+                            DropdownMenuItem(
+                                value: 'elegant', child: Text('Elegant')),
+                            DropdownMenuItem(
+                                value: 'slim', child: Text('Slim')),
                           ],
                           onChanged: (v) {
                             if (v != null) setDlgState(() => design = v);
@@ -160,9 +176,12 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                             border: OutlineInputBorder(),
                           ),
                           items: const [
-                            DropdownMenuItem(value: 'a4', child: Text('A4 Sheet')),
-                            DropdownMenuItem(value: '80mm', child: Text('80mm Thermal')),
-                            DropdownMenuItem(value: '58mm', child: Text('58mm Thermal')),
+                            DropdownMenuItem(
+                                value: 'a4', child: Text('A4 Sheet')),
+                            DropdownMenuItem(
+                                value: '80mm', child: Text('80mm Thermal')),
+                            DropdownMenuItem(
+                                value: '58mm', child: Text('58mm Thermal')),
                           ],
                           onChanged: (v) {
                             if (v != null) setDlgState(() => paperSize = v);
@@ -179,8 +198,10 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                             border: OutlineInputBorder(),
                           ),
                           items: const [
-                            DropdownMenuItem(value: 'portrait', child: Text('Portrait')),
-                            DropdownMenuItem(value: 'landscape', child: Text('Landscape')),
+                            DropdownMenuItem(
+                                value: 'portrait', child: Text('Portrait')),
+                            DropdownMenuItem(
+                                value: 'landscape', child: Text('Landscape')),
                           ],
                           onChanged: (v) {
                             if (v != null) setDlgState(() => orientation = v);
@@ -197,7 +218,9 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                             border: OutlineInputBorder(),
                           ),
                           items: const [8.5, 9.0, 10.0, 11.0, 12.0]
-                              .map((s) => DropdownMenuItem(value: s, child: Text('${s.toStringAsFixed(1)} pt')))
+                              .map((s) => DropdownMenuItem(
+                                  value: s,
+                                  child: Text('${s.toStringAsFixed(1)} pt')))
                               .toList(),
                           onChanged: (v) {
                             if (v != null) setDlgState(() => fontSize = v);
@@ -209,7 +232,9 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Text('Accent Color:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
+                      const Text('Accent Color:',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 12.5)),
                       const SizedBox(width: 10),
                       for (final hex in swatches)
                         GestureDetector(
@@ -219,10 +244,14 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                             height: 24,
                             margin: const EdgeInsets.only(right: 8),
                             decoration: BoxDecoration(
-                              color: Color(int.parse('FF${hex.replaceFirst('#', '')}', radix: 16)),
+                              color: Color(int.parse(
+                                  'FF${hex.replaceFirst('#', '')}',
+                                  radix: 16)),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: highlightColor == hex ? Colors.amber : Colors.transparent,
+                                color: highlightColor == hex
+                                    ? Colors.amber
+                                    : Colors.transparent,
                                 width: 2.5,
                               ),
                             ),
@@ -262,75 +291,153 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       Expanded(
                         child: TextField(
                           controller: subLabelCtrl,
-                          decoration: const InputDecoration(labelText: 'Subtotal Label', isDense: true, border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                              labelText: 'Subtotal Label',
+                              isDense: true,
+                              border: OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: discLabelCtrl,
-                          decoration: const InputDecoration(labelText: 'Discount Label', isDense: true, border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                              labelText: 'Discount Label',
+                              isDense: true,
+                              border: OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: taxLabelCtrl,
-                          decoration: const InputDecoration(labelText: 'Tax Label', isDense: true, border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                              labelText: 'Tax Label',
+                              isDense: true,
+                              border: OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: totalLabelCtrl,
-                          decoration: const InputDecoration(labelText: 'Total Label', isDense: true, border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                              labelText: 'Total Label',
+                              isDense: true,
+                              border: OutlineInputBorder()),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text('Header Fields Visibility', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text('Header Fields Visibility',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   Wrap(
                     spacing: 8,
                     children: [
-                      FilterChip(label: const Text('Logo'), selected: showLogo, onSelected: (v) => setDlgState(() => showLogo = v)),
-                      FilterChip(label: const Text('Business Name'), selected: showBizName, onSelected: (v) => setDlgState(() => showBizName = v)),
-                      FilterChip(label: const Text('Address'), selected: showAddress, onSelected: (v) => setDlgState(() => showAddress = v)),
-                      FilterChip(label: const Text('Phone'), selected: showPhone, onSelected: (v) => setDlgState(() => showPhone = v)),
-                      FilterChip(label: const Text('Email'), selected: showEmail, onSelected: (v) => setDlgState(() => showEmail = v)),
-                      FilterChip(label: const Text('Tax / NTN'), selected: showTaxNo, onSelected: (v) => setDlgState(() => showTaxNo = v)),
+                      FilterChip(
+                          label: const Text('Logo'),
+                          selected: showLogo,
+                          onSelected: (v) => setDlgState(() => showLogo = v)),
+                      FilterChip(
+                          label: const Text('Business Name'),
+                          selected: showBizName,
+                          onSelected: (v) =>
+                              setDlgState(() => showBizName = v)),
+                      FilterChip(
+                          label: const Text('Address'),
+                          selected: showAddress,
+                          onSelected: (v) =>
+                              setDlgState(() => showAddress = v)),
+                      FilterChip(
+                          label: const Text('Phone'),
+                          selected: showPhone,
+                          onSelected: (v) => setDlgState(() => showPhone = v)),
+                      FilterChip(
+                          label: const Text('Email'),
+                          selected: showEmail,
+                          onSelected: (v) => setDlgState(() => showEmail = v)),
+                      FilterChip(
+                          label: const Text('Tax / NTN'),
+                          selected: showTaxNo,
+                          onSelected: (v) => setDlgState(() => showTaxNo = v)),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  const Text('Product Table Columns', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text('Product Table Columns',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   Wrap(
                     spacing: 8,
                     children: [
-                      FilterChip(label: const Text('SKU / Code'), selected: showSku, onSelected: (v) => setDlgState(() => showSku = v)),
-                      FilterChip(label: const Text('Brand'), selected: showBrand, onSelected: (v) => setDlgState(() => showBrand = v)),
-                      FilterChip(label: const Text('Product Image'), selected: showImage, onSelected: (v) => setDlgState(() => showImage = v)),
-                      FilterChip(label: const Text('Batch No.'), selected: showBatch, onSelected: (v) => setDlgState(() => showBatch = v)),
-                      FilterChip(label: const Text('Expiry Date'), selected: showExpiry, onSelected: (v) => setDlgState(() => showExpiry = v)),
-                      FilterChip(label: const Text('Warranty'), selected: showWarranty, onSelected: (v) => setDlgState(() => showWarranty = v)),
+                      FilterChip(
+                          label: const Text('SKU / Code'),
+                          selected: showSku,
+                          onSelected: (v) => setDlgState(() => showSku = v)),
+                      FilterChip(
+                          label: const Text('Brand'),
+                          selected: showBrand,
+                          onSelected: (v) => setDlgState(() => showBrand = v)),
+                      FilterChip(
+                          label: const Text('Product Image'),
+                          selected: showImage,
+                          onSelected: (v) => setDlgState(() => showImage = v)),
+                      FilterChip(
+                          label: const Text('Batch No.'),
+                          selected: showBatch,
+                          onSelected: (v) => setDlgState(() => showBatch = v)),
+                      FilterChip(
+                          label: const Text('Expiry Date'),
+                          selected: showExpiry,
+                          onSelected: (v) => setDlgState(() => showExpiry = v)),
+                      FilterChip(
+                          label: const Text('Warranty'),
+                          selected: showWarranty,
+                          onSelected: (v) =>
+                              setDlgState(() => showWarranty = v)),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  const Text('Totals, QR & Footer Elements', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text('Totals, QR & Footer Elements',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   Wrap(
                     spacing: 8,
                     children: [
-                      FilterChip(label: const Text('Barcode'), selected: showBarcode, onSelected: (v) => setDlgState(() => showBarcode = v)),
-                      FilterChip(label: const Text('QR Code'), selected: showQr, onSelected: (v) => setDlgState(() => showQr = v)),
-                      FilterChip(label: const Text('Customer Khata Balance'), selected: showBalance, onSelected: (v) => setDlgState(() => showBalance = v)),
-                      FilterChip(label: const Text('Amount in Words'), selected: showWords, onSelected: (v) => setDlgState(() => showWords = v)),
-                      FilterChip(label: const Text('Signature Line'), selected: showSignature, onSelected: (v) => setDlgState(() => showSignature = v)),
+                      FilterChip(
+                          label: const Text('Barcode'),
+                          selected: showBarcode,
+                          onSelected: (v) =>
+                              setDlgState(() => showBarcode = v)),
+                      FilterChip(
+                          label: const Text('QR Code'),
+                          selected: showQr,
+                          onSelected: (v) => setDlgState(() => showQr = v)),
+                      FilterChip(
+                          label: const Text('Customer Khata Balance'),
+                          selected: showBalance,
+                          onSelected: (v) =>
+                              setDlgState(() => showBalance = v)),
+                      FilterChip(
+                          label: const Text('Amount in Words'),
+                          selected: showWords,
+                          onSelected: (v) => setDlgState(() => showWords = v)),
+                      FilterChip(
+                          label: const Text('Signature Line'),
+                          selected: showSignature,
+                          onSelected: (v) =>
+                              setDlgState(() => showSignature = v)),
                     ],
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: termsCtrl,
                     maxLines: 2,
-                    decoration: const InputDecoration(labelText: 'Terms & Return Policy', isDense: true, border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                        labelText: 'Terms & Return Policy',
+                        isDense: true,
+                        border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -338,14 +445,20 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       Expanded(
                         child: TextField(
                           controller: footerCtrl,
-                          decoration: const InputDecoration(labelText: 'Footer Message', isDense: true, border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                              labelText: 'Footer Message',
+                              isDense: true,
+                              border: OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: signCtrl,
-                          decoration: const InputDecoration(labelText: 'Signature Label', isDense: true, border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                              labelText: 'Signature Label',
+                              isDense: true,
+                              border: OutlineInputBorder()),
                         ),
                       ),
                     ],
@@ -362,9 +475,13 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
             ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white),
               icon: const Icon(Icons.save_rounded, size: 17),
               label: const Text('Save Template'),
               onPressed: () async {
@@ -470,7 +587,8 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
       settings: widget.settings,
       layout: layout,
     );
-    final file = await PdfExportService.savePdfFile(bytes, 'Sample_${layout.name}');
+    final file =
+        await PdfExportService.savePdfFile(bytes, 'Sample_${layout.name}');
     await PdfExportService.openPdfFile(file);
     messenger.showSnackBar(
       SnackBar(
@@ -484,7 +602,8 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -502,7 +621,8 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
               const Expanded(
                 child: Row(
                   children: [
-                    Icon(Icons.collections_bookmark_rounded, color: Color(0xFF4F46E5), size: 22),
+                    Icon(Icons.collections_bookmark_rounded,
+                        color: Color(0xFF4F46E5), size: 22),
                     SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -510,11 +630,13 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                         children: [
                           Text(
                             'Saved Invoice Layout Templates (Multi-Template)',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w800),
                           ),
                           Text(
                             'Manage multiple UltimatePOS-style InvoiceLayouts with custom headers, columns, fonts & orientation.',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            style: TextStyle(
+                                fontSize: 12, color: Color(0xFF64748B)),
                           ),
                         ],
                       ),
@@ -536,23 +658,32 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
           ),
           const Divider(height: 22),
           if (_loading)
-            const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+            const Center(
+                child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircularProgressIndicator()))
           else
             Column(
               children: _layouts.map((layout) {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    color: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: layout.isDefault ? const Color(0xFF4F46E5) : borderColor,
+                      color: layout.isDefault
+                          ? const Color(0xFF4F46E5)
+                          : borderColor,
                     ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.description_outlined, color: Color(0xFF4F46E5)),
+                      const Icon(Icons.description_outlined,
+                          color: Color(0xFF4F46E5)),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -562,19 +693,25 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                               children: [
                                 Text(
                                   layout.name,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.5),
                                 ),
                                 if (layout.isDefault) ...[
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 7, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFDBEAFE),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: const Text(
                                       'Default Template',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1D4ED8)),
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1D4ED8)),
                                     ),
                                   ),
                                 ],
@@ -584,14 +721,17 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                             Text(
                               '${layout.design.toUpperCase()} • ${layout.paperSize.toUpperCase()} (${layout.paperOrientation}) • ${layout.fontSize.toStringAsFixed(1)}pt'
                               '${layout.showSku ? ' • SKU' : ''}${layout.showBrand ? ' • Brand' : ''}${layout.showImage ? ' • Img' : ''}${layout.showBatch ? ' • Batch' : ''}${layout.showExpiry ? ' • Exp' : ''}',
-                              style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                              style: const TextStyle(
+                                  fontSize: 11.5, color: Color(0xFF64748B)),
                             ),
                           ],
                         ),
                       ),
                       OutlinedButton.icon(
-                        icon: const Icon(Icons.picture_as_pdf_rounded, size: 15, color: Color(0xFFDC2626)),
-                        label: const Text('Sample PDF', style: TextStyle(fontSize: 11.5)),
+                        icon: const Icon(Icons.picture_as_pdf_rounded,
+                            size: 15, color: Color(0xFFDC2626)),
+                        label: const Text('Sample PDF',
+                            style: TextStyle(fontSize: 11.5)),
                         onPressed: () => _exportSamplePdf(layout),
                       ),
                       const SizedBox(width: 6),
@@ -600,22 +740,26 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                           onPressed: () async {
                             final db = await DatabaseService.initialize();
                             await db.setDefaultInvoiceLayout(layout.id!);
-                            final next = widget.settings.copyWith(defaultInvoiceLayoutId: layout.id);
+                            final next = widget.settings
+                                .copyWith(defaultInvoiceLayoutId: layout.id);
                             await db.updateBusinessSettings(next);
                             widget.onSettingsUpdated(next);
                             _loadLayouts();
                           },
-                          child: const Text('Set Default', style: TextStyle(fontSize: 11.5)),
+                          child: const Text('Set Default',
+                              style: TextStyle(fontSize: 11.5)),
                         ),
                       IconButton(
                         tooltip: 'Edit Layout',
-                        icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF4F46E5)),
+                        icon: const Icon(Icons.edit_outlined,
+                            size: 18, color: Color(0xFF4F46E5)),
                         onPressed: () => _openLayoutEditor(layout),
                       ),
                       if (!layout.isDefault)
                         IconButton(
                           tooltip: 'Delete Layout',
-                          icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
+                          icon: const Icon(Icons.delete_outline_rounded,
+                              size: 18, color: Color(0xFFEF4444)),
                           onPressed: () async {
                             if (layout.id == null) return;
                             final db = await DatabaseService.initialize();
@@ -633,4 +777,3 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
     );
   }
 }
-

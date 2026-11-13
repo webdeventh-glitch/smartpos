@@ -13,7 +13,8 @@ void main() {
   late String testDbPath;
 
   setUpAll(() async {
-    final tempDir = Directory.systemTemp.createTempSync('smartpos_multibiz_test_');
+    final tempDir =
+        Directory.systemTemp.createTempSync('smartpos_multibiz_test_');
     testDbPath = '${tempDir.path}${Platform.pathSeparator}test_smartpos.db';
     db = await DatabaseService.initialize(customPath: testDbPath);
   });
@@ -25,8 +26,11 @@ void main() {
     } catch (_) {}
   });
 
-  group('Primary Central Database Engine (Admin Choice) & SQLite Sync Buffer', () {
-    test('BusinessSettings supports MySQL as primary database with SQLite local sync', () {
+  group('Primary Central Database Engine (Admin Choice) & SQLite Sync Buffer',
+      () {
+    test(
+        'BusinessSettings supports MySQL as primary database with SQLite local sync',
+        () {
       final s = BusinessSettings(
         primaryDbType: 'mysql',
         dbHost: '192.168.1.100',
@@ -68,7 +72,8 @@ void main() {
       expect(copy.isSqlitePrimary, isTrue);
     });
 
-    test('Saving and reading primary_db_type in DatabaseService table', () async {
+    test('Saving and reading primary_db_type in DatabaseService table',
+        () async {
       var settings = await db.getBusinessSettings();
       expect(settings, isNotNull);
 
@@ -87,21 +92,31 @@ void main() {
     });
   });
 
-  group('Multi-Business Testing: Seeding, Purge & Factory Reset Clean Slate', () {
+  group('Multi-Business Testing: Seeding, Purge & Factory Reset Clean Slate',
+      () {
     test('Seed Mobile & Electronics shop with IMEI serial tracking', () async {
       await db.seedInitialDataForBusinessType(businessType: 'mobile');
 
       final products = await db.getProducts();
       expect(products.isNotEmpty, isTrue);
-      expect(products.any((p) => p.name.contains('Samsung Galaxy') || p.name.contains('iPhone')), isTrue);
+      expect(
+          products.any((p) =>
+              p.name.contains('Samsung Galaxy') || p.name.contains('iPhone')),
+          isTrue);
 
       // Verify IMEI serial batch tracking
       final serials = await db.db.query('product_serials_batches');
       expect(serials.isNotEmpty, isTrue);
-      expect(serials.any((s) => s['serial_number_1'] != null && s['serial_number_1'].toString().isNotEmpty), isTrue);
+      expect(
+          serials.any((s) =>
+              s['serial_number_1'] != null &&
+              s['serial_number_1'].toString().isNotEmpty),
+          isTrue);
     });
 
-    test('Complete Data Purge removes products and serials but preserves settings', () async {
+    test(
+        'Complete Data Purge removes products and serials but preserves settings',
+        () async {
       final beforePurge = await db.getProducts();
       expect(beforePurge.isNotEmpty, isTrue);
 
@@ -129,15 +144,24 @@ void main() {
 
       final products = await db.getProducts();
       expect(products.isNotEmpty, isTrue);
-      expect(products.any((p) => p.name.contains('Longi Solar') || p.name.contains('Inverter')), isTrue);
+      expect(
+          products.any((p) =>
+              p.name.contains('Longi Solar') || p.name.contains('Inverter')),
+          isTrue);
 
       // Verify BOM bundle packages
       final bundles = await db.db.query('product_bundles');
       expect(bundles.isNotEmpty, isTrue);
-      expect(bundles.any((b) => b['sub_product_name'].toString().contains('Longi Hi-MO') || b['sub_product_name'].toString().contains('Inverex')), isTrue);
+      expect(
+          bundles.any((b) =>
+              b['sub_product_name'].toString().contains('Longi Hi-MO') ||
+              b['sub_product_name'].toString().contains('Inverex')),
+          isTrue);
     });
 
-    test('Factory Reset for New Business wipes everything and resets is_configured to 0', () async {
+    test(
+        'Factory Reset for New Business wipes everything and resets is_configured to 0',
+        () async {
       final resetSettings = await db.factoryResetForNewBusiness();
       expect(resetSettings.isConfigured, isFalse);
 

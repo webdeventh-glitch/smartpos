@@ -44,7 +44,9 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
       final contact = Contact(
         type: 'supplier',
         name: _nameCtrl.text.trim(),
-        businessName: _businessCtrl.text.trim().isNotEmpty ? _businessCtrl.text.trim() : null,
+        businessName: _businessCtrl.text.trim().isNotEmpty
+            ? _businessCtrl.text.trim()
+            : null,
         phone: _phoneCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
         address: _addressCtrl.text.trim(),
@@ -69,7 +71,9 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add supplier: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Failed to add supplier: $e'),
+              backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -82,17 +86,23 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final bgHeader = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     final inputDeco = InputDecoration(
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       filled: true,
       fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor)),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: borderColor)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: borderColor)),
     );
 
     return Dialog(
@@ -105,7 +115,8 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: borderColor),
           boxShadow: const [
-            BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
+            BoxShadow(
+                color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
           ],
         ),
         child: Form(
@@ -116,10 +127,12 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
                   color: bgHeader,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(14)),
                   border: Border(bottom: BorderSide(color: borderColor)),
                 ),
                 child: Row(
@@ -130,13 +143,17 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                         color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(7),
                       ),
-                      child: const Icon(Icons.person_add_rounded, color: Color(0xFF4F46E5), size: 19),
+                      child: const Icon(Icons.person_add_rounded,
+                          color: Color(0xFF4F46E5), size: 19),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Quick Add Supplier / Vendor',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary),
                       ),
                     ),
                     IconButton(
@@ -158,13 +175,22 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Supplier Name *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                              Text('Supplier Name *',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary)),
                               const SizedBox(height: 5),
                               TextFormField(
                                 controller: _nameCtrl,
-                                style: TextStyle(fontSize: 13, color: textPrimary),
-                                decoration: inputDeco.copyWith(hintText: 'e.g. Abbott Wholesale Depot'),
-                                validator: (v) => (v == null || v.trim().isEmpty) ? 'Name required' : null,
+                                style:
+                                    TextStyle(fontSize: 13, color: textPrimary),
+                                decoration: inputDeco.copyWith(
+                                    hintText: 'e.g. Abbott Wholesale Depot'),
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty)
+                                        ? 'Name required'
+                                        : null,
                               ),
                             ],
                           ),
@@ -174,12 +200,18 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Business / Company Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                              Text('Business / Company Name',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary)),
                               const SizedBox(height: 5),
                               TextFormField(
                                 controller: _businessCtrl,
-                                style: TextStyle(fontSize: 13, color: textPrimary),
-                                decoration: inputDeco.copyWith(hintText: 'e.g. Abbott Laboratories'),
+                                style:
+                                    TextStyle(fontSize: 13, color: textPrimary),
+                                decoration: inputDeco.copyWith(
+                                    hintText: 'e.g. Abbott Laboratories'),
                               ),
                             ],
                           ),
@@ -193,12 +225,18 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Phone / Mobile Number', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                              Text('Phone / Mobile Number',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary)),
                               const SizedBox(height: 5),
                               TextFormField(
                                 controller: _phoneCtrl,
-                                style: TextStyle(fontSize: 13, color: textPrimary),
-                                decoration: inputDeco.copyWith(hintText: '0300-1234567'),
+                                style:
+                                    TextStyle(fontSize: 13, color: textPrimary),
+                                decoration: inputDeco.copyWith(
+                                    hintText: '0300-1234567'),
                               ),
                             ],
                           ),
@@ -208,12 +246,18 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Email Address', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                              Text('Email Address',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary)),
                               const SizedBox(height: 5),
                               TextFormField(
                                 controller: _emailCtrl,
-                                style: TextStyle(fontSize: 13, color: textPrimary),
-                                decoration: inputDeco.copyWith(hintText: 'vendor@domain.com'),
+                                style:
+                                    TextStyle(fontSize: 13, color: textPrimary),
+                                decoration: inputDeco.copyWith(
+                                    hintText: 'vendor@domain.com'),
                               ),
                             ],
                           ),
@@ -228,12 +272,19 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Office / Depot Address', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                              Text('Office / Depot Address',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary)),
                               const SizedBox(height: 5),
                               TextFormField(
                                 controller: _addressCtrl,
-                                style: TextStyle(fontSize: 13, color: textPrimary),
-                                decoration: inputDeco.copyWith(hintText: 'e.g. Commercial Market, Karachi'),
+                                style:
+                                    TextStyle(fontSize: 13, color: textPrimary),
+                                decoration: inputDeco.copyWith(
+                                    hintText:
+                                        'e.g. Commercial Market, Karachi'),
                               ),
                             ],
                           ),
@@ -243,13 +294,22 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Opening Payable (${widget.settings.currencySymbol})', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary)),
+                              Text(
+                                  'Opening Payable (${widget.settings.currencySymbol})',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary)),
                               const SizedBox(height: 5),
                               TextFormField(
                                 controller: _balanceCtrl,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                style: TextStyle(fontSize: 13, color: textPrimary),
-                                decoration: inputDeco.copyWith(hintText: '0.00'),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                style:
+                                    TextStyle(fontSize: 13, color: textPrimary),
+                                decoration:
+                                    inputDeco.copyWith(hintText: '0.00'),
                               ),
                             ],
                           ),
@@ -262,10 +322,12 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
 
               // Footer
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
                   color: bgHeader,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(14)),
                   border: Border(top: BorderSide(color: borderColor)),
                 ),
                 child: Row(
@@ -275,8 +337,10 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: textSecondary,
                         side: BorderSide(color: borderColor),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
                       child: const Text('Cancel'),
@@ -286,13 +350,20 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF10B981),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: _isSaving
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.check_rounded, size: 17),
-                      label: const Text('Save & Select', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Save & Select',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _isSaving ? null : _save,
                     ),
                   ],

@@ -54,4 +54,3 @@ class PurchaseItem {
         expiryDate: (map['expiry_date'] ?? map['exp_date'])?.toString(),
       );
 }
-

@@ -51,4 +51,3 @@ class CustomerGroup {
         createdAt: map['created_at'] as String?,
       );
 }
-

@@ -52,7 +52,8 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
       }
     } catch (e, st) {
       // Keep base retail option selectable if groups fail to load.
-      AppLogger.warning('QuickCustomerDialog', 'Failed to load customer groups', e, st);
+      AppLogger.warning(
+          'QuickCustomerDialog', 'Failed to load customer groups', e, st);
     }
   }
 
@@ -77,7 +78,8 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
         email: _emailController.text.trim(),
         address: _addressController.text.trim(),
         balance: existing?.balance ?? 0.0,
-        creditLimit: double.tryParse(_creditLimitController.text.trim()) ?? 1000.0,
+        creditLimit:
+            double.tryParse(_creditLimitController.text.trim()) ?? 1000.0,
         loyaltyPoints: existing?.loyaltyPoints ?? 0.0,
         customerGroupId: _selectedGroupId,
         customerGroupName: selectedGroup?.name,
@@ -112,7 +114,9 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving customer: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error saving customer: $e'),
+              backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -151,15 +155,20 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
   }) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
-      prefixIcon: Icon(prefixIcon, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+      hintStyle: TextStyle(
+          fontSize: 13,
+          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+      prefixIcon: Icon(prefixIcon,
+          size: 18,
+          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
       isDense: true,
       filled: true,
       fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+        borderSide: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
       ),
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -194,10 +203,16 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF312E81) : const Color(0xFFEEF2FF),
+                          color: isDark
+                              ? const Color(0xFF312E81)
+                              : const Color(0xFFEEF2FF),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(Icons.person_add_rounded, color: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4F46E5), size: 20),
+                        child: Icon(Icons.person_add_rounded,
+                            color: isDark
+                                ? const Color(0xFFA5B4FC)
+                                : const Color(0xFF4F46E5),
+                            size: 20),
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -208,14 +223,18 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
                             ),
                           ),
                           Text(
                             'Create new customer and assign to current cart',
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B),
                             ),
                           ),
                         ],
@@ -223,26 +242,38 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                     ],
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, size: 20, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                    icon: Icon(Icons.close,
+                        size: 20,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B)),
                     onPressed: () => Navigator.of(context).pop(),
                     splashRadius: 18,
                   ),
                 ],
               ),
-              Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              Divider(
+                  height: 24,
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
 
               // Name
               _fieldLabel('Customer Name *', isDark),
               TextFormField(
                 controller: _nameController,
                 autofocus: true,
-                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: _inputDecoration(
                   hintText: 'e.g. Walk-in Customer / Al-Madina Medicos',
                   prefixIcon: Icons.person_outline,
                   isDark: isDark,
                 ),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Customer name is required' : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? 'Customer name is required'
+                    : null,
               ),
               const SizedBox(height: 14),
 
@@ -257,7 +288,11 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                         TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
-                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
                           decoration: _inputDecoration(
                             hintText: '+1 (555) 000-0000',
                             prefixIcon: Icons.phone_outlined,
@@ -276,7 +311,11 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                         TextFormField(
                           controller: _creditLimitController,
                           keyboardType: TextInputType.number,
-                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
                           decoration: _inputDecoration(
                             hintText: '1000.00',
                             prefixIcon: Icons.credit_card_outlined,
@@ -295,7 +334,9 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: _inputDecoration(
                   hintText: 'customer@example.com',
                   prefixIcon: Icons.email_outlined,
@@ -308,7 +349,9 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
               _fieldLabel('Address / Location', isDark),
               TextFormField(
                 controller: _addressController,
-                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: _inputDecoration(
                   hintText: 'Street address, City, State',
                   prefixIcon: Icons.location_on_outlined,
@@ -320,7 +363,8 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
               // Customer Group / Tiered Pricing
               _fieldLabel('Customer Group / Pricing Tier', isDark),
               DropdownButtonFormField<int?>(
-                initialValue: _selectedGroupId != null && _groups.any((g) => g.id == _selectedGroupId)
+                initialValue: _selectedGroupId != null &&
+                        _groups.any((g) => g.id == _selectedGroupId)
                     ? _selectedGroupId
                     : null,
                 decoration: _inputDecoration(
@@ -334,7 +378,10 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                     value: null,
                     child: Text(
                       'Retail (Standard Base Price)',
-                      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A)),
                     ),
                   ),
                   ..._groups.map(
@@ -342,7 +389,11 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                       value: g.id,
                       child: Text(
                         '${g.name} (${g.amount >= 0 ? "+${g.amount.toStringAsFixed(1)}%" : "${g.amount.toStringAsFixed(1)}%"})',
-                        style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
                       ),
                     ),
                   ),
@@ -357,13 +408,22 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                 children: [
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                      side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      foregroundColor: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                      side: BorderSide(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFCBD5E1)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    child: const Text('Cancel',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
@@ -371,13 +431,21 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                       backgroundColor: const Color(0xFF4F46E5),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 22, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: _isSaving ? null : _save,
                     child: _isSaving
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Save & Select', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : const Text('Save & Select',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
                 ],
               ),

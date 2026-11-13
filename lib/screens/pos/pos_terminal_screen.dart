@@ -30,6 +30,7 @@ import '../products/add_product_dialog.dart';
 import '../../services/currency_rate_service.dart';
 import '../../services/number_to_words_service.dart';
 import '../../services/thermal_printer_service.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/product_thumbnail.dart';
 import '../returns/sales_return_dialog.dart';
 
@@ -1709,115 +1710,192 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     final String badgeLabel;
     final List<Map<String, dynamic>> presets;
 
-    final enSec = widget.settings.enableSecondaryLanguage;
+    final s = widget.settings;
 
     if (isWeight) {
-      dlgTitle = enSec ? 'Adjust Weight (تولنے والا وزن)' : 'Adjust Weight';
-      dlgSubTitle = enSec
-          ? 'ترازو وزن • ${item.product.name}'
-          : 'Weight Scale • ${item.product.name}';
+      dlgTitle = PosLocalization.tr('Adjust Weight', settings: s);
+      dlgSubTitle =
+          '${PosLocalization.tr('Weight Scale', settings: s)} • ${item.product.name}';
       dlgIcon = Icons.scale_rounded;
       dlgColor = const Color(0xFFD97706);
-      inputLabel = enSec
-          ? 'Enter Weight in ${item.product.unit.isNotEmpty ? item.product.unit : "Kg"} (اعشاریہ وزن مثلاً 1.5, 0.50)'
-          : 'Enter Weight in ${item.product.unit.isNotEmpty ? item.product.unit : "Kg"} (e.g. 1.5, 0.50)';
-      badgeLabel = enSec
-          ? 'Weighed / Weight Scale (تولنے والا وزن)'
-          : 'Weighed / Weight Scale';
+      inputLabel =
+          '${PosLocalization.tr('Adjust Weight', settings: s)} (${item.product.unit.isNotEmpty ? item.product.unit : "Kg"})';
+      badgeLabel = PosLocalization.tr('Weight Scale', settings: s);
       presets = [
-        {'label': enSec ? '0.25 (Pao / پاؤ)' : '0.25 (Pao)', 'val': 0.25},
         {
-          'label': enSec ? '0.50 (Aadha / آدھا کلو)' : '0.50 (Half Kg)',
+          'label': PosLocalization.quickQuantityLabel(
+              val: 0.25, unitCategory: 'weight', settings: s),
+          'val': 0.25
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 0.50, unitCategory: 'weight', settings: s),
           'val': 0.50
         },
         {
-          'label': enSec ? '0.75 (3 Pao / تین پاؤ)' : '0.75 (3 Pao)',
+          'label': PosLocalization.quickQuantityLabel(
+              val: 0.75, unitCategory: 'weight', settings: s),
           'val': 0.75
         },
-        {'label': enSec ? '1.0 (1 Kg / کلو)' : '1.0 (1 Kg)', 'val': 1.0},
-        {'label': enSec ? '1.5 (ڈیڑھ کلو)' : '1.5 (1.5 Kg)', 'val': 1.5},
-        {'label': '2.0 (2 Kg)', 'val': 2.0},
-        {'label': enSec ? '2.5 (ڈھائی کلو)' : '2.5 (2.5 Kg)', 'val': 2.5},
-        {'label': enSec ? '5.0 (Dhari / دھڑی)' : '5.0 (Dhari 5Kg)', 'val': 5.0},
-        {'label': '10.0 (10 Kg)', 'val': 10.0},
-        {'label': enSec ? '20.0 (آدھا من)' : '20.0 (Half Mann)', 'val': 20.0},
-        {'label': enSec ? '40.0 (Mann / من)' : '40.0 (Mann 40Kg)', 'val': 40.0},
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 1.0, unitCategory: 'weight', settings: s),
+          'val': 1.0
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 1.5, unitCategory: 'weight', settings: s),
+          'val': 1.5
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 2.0, unitCategory: 'weight', settings: s),
+          'val': 2.0
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 2.5, unitCategory: 'weight', settings: s),
+          'val': 2.5
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 5.0, unitCategory: 'weight', settings: s),
+          'val': 5.0
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 10.0, unitCategory: 'weight', settings: s),
+          'val': 10.0
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 20.0, unitCategory: 'weight', settings: s),
+          'val': 20.0
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 40.0, unitCategory: 'weight', settings: s),
+          'val': 40.0
+        },
       ];
     } else if (isMeasurement) {
-      dlgTitle =
-          enSec ? 'Adjust Measurement (پیمائش / لمبائی)' : 'Adjust Measurement';
-      dlgSubTitle = enSec
-          ? 'کپڑا / پائپ / تار کی لمبائی • ${item.product.name}'
-          : 'Length / Fabric / Cable • ${item.product.name}';
+      dlgTitle = PosLocalization.tr('Adjust Measurement', settings: s);
+      dlgSubTitle =
+          '${PosLocalization.tr('Measurement / Fabric', settings: s)} • ${item.product.name}';
       dlgIcon = Icons.straighten_rounded;
       dlgColor = const Color(0xFF0D9488);
-      inputLabel = enSec
-          ? 'Enter Length in ${item.product.unit.isNotEmpty ? item.product.unit : "Meter"} (میٹر / گز / فٹ)'
-          : 'Enter Length in ${item.product.unit.isNotEmpty ? item.product.unit : "Meter"} (Meter, Yard, Feet)';
-      badgeLabel = enSec
-          ? 'Measurement / Fabric (پیمائش والے یونٹس)'
-          : 'Measurement / Fabric';
+      inputLabel =
+          '${PosLocalization.tr('Adjust Measurement', settings: s)} (${item.product.unit.isNotEmpty ? item.product.unit : "Meter"})';
+      badgeLabel = PosLocalization.tr('Measurement / Fabric', settings: s);
       presets = [
-        {'label': enSec ? '0.50 (آدھا میٹر)' : '0.50 (0.5 Meter)', 'val': 0.50},
-        {'label': enSec ? '1.0 (1 میٹر)' : '1.0 (1 Meter)', 'val': 1.0},
-        {'label': enSec ? '1.5 (ڈیڑھ میٹر)' : '1.5 (1.5 Meter)', 'val': 1.5},
-        {'label': enSec ? '2.0 (2 میٹر)' : '2.0 (2 Meters)', 'val': 2.0},
-        {'label': '2.25 (2¼m)', 'val': 2.25},
-        {'label': '2.50 (2½m)', 'val': 2.50},
-        {'label': enSec ? '3.0 (3 میٹر)' : '3.0 (3 Meters)', 'val': 3.0},
-        {'label': '4.0 (4 Meters)', 'val': 4.0},
-        {'label': '4.50 (4½ Meters)', 'val': 4.50},
-        {'label': enSec ? '5.0 (5 میٹر)' : '5.0 (5 Meters)', 'val': 5.0},
-        {'label': enSec ? '10.0 (10 میٹر)' : '10.0 (10 Meters)', 'val': 10.0},
-        {'label': '25.0 (Roll / Thaan)', 'val': 25.0},
-      ];
-    } else if (isLiquid) {
-      dlgTitle =
-          enSec ? 'Adjust Volume (مائع / لیٹر درج کریں)' : 'Adjust Volume';
-      dlgSubTitle = enSec
-          ? 'دودھ / آئل / مائع حجم • ${item.product.name}'
-          : 'Liquid Volume • ${item.product.name}';
-      dlgIcon = Icons.water_drop_outlined;
-      dlgColor = const Color(0xFF0284C7);
-      inputLabel = enSec
-          ? 'Enter Volume in ${item.product.unit.isNotEmpty ? item.product.unit : "Liter"} (لیٹر / ملی لیٹر)'
-          : 'Enter Volume in ${item.product.unit.isNotEmpty ? item.product.unit : "Liter"} (Liter / Milliliter)';
-      badgeLabel =
-          enSec ? 'Liquid Volume (مائع حجم والے یونٹس)' : 'Liquid Volume';
-      presets = [
-        {'label': enSec ? '0.25 (پاؤ / 250ml)' : '0.25 (250ml)', 'val': 0.25},
         {
-          'label': enSec ? '0.50 (آدھا لیٹر / 500ml)' : '0.50 (500ml)',
+          'label': PosLocalization.quickQuantityLabel(
+              val: 0.50, unitCategory: 'length', settings: s),
           'val': 0.50
         },
         {
-          'label': enSec ? '0.75 (تین پاؤ / 750ml)' : '0.75 (750ml)',
+          'label': PosLocalization.quickQuantityLabel(
+              val: 1.0, unitCategory: 'length', settings: s),
+          'val': 1.0
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 1.5, unitCategory: 'length', settings: s),
+          'val': 1.5
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 2.0, unitCategory: 'length', settings: s),
+          'val': 2.0
+        },
+        {'label': '2.25', 'val': 2.25},
+        {'label': '2.50', 'val': 2.50},
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 3.0, unitCategory: 'length', settings: s),
+          'val': 3.0
+        },
+        {'label': '4.0', 'val': 4.0},
+        {'label': '4.50', 'val': 4.50},
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 5.0, unitCategory: 'length', settings: s),
+          'val': 5.0
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 10.0, unitCategory: 'length', settings: s),
+          'val': 10.0
+        },
+        {'label': '25.0', 'val': 25.0},
+      ];
+    } else if (isLiquid) {
+      dlgTitle = PosLocalization.tr('Adjust Volume', settings: s);
+      dlgSubTitle =
+          '${PosLocalization.tr('Liquid Volume', settings: s)} • ${item.product.name}';
+      dlgIcon = Icons.water_drop_outlined;
+      dlgColor = const Color(0xFF0284C7);
+      inputLabel =
+          '${PosLocalization.tr('Adjust Volume', settings: s)} (${item.product.unit.isNotEmpty ? item.product.unit : "Liter"})';
+      badgeLabel = PosLocalization.tr('Liquid Volume', settings: s);
+      presets = [
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 0.25, unitCategory: 'volume', settings: s),
+          'val': 0.25
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 0.50, unitCategory: 'volume', settings: s),
+          'val': 0.50
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 0.75, unitCategory: 'volume', settings: s),
           'val': 0.75
         },
-        {'label': enSec ? '1.0 (1 لیٹر)' : '1.0 (1 Liter)', 'val': 1.0},
-        {'label': enSec ? '1.5 (ڈیڑھ لیٹر)' : '1.5 (1.5 Liter)', 'val': 1.5},
-        {'label': enSec ? '2.0 (2 لیٹر)' : '2.0 (2 Liters)', 'val': 2.0},
-        {'label': enSec ? '2.5 (ڈھائی لیٹر)' : '2.5 (2.5 Liters)', 'val': 2.5},
-        {'label': '5.0 (Gallon / 5L)', 'val': 5.0},
-        {'label': enSec ? '10.0 (10 لیٹر)' : '10.0 (10 Liters)', 'val': 10.0},
-        {'label': '16.0 (Tin / 16L)', 'val': 16.0},
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 1.0, unitCategory: 'volume', settings: s),
+          'val': 1.0
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 1.5, unitCategory: 'volume', settings: s),
+          'val': 1.5
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 2.0, unitCategory: 'volume', settings: s),
+          'val': 2.0
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 2.5, unitCategory: 'volume', settings: s),
+          'val': 2.5
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 5.0, unitCategory: 'volume', settings: s),
+          'val': 5.0
+        },
+        {
+          'label': PosLocalization.quickQuantityLabel(
+              val: 10.0, unitCategory: 'volume', settings: s),
+          'val': 10.0
+        },
+        {'label': '16.0', 'val': 16.0},
       ];
     } else {
-      // Discrete / Count Units: Pieces, Boxes, Packs, Strips, Tablets, Cartons, Dozens, Bottles, etc.
-      dlgTitle = enSec
-          ? 'Adjust Quantity (تعداد / مقدار درج کریں)'
-          : 'Adjust Quantity';
-      dlgSubTitle = enSec
-          ? 'گنتی / تعداد • ${item.product.name}'
-          : 'Quantity / Count • ${item.product.name}';
+      // Discrete / Count Units
+      dlgTitle = PosLocalization.tr('Adjust Quantity', settings: s);
+      dlgSubTitle =
+          '${PosLocalization.tr('Count / Discrete Item', settings: s)} • ${item.product.name}';
       dlgIcon = Icons.inventory_2_outlined;
       dlgColor = const Color(0xFF4F46E5);
-      inputLabel = enSec
-          ? 'Enter Quantity in ${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"} (تعداد درج کریں)'
-          : 'Enter Quantity in ${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"}';
-      badgeLabel = enSec
-          ? 'Count / Discrete Item (گنتی و تعداد والے یونٹس)'
-          : 'Count / Discrete Item';
+      inputLabel =
+          '${PosLocalization.tr('Adjust Quantity', settings: s)} (${item.product.unit.isNotEmpty ? item.product.unit : "Pieces"})';
+      badgeLabel = PosLocalization.tr('Count / Discrete Item', settings: s);
       presets = [
         {'label': '1', 'val': 1.0},
         {'label': '2', 'val': 2.0},
@@ -1915,9 +1993,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.settings.enableSecondaryLanguage
-                                    ? 'Unit of Measure (یونٹ)'
-                                    : 'Unit of Measure',
+                                PosLocalization.tr('Unit of Measure',
+                                    settings: widget.settings),
                                 style: TextStyle(
                                     fontSize: 10, color: textSecondary),
                               ),
@@ -1979,9 +2056,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.settings.enableSecondaryLanguage
-                                    ? 'Change Active Selling Unit (یونٹ تبدیل کریں):'
-                                    : 'Change Active Selling Unit:',
+                                PosLocalization.tr('Change Active Selling Unit',
+                                    settings: widget.settings),
                                 style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
@@ -3867,12 +3943,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.settings.enableSecondaryLanguage
-                ? 'کارٹ خالی ہے! پہلے بل میں پروڈکٹس شامل کریں۔ (Cart is empty! Add products first)'
-                : 'Cart is empty! Please add products first.',
+            PosLocalization.tr(
+              'Cart is empty! Add products first',
+              settings: widget.settings,
+            ),
           ),
           backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -3890,8 +3967,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   void _quickCardCheckout() {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Cart is empty! Add products first.'),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'Cart is empty! Add products first',
+                settings: widget.settings)),
             backgroundColor: Colors.orange),
       );
       return;
@@ -3913,9 +3992,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   color: Color(0xFF4338CA), size: 24),
               const SizedBox(width: 8),
               Text(
-                widget.settings.enableSecondaryLanguage
-                    ? 'کارڈ ادائیگی (Debit / Credit Card)'
-                    : 'Card Payment (Debit / Credit Card)',
+                PosLocalization.tr('Card Payment (Debit / Credit Card)',
+                    settings: widget.settings),
                 style:
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
@@ -3942,9 +4020,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            widget.settings.enableSecondaryLanguage
-                                ? 'سسٹم آف لائن موڈ میں ہے۔ بیرونی بینک EDC مشین سے کارڈ سوائپ کریں اور تصدیقی سلپ نمبر / Auth Code درج کریں۔'
-                                : 'Offline Mode: Swipe or tap card on external bank EDC POS machine, then enter authorization slip number below.',
+                            PosLocalization.tr(
+                              'System is running offline. Swipe card on external bank EDC terminal and enter authorization code below.',
+                              settings: widget.settings,
+                            ),
                             style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF78350F),
@@ -3955,7 +4034,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     ),
                   ),
                 Text(
-                  'Total Payable: ${widget.settings.currencySymbol} ${_grandTotal.toStringAsFixed(2)}',
+                  '${PosLocalization.tr('TOTAL PAYABLE', settings: widget.settings)}: ${widget.settings.currencySymbol} ${_grandTotal.toStringAsFixed(2)}',
                   style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
@@ -3963,9 +4042,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  widget.settings.enableSecondaryLanguage
-                      ? 'بینک مشین سلپ نمبر / Auth Code:*'
-                      : 'Bank Slip # / Auth Code:*',
+                  PosLocalization.tr('Bank Machine Slip # / Auth Code:*',
+                      settings: widget.settings),
                   style: const TextStyle(
                       fontSize: 12, fontWeight: FontWeight.bold),
                 ),
@@ -3983,9 +4061,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  widget.settings.enableSecondaryLanguage
-                      ? 'کارڈ نیٹ ورک:'
-                      : 'Card Network:',
+                  PosLocalization.tr('Card Network:',
+                      settings: widget.settings),
                   style: const TextStyle(
                       fontSize: 12, fontWeight: FontWeight.bold),
                 ),
@@ -4021,9 +4098,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(widget.settings.enableSecondaryLanguage
-                  ? 'کینسل (Cancel)'
-                  : 'Cancel'),
+              child:
+                  Text(PosLocalization.tr('Cancel', settings: widget.settings)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -4034,12 +4110,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 final ref = cardRefCtrl.text.trim();
                 if (isOffline && ref.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    const SnackBar(
                       content: Text(
-                        widget.settings.enableSecondaryLanguage
-                            ? 'آف لائن موڈ میں بینک مشین کا سلپ نمبر / Auth Code درج کرنا ضروری ہے۔'
-                            : 'Slip # or Auth Code is required for card checkout.',
-                      ),
+                          'Slip # or Auth Code is required for card checkout.'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -4057,9 +4130,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       : 'Card Payment ($selectedCardType)',
                 );
               },
-              child: Text(widget.settings.enableSecondaryLanguage
-                  ? 'کارڈ ادائیگی مکمل کریں'
-                  : 'Complete Card Payment'),
+              child: Text(PosLocalization.tr('Complete Card Payment',
+                  settings: widget.settings)),
             ),
           ],
         ),
@@ -4070,8 +4142,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   void _quickCreditCheckout() {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Cart is empty! Add products first.'),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'Cart is empty! Add products first',
+                settings: widget.settings)),
             backgroundColor: Colors.orange),
       );
       return;
@@ -4088,26 +4162,26 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               const Icon(Icons.block_rounded, color: Colors.red, size: 24),
               const SizedBox(width: 8),
               Text(
-                widget.settings.enableSecondaryLanguage
-                    ? 'واک اِن کسٹمر کو ادھار سیل ممنوع ہے'
-                    : 'Credit Sale Not Allowed for Walk-in Customer',
+                PosLocalization.tr(
+                    'Credit Sale Not Allowed for Walk-in Customer',
+                    settings: widget.settings),
                 style:
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ],
           ),
           content: Text(
-            widget.settings.enableSecondaryLanguage
-                ? 'واک اِن (Walk-in / Cash Customer) کا کھاتہ درج نہیں ہوتا، لہٰذا کریڈٹ / ادھار سیل کی اجازت نہیں ہے۔\n\nاگر کسٹمر ادھار پر سامان خرید رہا ہے تو برائے مہربانی اس کا باقاعدہ رجسٹرڈ کھاتہ منتخب کریں یا نیا کسٹمر اکاؤنٹ شامل کریں۔'
-                : 'Walk-in cash customers do not have a credit ledger account. Credit sales require a registered customer account.\n\nPlease select an existing customer account (F3) or register a new customer to proceed with this credit sale.',
+            PosLocalization.tr(
+              'Walk-in cash customers do not have a credit ledger account. Credit sales require a registered customer.',
+              settings: widget.settings,
+            ),
             style: const TextStyle(fontSize: 13, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(widget.settings.enableSecondaryLanguage
-                  ? 'کینسل (Cancel)'
-                  : 'Cancel'),
+              child:
+                  Text(PosLocalization.tr('Cancel', settings: widget.settings)),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -4115,9 +4189,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.person_search, size: 16),
-              label: Text(widget.settings.enableSecondaryLanguage
-                  ? 'کسٹمر کھاتہ منتخب کریں (F3)'
-                  : 'Select Customer (F3)'),
+              label: Text(PosLocalization.tr('Select Customer (F3)',
+                  settings: widget.settings)),
               onPressed: () {
                 Navigator.pop(ctx);
                 _openCustomerSearchModal();
@@ -6856,7 +6929,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                 color: textSecondary))),
                                     Expanded(
                                         flex: 5,
-                                        child: Text('PRODUCT',
+                                        child: Text(
+                                            PosLocalization.tr('PRODUCT',
+                                                settings: widget.settings),
                                             style: TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
@@ -6866,7 +6941,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                         0xFF4F46E5)))),
                                     Expanded(
                                         flex: 3,
-                                        child: Text('QUANTITY',
+                                        child: Text(
+                                            PosLocalization.tr('QUANTITY',
+                                                settings: widget.settings),
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
                                                 fontSize: 11,
@@ -6874,7 +6951,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                 color: textSecondary))),
                                     Expanded(
                                         flex: 3,
-                                        child: Text('PRICE INC. TAX',
+                                        child: Text(
+                                            PosLocalization.tr('PRICE INC. TAX',
+                                                settings: widget.settings),
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
                                                 fontSize: 11,
@@ -6882,7 +6961,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                 color: textSecondary))),
                                     Expanded(
                                         flex: 2,
-                                        child: Text('SUBTOTAL',
+                                        child: Text(
+                                            PosLocalization.tr('SUBTOTAL',
+                                                settings: widget.settings),
                                             textAlign: TextAlign.right,
                                             style: TextStyle(
                                                 fontSize: 11,
@@ -6906,14 +6987,19 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                     ? const Color(0xFF334155)
                                                     : const Color(0xFFCBD5E1)),
                                             const SizedBox(height: 10),
-                                            Text('No products in cart',
+                                            Text(
+                                                PosLocalization.tr(
+                                                    'No products in cart',
+                                                    settings: widget.settings),
                                                 style: TextStyle(
                                                     color: textSecondary,
                                                     fontWeight:
                                                         FontWeight.bold)),
                                             const SizedBox(height: 4),
                                             Text(
-                                                'Scan barcode or select products on the right',
+                                                PosLocalization.tr(
+                                                    'Scan barcode or select products on the right',
+                                                    settings: widget.settings),
                                                 style: TextStyle(
                                                     color: textSecondary,
                                                     fontSize: 12)),
@@ -7643,21 +7729,25 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                         child: Row(
                                           children: [
                                             _summaryBlock(
-                                                'ITEMS',
+                                                PosLocalization.tr('ITEMS',
+                                                    settings: widget.settings),
                                                 _totalQuantity
                                                     .toStringAsFixed(2),
                                                 isDark: isDark,
                                                 isSmall: isSmallScreen),
                                             SizedBox(
                                                 width: isSmallScreen ? 8 : 14),
-                                            _summaryBlock('SUBTOTAL',
+                                            _summaryBlock(
+                                                PosLocalization.tr('SUBTOTAL',
+                                                    settings: widget.settings),
                                                 '$currency ${_subtotal.toStringAsFixed(2)}',
                                                 isDark: isDark,
                                                 isSmall: isSmallScreen),
                                             SizedBox(
                                                 width: isSmallScreen ? 8 : 14),
                                             _summaryBlock(
-                                              'DISCOUNT(-)',
+                                              PosLocalization.tr('DISCOUNT(-)',
+                                                  settings: widget.settings),
                                               _discountValue <= 0
                                                   ? '$currency 0.00'
                                                   : (_discountType ==
@@ -7671,7 +7761,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                             ),
                                             SizedBox(
                                                 width: isSmallScreen ? 8 : 14),
-                                            _summaryBlock('ORDER TAX(+)',
+                                            _summaryBlock(
+                                                PosLocalization.tr(
+                                                    'ORDER TAX(+)',
+                                                    settings: widget.settings),
                                                 '$currency ${_orderTax.toStringAsFixed(2)}',
                                                 isEditable: true,
                                                 onEdit: _showOrderTaxDialog,
@@ -7679,7 +7772,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                 isSmall: isSmallScreen),
                                             SizedBox(
                                                 width: isSmallScreen ? 8 : 14),
-                                            _summaryBlock('SHIPPING(+)',
+                                            _summaryBlock(
+                                                PosLocalization.tr(
+                                                    'SHIPPING(+)',
+                                                    settings: widget.settings),
                                                 '$currency ${_shippingCharge.toStringAsFixed(2)}',
                                                 isEditable: true,
                                                 onEdit: _showShippingDialog,
@@ -7743,7 +7839,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Text(
-                                                    'TOTAL PAYABLE',
+                                                    PosLocalization.tr(
+                                                        'TOTAL PAYABLE',
+                                                        settings:
+                                                            widget.settings),
                                                     style: TextStyle(
                                                       fontSize: isSmallScreen
                                                           ? 10
@@ -7874,7 +7973,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                             ),
                                             icon: const Icon(Icons.close,
                                                 size: 14),
-                                            label: Text('Cancel',
+                                            label: Text(
+                                                PosLocalization.tr('Cancel',
+                                                    settings: widget.settings),
                                                 style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: isSmallScreen
@@ -7888,7 +7989,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                           // [ Draft ]
                                           _bottomOutlineBtn(
                                               icon: Icons.edit_note,
-                                              label: 'Draft',
+                                              label: PosLocalization.tr('Draft',
+                                                  settings: widget.settings),
                                               onTap: _saveDraft,
                                               isDark: isDark,
                                               isSmall: isSmallScreen),
@@ -7896,7 +7998,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                           // [ Quotation ]
                                           _bottomOutlineBtn(
                                               icon: Icons.assignment_outlined,
-                                              label: 'Quotation',
+                                              label: PosLocalization.tr(
+                                                  'Quotation',
+                                                  settings: widget.settings),
                                               onTap: _saveQuotation,
                                               isDark: isDark,
                                               isSmall: isSmallScreen),
@@ -7906,7 +8010,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                             message: 'Suspend / Hold Sale [F4]',
                                             child: _bottomOutlineBtn(
                                                 icon: Icons.pause,
-                                                label: 'Suspend',
+                                                label: PosLocalization.tr(
+                                                    'Suspend',
+                                                    settings: widget.settings),
                                                 color: const Color(0xFFD97706),
                                                 onTap: _suspendSale,
                                                 isDark: isDark,
@@ -7921,7 +8027,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                               child: _bottomOutlineBtn(
                                                   icon: Icons
                                                       .confirmation_number_outlined,
-                                                  label: 'Send Token',
+                                                  label: PosLocalization.tr(
+                                                      'Send Token',
+                                                      settings:
+                                                          widget.settings),
                                                   color:
                                                       const Color(0xFF0D9488),
                                                   onTap:
@@ -7933,7 +8042,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                           // [ Credit Sale ]
                                           _bottomOutlineBtn(
                                               icon: Icons.check,
-                                              label: 'Credit Sale',
+                                              label: PosLocalization.tr(
+                                                  'Credit Sale',
+                                                  settings: widget.settings),
                                               onTap: _quickCreditCheckout,
                                               isDark: isDark,
                                               isSmall: isSmallScreen),
@@ -7967,7 +8078,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                             icon: const Icon(
                                                 Icons.access_time_rounded,
                                                 size: 14),
-                                            label: Text('Recent Sales [F9]',
+                                            label: Text(
+                                                PosLocalization.tr(
+                                                    'Recent Sales [F9]',
+                                                    settings: widget.settings),
                                                 style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: isSmallScreen
@@ -8003,7 +8117,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                           ),
                                           icon: const Icon(Icons.credit_card,
                                               size: 16),
-                                          label: Text('Card',
+                                          label: Text(
+                                              PosLocalization.tr('Card',
+                                                  settings: widget.settings),
                                               style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize:
@@ -8038,7 +8154,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                   Icons.payments_outlined,
                                                   size: 16),
                                               label: Text(
-                                                'Multiple Pay',
+                                                PosLocalization.tr(
+                                                    'Multiple Pay',
+                                                    settings: widget.settings),
                                                 style: TextStyle(
                                                     fontWeight: FontWeight.w800,
                                                     fontSize: isSmallScreen
@@ -8076,7 +8194,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                               icon: const Icon(Icons.money,
                                                   size: 16),
                                               label: Text(
-                                                'Cash',
+                                                PosLocalization.tr('Cash',
+                                                    settings: widget.settings),
                                                 style: TextStyle(
                                                     fontWeight: FontWeight.w900,
                                                     fontSize: isSmallScreen
@@ -8370,7 +8489,10 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                   ),
                                                   const SizedBox(height: 14),
                                                   Text(
-                                                    'No Products in Catalog Yet',
+                                                    PosLocalization.tr(
+                                                        'No Products in Catalog Yet',
+                                                        settings:
+                                                            widget.settings),
                                                     style: TextStyle(
                                                       fontSize: 18,
                                                       fontWeight:
@@ -8378,22 +8500,12 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                       color: textPrimary,
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    widget.settings
-                                                            .enableSecondaryLanguage
-                                                        ? 'کیٹلاگ میں ابھی کوئی پروڈکٹ موجود نہیں ہے'
-                                                        : 'No products in catalog yet',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: textSecondary,
-                                                    ),
-                                                  ),
                                                   const SizedBox(height: 10),
                                                   Text(
-                                                    'Add products with selling price and initial stock to start billing immediately!',
+                                                    PosLocalization.tr(
+                                                        'Add products with selling price and initial stock to start billing immediately!',
+                                                        settings:
+                                                            widget.settings),
                                                     textAlign: TextAlign.center,
                                                     style: TextStyle(
                                                         fontSize: 12,
@@ -8423,9 +8535,12 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                     icon: const Icon(
                                                         Icons.add_rounded,
                                                         size: 18),
-                                                    label: const Text(
-                                                      '+ Add First Product',
-                                                      style: TextStyle(
+                                                    label: Text(
+                                                      PosLocalization.tr(
+                                                          '+ Add First Product',
+                                                          settings:
+                                                              widget.settings),
+                                                      style: const TextStyle(
                                                           fontWeight:
                                                               FontWeight.bold,
                                                           fontSize: 13),

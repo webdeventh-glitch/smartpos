@@ -40,15 +40,20 @@ class CartItem {
     this.taxAmount = 0.0,
     this.taxName,
   })  : basePrice = basePrice ?? product.sellingPrice,
-        discountType = discountType ?? (packDiscount > 0 ? 'percentage' : 'fixed'),
+        discountType =
+            discountType ?? (packDiscount > 0 ? 'percentage' : 'fixed'),
         discountValue =
             discountValue ?? (packDiscount > 0 ? packDiscount : discount) {
     batchNumber ??= product.batchNumber;
     expiryDate ??= product.expiryDate;
     selectedUnitName ??= product.unit;
-    if (this.discountType == 'percentage' && this.discountValue > 0 && packDiscount == 0) {
+    if (this.discountType == 'percentage' &&
+        this.discountValue > 0 &&
+        packDiscount == 0) {
       packDiscount = this.discountValue;
-    } else if (this.discountType == 'fixed' && this.discountValue > 0 && discount == 0) {
+    } else if (this.discountType == 'fixed' &&
+        this.discountValue > 0 &&
+        discount == 0) {
       discount = this.discountValue;
     }
   }
@@ -77,7 +82,8 @@ class CartItem {
           ? '${product.name} ($variationName)'
           : product.name;
 
-  double get subtotal => (packValue - calculatedDiscount).clamp(0.0, double.infinity);
+  double get subtotal =>
+      (packValue - calculatedDiscount).clamp(0.0, double.infinity);
 
   double get packValue => unitPrice * quantity;
 

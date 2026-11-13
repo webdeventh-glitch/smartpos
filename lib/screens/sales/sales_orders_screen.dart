@@ -97,7 +97,9 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
     Product? pickerProduct = products.isNotEmpty ? products.first : null;
     final qtyCtrl = TextEditingController(text: '1');
     final priceCtrl = TextEditingController(
-      text: pickerProduct != null ? pickerProduct.sellingPrice.toStringAsFixed(2) : '0.00',
+      text: pickerProduct != null
+          ? pickerProduct.sellingPrice.toStringAsFixed(2)
+          : '0.00',
     );
     bool saving = false;
     String? errorMsg;
@@ -118,7 +120,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                 Icon(Icons.assignment_add, color: Color(0xFF4F46E5)),
                 SizedBox(width: 8),
                 Text('Create New Sales Order',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
             content: SizedBox(
@@ -154,10 +157,12 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                             items: customers
                                 .map((c) => DropdownMenuItem(
                                       value: c,
-                                      child: Text(c.name, overflow: TextOverflow.ellipsis),
+                                      child: Text(c.name,
+                                          overflow: TextOverflow.ellipsis),
                                     ))
                                 .toList(),
-                            onChanged: (v) => setDlg(() => selectedCustomer = v),
+                            onChanged: (v) =>
+                                setDlg(() => selectedCustomer = v),
                           ),
                         ),
                       ],
@@ -178,7 +183,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                         ),
                         ...agents.map((a) => DropdownMenuItem<CommissionAgent?>(
                               value: a,
-                              child: Text('${a.name} (${a.commissionPercent.toStringAsFixed(1)}%)'),
+                              child: Text(
+                                  '${a.name} (${a.commissionPercent.toStringAsFixed(1)}%)'),
                             )),
                       ],
                       onChanged: (v) => setDlg(() => selectedAgent = v),
@@ -207,7 +213,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                               setDlg(() {
                                 pickerProduct = v;
                                 if (v != null) {
-                                  priceCtrl.text = v.sellingPrice.toStringAsFixed(2);
+                                  priceCtrl.text =
+                                      v.sellingPrice.toStringAsFixed(2);
                                 }
                               });
                             },
@@ -218,7 +225,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           width: 75,
                           child: TextField(
                             controller: qtyCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: const InputDecoration(
                               labelText: 'Qty',
                               isDense: true,
@@ -231,7 +239,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           width: 95,
                           child: TextField(
                             controller: priceCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: const InputDecoration(
                               labelText: 'Price',
                               isDense: true,
@@ -244,8 +253,11 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           onPressed: pickerProduct == null
                               ? null
                               : () {
-                                  final q = double.tryParse(qtyCtrl.text.trim()) ?? 0;
-                                  final p = double.tryParse(priceCtrl.text.trim()) ?? 0;
+                                  final q =
+                                      double.tryParse(qtyCtrl.text.trim()) ?? 0;
+                                  final p =
+                                      double.tryParse(priceCtrl.text.trim()) ??
+                                          0;
                                   if (q <= 0) return;
                                   setDlg(() {
                                     draftLines.add({
@@ -265,8 +277,10 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 12),
                         child: Center(
-                          child: Text('Add at least one item to create a sales order.',
-                              style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          child: Text(
+                              'Add at least one item to create a sales order.',
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey)),
                         ),
                       )
                     else
@@ -287,12 +301,18 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                             final p = line['price'] as double;
                             return ListTile(
                               dense: true,
-                              title: Text(prod.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                              subtitle: Text('${q.toStringAsFixed(2)} x $cur${p.toStringAsFixed(2)} = $cur${(q * p).toStringAsFixed(2)}',
+                              title: Text(prod.name,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600)),
+                              subtitle: Text(
+                                  '${q.toStringAsFixed(2)} x $cur${p.toStringAsFixed(2)} = $cur${(q * p).toStringAsFixed(2)}',
                                   style: const TextStyle(fontSize: 11)),
                               trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                onPressed: () => setDlg(() => draftLines.removeAt(idx)),
+                                icon: const Icon(Icons.delete_outline,
+                                    size: 18, color: Colors.red),
+                                onPressed: () =>
+                                    setDlg(() => draftLines.removeAt(idx)),
                               ),
                             );
                           },
@@ -313,13 +333,18 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                       children: [
                         Text(
                           'Order Total: $cur${total.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+                          style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF4F46E5)),
                         ),
                       ],
                     ),
                     if (errorMsg != null) ...[
                       const SizedBox(height: 8),
-                      Text(errorMsg!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                      Text(errorMsg!,
+                          style:
+                              const TextStyle(color: Colors.red, fontSize: 12)),
                     ],
                   ],
                 ),
@@ -337,7 +362,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                     ? null
                     : () async {
                         if (draftLines.isEmpty) {
-                          setDlg(() => errorMsg = 'Please add at least one item.');
+                          setDlg(
+                              () => errorMsg = 'Please add at least one item.');
                           return;
                         }
                         setDlg(() => saving = true);
@@ -352,14 +378,18 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           );
                         }).toList();
                         final commAmt = selectedAgent != null
-                            ? double.parse(((total * selectedAgent!.commissionPercent) / 100.0).toStringAsFixed(2))
+                            ? double.parse(
+                                ((total * selectedAgent!.commissionPercent) /
+                                        100.0)
+                                    .toStringAsFixed(2))
                             : 0.0;
                         final sale = Sale(
                           invoiceNo: orderNoCtrl.text.trim().isEmpty
                               ? nextOrderNo
                               : orderNoCtrl.text.trim(),
                           customerId: selectedCustomer?.id,
-                          customerName: selectedCustomer?.name ?? 'Walk-in Customer',
+                          customerName:
+                              selectedCustomer?.name ?? 'Walk-in Customer',
                           subtotal: total,
                           totalAmount: total,
                           paidAmount: 0.0,
@@ -372,7 +402,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           userName: AuthService.currentUser?.name ?? 'Cashier',
                           commissionAgentId: selectedAgent?.id,
                           commissionAgentName: selectedAgent?.name ?? '',
-                          commissionPercent: selectedAgent?.commissionPercent ?? 0.0,
+                          commissionPercent:
+                              selectedAgent?.commissionPercent ?? 0.0,
                           commissionAmount: commAmt,
                         );
                         await db.createSale(sale: sale, items: cartItems);
@@ -396,21 +427,25 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
     final pendingItems = items.where((i) => i.remainingQuantity > 0).toList();
     if (pendingItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All items in this sales order are already invoiced.')),
+        const SnackBar(
+            content:
+                Text('All items in this sales order are already invoiced.')),
       );
       return;
     }
 
     final qtyCtrls = <int, TextEditingController>{
       for (final item in pendingItems)
-        item.id!: TextEditingController(text: item.remainingQuantity.toStringAsFixed(2)),
+        item.id!: TextEditingController(
+            text: item.remainingQuantity.toStringAsFixed(2)),
     };
     String paymentMethod = 'cash';
     final paidCtrl = TextEditingController();
     final chequeNoCtrl = TextEditingController();
     final bankNameCtrl = TextEditingController();
     final chequeDueCtrl = TextEditingController(
-      text: DateFormat('yyyy-MM-dd').format(DateTime.now().add(const Duration(days: 7))),
+      text: DateFormat('yyyy-MM-dd')
+          .format(DateTime.now().add(const Duration(days: 7))),
     );
     final noteCtrl = TextEditingController(
       text: 'Converted from Sales Order #${order.invoiceNo}',
@@ -438,12 +473,14 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
           return AlertDialog(
             title: Row(
               children: [
-                const Icon(Icons.receipt_long_rounded, color: Color(0xFF10B981)),
+                const Icon(Icons.receipt_long_rounded,
+                    color: Color(0xFF10B981)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Convert ${order.invoiceNo} to Invoice',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -457,7 +494,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                   children: [
                     Text(
                       'Customer: ${order.customerName} • Status: ${(order.orderStatus.isEmpty ? 'ordered' : order.orderStatus).toUpperCase()}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 10),
                     Container(
@@ -473,18 +511,24 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                         itemBuilder: (_, idx) {
                           final item = pendingItems[idx];
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
                             child: Row(
                               children: [
                                 Expanded(
                                   flex: 3,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(item.displayName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                      Text(item.displayName,
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600)),
                                       Text(
                                         'Ordered: ${item.quantity.toStringAsFixed(1)} | Fulfilled: ${item.fulfilledQuantity.toStringAsFixed(1)} | Rem: ${item.remainingQuantity.toStringAsFixed(1)}',
-                                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                        style: const TextStyle(
+                                            fontSize: 11, color: Colors.grey),
                                       ),
                                     ],
                                   ),
@@ -494,14 +538,17 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                                   width: 90,
                                   child: TextField(
                                     controller: qtyCtrls[item.id!],
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
                                     decoration: const InputDecoration(
                                       labelText: 'Invoice Qty',
                                       isDense: true,
                                       border: OutlineInputBorder(),
                                     ),
                                     onChanged: (_) => setDlg(() {
-                                      paidCtrl.text = computePlannedTotal().toStringAsFixed(2);
+                                      paidCtrl.text = computePlannedTotal()
+                                          .toStringAsFixed(2);
                                     }),
                                   ),
                                 ),
@@ -523,21 +570,29 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                               border: OutlineInputBorder(),
                             ),
                             items: const [
-                              DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                              DropdownMenuItem(value: 'card', child: Text('Card')),
-                              DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer')),
-                              DropdownMenuItem(value: 'cheque', child: Text('Cheque')),
+                              DropdownMenuItem(
+                                  value: 'cash', child: Text('Cash')),
+                              DropdownMenuItem(
+                                  value: 'card', child: Text('Card')),
+                              DropdownMenuItem(
+                                  value: 'bank_transfer',
+                                  child: Text('Bank Transfer')),
+                              DropdownMenuItem(
+                                  value: 'cheque', child: Text('Cheque')),
                             ],
-                            onChanged: (v) => setDlg(() => paymentMethod = v ?? 'cash'),
+                            onChanged: (v) =>
+                                setDlg(() => paymentMethod = v ?? 'cash'),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
                             controller: paidCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: InputDecoration(
-                              labelText: 'Paid ($cur${planned.toStringAsFixed(2)})',
+                              labelText:
+                                  'Paid ($cur${planned.toStringAsFixed(2)})',
                               isDense: true,
                               border: const OutlineInputBorder(),
                             ),
@@ -603,23 +658,30 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                 child: const Text('Cancel'),
               ),
               ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white),
                 icon: const Icon(Icons.check_circle_outline, size: 16),
-                label: Text(converting ? 'Converting...' : 'Create Invoice ($cur${planned.toStringAsFixed(2)})'),
+                label: Text(converting
+                    ? 'Converting...'
+                    : 'Create Invoice ($cur${planned.toStringAsFixed(2)})'),
                 onPressed: converting
                     ? null
                     : () async {
                         setDlg(() => converting = true);
                         final map = <int, double>{};
                         for (final item in pendingItems) {
-                          map[item.id!] = double.tryParse(qtyCtrls[item.id!]!.text.trim()) ?? 0.0;
+                          map[item.id!] = double.tryParse(
+                                  qtyCtrls[item.id!]!.text.trim()) ??
+                              0.0;
                         }
                         try {
                           final inv = await db.convertSalesOrderToInvoice(
                             orderId: order.id!,
                             fulfillQuantitiesByItemId: map,
                             paymentMethod: paymentMethod,
-                            paidAmount: double.tryParse(paidCtrl.text.trim()) ?? planned,
+                            paidAmount: double.tryParse(paidCtrl.text.trim()) ??
+                                planned,
                             note: noteCtrl.text.trim(),
                             chequeNumber: chequeNoCtrl.text.trim(),
                             bankName: bankNameCtrl.text.trim(),
@@ -629,7 +691,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Generated Invoice ${inv.invoiceNo} from Sales Order ${order.invoiceNo}'),
+                                content: Text(
+                                    'Generated Invoice ${inv.invoiceNo} from Sales Order ${order.invoiceNo}'),
                                 backgroundColor: const Color(0xFF10B981),
                               ),
                             );
@@ -639,7 +702,9 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           setDlg(() => converting = false);
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+                              SnackBar(
+                                  content: Text('$e'),
+                                  backgroundColor: Colors.red),
                             );
                           }
                         }
@@ -657,10 +722,12 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cur = widget.settings.currencySymbol;
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F19) : const Color(0xFFF1F5F9),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -668,17 +735,27 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF4F46E5), size: 28),
+                const Icon(Icons.assignment_turned_in_rounded,
+                    color: Color(0xFF4F46E5), size: 28),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Sales Orders',
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                          style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A))),
                       Text(
                         'Manage advance customer orders (Ordered -> Partial -> Completed) & convert to final invoices',
-                        style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B)),
                       ),
                     ],
                   ),
@@ -687,7 +764,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
                   ),
                   onPressed: _showCreateOrderDialog,
                   icon: const Icon(Icons.add, size: 18),
@@ -698,7 +776,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                _kpiCard('Pending Orders', '${_summary['count'] ?? 0}', const Color(0xFF4F46E5), cardBg, borderColor),
+                _kpiCard('Pending Orders', '${_summary['count'] ?? 0}',
+                    const Color(0xFF4F46E5), cardBg, borderColor),
                 const SizedBox(width: 12),
                 _kpiCard(
                   'Pending Order Value',
@@ -761,35 +840,56 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                       child: _loading
                           ? const Center(child: CircularProgressIndicator())
                           : _orders.isEmpty
-                              ? const Center(child: Text('No sales orders found.', style: TextStyle(color: Colors.grey)))
+                              ? const Center(
+                                  child: Text('No sales orders found.',
+                                      style: TextStyle(color: Colors.grey)))
                               : ListView.separated(
                                   itemCount: _orders.length,
-                                  separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+                                  separatorBuilder: (_, __) =>
+                                      Divider(height: 1, color: borderColor),
                                   itemBuilder: (_, idx) {
                                     final order = _orders[idx];
-                                    final st = order.orderStatus.isEmpty ? 'ordered' : order.orderStatus;
+                                    final st = order.orderStatus.isEmpty
+                                        ? 'ordered'
+                                        : order.orderStatus;
                                     final stColor = _statusColor(st);
                                     return ListTile(
                                       leading: CircleAvatar(
-                                        backgroundColor: stColor.withValues(alpha: 0.14),
-                                        child: Icon(Icons.shopping_bag_outlined, color: stColor, size: 18),
+                                        backgroundColor:
+                                            stColor.withValues(alpha: 0.14),
+                                        child: Icon(Icons.shopping_bag_outlined,
+                                            color: stColor, size: 18),
                                       ),
                                       title: Row(
                                         children: [
-                                          Text(order.invoiceNo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                          Text(order.invoiceNo,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13)),
                                           const SizedBox(width: 8),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: stColor.withValues(alpha: 0.14),
-                                              borderRadius: BorderRadius.circular(12),
+                                              color: stColor.withValues(
+                                                  alpha: 0.14),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                             ),
-                                            child: Text(st.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: stColor)),
+                                            child: Text(st.toUpperCase(),
+                                                style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: stColor)),
                                           ),
-                                          if (order.commissionAgentName.isNotEmpty) ...[
+                                          if (order.commissionAgentName
+                                              .isNotEmpty) ...[
                                             const SizedBox(width: 8),
-                                            Text('Agent: ${order.commissionAgentName}',
-                                                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                            Text(
+                                                'Agent: ${order.commissionAgentName}',
+                                                style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.grey)),
                                           ],
                                         ],
                                       ),
@@ -802,19 +902,31 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                                         children: [
                                           Text(
                                             '$cur${order.totalAmount.toStringAsFixed(2)}',
-                                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 14),
                                           ),
                                           const SizedBox(width: 12),
                                           if (st != 'completed')
                                             ElevatedButton.icon(
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF10B981),
+                                                backgroundColor:
+                                                    const Color(0xFF10B981),
                                                 foregroundColor: Colors.white,
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 8),
                                               ),
-                                              onPressed: () => _showConvertOrderDialog(order),
-                                              icon: const Icon(Icons.receipt_long, size: 15),
-                                              label: Text(st == 'partial' ? 'Convert Remaining' : 'Convert to Invoice'),
+                                              onPressed: () =>
+                                                  _showConvertOrderDialog(
+                                                      order),
+                                              icon: const Icon(
+                                                  Icons.receipt_long,
+                                                  size: 15),
+                                              label: Text(st == 'partial'
+                                                  ? 'Convert Remaining'
+                                                  : 'Convert to Invoice'),
                                             ),
                                         ],
                                       ),
@@ -848,7 +960,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
     );
   }
 
-  Widget _kpiCard(String label, String val, Color color, Color bg, Color border) {
+  Widget _kpiCard(
+      String label, String val, Color color, Color bg, Color border) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -859,9 +972,15 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600)),
           const SizedBox(height: 2),
-          Text(val, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
+          Text(val,
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w800, color: color)),
         ],
       ),
     );
