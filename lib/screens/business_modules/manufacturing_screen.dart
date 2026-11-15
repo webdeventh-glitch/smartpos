@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
@@ -577,7 +576,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                       await db.db.insert('expenses', {
                         'category': 'Manufacturing Overhead',
                         'amount': overhead,
-                        'ref_no': 'MFG-${woNo}',
+                        'ref_no': 'MFG-$woNo',
                         'note':
                             'Production run overhead for $recipeName ($woNo)',
                         'date': DateTime.now().toIso8601String(),

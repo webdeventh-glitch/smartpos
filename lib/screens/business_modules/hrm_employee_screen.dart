@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
@@ -932,13 +931,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
   void _openPayrollPrint(List<Map<String, dynamic>> employees,
       {String? singleTitle}) {
     final currency = widget.settings.currencySymbol;
-    final headers = const [
-      'Emp ID',
-      'Name',
-      'Role',
-      'Attendance',
-      'Net Salary'
-    ];
+    const headers = ['Emp ID', 'Name', 'Role', 'Attendance', 'Net Salary'];
     final rows = employees
         .map((e) => <String>[
               '${e['empId']}',

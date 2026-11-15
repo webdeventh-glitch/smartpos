@@ -113,9 +113,6 @@ class _PaymentModalState extends State<PaymentModal> {
       : 0.0;
   double get _balanceDue =>
       _tendered < payableTotal ? payableTotal - _tendered : 0.0;
-  double get _foreignBalanceDue => (_isForeign && _effectiveRate > 0)
-      ? double.parse((_balanceDue / _effectiveRate).toStringAsFixed(2))
-      : 0.0;
 
   // Split calculation getters
   double get _splitCash =>
