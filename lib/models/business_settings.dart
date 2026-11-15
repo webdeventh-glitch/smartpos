@@ -1032,4 +1032,27 @@ class ModuleRegistry {
   static const String poultry = BusinessSettings.modulePoultry;
   static const String cloudSync = 'cloud_sync';
   static const String lanMultiCounter = 'lan_counter';
+
+  static const List<String> allModules = [
+    corePos,
+    accounting,
+    restaurant,
+    pharmacy,
+    repair,
+    hotel,
+    gym,
+    manufacturing,
+    hrm,
+    variations,
+    stockTransfers,
+    returns,
+    expenses,
+    stockAudit,
+    fiscalClosing,
+    wooCommerce,
+    fruitMandi,
+    poultry,
+    cloudSync,
+    lanMultiCounter,
+  ];
 }

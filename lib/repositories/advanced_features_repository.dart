@@ -127,7 +127,8 @@ class AdvancedFeaturesRepository extends BaseRepository {
     final amount = (txnRow['amount'] as num?)?.toDouble() ?? 0.0;
     final contactId = txnRow['contact_id'] as int?;
     final txnType = (txnRow['transaction_type'] as String? ?? '').toLowerCase();
-    final paymentAccountId = txnRow['payment_account_id'] as int?;
+    final paymentAccountId =
+        (txnRow['account_id'] ?? txnRow['payment_account_id']) as int?;
 
     await db.transaction((txn) async {
       await txn.update(

@@ -135,7 +135,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           List<Map<String, dynamic>> bundleComponents = [];
           if (isBundle) {
             bundleComponents = await txn.query(
-              'product_bundle_items',
+              'product_bundles',
               where: 'parent_product_id = ?',
               whereArgs: [item.product.id!],
             );
@@ -495,7 +495,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
             final restoreQty = item.quantity *
                 (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
             final bundleComponents = await txn.query(
-              'product_bundle_items',
+              'product_bundles',
               where: 'parent_product_id = ?',
               whereArgs: [item.productId!],
             );
@@ -554,7 +554,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
               item.product.type == 'composite';
           final bundleComponents = isCombo
               ? await txn.query(
-                  'product_bundle_items',
+                  'product_bundles',
                   where: 'parent_product_id = ?',
                   whereArgs: [item.product.id!],
                 )
@@ -698,7 +698,7 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
             final qtyToRestore = item.quantity *
                 (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
             final bundleComponents = await txn.query(
-              'product_bundle_items',
+              'product_bundles',
               where: 'parent_product_id = ?',
               whereArgs: [item.productId!],
             );
