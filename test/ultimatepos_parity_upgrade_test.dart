@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
@@ -10,7 +11,7 @@ void main() {
     sqfliteFfiInit();
   });
 
-  group('UltimatePOS Parity Upgrades Test Suite (Phases 1, 2, 3)', () {
+  group('UltimatePOS Parity Upgrades Test Suite (Phases 1 - 5)', () {
     late DatabaseService dbService;
     late Directory tempDir;
     late String dbPath;
@@ -364,6 +365,204 @@ void main() {
       // First batch MUST be the earliest expiry (FEFO)
       expect(activeBatches.first.batchNumber, equals('BATCH-2026-EARLY'));
       expect(activeBatches.last.batchNumber, equals('BATCH-2027-LATE'));
+    });
+
+    test('Phase 5: HRM attendance punch logs status and records history',
+        () async {
+      const dateKey = '2026-11-15';
+      const empId = 'EMP-01';
+
+      final punchId = await dbService.saveModuleRecord(
+        moduleKey: 'hrm',
+        recordType: 'attendance_$dateKey',
+        title: '$empId • Muhammad Irfan',
+        status: 'Present',
+        data: {
+          'empId': empId,
+          'name': 'Muhammad Irfan',
+          'status': 'Present',
+          'clockIn': '08:55 AM',
+          'clockOut': '06:05 PM',
+          'workHours': 9.15,
+          'date': dateKey,
+        },
+      );
+
+      expect(punchId, greaterThan(0));
+
+      final rows = await dbService.getModuleRecords('hrm',
+          recordType: 'attendance_$dateKey');
+      expect(rows.isNotEmpty, isTrue);
+      expect(rows.first['status'], equals('Present'));
+      expect(rows.first['clockIn'], equals('08:55 AM'));
+    });
+
+    test(
+        'Phase 5: HRM payroll disbursal posts expense and deducts payment account',
+        () async {
+      // 1. Create a Payroll Bank Account with initial Rs 100,000 balance
+      final accId = await dbService.addPaymentAccount(PaymentAccount(
+        name: 'Meezan Bank Payroll',
+        accountNumber: 'PK99MEZN00112233',
+        accountType: 'bank',
+        currentBalance: 100000.0,
+      ));
+
+      const netSalaries = 35000.0;
+
+      // 2. Disburse payroll: Insert into expenses and deduct account balance
+      await dbService.db.insert('expenses', {
+        'category': 'Salary & Wages',
+        'amount': netSalaries,
+        'ref_no': 'PAY-202611',
+        'note': 'Monthly Staff Payroll Disbursed',
+        'date': DateTime.now().toIso8601String(),
+        'payment_method': 'Meezan Bank Payroll',
+      });
+
+      await dbService.db.rawUpdate(
+        'UPDATE payment_accounts SET current_balance = current_balance - ? WHERE id = ?',
+        [netSalaries, accId],
+      );
+
+      // 3. Verify expenses record created
+      final expenseRows = await dbService.db
+          .query('expenses', where: 'ref_no = ?', whereArgs: ['PAY-202611']);
+      expect(expenseRows.isNotEmpty, isTrue);
+      expect(expenseRows.first['amount'], equals(35000.0));
+
+      // 4. Verify payment account deducted from 100,000 to 65,000
+      final accounts = await dbService.getPaymentAccounts();
+      final payrollAcc = accounts.firstWhere((a) => a.id == accId);
+      expect(payrollAcc.currentBalance, equals(65000.0));
+    });
+
+    test(
+        'Phase 5: Manufacturing production run atomically updates finished and raw goods',
+        () async {
+      // 1. Create Raw Material Product (100 units in stock)
+      final rawId = await dbService.addProduct(Product(
+        name: 'Mango Pulp 1kg',
+        sku: 'RAW-MNG-1KG',
+        barcode: '88118811',
+        purchasePrice: 150.0,
+        sellingPrice: 180.0,
+        stockQuantity: 100.0,
+      ));
+
+      // 2. Create Finished Product (0 units in stock)
+      final finishedId = await dbService.addProduct(Product(
+        name: 'Organic Mango Jam 500g',
+        sku: 'FG-MNG-JAM',
+        barcode: '88228822',
+        purchasePrice: 120.0,
+        sellingPrice: 220.0,
+        stockQuantity: 0.0,
+      ));
+
+      // 3. Execute Production Run: Produce 25 jars consuming 50kg pulp
+      const producedQty = 25.0;
+      const consumedRawQty = 50.0;
+
+      await dbService.db.transaction((txn) async {
+        await txn.rawUpdate(
+          'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+          [producedQty, finishedId],
+        );
+        await txn.rawUpdate(
+          'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+          [consumedRawQty, rawId],
+        );
+      });
+
+      // 4. Verify finished stock incremented to 25 and raw stock deducted to 50
+      final updatedFinished = await dbService.getProductById(finishedId);
+      final updatedRaw = await dbService.getProductById(rawId);
+
+      expect(updatedFinished?.stockQuantity, equals(25.0));
+      expect(updatedRaw?.stockQuantity, equals(50.0));
+    });
+
+    test(
+        'Phase 5: Stock Transfer in-transit status verifies and receives stock',
+        () async {
+      final transferProdId = await dbService.addProduct(Product(
+        name: 'Electric Water Heater 35L',
+        sku: 'EWH-35L',
+        barcode: '99339933',
+        purchasePrice: 15000.0,
+        sellingPrice: 18500.0,
+        stockQuantity: 40.0,
+      ));
+
+      // Set initial location stocks: Location 1 = 40, Location 2 = 0
+      await dbService.db.insert(
+        'product_locations',
+        {
+          'product_id': transferProdId,
+          'location_id': 1,
+          'qty_available': 40.0,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      await dbService.db.insert(
+        'product_locations',
+        {
+          'product_id': transferProdId,
+          'location_id': 2,
+          'qty_available': 0.0,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      // Create in-transit transfer of 10 units from Loc 1 to Loc 2
+      final transfer = StockTransfer(
+        refNo: 'TR-TEST-900',
+        fromLocationId: 1,
+        fromLocationName: 'Main Warehouse',
+        toLocationId: 2,
+        toLocationName: 'Branch 2',
+        status: 'in_transit',
+        shippingCharges: 500.0,
+        finalTotal: 150500.0,
+        date: DateTime.now().toIso8601String(),
+        note: 'Inter-branch dispatch',
+        itemsJson: jsonEncode([
+          {
+            'product_id': transferProdId,
+            'product_name': 'Electric Water Heater 35L',
+            'sku': 'EWH-35L',
+            'quantity': 10.0,
+            'unit_price': 15000.0,
+          }
+        ]),
+      );
+
+      final transferId = await dbService.createStockTransfer(transfer);
+
+      // Verify Loc 1 deducted to 30, but Loc 2 still 0 while in transit
+      final loc1DuringTransit = await dbService.db.query('product_locations',
+          where: 'product_id = ? AND location_id = ?',
+          whereArgs: [transferProdId, 1]);
+      final loc2DuringTransit = await dbService.db.query('product_locations',
+          where: 'product_id = ? AND location_id = ?',
+          whereArgs: [transferProdId, 2]);
+
+      expect((loc1DuringTransit.first['qty_available'] as num).toDouble(),
+          equals(30.0));
+      expect((loc2DuringTransit.first['qty_available'] as num).toDouble(),
+          equals(0.0));
+
+      // Now receiving manager verifies and marks Completed
+      await dbService.updateStockTransferStatus(transferId, 'completed');
+
+      final loc2Received = await dbService.db.query('product_locations',
+          where: 'product_id = ? AND location_id = ?',
+          whereArgs: [transferProdId, 2]);
+      expect((loc2Received.first['qty_available'] as num).toDouble(),
+          equals(10.0));
     });
   });
 }

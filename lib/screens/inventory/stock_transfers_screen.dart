@@ -1663,6 +1663,39 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                           Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
+                                              if (t.status == 'in_transit' &&
+                                                  t.id != null)
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons
+                                                          .check_circle_rounded,
+                                                      size: 20,
+                                                      color: Color(0xFF10B981)),
+                                                  tooltip:
+                                                      'Verify & Receive Stock at Destination',
+                                                  onPressed: () async {
+                                                    final db =
+                                                        await DatabaseService
+                                                            .initialize();
+                                                    await db
+                                                        .updateStockTransferStatus(
+                                                            t.id!, 'completed');
+                                                    _loadData();
+                                                    if (mounted) {
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                              'Transfer ${t.refNo} verified and received! Stock credited to ${t.toLocationName}.'),
+                                                          backgroundColor:
+                                                              const Color(
+                                                                  0xFF10B981),
+                                                        ),
+                                                      );
+                                                    }
+                                                  },
+                                                ),
                                               IconButton(
                                                 icon: const Icon(
                                                     Icons.edit_note_rounded,

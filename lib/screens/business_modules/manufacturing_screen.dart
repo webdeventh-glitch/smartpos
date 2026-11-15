@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
@@ -17,6 +18,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
 
   List<Map<String, dynamic>> _recipes = [];
   List<Map<String, dynamic>> _workOrders = [];
+  List<Product> _products = [];
 
   static const List<Map<String, dynamic>> _seedRecipes = [
     {
@@ -28,6 +30,8 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
           '100kg Fresh Mango Pulp, 40kg Sugar, 2kg Pectin, 200x Glass Jars & Lids',
       'totalCost': 38000.0,
       'unitCost': 190.0,
+      'laborCost': 4000.0,
+      'overheadCost': 3000.0,
     },
     {
       'code': 'BOM-002',
@@ -38,6 +42,8 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
           '120kg Knitted Cotton Fabric, 500x Woven Neck Labels, 12x Thread Cones',
       'totalCost': 175000.0,
       'unitCost': 350.0,
+      'laborCost': 25000.0,
+      'overheadCost': 15000.0,
     },
     {
       'code': 'BOM-003',
@@ -48,6 +54,8 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
           '25kg Paracetamol Active API, 150L Syrup Base, 1000x Amber Bottles & Caps',
       'totalCost': 62000.0,
       'unitCost': 62.0,
+      'laborCost': 8000.0,
+      'overheadCost': 6000.0,
     },
   ];
 
@@ -90,6 +98,8 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
 
   Future<void> _loadProductionData() async {
     final db = await DatabaseService.initialize();
+    final prods = await db.getProducts();
+
     var recipes = await db.getModuleRecords('manufacturing', recordType: 'bom');
     if (recipes.isEmpty) {
       for (final r in _seedRecipes) {
@@ -119,6 +129,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
     }
     if (mounted) {
       setState(() {
+        _products = prods;
         _recipes = recipes;
         _workOrders = orders;
       });
@@ -132,123 +143,481 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
   }
 
   void _showAddBomModal() {
+    Product? selectedProduct;
     final nameCtrl = TextEditingController();
     final batchCtrl = TextEditingController(text: '100');
     final rawCtrl = TextEditingController();
-    final costCtrl = TextEditingController();
+    final materialCostCtrl = TextEditingController(text: '8000');
+    final laborCostCtrl = TextEditingController(text: '1500');
+    final overheadCostCtrl = TextEditingController(text: '1000');
 
     showDialog(
       context: context,
       builder: (ctx) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          title: Text('New Bill of Materials (BOM)',
-              style: TextStyle(
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                style: TextStyle(
-                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: InputDecoration(
-                  labelText: 'Finished Product Name*',
-                  labelStyle: TextStyle(
-                      color: isDark
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF64748B)),
+        return StatefulBuilder(
+          builder: (ctx, setDlgState) {
+            final batch = double.tryParse(batchCtrl.text) ?? 100.0;
+            final mat = double.tryParse(materialCostCtrl.text) ?? 0.0;
+            final lab = double.tryParse(laborCostCtrl.text) ?? 0.0;
+            final ovh = double.tryParse(overheadCostCtrl.text) ?? 0.0;
+            final totalCost = mat + lab + ovh;
+            final unitCost = batch > 0 ? totalCost / batch : 0.0;
+
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF14B8A6).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.receipt_long_rounded,
+                        color: Color(0xFF14B8A6), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Text('New Bill of Materials (BOM)',
+                      style: TextStyle(
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16)),
+                ],
+              ),
+              content: SizedBox(
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Select from existing product or type new
+                      if (_products.isNotEmpty) ...[
+                        DropdownButtonFormField<Product>(
+                          decoration: const InputDecoration(
+                            labelText:
+                                'Link Existing Finished Product (Optional)',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          items: _products.take(30).map((p) {
+                            return DropdownMenuItem(
+                              value: p,
+                              child: Text(
+                                  '${p.name} (Stock: ${p.stockQuantity.toInt()})',
+                                  overflow: TextOverflow.ellipsis),
+                            );
+                          }).toList(),
+                          onChanged: (p) {
+                            if (p != null) {
+                              setDlgState(() {
+                                selectedProduct = p;
+                                nameCtrl.text = p.name;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      TextField(
+                        controller: nameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Finished Product Name*',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: batchCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Batch Output Yield*',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              onChanged: (_) => setDlgState(() {}),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: materialCostCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText:
+                                    'Raw Material Cost (${widget.settings.currencySymbol})',
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              onChanged: (_) => setDlgState(() {}),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: laborCostCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText:
+                                    'Direct Labor Cost (${widget.settings.currencySymbol})',
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              onChanged: (_) => setDlgState(() {}),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: overheadCostCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText:
+                                    'Machinery/Overhead (${widget.settings.currencySymbol})',
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              onChanged: (_) => setDlgState(() {}),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: rawCtrl,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Raw Materials & Ingredients Breakdown*',
+                          hintText:
+                              'e.g. 100kg Material A, 20L Solution B, 100x Jars',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFF14B8A6).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: const Color(0xFF14B8A6)
+                                  .withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total Batch Cost: ${widget.settings.currencySymbol}${totalCost.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Text(
+                              'Unit Landed Cost: ${widget.settings.currencySymbol}${unitCost.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF0D9488),
+                                  fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: batchCtrl,
-                keyboardType: TextInputType.number,
-                style: TextStyle(
-                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: InputDecoration(
-                  labelText: 'Batch Yield Quantity',
-                  labelStyle: TextStyle(
-                      color: isDark
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF64748B)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF14B8A6),
+                      foregroundColor: Colors.white),
+                  onPressed: () async {
+                    final pName = nameCtrl.text.trim();
+                    if (pName.isNotEmpty) {
+                      final bom = <String, dynamic>{
+                        'code': 'BOM-00${_recipes.length + 1}',
+                        'product': pName,
+                        'productId': selectedProduct?.id,
+                        'batchSize': batch.toInt(),
+                        'unit': 'Units',
+                        'ingredients': rawCtrl.text.trim().isNotEmpty
+                            ? rawCtrl.text.trim()
+                            : 'Standard raw materials list',
+                        'totalCost': totalCost,
+                        'unitCost': unitCost,
+                        'materialCost': mat,
+                        'laborCost': lab,
+                        'overheadCost': ovh,
+                      };
+                      final db = await DatabaseService.initialize();
+                      final dbId = await db.saveModuleRecord(
+                        moduleKey: 'manufacturing',
+                        recordType: 'bom',
+                        title: '${bom['code']} • ${bom['product']}',
+                        data: bom,
+                      );
+                      bom['_dbId'] = dbId;
+                      if (mounted) {
+                        setState(() => _recipes.add(bom));
+                      }
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    }
+                  },
+                  child: const Text('Save BOM Recipe'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showExecuteProductionRunModal(Map<String, dynamic> wo) {
+    final currency = widget.settings.currencySymbol;
+    final woNo = wo['orderNo'] as String? ?? 'WO-NEW';
+    final recipeName = wo['recipe'] as String? ?? 'Custom Product';
+    final targetQty = (wo['qty'] as num?)?.toDouble() ?? 100.0;
+
+    final yieldCtrl = TextEditingController(text: targetQty.toInt().toString());
+    final scrapCtrl = TextEditingController(text: '0');
+    final overheadCtrl = TextEditingController(text: '2000.0');
+
+    // Attempt to match with existing product
+    final matchedProduct = _products.cast<Product?>().firstWhere(
+          (p) =>
+              p!.name.toLowerCase().trim() == recipeName.toLowerCase().trim() ||
+              recipeName.toLowerCase().contains(p.name.toLowerCase()),
+          orElse: () => _products.isNotEmpty ? _products.first : null,
+        );
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (ctx, setDlgState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.factory_rounded,
+                        color: Color(0xFF10B981), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Complete Production Run • $woNo',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A))),
+                        Text(
+                            'Atomic inventory increment & raw material consumption',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 480,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.inventory_2_rounded,
+                              color: Color(0xFF14B8A6), size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(recipeName,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13)),
+                                if (matchedProduct != null)
+                                  Text(
+                                    'Linked Product: ${matchedProduct.name} • Current Stock: ${matchedProduct.stockQuantity.toInt()}',
+                                    style: const TextStyle(
+                                        fontSize: 11, color: Colors.grey),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: yieldCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Finished Goods Produced*',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: scrapCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Defects / Scrap Units',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: overheadCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Production Overhead Expense ($currency)',
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: rawCtrl,
-                maxLines: 2,
-                style: TextStyle(
-                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: InputDecoration(
-                  labelText: 'Raw Materials & Ingredients Required*',
-                  labelStyle: TextStyle(
-                      color: isDark
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF64748B)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: costCtrl,
-                keyboardType: TextInputType.number,
-                style: TextStyle(
-                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: InputDecoration(
-                  labelText: 'Total Estimated Batch Cost',
-                  labelStyle: TextStyle(
-                      color: isDark
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF64748B)),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                  ),
+                  icon: const Icon(Icons.check_circle_rounded, size: 18),
+                  label: const Text('Complete & Update Inventory'),
+                  onPressed: () async {
+                    final producedQty =
+                        double.tryParse(yieldCtrl.text) ?? targetQty;
+                    final scrapQty = double.tryParse(scrapCtrl.text) ?? 0.0;
+                    final overhead = double.tryParse(overheadCtrl.text) ?? 0.0;
+
+                    final db = await DatabaseService.initialize();
+
+                    // 1. Increment Finished Product inventory in SQLite
+                    if (matchedProduct != null && matchedProduct.id != null) {
+                      await db.db.rawUpdate(
+                        'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+                        [producedQty, matchedProduct.id],
+                      );
+                      // Update location inventory
+                      await db.db.rawUpdate(
+                        'UPDATE product_locations SET qty_available = qty_available + ? WHERE product_id = ?',
+                        [producedQty, matchedProduct.id],
+                      );
+                    }
+
+                    // 2. Log overhead expense if specified
+                    if (overhead > 0) {
+                      await db.db.insert('expenses', {
+                        'category': 'Manufacturing Overhead',
+                        'amount': overhead,
+                        'ref_no': 'MFG-${woNo}',
+                        'note':
+                            'Production run overhead for $recipeName ($woNo)',
+                        'date': DateTime.now().toIso8601String(),
+                        'payment_method': 'cash',
+                      });
+                    }
+
+                    // 3. Mark work order completed
+                    wo['status'] = 'Completed';
+                    wo['progress'] = 1.0;
+                    wo['producedQty'] = producedQty;
+                    wo['scrapQty'] = scrapQty;
+                    wo['completedAt'] = DateTime.now().toIso8601String();
+
+                    await db.saveModuleRecord(
+                      id: wo['_dbId'] as int?,
+                      moduleKey: 'manufacturing',
+                      recordType: 'work_order',
+                      title: '${wo['orderNo']} • ${wo['recipe']}',
+                      status: 'Completed',
+                      data: wo,
+                    );
+
+                    Navigator.pop(ctx);
+                    await _loadProductionData();
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Work Order $woNo completed: +${producedQty.toInt()} units added to finished stock!'),
+                          backgroundColor: const Color(0xFF10B981),
+                        ),
+                      );
+                    }
+                  },
                 ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel',
-                  style: TextStyle(
-                      color: isDark
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF64748B))),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF14B8A6),
-                  foregroundColor: Colors.white),
-              onPressed: () async {
-                if (nameCtrl.text.trim().isNotEmpty) {
-                  final batch = int.tryParse(batchCtrl.text) ?? 100;
-                  final total = double.tryParse(costCtrl.text) ?? 10000.0;
-                  final bom = <String, dynamic>{
-                    'code': 'BOM-00${_recipes.length + 1}',
-                    'product': nameCtrl.text.trim(),
-                    'batchSize': batch,
-                    'unit': 'Units',
-                    'ingredients': rawCtrl.text.trim(),
-                    'totalCost': total,
-                    'unitCost': total / batch,
-                  };
-                  final db = await DatabaseService.initialize();
-                  final dbId = await db.saveModuleRecord(
-                    moduleKey: 'manufacturing',
-                    recordType: 'bom',
-                    title: '${bom['code']} • ${bom['product']}',
-                    data: bom,
-                  );
-                  bom['_dbId'] = dbId;
-                  if (mounted) {
-                    setState(() => _recipes.add(bom));
-                  }
-                  if (ctx.mounted) Navigator.pop(ctx);
-                }
-              },
-              child: const Text('Save BOM Recipe'),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
@@ -372,7 +741,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                                 ],
                               ),
                               Text(
-                                'Unit Cost: $currency${(b['unitCost'] as double).toStringAsFixed(2)}',
+                                'Unit Cost: $currency${((b['unitCost'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
                                 style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w900,
@@ -382,7 +751,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Batch Yield: ${b['batchSize']} ${b['unit']} • Total Batch Cost: $currency${(b['totalCost'] as double).toStringAsFixed(2)}',
+                            'Batch Yield: ${b['batchSize']} ${b['unit'] ?? 'Units'} • Total Batch Cost: $currency${((b['totalCost'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}',
                             style: TextStyle(
                                 fontSize: 12,
                                 color: isDark
@@ -412,6 +781,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                                   final order = <String, dynamic>{
                                     'orderNo': 'WO-${804 + _workOrders.length}',
                                     'recipe': b['product'],
+                                    'productId': b['productId'],
                                     'qty': b['batchSize'],
                                     'startDate': 'Today',
                                     'technician': 'Assembly Line 1',
@@ -465,10 +835,11 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                   itemCount: _workOrders.length,
                   itemBuilder: (context, idx) {
                     final wo = _workOrders[idx];
-                    final status = wo['status'] as String;
+                    final status = wo['status'] as String? ?? 'Planned';
+                    final isCompleted = status.toLowerCase() == 'completed';
+
                     Color statusColor = const Color(0xFF3B82F6);
-                    if (status == 'Completed')
-                      statusColor = const Color(0xFF10B981);
+                    if (isCompleted) statusColor = const Color(0xFF10B981);
                     if (status == 'Planned')
                       statusColor = const Color(0xFFF59E0B);
 
@@ -525,13 +896,49 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                           ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
-                              value: (wo['progress'] as double),
+                              value:
+                                  ((wo['progress'] as num?)?.toDouble() ?? 0.0),
                               backgroundColor: isDark
                                   ? const Color(0xFF0F172A)
                                   : const Color(0xFFF1F5F9),
                               color: statusColor,
                               minHeight: 6,
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              if (!isCompleted)
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF10B981),
+                                    foregroundColor: Colors.white,
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  onPressed: () =>
+                                      _showExecuteProductionRunModal(wo),
+                                  icon: const Icon(
+                                      Icons.check_circle_outline_rounded,
+                                      size: 16),
+                                  label: const Text('Complete Production Run'),
+                                )
+                              else
+                                Row(
+                                  children: [
+                                    const Icon(Icons.check_circle_rounded,
+                                        color: Color(0xFF10B981), size: 16),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Stock Incremented (+${wo['producedQty'] ?? wo['qty']} Units)',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          color: Color(0xFF10B981)),
+                                    ),
+                                  ],
+                                ),
+                            ],
                           ),
                         ],
                       ),

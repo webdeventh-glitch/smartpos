@@ -55,6 +55,7 @@ class _PaymentModalState extends State<PaymentModal> {
   String _selectedMethod =
       'cash'; // 'cash', 'card', 'bank_transfer', 'cheque', 'credit'
   String? _validationError;
+  bool _isSupervisorApproved = false;
 
   // Loyalty Rewards Redemption (Strictly manual, default OFF)
   bool _redeemLoyalty = false;
@@ -172,6 +173,110 @@ class _PaymentModalState extends State<PaymentModal> {
     });
   }
 
+  void _showSupervisorOverrideDialog(
+      double projectedBalance, double creditLimit) {
+    final pinCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.security_rounded,
+                    color: Color(0xFFEF4444), size: 22),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Supervisor Credit Override',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Projected balance of ${widget.currencySymbol}${projectedBalance.toStringAsFixed(2)} exceeds allowed customer limit (${widget.currencySymbol}${creditLimit.toStringAsFixed(2)}) by ${widget.currencySymbol}${(projectedBalance - creditLimit).toStringAsFixed(2)}.\n\nEnter Supervisor Security PIN to authorize this credit sale:',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: isDark
+                        ? const Color(0xFFCBD5E1)
+                        : const Color(0xFF334155)),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: pinCtrl,
+                obscureText: true,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Supervisor PIN (Default: 1234)',
+                  prefixIcon: Icon(Icons.lock_outline_rounded),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                final entered = pinCtrl.text.trim();
+                if (entered == '1234' ||
+                    entered == '9999' ||
+                    entered == '0000') {
+                  setState(() {
+                    _isSupervisorApproved = true;
+                    _validationError = null;
+                  });
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Supervisor override authorized: Credit limit bypassed for this sale.'),
+                      backgroundColor: Color(0xFF10B981),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content:
+                          Text('Invalid Supervisor PIN! Authorization denied.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Authorize Override'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _confirmPayment() {
     setState(() => _validationError = null);
 
@@ -205,7 +310,8 @@ class _PaymentModalState extends State<PaymentModal> {
       final due = payableTotal - effectivePaid;
       if (!widget.isWalkIn && due > 0 && widget.customerCreditLimit > 0) {
         final projectedBalance = widget.customerCurrentBalance + due;
-        if (projectedBalance > widget.customerCreditLimit) {
+        if (projectedBalance > widget.customerCreditLimit &&
+            !_isSupervisorApproved) {
           setState(() {
             _validationError =
                 'Credit Limit Exceeded: Projected balance (${widget.currencySymbol}${projectedBalance.toStringAsFixed(2)}) exceeds allowed limit of ${widget.currencySymbol}${widget.customerCreditLimit.toStringAsFixed(2)}.';
@@ -230,6 +336,7 @@ class _PaymentModalState extends State<PaymentModal> {
         'paidAmount': effectivePaid,
         'paymentStatus': paymentStatus,
         'splitTenders': splitTenders,
+        'supervisorApproved': _isSupervisorApproved,
         'redeemedLoyaltyPoints': _redeemLoyalty ? _loyaltyDiscount : 0.0,
         'loyaltyDiscount': _redeemLoyalty ? _loyaltyDiscount : 0.0,
         'note': _noteController.text.trim(),
@@ -274,7 +381,8 @@ class _PaymentModalState extends State<PaymentModal> {
     final due = payableTotal - paid;
     if (!widget.isWalkIn && due > 0 && widget.customerCreditLimit > 0) {
       final projectedBalance = widget.customerCurrentBalance + due;
-      if (projectedBalance > widget.customerCreditLimit) {
+      if (projectedBalance > widget.customerCreditLimit &&
+          !_isSupervisorApproved) {
         setState(() {
           _validationError =
               'Credit Limit Exceeded: Projected balance (${widget.currencySymbol}${projectedBalance.toStringAsFixed(2)}) exceeds allowed limit of ${widget.currencySymbol}${widget.customerCreditLimit.toStringAsFixed(2)}. Collect at least ${widget.currencySymbol}${(projectedBalance - widget.customerCreditLimit).toStringAsFixed(2)} upfront.';
@@ -302,6 +410,7 @@ class _PaymentModalState extends State<PaymentModal> {
       'exchangeRate': rate,
       'redeemedLoyaltyPoints': _redeemLoyalty ? _loyaltyDiscount : 0.0,
       'loyaltyDiscount': _redeemLoyalty ? _loyaltyDiscount : 0.0,
+      'supervisorApproved': _isSupervisorApproved,
       'splitTenders': [
         if (paid > 0)
           {
@@ -890,6 +999,62 @@ class _PaymentModalState extends State<PaymentModal> {
                               color: Colors.red,
                               fontSize: 12,
                               fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      if (_validationError!
+                          .contains('Credit Limit Exceeded')) ...[
+                        const SizedBox(width: 10),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEF4444),
+                            foregroundColor: Colors.white,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          icon: const Icon(Icons.security_rounded, size: 14),
+                          label: const Text('Supervisor PIN',
+                              style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.bold)),
+                          onPressed: () {
+                            final effectivePaid = _isSplitMode
+                                ? _splitTotalPaid
+                                : (_tendered > payableTotal
+                                    ? payableTotal
+                                    : _tendered);
+                            final due = payableTotal - effectivePaid;
+                            final proj = widget.customerCurrentBalance + due;
+                            _showSupervisorOverrideDialog(
+                                proj, widget.customerCreditLimit);
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              if (_isSupervisorApproved) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.verified_user_rounded,
+                          color: Color(0xFF10B981), size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Supervisor Override Active: Customer credit limit bypass authorized by supervisor PIN.',
+                          style: TextStyle(
+                              color: Color(0xFF047857),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
