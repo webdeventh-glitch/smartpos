@@ -228,10 +228,12 @@ class SettingsRepository extends BaseRepository {
     final m = Map<String, dynamic>.from(map);
     final k = m['api_key'] as String? ?? '';
     final s = m['api_secret'] as String? ?? '';
-    if (k.isNotEmpty)
+    if (k.isNotEmpty) {
       m['api_key'] = await DatabaseEncryptionService.encryptString(k);
-    if (s.isNotEmpty)
+    }
+    if (s.isNotEmpty) {
       m['api_secret'] = await DatabaseEncryptionService.encryptString(s);
+    }
     return m;
   }
 

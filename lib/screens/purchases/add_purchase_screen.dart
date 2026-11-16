@@ -51,9 +51,9 @@ class _PurchaseLineItem {
     required this.profitMarginPercent,
     required this.sellingPrice,
     this.batchNumber = '',
-    this.mfgDate = '',
     this.expDate = '',
-  })  : qtyCtrl = TextEditingController(
+  })  : mfgDate = '',
+        qtyCtrl = TextEditingController(
             text: quantity % 1 == 0
                 ? quantity.toInt().toString()
                 : quantity.toStringAsFixed(1)),

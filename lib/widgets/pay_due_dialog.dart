@@ -413,7 +413,7 @@ class _PayDueDialogState extends State<PayDueDialog> {
                         ),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
-                          value: _paymentMethod,
+                          initialValue: _paymentMethod,
                           dropdownColor:
                               isDark ? const Color(0xFF1E293B) : Colors.white,
                           decoration: InputDecoration(
@@ -458,7 +458,7 @@ class _PayDueDialogState extends State<PayDueDialog> {
                         ),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
-                          value: _accountName,
+                          initialValue: _accountName,
                           dropdownColor:
                               isDark ? const Color(0xFF1E293B) : Colors.white,
                           decoration: InputDecoration(

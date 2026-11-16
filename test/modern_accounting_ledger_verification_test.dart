@@ -53,7 +53,7 @@ void main() {
       final prod = (await dbService.getProductById(prodId))!;
 
       // 2. Initial Sale Invoice on partial payment: Total 15,000, Paid 5,000, Due 10,000
-      final nowStr = '2026-10-25 10:00:00';
+      const nowStr = '2026-10-25 10:00:00';
       final sale = Sale(
         invoiceNo: 'INV-TEST-001',
         customerId: custId,

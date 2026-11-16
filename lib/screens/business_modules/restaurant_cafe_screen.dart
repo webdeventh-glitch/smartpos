@@ -328,10 +328,12 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                       final t = _tables[idx];
                       final status = t['status'] as String;
                       Color statusColor = const Color(0xFF10B981);
-                      if (status == 'occupied')
+                      if (status == 'occupied') {
                         statusColor = const Color(0xFFF97316);
-                      if (status == 'billed')
+                      }
+                      if (status == 'billed') {
                         statusColor = const Color(0xFF3B82F6);
+                      }
 
                       return Container(
                         padding: const EdgeInsets.all(16),

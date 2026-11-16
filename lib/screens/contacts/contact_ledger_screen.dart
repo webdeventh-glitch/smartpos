@@ -136,12 +136,15 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
   }
 
   String _getPeriodLabel() {
-    if (_dateFilter == 'today')
+    if (_dateFilter == 'today') {
       return PosLocalization.tr('Today', settings: widget.settings);
-    if (_dateFilter == 'month')
+    }
+    if (_dateFilter == 'month') {
       return PosLocalization.tr('This Month', settings: widget.settings);
-    if (_dateFilter == '30days')
+    }
+    if (_dateFilter == '30days') {
       return PosLocalization.tr('Last 30 Days', settings: widget.settings);
+    }
     if (_dateFilter == 'custom' && _startDate != null && _endDate != null) {
       return '${DateFormat("dd MMM yyyy").format(_startDate!)} to ${DateFormat("dd MMM yyyy").format(_endDate!)}';
     }

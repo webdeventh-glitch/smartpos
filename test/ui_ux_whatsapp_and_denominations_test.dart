@@ -141,7 +141,7 @@ void main() {
         20: 5, // 100
         10: 10, // 100
       };
-      final double coins = 25.50;
+      const double coins = 25.50;
 
       double total = 0.0;
       denoms.forEach((val, count) {
@@ -152,18 +152,18 @@ void main() {
       expect(total, 18625.50);
 
       // Balanced check
-      final expectedCash = 18625.50;
+      const expectedCash = 18625.50;
       final diff = total - expectedCash;
       expect(diff.abs() < 0.01, isTrue);
 
       // Short check
-      final expectedHigher = 19000.0;
+      const expectedHigher = 19000.0;
       final shortDiff = total - expectedHigher;
       expect(shortDiff < 0, isTrue);
       expect(shortDiff, -374.50);
 
       // Over check
-      final expectedLower = 18000.0;
+      const expectedLower = 18000.0;
       final overDiff = total - expectedLower;
       expect(overDiff > 0, isTrue);
       expect(overDiff, 625.50);

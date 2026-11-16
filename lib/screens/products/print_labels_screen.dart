@@ -124,14 +124,14 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                     if (_showBusinessName)
                       pw.Text(
                         widget.settings.businessName,
-                        style: pw.TextStyle(
+                        style: const pw.TextStyle(
                             fontSize: 8, fontWeight: pw.FontWeight.bold),
                         maxLines: 1,
                       ),
                     if (_showProductName)
                       pw.Text(
                         p.name,
-                        style: pw.TextStyle(
+                        style: const pw.TextStyle(
                             fontSize: 9, fontWeight: pw.FontWeight.bold),
                         maxLines: 1,
                       ),
@@ -147,7 +147,7 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                       pw.SizedBox(height: 3),
                       pw.Text(
                         '$currency ${p.sellingPrice.toStringAsFixed(2)}',
-                        style: pw.TextStyle(
+                        style: const pw.TextStyle(
                             fontSize: 10, fontWeight: pw.FontWeight.bold),
                       ),
                     ],
@@ -274,8 +274,9 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                         Autocomplete<Product>(
                           displayStringForOption: (p) => '${p.name} (${p.sku})',
                           optionsBuilder: (textEditingValue) {
-                            if (textEditingValue.text.isEmpty)
+                            if (textEditingValue.text.isEmpty) {
                               return const Iterable<Product>.empty();
+                            }
                             return _allProducts.where((p) =>
                                 p.name.toLowerCase().contains(
                                     textEditingValue.text.toLowerCase()) ||
@@ -434,7 +435,7 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                                 color: Color(0xFF475569))),
                         const SizedBox(height: 6),
                         DropdownButtonFormField<String>(
-                          value: _paperSize,
+                          initialValue: _paperSize,
                           decoration: InputDecoration(
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(

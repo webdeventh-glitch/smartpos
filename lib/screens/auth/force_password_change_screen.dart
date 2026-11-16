@@ -249,8 +249,9 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                       isDense: true,
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty)
+                      if (v == null || v.isEmpty) {
                         return 'Please confirm new password';
+                      }
                       if (v.trim() != _newCtrl.text.trim()) {
                         return 'Passwords do not match';
                       }

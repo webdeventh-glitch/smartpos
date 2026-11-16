@@ -1,6 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../navigation/app_routes.dart';
 import '../../services/app_logger.dart';
@@ -1382,8 +1381,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       showTitles: true,
                       reservedSize: 48,
                       getTitlesWidget: (val, meta) {
-                        if (val == meta.max || val == meta.min)
+                        if (val == meta.max || val == meta.min) {
                           return const Text('');
+                        }
                         if (val >= 1000) {
                           final kVal = (val / 1000).toStringAsFixed(0);
                           return Text(

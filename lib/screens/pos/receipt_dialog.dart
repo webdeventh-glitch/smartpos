@@ -62,8 +62,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
     buffer.writeln('========================================');
     buffer.writeln('*${widget.settings.businessName.toUpperCase()}*');
     buffer.writeln('Branch: ${widget.settings.branchName}');
-    if (widget.settings.phone.isNotEmpty)
+    if (widget.settings.phone.isNotEmpty) {
       buffer.writeln('Tel: ${widget.settings.phone}');
+    }
     buffer.writeln('========================================');
     buffer.writeln('*INVOICE:* ${widget.sale.invoiceNo}');
     buffer.writeln('Date: ${widget.sale.createdAt}');
@@ -377,8 +378,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
       buffer.writeln('RETAIL & POINT OF SALE - ${widget.settings.branchName}');
     }
     buffer.writeln(widget.settings.address);
-    if (widget.settings.phone.isNotEmpty)
+    if (widget.settings.phone.isNotEmpty) {
       buffer.writeln('CELL NO: ${widget.settings.phone}');
+    }
     buffer.writeln(
         '------------------------------------------------------------------------');
     buffer.writeln(
@@ -460,9 +462,10 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         'TOTAL AMOUNT:             $currency${widget.sale.totalAmount.toStringAsFixed(2)}');
     buffer.writeln(
         'PAID AMOUNT:              $currency${widget.sale.paidAmount.toStringAsFixed(2)}');
-    if (widget.sale.dueAmount > 0)
+    if (widget.sale.dueAmount > 0) {
       buffer.writeln(
           'BALANCE DUE:              $currency${widget.sale.dueAmount.toStringAsFixed(2)}');
+    }
     buffer.writeln(
         '========================================================================');
     if (isPharma) {
@@ -1213,9 +1216,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
               border: Border.all(color: const Color(0xFFCBD5E1)),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'WARRANTY :-',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
@@ -1284,9 +1287,9 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Expanded(
                 child: Text(
                   'Authorized Signature: _______________________',

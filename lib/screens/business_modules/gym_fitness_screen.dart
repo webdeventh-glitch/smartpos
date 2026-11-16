@@ -609,7 +609,7 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                     'status': 'Active',
                     'created_at': DateTime.now().toIso8601String(),
                   });
-                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted) Navigator.pop(ctx);
                   _loadMembers();
                 }
               },
@@ -919,12 +919,10 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                                 final status =
                                     m['status']?.toString() ?? 'Active';
                                 Color statusColor = const Color(0xFF10B981);
-                                if (status == 'Expiring Soon') {
+                                if (status == 'Expiring Soon')
                                   statusColor = const Color(0xFFF59E0B);
-                                }
-                                if (status == 'Expired') {
+                                if (status == 'Expired')
                                   statusColor = const Color(0xFFEF4444);
-                                }
 
                                 final feeVal = (m['fee'] is num)
                                     ? (m['fee'] as num).toDouble()
@@ -1037,8 +1035,6 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                                                 color: Color(0xFF10B981)),
                                             tooltip: 'Mark Attendance Check-In',
                                             onPressed: () async {
-                                              final messenger =
-                                                  ScaffoldMessenger.of(context);
                                               final db = await DatabaseService
                                                   .initialize();
                                               await db.saveModuleRecord(
@@ -1054,7 +1050,8 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                                                 },
                                               );
                                               if (!mounted) return;
-                                              messenger.showSnackBar(
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
                                                 SnackBar(
                                                   content: Text(
                                                       'Attendance saved to database for $nameVal'),

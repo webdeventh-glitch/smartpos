@@ -170,8 +170,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
     if (!_formKey.currentState!.validate()) {
       final missing = <String>[];
       if (_nameController.text.trim().isEmpty) missing.add('Product Name');
-      if (_sellingPriceController.text.trim().isEmpty)
+      if (_sellingPriceController.text.trim().isEmpty) {
         missing.add('Selling Price');
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.red.shade700,

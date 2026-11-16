@@ -158,8 +158,9 @@ class _UniversalPrintPreviewDialogState
                                     child: Text('A4 Standard Sheet')),
                               ],
                               onChanged: (val) {
-                                if (val != null)
+                                if (val != null) {
                                   setState(() => _selectedPaperSize = val);
+                                }
                               },
                             ),
                           ),

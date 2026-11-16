@@ -156,16 +156,22 @@ class ReportRepository extends BaseRepository {
         if (filter == 'expired' && statusCategory != 'expired') continue;
         if (filter == '30_days' &&
             statusCategory != '30_days' &&
-            statusCategory != 'expired') continue;
+            statusCategory != 'expired') {
+          continue;
+        }
         if (filter == '60_days' &&
             statusCategory != '30_days' &&
             statusCategory != '60_days' &&
-            statusCategory != 'expired') continue;
+            statusCategory != 'expired') {
+          continue;
+        }
         if (filter == '90_days' &&
             statusCategory != '30_days' &&
             statusCategory != '60_days' &&
             statusCategory != '90_days' &&
-            statusCategory != 'expired') continue;
+            statusCategory != 'expired') {
+          continue;
+        }
       }
 
       final costRisk = stockQty * cost;

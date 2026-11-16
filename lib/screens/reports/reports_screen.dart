@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -211,10 +210,12 @@ class _ReportsScreenState extends State<ReportsScreen>
     if (_dateFilter == 'today') return 'Today (${df.format(DateTime.now())})';
     if (_dateFilter == 'yesterday') return 'Yesterday';
     if (_dateFilter == 'week') return 'Last 7 Days';
-    if (_dateFilter == 'month')
+    if (_dateFilter == 'month') {
       return 'This Month (${DateFormat('MMMM yyyy').format(DateTime.now())})';
-    if (_dateFilter == 'year')
+    }
+    if (_dateFilter == 'year') {
       return 'This Financial Year (${DateTime.now().year})';
+    }
     if (_dateFilter == 'custom' && _startDate != null && _endDate != null) {
       return '${df.format(_startDate!)} to ${df.format(_endDate!)}';
     }
@@ -2222,9 +2223,9 @@ class _ReportsScreenState extends State<ReportsScreen>
 
                           Color rankColor =
                               isDark ? Colors.white38 : Colors.grey;
-                          if (idx == 0)
+                          if (idx == 0) {
                             rankColor = const Color(0xFFF59E0B); // Gold
-                          else if (idx == 1)
+                          } else if (idx == 1)
                             rankColor = const Color(0xFF94A3B8); // Silver
                           else if (idx == 2)
                             rankColor = const Color(0xFFD97706); // Bronze
@@ -3079,10 +3080,8 @@ class _ReportsScreenState extends State<ReportsScreen>
                               style: const TextStyle(
                                   fontSize: 11, color: Color(0xFF64748B)),
                             ),
-                            if ((entry.oldValues != null &&
-                                    entry.oldValues!.isNotEmpty) ||
-                                (entry.newValues != null &&
-                                    entry.newValues!.isNotEmpty))
+                            if ((entry.oldValues.isNotEmpty) ||
+                                (entry.newValues.isNotEmpty))
                               TextButton(
                                 onPressed: () {
                                   showDialog(
@@ -3102,26 +3101,22 @@ class _ReportsScreenState extends State<ReportsScreen>
                                               Text(
                                                   'Actor: ${entry.userName} (${entry.createdAt})'),
                                               const SizedBox(height: 10),
-                                              if (entry.oldValues != null &&
-                                                  entry.oldValues!
-                                                      .isNotEmpty) ...[
+                                              if (entry
+                                                  .oldValues.isNotEmpty) ...[
                                                 const Text('Old Values:',
                                                     style: TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold)),
-                                                SelectableText(
-                                                    entry.oldValues!),
+                                                SelectableText(entry.oldValues),
                                                 const SizedBox(height: 8),
                                               ],
-                                              if (entry.newValues != null &&
-                                                  entry.newValues!
-                                                      .isNotEmpty) ...[
+                                              if (entry
+                                                  .newValues.isNotEmpty) ...[
                                                 const Text('New Values:',
                                                     style: TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold)),
-                                                SelectableText(
-                                                    entry.newValues!),
+                                                SelectableText(entry.newValues),
                                               ],
                                             ],
                                           ),
@@ -3161,7 +3156,7 @@ class _ReportsScreenState extends State<ReportsScreen>
           children: [
             _topKpi(
                 'PENDING CHEQUES',
-                '$cur${((_chequeReportSummary['pendingAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}',
+                '$cur${((_chequeReportSummary['pendingAmount'] ?? 0)).toDouble().toStringAsFixed(2)}',
                 '${_chequeReportSummary['pendingCount'] ?? 0} Pending',
                 const Color(0xFFF59E0B),
                 Icons.pending_actions_rounded,
@@ -3169,7 +3164,7 @@ class _ReportsScreenState extends State<ReportsScreen>
             const SizedBox(width: 12),
             _topKpi(
                 'CLEARED CHEQUES',
-                '$cur${((_chequeReportSummary['clearedAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}',
+                '$cur${((_chequeReportSummary['clearedAmount'] ?? 0)).toDouble().toStringAsFixed(2)}',
                 '${_chequeReportSummary['clearedCount'] ?? 0} Cleared',
                 const Color(0xFF10B981),
                 Icons.check_circle_outline_rounded,
@@ -3177,7 +3172,7 @@ class _ReportsScreenState extends State<ReportsScreen>
             const SizedBox(width: 12),
             _topKpi(
                 'OVERDUE CHEQUES',
-                '$cur${((_chequeReportSummary['overdueAmount'] ?? 0) as num).toDouble().toStringAsFixed(2)}',
+                '$cur${((_chequeReportSummary['overdueAmount'] ?? 0)).toDouble().toStringAsFixed(2)}',
                 '${_chequeReportSummary['overdueCount'] ?? 0} Overdue',
                 Colors.red,
                 Icons.warning_amber_rounded,

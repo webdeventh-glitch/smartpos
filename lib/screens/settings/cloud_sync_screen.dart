@@ -555,7 +555,7 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                         Expanded(
                           flex: 1,
                           child: DropdownButtonFormField<int>(
-                            value: _intervalMinutes,
+                            initialValue: _intervalMinutes,
                             decoration: const InputDecoration(
                               labelText: 'Auto-Sync Interval',
                               prefixIcon: Icon(Icons.timer_rounded),
@@ -574,8 +574,9 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                                   value: 30, child: Text('Every 30 mins')),
                             ],
                             onChanged: (val) {
-                              if (val != null)
+                              if (val != null) {
                                 setState(() => _intervalMinutes = val);
+                              }
                             },
                           ),
                         ),

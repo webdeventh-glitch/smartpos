@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/models.dart';
@@ -10,7 +9,6 @@ import '../../services/qulop_service.dart';
 import '../../services/mysql_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../services/currency_rate_service.dart';
-import '../../services/number_to_words_service.dart';
 import '../../services/localization_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -750,9 +748,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         );
 
         if (mySqlRes['success'] != true) {
-          if (!mounted)
+          if (!mounted) {
             throw Exception(
                 mySqlRes['message'] ?? 'Failed to initialize MySQL schema.');
+          }
 
           final useSqliteFallback = await showDialog<bool>(
             context: context,
@@ -1361,8 +1360,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       borderRadius: BorderRadius.circular(10)),
                 ),
                 onChanged: (_) {
-                  if (_licenseError != null)
+                  if (_licenseError != null) {
                     setState(() => _licenseError = null);
+                  }
                 },
               ),
             ),
@@ -2420,8 +2420,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           );
                         }).toList(),
                         onChanged: (val) {
-                          if (val != null)
+                          if (val != null) {
                             setState(() => _secondaryLanguage = val);
+                          }
                         },
                       ),
                     ],

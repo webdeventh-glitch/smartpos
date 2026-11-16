@@ -570,8 +570,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                                       value: m, child: Text(m)))
                                   .toList(),
                               onChanged: (val) {
-                                if (val != null)
+                                if (val != null) {
                                   setDlgState(() => selectedMonth = val);
+                                }
                               },
                             ),
                           ),

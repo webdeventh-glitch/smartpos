@@ -104,8 +104,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         builder: (ctx, setDlgState) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               ContainerIcon(
                   icon: Icons.person_add_alt_1_rounded,
                   color: Color(0xFF4F46E5)),
@@ -157,7 +157,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: (_roles.isNotEmpty &&
+                          initialValue: (_roles.isNotEmpty &&
                                   _roles.any((r) => r.name == role))
                               ? role
                               : (_roles.isNotEmpty ? _roles.first.name : role),
@@ -199,7 +199,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _locations.any((l) => l.name == branch)
+                          initialValue: _locations.any((l) => l.name == branch)
                               ? branch
                               : (_locations.isNotEmpty
                                   ? _locations.first.name
@@ -269,8 +269,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: const Color(0xFFC7D2FE)),
                     ),
-                    child: Row(
-                      children: const [
+                    child: const Row(
+                      children: [
                         Icon(Icons.info_outline,
                             color: Color(0xFF4F46E5), size: 18),
                         SizedBox(width: 8),
@@ -464,7 +464,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: (_roles.isNotEmpty &&
+                          initialValue: (_roles.isNotEmpty &&
                                   _roles.any((r) => r.name == role))
                               ? role
                               : (_roles.isNotEmpty ? _roles.first.name : role),
@@ -502,7 +502,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: status,
+                          initialValue: status,
                           decoration: const InputDecoration(
                               labelText: 'Account Status',
                               isDense: true,
@@ -524,7 +524,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: _locations.any((l) => l.name == branch)
+                    initialValue: _locations.any((l) => l.name == branch)
                         ? branch
                         : (_locations.isNotEmpty
                             ? _locations.first.name
@@ -1405,12 +1405,12 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.manage_accounts_rounded,
                                     color: Color(0xFF4F46E5), size: 22),
                                 SizedBox(width: 8),
@@ -1425,8 +1425,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 2),
-                            const Text(
+                            SizedBox(height: 2),
+                            Text(
                               'Owner Controls: Set fine-grained permissions for salesmen, cashiers, supervisors & managers.',
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(

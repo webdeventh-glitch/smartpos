@@ -142,7 +142,7 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                           children: [
                             _label('Supplier / Distributor *', isDark),
                             DropdownButtonFormField<Contact>(
-                              value: selectedSupplier,
+                              initialValue: selectedSupplier,
                               isExpanded: true,
                               decoration: const InputDecoration(isDense: true),
                               items: _suppliers
@@ -175,7 +175,7 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                   const SizedBox(height: 14),
                   _label('Select Medicine / Item to Return *', isDark),
                   DropdownButtonFormField<Product>(
-                    value: selectedProduct,
+                    initialValue: selectedProduct,
                     isExpanded: true,
                     decoration: const InputDecoration(isDense: true),
                     items: _products
@@ -188,8 +188,9 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                     onChanged: (v) {
                       setDlgState(() {
                         selectedProduct = v;
-                        if (v != null)
+                        if (v != null) {
                           priceCtrl.text = v.purchasePrice.toStringAsFixed(2);
+                        }
                       });
                     },
                   ),

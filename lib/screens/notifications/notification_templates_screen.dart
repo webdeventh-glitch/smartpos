@@ -156,7 +156,7 @@ class _NotificationTemplatesScreenState
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: provider,
+                          initialValue: provider,
                           decoration: const InputDecoration(
                               labelText: 'Provider / Network Preset',
                               isDense: true,
@@ -205,7 +205,7 @@ class _NotificationTemplatesScreenState
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: method,
+                          initialValue: method,
                           decoration: const InputDecoration(
                               labelText: 'HTTP Method',
                               isDense: true,
@@ -286,7 +286,7 @@ class _NotificationTemplatesScreenState
                               style: TextStyle(fontWeight: FontWeight.bold)),
                           Switch(
                             value: isActive,
-                            activeColor: const Color(0xFF0038B8),
+                            activeThumbColor: const Color(0xFF0038B8),
                             onChanged: (v) => setDlgState(() => isActive = v),
                           ),
                         ],
@@ -960,8 +960,8 @@ class _NotificationTemplatesScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: const [
+                  const Row(
+                    children: [
                       Icon(Icons.chat_rounded,
                           color: Color(0xFF25D366), size: 24),
                       SizedBox(width: 10),

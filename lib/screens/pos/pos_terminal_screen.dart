@@ -120,8 +120,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
   // Industry Mode Extensions
   String _diningMode = 'Dine-In'; // 'Dine-In', 'Takeaway', 'Delivery'
-  String _selectedTable = 'Table 1';
-  String _assignedWaiter = 'Waiter 1';
+  final String _selectedTable = 'Table 1';
+  final String _assignedWaiter = 'Waiter 1';
 
   // Search & Catalog (Cursor-Paged for 50,000+ SKU scale)
   static const int _posPageSize = 50;
@@ -4375,7 +4375,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: selectedCardType,
+                  initialValue: selectedCardType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8)),
@@ -4395,8 +4395,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         child: Text('Other Bank EDC Terminal')),
                   ],
                   onChanged: (val) {
-                    if (val != null)
+                    if (val != null) {
                       setModalState(() => selectedCardType = val);
+                    }
                   },
                 ),
               ],
@@ -6352,7 +6353,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               label: Text(
                                   PosLocalization.tr('+ Add Expense',
                                       settings: widget.settings),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold)),
                               onPressed: () {
@@ -6381,7 +6382,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               label: Text(
                                   PosLocalization.tr('Recent Sales [F9]',
                                       settings: widget.settings),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold)),
                               onPressed: _openRecentTransactionsModal,
@@ -6405,7 +6406,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               label: Text(
                                   PosLocalization.tr('Till [F10]',
                                       settings: widget.settings),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold)),
                               onPressed: () {
@@ -6435,7 +6436,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               label: Text(
                                   PosLocalization.tr('Shortcuts [F1]',
                                       settings: widget.settings),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold)),
                               onPressed: _showShortcutsDialog,
@@ -9609,8 +9610,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                             final pExp =
                                                                                 _getDaysUntilExpiry(p.expiryDate);
                                                                             if (pExp == null ||
-                                                                                pExp > 60)
+                                                                                pExp > 60) {
                                                                               return const SizedBox.shrink();
+                                                                            }
                                                                             final isExp =
                                                                                 pExp < 0;
                                                                             return Text(

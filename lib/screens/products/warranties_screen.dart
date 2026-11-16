@@ -151,8 +151,9 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                                                   : const Color(0xFF0F172A)))))
                                   .toList(),
                               onChanged: (val) {
-                                if (val != null)
+                                if (val != null) {
                                   setDlgState(() => durationType = val);
+                                }
                               },
                             ),
                           ],

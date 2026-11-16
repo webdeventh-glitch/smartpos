@@ -161,10 +161,10 @@ Sony WH-1000XM5,Electronics,Sony,Pc,ELEC-503,260.00,20,312.00,10,2''';
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
                         'Import Products',
                         style: TextStyle(
@@ -260,8 +260,8 @@ Sony WH-1000XM5,Electronics,Sony,Pc,ELEC-503,260.00,20,312.00,10,2''';
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: const [
+                  const Row(
+                    children: [
                       Icon(Icons.info_outline,
                           size: 20, color: Color(0xFF4F46E5)),
                       SizedBox(width: 10),

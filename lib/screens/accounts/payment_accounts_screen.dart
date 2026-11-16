@@ -771,7 +771,7 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                       const SizedBox(height: 14),
                       _fieldLabel('Payment Method', isRequired: true),
                       DropdownButtonFormField<String>(
-                        value: paymentMethod,
+                        initialValue: paymentMethod,
                         decoration: InputDecoration(
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(

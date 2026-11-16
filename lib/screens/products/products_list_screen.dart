@@ -829,7 +829,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       Expanded(
                         flex: 2,
                         child: DropdownButtonFormField<int?>(
-                          value: _selectedCategory,
+                          initialValue: _selectedCategory,
                           dropdownColor:
                               isDark ? const Color(0xFF1E293B) : Colors.white,
                           style: TextStyle(
@@ -870,7 +870,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       Expanded(
                         flex: 2,
                         child: DropdownButtonFormField<int?>(
-                          value: _selectedBrand,
+                          initialValue: _selectedBrand,
                           dropdownColor:
                               isDark ? const Color(0xFF1E293B) : Colors.white,
                           style: TextStyle(
@@ -911,7 +911,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       Expanded(
                         flex: 2,
                         child: DropdownButtonFormField<String>(
-                          value: _stockFilter,
+                          initialValue: _stockFilter,
                           dropdownColor:
                               isDark ? const Color(0xFF1E293B) : Colors.white,
                           style: TextStyle(

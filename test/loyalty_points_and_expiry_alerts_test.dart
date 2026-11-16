@@ -82,18 +82,18 @@ void main() {
       const grandTotal = 1500.0;
       const customerPoints = 200.0; // 200 Rs worth of points
 
-      // Rule: Default is strictly NO redemption (0 discount)
-      var redeemLoyalty = false;
-      var loyaltyDiscount = 0.0;
+      double calculatePayable(
+          {required bool redeem, required double discount}) {
+        return grandTotal - (redeem ? discount : 0.0);
+      }
 
-      var payableTotal = grandTotal - (redeemLoyalty ? loyaltyDiscount : 0.0);
+      var payableTotal = calculatePayable(redeem: false, discount: 0.0);
       expect(payableTotal, equals(1500.0)); // No discount applied automatically
 
       // When admin/cashier explicitly checks redeem points
-      redeemLoyalty = true;
-      loyaltyDiscount =
+      final loyaltyDiscount =
           customerPoints > grandTotal ? grandTotal : customerPoints;
-      payableTotal = grandTotal - (redeemLoyalty ? loyaltyDiscount : 0.0);
+      payableTotal = calculatePayable(redeem: true, discount: loyaltyDiscount);
 
       expect(loyaltyDiscount, equals(200.0));
       expect(payableTotal, equals(1300.0));

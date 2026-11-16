@@ -688,8 +688,9 @@ class EnglishNumberToWordsConverter implements NumberToWordsConverter {
   String _convertBelowThousand(int n) {
     if (n == 0) return '';
     if (n < 20) return _units[n];
-    if (n < 100)
+    if (n < 100) {
       return '${_tens[n ~/ 10]}${n % 10 != 0 ? ' ${_units[n % 10]}' : ''}';
+    }
     return '${_units[n ~/ 100]} Hundred${n % 100 != 0 ? ' and ${_convertBelowThousand(n % 100)}' : ''}';
   }
 
@@ -702,8 +703,9 @@ class EnglishNumberToWordsConverter implements NumberToWordsConverter {
   }) {
     final currency = NumberToWordsService.resolveCurrencyWord('en',
         symbol: currencySymbol, code: currencyCode);
-    if (amount.isNaN || amount.isInfinite || amount <= 0)
+    if (amount.isNaN || amount.isInfinite || amount <= 0) {
       return 'Zero $currency Only';
+    }
     int intPart = amount.floor();
 
     final parts = <String>[];

@@ -1892,7 +1892,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           const SizedBox(width: 8),
                           Switch(
                             value: isActive,
-                            activeColor: const Color(0xFF0038B8),
+                            activeThumbColor: const Color(0xFF0038B8),
                             onChanged: (val) =>
                                 setDlgState(() => isActive = val),
                           ),
@@ -2128,7 +2128,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           const SizedBox(width: 8),
                           Switch(
                             value: isActive,
-                            activeColor: const Color(0xFF0038B8),
+                            activeThumbColor: const Color(0xFF0038B8),
                             onChanged: (val) =>
                                 setDlgState(() => isActive = val),
                           ),
@@ -2476,8 +2476,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () async {
-                  if (nameCtrl.text.trim().isEmpty || selectedIds.isEmpty)
+                  if (nameCtrl.text.trim().isEmpty || selectedIds.isEmpty) {
                     return;
+                  }
                   final messenger = ScaffoldMessenger.of(context);
                   final group = TaxGroup(
                     id: existing?.id,
@@ -3909,7 +3910,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                     ),
                                     Switch(
                                       value: _multiCurrencyEnabled,
-                                      activeColor: const Color(0xFF16A34A),
+                                      activeThumbColor: const Color(0xFF16A34A),
                                       onChanged: (val) => setState(
                                           () => _multiCurrencyEnabled = val),
                                     ),
@@ -4050,7 +4051,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           const SizedBox(width: 16),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _financialYearStartMonth,
+                              initialValue: _financialYearStartMonth,
                               decoration: const InputDecoration(
                                   labelText: 'Financial Year Start Month *',
                                   isDense: true),
@@ -4072,9 +4073,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                                       value: m, child: Text(m)))
                                   .toList(),
                               onChanged: (val) {
-                                if (val != null)
+                                if (val != null) {
                                   setState(
                                       () => _financialYearStartMonth = val);
+                                }
                               },
                             ),
                           ),
@@ -4085,7 +4087,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _stockAccountingMethod,
+                              initialValue: _stockAccountingMethod,
                               decoration: const InputDecoration(
                                   labelText: 'Stock Accounting Method *',
                                   isDense: true),
@@ -4101,8 +4103,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                                     child: Text('AVCO (Weighted Average)')),
                               ],
                               onChanged: (val) {
-                                if (val != null)
+                                if (val != null) {
                                   setState(() => _stockAccountingMethod = val);
+                                }
                               },
                             ),
                           ),
@@ -4125,7 +4128,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       const SizedBox(height: 16),
 
                       DropdownButtonFormField<int>(
-                        value: [0, 30, 60, 240, 480, 720, 1440]
+                        initialValue: [0, 30, 60, 240, 480, 720, 1440]
                                 .contains(_sessionTimeoutMinutes)
                             ? _sessionTimeoutMinutes
                             : 480,
@@ -4150,8 +4153,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                               child: Text('Disabled (Never Timeout)')),
                         ],
                         onChanged: (val) {
-                          if (val != null)
+                          if (val != null) {
                             setState(() => _sessionTimeoutMinutes = val);
+                          }
                         },
                       ),
                       const SizedBox(height: 16),
@@ -4164,7 +4168,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _currencyPlacement,
+                              initialValue: _currencyPlacement,
                               decoration: const InputDecoration(
                                   labelText: 'Currency Symbol Placement',
                                   isDense: true),
@@ -4177,8 +4181,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                                     child: Text('After Amount (e.g. 500 Rs)')),
                               ],
                               onChanged: (val) {
-                                if (val != null)
+                                if (val != null) {
                                   setState(() => _currencyPlacement = val);
+                                }
                               },
                             ),
                           ),
@@ -4294,7 +4299,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           const SizedBox(width: 16),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _dateFormat,
+                              initialValue: _dateFormat,
                               decoration: const InputDecoration(
                                   labelText: 'Date Display Format',
                                   isDense: true),
@@ -4313,15 +4318,16 @@ class _SettingsScreenState extends State<SettingsScreen>
                                     child: Text('dd-mm-yyyy (21-10-2026)')),
                               ],
                               onChanged: (val) {
-                                if (val != null)
+                                if (val != null) {
                                   setState(() => _dateFormat = val);
+                                }
                               },
                             ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _timeFormat,
+                              initialValue: _timeFormat,
                               decoration: const InputDecoration(
                                   labelText: 'Time Format', isDense: true),
                               items: const [
@@ -4333,8 +4339,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                                     child: Text('24 Hour (e.g. 14:45)')),
                               ],
                               onChanged: (val) {
-                                if (val != null)
+                                if (val != null) {
                                   setState(() => _timeFormat = val);
+                                }
                               },
                             ),
                           ),
@@ -5959,7 +5966,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                     ? const Color(0xFF334155)
                                     : const Color(0xFFE2E8F0)),
                           ),
-                          child: Column(
+                          child: const Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
@@ -8663,7 +8670,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             children: [
               Expanded(
                 child: DropdownButtonFormField<int>(
-                  value: _invoicePrintCopies,
+                  initialValue: _invoicePrintCopies,
                   decoration: const InputDecoration(
                     labelText: 'Number of Print Copies',
                     prefixIcon: Icon(Icons.content_copy_rounded, size: 18),
@@ -8858,7 +8865,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
           Switch(
             value: value,
-            activeColor: const Color(0xFF0038B8),
+            activeThumbColor: const Color(0xFF0038B8),
             onChanged: onChanged,
           ),
         ],
@@ -9707,7 +9714,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 : 'Enable at POS checkout',
             child: Switch(
               value: rate.isEnabled,
-              activeColor: const Color(0xFF4F46E5),
+              activeThumbColor: const Color(0xFF4F46E5),
               onChanged: (val) {
                 setState(() {
                   final idx = _ratesList.indexWhere((r) => r.code == rate.code);
@@ -9806,7 +9813,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           const SizedBox(width: 8),
                           Switch(
                             value: _aiSettings.isEnabled,
-                            activeColor: const Color(0xFF7C3AED),
+                            activeThumbColor: const Color(0xFF7C3AED),
                             onChanged: (v) {
                               setState(() {
                                 _aiSettings =
@@ -9962,7 +9969,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _aiSettings.preferredLanguage,
+                          initialValue: _aiSettings.preferredLanguage,
                           decoration: const InputDecoration(
                               labelText: 'AI Advisory Language',
                               border: OutlineInputBorder()),
@@ -9980,9 +9987,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                                     'English (Executive Business Standard)')),
                           ],
                           onChanged: (v) {
-                            if (v != null)
+                            if (v != null) {
                               setState(() => _aiSettings =
                                   _aiSettings.copyWith(preferredLanguage: v));
+                            }
                           },
                         ),
                       ),
@@ -10096,9 +10104,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ? const Color(0xFF334155)
                       : const Color(0xFFCBD5E1)),
             ),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Row(
                   children: [
                     Icon(Icons.help_outline_rounded,

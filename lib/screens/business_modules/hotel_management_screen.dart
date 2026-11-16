@@ -152,7 +152,7 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     'check_in': '',
                     'room_service': 0.0,
                   });
-                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted) Navigator.pop(ctx);
                   _loadRooms();
                 }
               },
@@ -263,7 +263,7 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     'check_in': 'Today',
                     'room_service': 0.0,
                   });
-                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted) Navigator.pop(ctx);
                   _loadRooms();
                 }
               },
@@ -296,7 +296,6 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
       return s != 'settled';
     }).toList();
 
-    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -590,7 +589,6 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
       'Miscellaneous',
     ];
 
-    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -873,240 +871,6 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
         _rooms.where((r) => r['status'] == 'available').length;
     final cleaningRooms = _rooms.where((r) => r['status'] == 'cleaning').length;
 
-    final Widget bodyContent;
-    if (_isLoading) {
-      bodyContent = const Center(child: CircularProgressIndicator());
-    } else if (_viewMode == 'matrix') {
-      bodyContent = _buildAvailabilityMatrix(isDark, currency);
-    } else {
-      bodyContent = SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status Metric Badges
-            Row(
-              children: [
-                _metric('Total Rooms', '$totalRooms', const Color(0xFF6366F1),
-                    isDark),
-                const SizedBox(width: 14),
-                _metric('Occupied Rooms', '$occupiedRooms',
-                    const Color(0xFF3B82F6), isDark),
-                const SizedBox(width: 14),
-                _metric('Available Rooms', '$availableRooms',
-                    const Color(0xFF10B981), isDark),
-                const SizedBox(width: 14),
-                _metric('Cleaning / Maint.', '$cleaningRooms',
-                    const Color(0xFFF59E0B), isDark),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Room Cards Grid
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.25,
-              ),
-              itemCount: _rooms.length,
-              itemBuilder: (context, idx) {
-                final r = _rooms[idx];
-                final status = r['status']?.toString() ?? 'available';
-                Color statusColor = const Color(0xFF10B981);
-                if (status == 'occupied') {
-                  statusColor = const Color(0xFF3B82F6);
-                }
-                if (status == 'cleaning') {
-                  statusColor = const Color(0xFFF59E0B);
-                }
-
-                final rateVal =
-                    (r['rate'] is num) ? (r['rate'] as num).toDouble() : 0.0;
-                final nightsVal =
-                    (r['nights'] is num) ? (r['nights'] as num).toInt() : 0;
-                final roomServiceVal = (r['room_service'] is num)
-                    ? (r['room_service'] as num).toDouble()
-                    : 0.0;
-                final totalBill = (rateVal * nightsVal) + roomServiceVal;
-
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: statusColor.withValues(alpha: 0.6), width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black
-                              .withValues(alpha: isDark ? 0.2 : 0.02),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2)),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'Room ${r['room']}',
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF0F172A)),
-                              ),
-                              const SizedBox(width: 8),
-                              Text('(${r['type'] ?? ''})',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: isDark
-                                          ? const Color(0xFF94A3B8)
-                                          : const Color(0xFF64748B))),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              status.toUpperCase(),
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: statusColor),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        'Floor: ${r['floor'] ?? '1st Floor'} • Rate: $currency${rateVal.toStringAsFixed(0)} / night',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: isDark
-                                ? const Color(0xFF94A3B8)
-                                : const Color(0xFF64748B)),
-                      ),
-                      if (status == 'occupied') ...[
-                        Text(
-                          'Guest: ${r['guest'] ?? 'Guest'}',
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF0F172A)),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          'Stay: $nightsVal Nights • Service: $currency${roomServiceVal.toStringAsFixed(0)}',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: isDark
-                                  ? const Color(0xFF94A3B8)
-                                  : const Color(0xFF64748B)),
-                        ),
-                        Text(
-                          'Total Bill: $currency${totalBill.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF3B82F6)),
-                        ),
-                      ] else ...[
-                        Text(
-                          status == 'cleaning'
-                              ? 'Room is undergoing sanitization'
-                              : 'Ready for guest check-in (SQLite Saved)',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? const Color(0xFF94A3B8)
-                                  : const Color(0xFF64748B)),
-                        ),
-                      ],
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (status == 'available')
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3B82F6),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 6),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                              onPressed: () => _showCheckInModal(r),
-                              child: const Text('Check-In',
-                                  style: TextStyle(fontSize: 11)),
-                            )
-                          else if (status == 'occupied')
-                            Row(
-                              children: [
-                                OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 6),
-                                      visualDensity: VisualDensity.compact),
-                                  onPressed: () => _addServiceCharge(r),
-                                  child: const Text('+ Service',
-                                      style: TextStyle(fontSize: 11)),
-                                ),
-                                const SizedBox(width: 6),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF10B981),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                  onPressed: () => _checkOut(r),
-                                  child: const Text('Check-Out',
-                                      style: TextStyle(fontSize: 11)),
-                                ),
-                              ],
-                            )
-                          else
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF10B981),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
-                                visualDensity: VisualDensity.compact,
-                              ),
-                              onPressed: () => _markAvailable(r),
-                              child: const Text('Mark Available',
-                                  style: TextStyle(fontSize: 11)),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor:
           isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
@@ -1168,7 +932,253 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
           ),
         ],
       ),
-      body: bodyContent,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _viewMode == 'matrix'
+              ? _buildAvailabilityMatrix(isDark, currency)
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Status Metric Badges
+                      Row(
+                        children: [
+                          _metric('Total Rooms', '$totalRooms',
+                              const Color(0xFF6366F1), isDark),
+                          const SizedBox(width: 14),
+                          _metric('Occupied Rooms', '$occupiedRooms',
+                              const Color(0xFF3B82F6), isDark),
+                          const SizedBox(width: 14),
+                          _metric('Available Rooms', '$availableRooms',
+                              const Color(0xFF10B981), isDark),
+                          const SizedBox(width: 14),
+                          _metric('Cleaning / Maint.', '$cleaningRooms',
+                              const Color(0xFFF59E0B), isDark),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Room Cards Grid
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 1.25,
+                        ),
+                        itemCount: _rooms.length,
+                        itemBuilder: (context, idx) {
+                          final r = _rooms[idx];
+                          final status = r['status']?.toString() ?? 'available';
+                          Color statusColor = const Color(0xFF10B981);
+                          if (status == 'occupied')
+                            statusColor = const Color(0xFF3B82F6);
+                          if (status == 'cleaning')
+                            statusColor = const Color(0xFFF59E0B);
+
+                          final rateVal = (r['rate'] is num)
+                              ? (r['rate'] as num).toDouble()
+                              : 0.0;
+                          final nightsVal = (r['nights'] is num)
+                              ? (r['nights'] as num).toInt()
+                              : 0;
+                          final roomServiceVal = (r['room_service'] is num)
+                              ? (r['room_service'] as num).toDouble()
+                              : 0.0;
+                          final totalBill =
+                              (rateVal * nightsVal) + roomServiceVal;
+
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: statusColor.withValues(alpha: 0.6),
+                                  width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.black
+                                        .withValues(alpha: isDark ? 0.2 : 0.02),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2)),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'Room ${r['room']}',
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w900,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : const Color(0xFF0F172A)),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text('(${r['type'] ?? ''})',
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color: isDark
+                                                    ? const Color(0xFF94A3B8)
+                                                    : const Color(0xFF64748B))),
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            statusColor.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        status.toUpperCase(),
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: statusColor),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  'Floor: ${r['floor'] ?? '1st Floor'} • Rate: $currency${rateVal.toStringAsFixed(0)} / night',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF64748B)),
+                                ),
+                                if (status == 'occupied') ...[
+                                  Text(
+                                    'Guest: ${r['guest'] ?? 'Guest'}',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0F172A)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    'Stay: $nightsVal Nights • Service: $currency${roomServiceVal.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF64748B)),
+                                  ),
+                                  Text(
+                                    'Total Bill: $currency${totalBill.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF3B82F6)),
+                                  ),
+                                ] else ...[
+                                  Text(
+                                    status == 'cleaning'
+                                        ? 'Room is undergoing sanitization'
+                                        : 'Ready for guest check-in (SQLite Saved)',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF64748B)),
+                                  ),
+                                ],
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    if (status == 'available')
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFF3B82F6),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 14, vertical: 6),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        onPressed: () => _showCheckInModal(r),
+                                        child: const Text('Check-In',
+                                            style: TextStyle(fontSize: 11)),
+                                      )
+                                    else if (status == 'occupied')
+                                      Row(
+                                        children: [
+                                          OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 6),
+                                                visualDensity:
+                                                    VisualDensity.compact),
+                                            onPressed: () =>
+                                                _addServiceCharge(r),
+                                            child: const Text('+ Service',
+                                                style: TextStyle(fontSize: 11)),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color(0xFF10B981),
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 6),
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                            ),
+                                            onPressed: () => _checkOut(r),
+                                            child: const Text('Check-Out',
+                                                style: TextStyle(fontSize: 11)),
+                                          ),
+                                        ],
+                                      )
+                                    else
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFF10B981),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 6),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        onPressed: () => _markAvailable(r),
+                                        child: const Text('Mark Available',
+                                            style: TextStyle(fontSize: 11)),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
     );
   }
 

@@ -431,10 +431,12 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                     final f = _flocks[idx];
                     final status = f['status'] as String;
                     Color statusColor = const Color(0xFF3B82F6);
-                    if (status == 'Ready for Sale')
+                    if (status == 'Ready for Sale') {
                       statusColor = const Color(0xFF10B981);
-                    if (status == 'Egg Production')
+                    }
+                    if (status == 'Egg Production') {
                       statusColor = const Color(0xFFF59E0B);
+                    }
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 14),

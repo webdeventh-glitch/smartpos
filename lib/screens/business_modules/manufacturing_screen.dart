@@ -839,8 +839,9 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
 
                     Color statusColor = const Color(0xFF3B82F6);
                     if (isCompleted) statusColor = const Color(0xFF10B981);
-                    if (status == 'Planned')
+                    if (status == 'Planned') {
                       statusColor = const Color(0xFFF59E0B);
+                    }
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 14),

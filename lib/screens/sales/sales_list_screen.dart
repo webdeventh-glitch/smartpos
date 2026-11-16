@@ -814,7 +814,7 @@ class _SalesListScreenState extends State<SalesListScreen> {
       },
     );
     final saved =
-        await PdfExportService.savePdfFile(bytes, 'Sales_List_${_activeTab}');
+        await PdfExportService.savePdfFile(bytes, 'Sales_List_$_activeTab');
     await PdfExportService.openPdfFile(saved);
     messenger.showSnackBar(
       SnackBar(
@@ -1412,27 +1412,32 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                   1.8), // Customer name
                                             };
                                             int cIdx = 4;
-                                            if (_showContactCol)
+                                            if (_showContactCol) {
                                               colWidths[cIdx++] =
                                                   const FlexColumnWidth(1.3);
-                                            if (_showLocationCol)
+                                            }
+                                            if (_showLocationCol) {
                                               colWidths[cIdx++] =
                                                   const FlexColumnWidth(1.6);
+                                            }
                                             colWidths[cIdx++] =
                                                 const FlexColumnWidth(
                                                     1.2); // Payment Status
-                                            if (_showMethodCol)
+                                            if (_showMethodCol) {
                                               colWidths[cIdx++] =
                                                   const FlexColumnWidth(1.1);
+                                            }
                                             colWidths[cIdx++] =
                                                 const FlexColumnWidth(
                                                     1.3); // Total amount
-                                            if (_showPaidCol)
+                                            if (_showPaidCol) {
                                               colWidths[cIdx++] =
                                                   const FlexColumnWidth(1.3);
-                                            if (_showDueCol)
+                                            }
+                                            if (_showDueCol) {
                                               colWidths[cIdx++] =
                                                   const FlexColumnWidth(1.1);
+                                            }
                                             return colWidths;
                                           }(),
                                           defaultVerticalAlignment:

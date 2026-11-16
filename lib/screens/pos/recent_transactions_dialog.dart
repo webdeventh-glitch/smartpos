@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import 'receipt_dialog.dart';
@@ -20,7 +19,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
   bool _loading = true;
   List<Sale> _allSales = [];
   List<Sale> _filteredSales = [];
-  String _searchQuery = '';
+  final String _searchQuery = '';
   String _selectedMethod = 'all';
   String _selectedStatus = 'all'; // 'all', 'final', 'draft', 'quotation'
 

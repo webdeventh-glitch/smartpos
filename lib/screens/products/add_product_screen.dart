@@ -441,10 +441,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
           'Premium quality $name designed for durability and high performance. Features advanced craftsmanship, ergonomic handling, and backed by a comprehensive 1-year manufacturer warranty.';
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: const Color(0xFF6366F1),
+      const SnackBar(
+        backgroundColor: Color(0xFF6366F1),
         content: Row(
-          children: const [
+          children: [
             Icon(Icons.auto_awesome, color: Colors.white, size: 18),
             SizedBox(width: 8),
             Text('AI Description generated successfully!'),
@@ -558,10 +558,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _imageCtrl.text = 'Generated Badge ($pickedColor)';
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: const Color(0xFF6366F1),
+      const SnackBar(
+        backgroundColor: Color(0xFF6366F1),
         content: Row(
-          children: const [
+          children: [
             Icon(Icons.auto_awesome, color: Colors.white, size: 18),
             SizedBox(width: 8),
             Text('Smart visual badge assigned!'),
@@ -964,13 +964,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _nameFocusNode.requestFocus();
 
       final missing = <String>[];
-      if (_nameCtrl.text.trim().isEmpty)
+      if (_nameCtrl.text.trim().isEmpty) {
         missing
             .add(PosLocalization.tr('Product Name', settings: widget.settings));
+      }
       final sellingVal = double.tryParse(_sellingPriceCtrl.text.trim()) ?? 0.0;
-      if (sellingVal <= 0 && _productType == 'single')
+      if (sellingVal <= 0 && _productType == 'single') {
         missing.add(
             PosLocalization.tr('Selling Price', settings: widget.settings));
+      }
 
       if (mounted) {
         await showDialog(
@@ -1506,8 +1508,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                                       fontSize: 13))))
                                           .toList(),
                                       onChanged: (val) {
-                                        if (val != null)
+                                        if (val != null) {
                                           setState(() => _barcodeType = val);
+                                        }
                                       },
                                     ),
                                   ],
@@ -1575,8 +1578,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                                     fontSize: 13))))
                                         .toList(),
                                     onChanged: (val) {
-                                      if (val != null)
+                                      if (val != null) {
                                         setState(() => _barcodeType = val);
+                                      }
                                     },
                                   ),
                                 ],
@@ -1617,9 +1621,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                                             fontSize: 13))))
                                                 .toList(),
                                             onChanged: (val) {
-                                              if (val != null)
+                                              if (val != null) {
                                                 setState(
                                                     () => _selectedUnit = val);
+                                              }
                                             },
                                           ),
                                         ),
@@ -1733,8 +1738,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                                     fontSize: 13))))
                                         .toList(),
                                     onChanged: (val) {
-                                      if (val != null)
+                                      if (val != null) {
                                         setState(() => _selectedUnit = val);
+                                      }
                                     },
                                   ),
                                 ],
@@ -1938,11 +1944,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           InkWell(
                             onTap: () =>
                                 setState(() => _manageStock = !_manageStock),
-                            child: Column(
+                            child: const Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  children: const [
+                                  children: [
                                     Text(
                                       'Manage Stock?',
                                       style: TextStyle(
@@ -1955,7 +1961,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         size: 14, color: Color(0xFF06B6D4)),
                                   ],
                                 ),
-                                const Text(
+                                Text(
                                   'Enable stock management at product level',
                                   style: TextStyle(
                                       fontSize: 12,
@@ -2559,11 +2565,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     decoration: _inputDecor('0.00'),
                                     onChanged: (_) => _recalcMargin(),
                                     validator: (val) {
-                                      if (val == null || val.trim().isEmpty)
+                                      if (val == null || val.trim().isEmpty) {
                                         return 'Selling Price required';
+                                      }
                                       final num = double.tryParse(val.trim());
-                                      if (num == null || num <= 0)
+                                      if (num == null || num <= 0) {
                                         return 'Must be > 0';
+                                      }
                                       return null;
                                     },
                                   ),
@@ -2652,8 +2660,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               border:
                                   Border.all(color: const Color(0xFFE2E8F0)),
                             ),
-                            child: Column(
-                              children: const [
+                            child: const Column(
+                              children: [
                                 Icon(Icons.style_outlined,
                                     size: 36, color: Color(0xFF94A3B8)),
                                 SizedBox(height: 8),
@@ -2910,9 +2918,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)]),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(Icons.auto_awesome, color: Colors.white, size: 13),
                     SizedBox(width: 4),
                     Text('Use AI',
@@ -2994,8 +3002,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0xFFCBD5E1)),
                       ),
-                      child: Row(
-                        children: const [
+                      child: const Row(
+                        children: [
                           Text('Paragraph',
                               style: TextStyle(
                                   fontSize: 11, color: Color(0xFF334155))),
@@ -3066,9 +3074,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)]),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(Icons.auto_awesome, color: Colors.white, size: 13),
                     SizedBox(width: 4),
                     Text('Use AI',

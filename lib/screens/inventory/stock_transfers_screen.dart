@@ -602,7 +602,9 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                             if (fromLoc == null ||
                                 toLoc == null ||
                                 selectedProduct == null ||
-                                qty <= 0) return;
+                                qty <= 0) {
+                              return;
+                            }
 
                             final items = [
                               StockTransferItem(
@@ -1116,7 +1118,9 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                           onPressed: () async {
                             if (location == null ||
                                 selectedProduct == null ||
-                                qty <= 0) return;
+                                qty <= 0) {
+                              return;
+                            }
 
                             final items = [
                               StockAdjustmentItem(

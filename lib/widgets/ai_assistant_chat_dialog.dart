@@ -117,10 +117,10 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                         color: Colors.white, size: 22),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'Smart POS AI Business Advisor',
                           style: TextStyle(

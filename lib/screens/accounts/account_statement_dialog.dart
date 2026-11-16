@@ -165,8 +165,9 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
   String _formatPeriod() {
     final df = DateFormat('dd MMM yyyy');
     if (_dateFilter == 'today') return 'Today (${df.format(DateTime.now())})';
-    if (_dateFilter == 'month')
+    if (_dateFilter == 'month') {
       return 'This Month (${DateFormat('MMMM yyyy').format(DateTime.now())})';
+    }
     if (_dateFilter == '30days') return 'Last 30 Days';
     if (_dateFilter == 'custom' && _startDate != null && _endDate != null) {
       return '${df.format(_startDate!)} to ${df.format(_endDate!)}';

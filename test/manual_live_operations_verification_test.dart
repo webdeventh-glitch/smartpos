@@ -145,7 +145,7 @@ void main() {
       final customerId = await db.addContact(customer);
 
       // Sell 5 units @ 1100 = 5500 with 200 discount = 5300
-      final soldQty = 5.0;
+      const soldQty = 5.0;
       final cartItem = CartItem(
         product: productBefore,
         quantity: soldQty,
@@ -192,7 +192,7 @@ void main() {
       final stockBefore = productBefore!.stockQuantity; // 75.0
 
       // Customer returns 2 units of the 5 units sold
-      final returnQty = 2.0;
+      const returnQty = 2.0;
       final refundAmount = returnQty * productBefore.sellingPrice; // 2200.0
 
       final saleReturn = SaleReturn(

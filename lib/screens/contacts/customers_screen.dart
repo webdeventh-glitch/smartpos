@@ -338,8 +338,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                   await db.deleteCustomerGroup(g.id!);
                                   final refreshed =
                                       await db.getCustomerGroups();
-                                  if (ctx.mounted)
+                                  if (ctx.mounted) {
                                     setDlgState(() => groups = refreshed);
+                                  }
                                   _load();
                                 },
                               ),

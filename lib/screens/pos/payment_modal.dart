@@ -318,12 +318,15 @@ class _PaymentModalState extends State<PaymentModal> {
       }
 
       final splitTenders = <Map<String, dynamic>>[];
-      if (_splitCash > 0)
+      if (_splitCash > 0) {
         splitTenders.add({'method': 'cash', 'amount': _splitCash});
-      if (_splitCard > 0)
+      }
+      if (_splitCard > 0) {
         splitTenders.add({'method': 'card', 'amount': _splitCard});
-      if (_splitBank > 0)
+      }
+      if (_splitBank > 0) {
         splitTenders.add({'method': 'bank_transfer', 'amount': _splitBank});
+      }
 
       Navigator.of(context).pop({
         'isSplit': true,
@@ -635,15 +638,7 @@ class _PaymentModalState extends State<PaymentModal> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Customer: ${widget.customerName}' +
-                              (!widget.isWalkIn &&
-                                      widget.customerCreditLimit > 0
-                                  ? ' • Credit Limit: $currency${widget.customerCreditLimit.toStringAsFixed(0)} • Current Due: $currency${widget.customerCurrentBalance.toStringAsFixed(0)}'
-                                  : '') +
-                              (!widget.isWalkIn &&
-                                      widget.customerLoyaltyPoints > 0
-                                  ? ' • Loyalty: ${widget.customerLoyaltyPoints.toInt()} pts'
-                                  : ''),
+                          'Customer: ${widget.customerName}${!widget.isWalkIn && widget.customerCreditLimit > 0 ? ' • Credit Limit: $currency${widget.customerCreditLimit.toStringAsFixed(0)} • Current Due: $currency${widget.customerCurrentBalance.toStringAsFixed(0)}' : ''}${!widget.isWalkIn && widget.customerLoyaltyPoints > 0 ? ' • Loyalty: ${widget.customerLoyaltyPoints.toInt()} pts' : ''}',
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark
@@ -822,7 +817,7 @@ class _PaymentModalState extends State<PaymentModal> {
                           const SizedBox(width: 6),
                           Switch(
                             value: _redeemLoyalty,
-                            activeColor: const Color(0xFFD97706),
+                            activeThumbColor: const Color(0xFFD97706),
                             onChanged: (val) {
                               setState(() {
                                 _redeemLoyalty = val;
@@ -1558,14 +1553,14 @@ class _PaymentModalState extends State<PaymentModal> {
                 // Cash Input
                 Row(
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 130,
                       child: Row(
                         children: [
-                          const Icon(Icons.payments_outlined,
+                          Icon(Icons.payments_outlined,
                               size: 18, color: Colors.green),
-                          const SizedBox(width: 8),
-                          const Text('Cash:',
+                          SizedBox(width: 8),
+                          Text('Cash:',
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 13)),
                         ],
@@ -1596,14 +1591,14 @@ class _PaymentModalState extends State<PaymentModal> {
                 // Card Input
                 Row(
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 130,
                       child: Row(
                         children: [
-                          const Icon(Icons.credit_card_outlined,
+                          Icon(Icons.credit_card_outlined,
                               size: 18, color: Colors.indigo),
-                          const SizedBox(width: 8),
-                          const Text('Card / POS:',
+                          SizedBox(width: 8),
+                          Text('Card / POS:',
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 13)),
                         ],
@@ -1634,14 +1629,14 @@ class _PaymentModalState extends State<PaymentModal> {
                 // Bank Transfer Input
                 Row(
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 130,
                       child: Row(
                         children: [
-                          const Icon(Icons.account_balance_outlined,
+                          Icon(Icons.account_balance_outlined,
                               size: 18, color: Colors.teal),
-                          const SizedBox(width: 8),
-                          const Text('Bank / Online:',
+                          SizedBox(width: 8),
+                          Text('Bank / Online:',
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 13)),
                         ],

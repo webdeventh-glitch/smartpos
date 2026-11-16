@@ -188,9 +188,9 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                                       color: Color(0xFF0F172A)),
                                 ),
                                 const SizedBox(height: 2),
-                                Text(
+                                const Text(
                                   'INWARD STOCK RECEIPT / PURCHASE VOUCHER',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF0284C7),
@@ -432,10 +432,10 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                             else
                               TableRow(
                                 children: [
-                                  Padding(
-                                      padding: const EdgeInsets.all(8),
+                                  const Padding(
+                                      padding: EdgeInsets.all(8),
                                       child: Text('Standard Restock Shipment',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                               fontWeight: FontWeight.w600,
                                               fontSize: 12))),
                                   const Padding(
@@ -527,9 +527,9 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                         ],
 
                         // Receiving Officer Signature
-                        Row(
+                        const Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
+                          children: [
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [

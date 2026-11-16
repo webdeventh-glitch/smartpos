@@ -343,14 +343,18 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                         final status =
                             job['status']?.toString() ?? 'Diagnosing';
                         Color statusColor = const Color(0xFF3B82F6);
-                        if (status == 'Diagnosing')
+                        if (status == 'Diagnosing') {
                           statusColor = const Color(0xFFEAB308);
-                        if (status == 'Waiting for Parts')
+                        }
+                        if (status == 'Waiting for Parts') {
                           statusColor = const Color(0xFFF97316);
-                        if (status == 'Ready for Delivery')
+                        }
+                        if (status == 'Ready for Delivery') {
                           statusColor = const Color(0xFF10B981);
-                        if (status == 'Delivered')
+                        }
+                        if (status == 'Delivered') {
                           statusColor = const Color(0xFF64748B);
+                        }
 
                         final estCostVal = (job['est_cost'] is num)
                             ? (job['est_cost'] as num).toDouble()

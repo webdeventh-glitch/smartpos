@@ -683,14 +683,18 @@ class _AccountingCrmScreenState extends State<AccountingCrmScreen>
                             rows: _chartOfAccounts.map((a) {
                               final type = a['type'] as String;
                               Color typeColor = const Color(0xFF3B82F6);
-                              if (type == 'Asset')
+                              if (type == 'Asset') {
                                 typeColor = const Color(0xFF10B981);
-                              if (type == 'Liability')
+                              }
+                              if (type == 'Liability') {
                                 typeColor = const Color(0xFFEF4444);
-                              if (type == 'Revenue')
+                              }
+                              if (type == 'Revenue') {
                                 typeColor = const Color(0xFF8B5CF6);
-                              if (type == 'Expense')
+                              }
+                              if (type == 'Expense') {
                                 typeColor = const Color(0xFFF97316);
+                              }
 
                               return DataRow(
                                 cells: [

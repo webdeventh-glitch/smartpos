@@ -256,8 +256,9 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                   ))
                               .toList(),
                           onChanged: (val) {
-                            if (val != null)
+                            if (val != null) {
                               setState(() => _selectedCategory = val);
+                            }
                           },
                         ),
                       ),
@@ -323,10 +324,12 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                       horizontal: 12, vertical: 12),
                                 ),
                                 validator: (val) {
-                                  if (val == null || val.trim().isEmpty)
+                                  if (val == null || val.trim().isEmpty) {
                                     return 'Enter amount';
-                                  if (double.tryParse(val) == null)
+                                  }
+                                  if (double.tryParse(val) == null) {
                                     return 'Invalid number';
+                                  }
                                   return null;
                                 },
                               ),
@@ -372,8 +375,9 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                             ))
                                         .toList(),
                                     onChanged: (val) {
-                                      if (val != null)
+                                      if (val != null) {
                                         setState(() => _paymentMethod = val);
+                                      }
                                     },
                                   ),
                                 ),
