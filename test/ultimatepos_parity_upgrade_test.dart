@@ -564,5 +564,251 @@ void main() {
       expect((loc2Received.first['qty_available'] as num).toDouble(),
           equals(10.0));
     });
+
+    test(
+        'Phase 6: Hotel Folio service charges posting, itemized billing & checkout',
+        () async {
+      // 1. Add Room 402 Deluxe to hotel
+      final roomId = await dbService.addHotelRoom({
+        'room': '402',
+        'type': 'Executive Deluxe',
+        'floor': '4th Floor',
+        'rate': 8500.0,
+        'status': 'occupied',
+        'guest': 'Chaudhry Tariq (CNIC: 35201-1122334-1)',
+        'nights': 2,
+        'check_in': '2026-11-16',
+        'room_service': 0.0,
+      });
+
+      // 2. Post itemized folio service charges (Restaurant dining & laundry)
+      const charge1 = 1500.0;
+      const charge2 = 600.0;
+
+      await dbService.saveModuleRecord(
+        moduleKey: 'hotel',
+        recordType: 'hotel_folio_402',
+        title: 'Dining: Mixed Grill Platter',
+        status: 'pending',
+        data: {
+          'roomId': roomId,
+          'roomNo': '402',
+          'category': 'Dining & Room Service',
+          'description': 'Mixed Grill Platter',
+          'amount': charge1,
+        },
+      );
+
+      await dbService.saveModuleRecord(
+        moduleKey: 'hotel',
+        recordType: 'hotel_folio_402',
+        title: 'Laundry: 4 Suits Dry Cleaned',
+        status: 'pending',
+        data: {
+          'roomId': roomId,
+          'roomNo': '402',
+          'category': 'Laundry & Dry Cleaning',
+          'description': '4 Suits Dry Cleaned',
+          'amount': charge2,
+        },
+      );
+
+      // Increment room_service balance atomically
+      await dbService.updateHotelRoom(roomId, {
+        'room_service': charge1 + charge2,
+      });
+
+      // Verify room balance
+      final rooms = await dbService.getHotelRooms();
+      final room402 = rooms.firstWhere((r) => r['room'] == '402');
+      expect((room402['room_service'] as num).toDouble(), equals(2100.0));
+
+      const roomRent = 8500.0 * 2; // 17000
+      const totalStayBill = roomRent + 2100.0; // 19100.0
+
+      // 3. Perform checkout: settle bill, create sale invoice and mark room cleaning
+      final invNo = await dbService.generateNextInvoiceNo();
+      await dbService.createSale(
+        sale: Sale(
+          invoiceNo: invNo,
+          customerName: 'Chaudhry Tariq',
+          subtotal: totalStayBill,
+          totalAmount: totalStayBill,
+          paidAmount: totalStayBill,
+          paymentMethod: 'cash',
+          paymentStatus: 'paid',
+          saleStatus: 'final',
+          note: 'Hotel Checkout • Room 402',
+          createdAt: DateTime.now().toIso8601String(),
+        ),
+        items: [
+          CartItem(
+            product: Product(
+              name: 'Room 402 Stay (2 nights)',
+              sku: 'ROOM-402',
+              barcode: 'ROOM-402',
+              purchasePrice: 0,
+              sellingPrice: roomRent,
+              stockQuantity: 1,
+            ),
+            quantity: 1,
+            unitPrice: roomRent,
+          ),
+          CartItem(
+            product: Product(
+              name: 'Room 402 - Folio Services',
+              sku: 'FOLIO-402',
+              barcode: 'FOLIO-402',
+              purchasePrice: 0,
+              sellingPrice: 2100.0,
+              stockQuantity: 1,
+            ),
+            quantity: 1,
+            unitPrice: 2100.0,
+          ),
+        ],
+        enforceStock: false,
+      );
+
+      // Room reset for housekeeping
+      await dbService.updateHotelRoom(roomId, {
+        'status': 'cleaning',
+        'guest': '',
+        'nights': 0,
+        'room_service': 0.0,
+      });
+
+      final refreshedRooms = await dbService.getHotelRooms();
+      final cleanedRoom = refreshedRooms.firstWhere((r) => r['room'] == '402');
+      expect(cleanedRoom['status'], equals('cleaning'));
+      expect((cleanedRoom['room_service'] as num).toDouble(), equals(0.0));
+      expect(cleanedRoom['guest'], equals(''));
+    });
+
+    test('Phase 6: Gym Turnstile Barcode check-in & automated expiry detection',
+        () async {
+      // 1. Add active member and expired member
+      final activeMemberId = await dbService.addGymMember({
+        'member_id': 'GYM-201',
+        'name': 'Hamza Bilal',
+        'phone': '03009988776',
+        'plan': 'Annual Pro (Rs 35,000)',
+        'fee': 35000.0,
+        'locker': 'L-42',
+        'trainer': 'Coach Asad',
+        'expiry_date': DateTime.now()
+            .add(const Duration(days: 45))
+            .toString()
+            .substring(0, 10),
+        'days_left': 45,
+        'status': 'Active',
+      });
+
+      final expiredMemberId = await dbService.addGymMember({
+        'member_id': 'GYM-202',
+        'name': 'Zahid Qureshi',
+        'phone': '03215544332',
+        'plan': 'Monthly Basic',
+        'fee': 4000.0,
+        'locker': 'None',
+        'trainer': 'General Floor',
+        'expiry_date': '2026-01-01',
+        'days_left': 0,
+        'status': 'Expired',
+      });
+
+      // 2. Simulate Active member card scan -> Access Granted
+      final allMembers = await dbService.getGymMembers();
+      final hamza = allMembers.firstWhere((m) => m['member_id'] == 'GYM-201');
+      expect(hamza['status'], equals('Active'));
+      expect((hamza['days_left'] as num).toInt(), greaterThan(0));
+
+      // Check-in log recorded in SQLite
+      await dbService.saveModuleRecord(
+        moduleKey: 'gym',
+        recordType: 'gym_checkin',
+        title: 'Turnstile: ${hamza['name']}',
+        status: 'checked_in',
+        data: {
+          'memberId': activeMemberId,
+          'memberCode': 'GYM-201',
+          'name': hamza['name'],
+          'scanTime': DateTime.now().toIso8601String(),
+        },
+      );
+
+      final checkinLogs =
+          await dbService.getModuleRecords('gym', recordType: 'gym_checkin');
+      expect(checkinLogs.length, greaterThanOrEqualTo(1));
+      expect(
+          checkinLogs.first['_title'] ??
+              checkinLogs.first['title'] ??
+              checkinLogs.first['name'],
+          contains('Hamza Bilal'));
+
+      // 3. Simulate Expired member card scan -> Access Denied & Instant Renewal
+      final zahid = allMembers.firstWhere((m) => m['member_id'] == 'GYM-202');
+      expect(zahid['status'], equals('Expired'));
+      expect((zahid['days_left'] as num).toInt(), equals(0));
+
+      // Instant renewal (+30 days)
+      await dbService.updateGymMember(expiredMemberId, {
+        'status': 'Active',
+        'days_left': 30,
+        'expiry_date': DateTime.now()
+            .add(const Duration(days: 30))
+            .toString()
+            .substring(0, 10),
+      });
+
+      final renewedZahid = (await dbService.getGymMembers())
+          .firstWhere((m) => m['member_id'] == 'GYM-202');
+      expect(renewedZahid['status'], equals('Active'));
+      expect((renewedZahid['days_left'] as num).toInt(), equals(30));
+    });
+
+    test('Phase 6: Dynamic Modular SaaS Tier Presets & Sidebar feature gating',
+        () {
+      // 1. Verify 5 official SaaS Tier presets exist
+      expect(ModuleRegistry.tierPresets.length, equals(5));
+
+      const starter = ModuleRegistry.starterRetailTier;
+      const enterprise = ModuleRegistry.enterpriseSuperstoreTier;
+
+      // 2. Verify Starter Retail tier isolates core retail and excludes heavy verticals
+      expect(starter.id, equals('starter_retail'));
+      expect(starter.modules, contains(ModuleRegistry.corePos));
+      expect(starter.modules, contains(ModuleRegistry.returns));
+      expect(starter.modules, contains(ModuleRegistry.expenses));
+      expect(starter.modules.contains(ModuleRegistry.restaurant), isFalse);
+      expect(starter.modules.contains(ModuleRegistry.hotel), isFalse);
+      expect(starter.modules.contains(ModuleRegistry.gym), isFalse);
+      expect(starter.modules.contains(ModuleRegistry.manufacturing), isFalse);
+
+      // 3. Verify Enterprise Superstore unlocks all modules
+      expect(enterprise.id, equals('enterprise_superstore'));
+      expect(enterprise.modules, contains(ModuleRegistry.restaurant));
+      expect(enterprise.modules, contains(ModuleRegistry.pharmacy));
+      expect(enterprise.modules, contains(ModuleRegistry.hotel));
+      expect(enterprise.modules, contains(ModuleRegistry.gym));
+      expect(enterprise.modules, contains(ModuleRegistry.manufacturing));
+      expect(enterprise.modules, contains(ModuleRegistry.hrm));
+      expect(enterprise.modules, contains(ModuleRegistry.accounting));
+      expect(enterprise.modules, contains(ModuleRegistry.lanMultiCounter));
+
+      // 4. Test BusinessSettings evaluation with Starter Retail tier
+      final starterSettings = BusinessSettings(
+        enabledModules: starter.modules.join(','),
+        industryPresets: starter.industryPreset,
+        businessType: 'general_store',
+      );
+
+      expect(starterSettings.isRestaurantEnabled, isFalse);
+      expect(starterSettings.isHotel, isFalse);
+      expect(starterSettings.isGym, isFalse);
+      expect(starterSettings.isModuleEnabled(ModuleRegistry.hotel), isFalse);
+      expect(starterSettings.isModuleEnabled(ModuleRegistry.gym), isFalse);
+      expect(starterSettings.isModuleEnabled(ModuleRegistry.returns), isTrue);
+    });
   });
 }

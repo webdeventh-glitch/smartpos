@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../navigation/app_routes.dart';
+import '../../services/app_logger.dart';
+import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
 import 'restaurant_cafe_screen.dart';
 import 'repair_service_screen.dart';
@@ -210,7 +212,72 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
     },
   ];
 
-  void _openModule(Map<String, dynamic> mod) {
+  Future<void> _openModule(Map<String, dynamic> mod) async {
+    final modId = (mod['id'] as String).toLowerCase();
+    final isEnabled = widget.settings.isModuleEnabled(modId);
+
+    if (!isEnabled) {
+      final shouldEnable = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(mod['icon'] as IconData,
+                  color: mod['color'] as Color, size: 24),
+              const SizedBox(width: 10),
+              Flexible(child: Text('${mod['title']} Disabled')),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This specialized module is currently inactive in your active SaaS plan / tier preset (${widget.settings.businessTypeDisplayName}).',
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Would you like to activate this module now? It will be saved to your enabled modules in SQLite and visible in your sidebar.',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: mod['color'] as Color,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.check_circle_outline, size: 16),
+              label: const Text('Enable & Open'),
+              onPressed: () => Navigator.pop(ctx, true),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldEnable != true) return;
+
+      try {
+        final currentMods = Set<String>.from(widget.settings.activeModules);
+        currentMods.add(modId);
+        final db = await DatabaseService.initialize();
+        await db.updateBusinessSettings(
+          widget.settings.copyWith(enabledModules: currentMods.join(',')),
+        );
+      } catch (e, st) {
+        AppLogger.error(
+            'BusinessModulesHub', 'Failed enabling module $modId', e, st);
+      }
+    }
+
+    if (!mounted) return;
+
     if (mod['actionType'] == 'nav_tab') {
       widget.onNavigateToRoute(mod['route'] as AppRoute);
     } else if (mod['actionType'] == 'screen') {

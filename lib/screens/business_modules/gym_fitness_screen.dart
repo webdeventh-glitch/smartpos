@@ -28,14 +28,391 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
     try {
       final db = await DatabaseService.initialize();
       final rows = await db.getGymMembers(status: _filter);
+      final list = rows.map((r) => Map<String, dynamic>.from(r)).toList();
+
+      // Automated membership expiry detection & auto-synchronization
+      final now = DateTime.now();
+      for (final m in list) {
+        final id = m['id'] as int?;
+        if (id == null) continue;
+
+        final expStr = m['expiry_date']?.toString() ?? '';
+        DateTime? expDate;
+        try {
+          final regExp = RegExp(r'\d{4}-\d{2}-\d{2}');
+          final match = regExp.firstMatch(expStr);
+          if (match != null) {
+            expDate = DateTime.tryParse(match.group(0)!);
+          }
+        } catch (_) {}
+
+        int daysLeft =
+            (m['days_left'] is num) ? (m['days_left'] as num).toInt() : 0;
+        final currentStatus = m['status']?.toString() ?? 'Active';
+
+        if (expDate != null) {
+          final diff = expDate.difference(now).inDays;
+          daysLeft = diff;
+        }
+
+        String newStatus = currentStatus;
+        if (daysLeft <= 0) {
+          newStatus = 'Expired';
+          daysLeft = 0;
+        } else if (daysLeft <= 3) {
+          newStatus = 'Expiring Soon';
+        } else {
+          newStatus = 'Active';
+        }
+
+        if (newStatus != currentStatus ||
+            daysLeft != (m['days_left'] as num?)?.toInt()) {
+          m['status'] = newStatus;
+          m['days_left'] = daysLeft;
+          await db.updateGymMember(id, {
+            'status': newStatus,
+            'days_left': daysLeft,
+          });
+        }
+      }
+
       setState(() {
-        _members = rows.map((r) => Map<String, dynamic>.from(r)).toList();
+        _members = list;
         _isLoading = false;
       });
     } catch (e, st) {
       AppLogger.warning('GymFitnessScreen', 'Failed loading members', e, st);
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showTurnstileCheckInDialog() {
+    final searchCtrl = TextEditingController();
+    Map<String, dynamic>? selectedMember;
+    String? scanStatus; // 'granted', 'denied', 'not_found'
+    String statusMessage = '';
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            void performScan(String rawQuery) async {
+              final query = rawQuery.trim().toLowerCase();
+              if (query.isEmpty) return;
+
+              Map<String, dynamic>? found;
+              for (final m in _members) {
+                final memId = (m['member_id']?.toString() ?? '').toLowerCase();
+                final phone = (m['phone']?.toString() ?? '').toLowerCase();
+                final name = (m['name']?.toString() ?? '').toLowerCase();
+                final barcode = (m['barcode']?.toString() ?? '').toLowerCase();
+                final idStr = (m['id']?.toString() ?? '');
+
+                if (memId == query ||
+                    phone == query ||
+                    phone.contains(query) ||
+                    barcode == query ||
+                    idStr == query ||
+                    name.contains(query)) {
+                  found = m;
+                  break;
+                }
+              }
+
+              if (found == null) {
+                setDialogState(() {
+                  selectedMember = null;
+                  scanStatus = 'not_found';
+                  statusMessage =
+                      'Card / Barcode "$rawQuery" not registered in system';
+                });
+                return;
+              }
+
+              final daysLeft = (found['days_left'] is num)
+                  ? (found['days_left'] as num).toInt()
+                  : 0;
+              final status = found['status']?.toString() ?? 'Active';
+
+              if (status == 'Expired' || daysLeft <= 0) {
+                setDialogState(() {
+                  selectedMember = found;
+                  scanStatus = 'denied';
+                  statusMessage =
+                      'ACCESS DENIED: Membership expired on ${found!['expiry_date']}';
+                });
+              } else {
+                // Access Granted! Log checkin
+                final db = await DatabaseService.initialize();
+                await db.saveModuleRecord(
+                  moduleKey: 'gym',
+                  recordType: 'gym_checkin',
+                  title: 'Turnstile: ${found['name']}',
+                  status: 'checked_in',
+                  data: {
+                    'memberId': found['id'],
+                    'memberCode': found['member_id'],
+                    'name': found['name'],
+                    'phone': found['phone'],
+                    'locker': found['locker'],
+                    'plan': found['plan'],
+                    'timestamp': DateTime.now().toIso8601String(),
+                  },
+                );
+
+                setDialogState(() {
+                  selectedMember = found;
+                  scanStatus = 'granted';
+                  statusMessage = (status == 'Expiring Soon')
+                      ? 'ACCESS GRANTED • Expiring in $daysLeft Days!'
+                      : 'ACCESS GRANTED • Welcome, ${found!['name']}!';
+                });
+              }
+            }
+
+            Color statusBgColor = const Color(0xFF3B82F6);
+            if (scanStatus == 'granted') {
+              statusBgColor = const Color(0xFF10B981);
+            }
+            if (scanStatus == 'denied' || scanStatus == 'not_found') {
+              statusBgColor = const Color(0xFFEF4444);
+            }
+
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              title: Row(
+                children: [
+                  const Icon(Icons.qr_code_scanner_rounded,
+                      color: Color(0xFF10B981), size: 24),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Gym Turnstile Barcode Check-In Gate',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 480,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Scanner Barcode Input Field
+                      TextField(
+                        controller: searchCtrl,
+                        autofocus: true,
+                        style: TextStyle(
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
+                          fontSize: 14,
+                        ),
+                        decoration: InputDecoration(
+                          hintText:
+                              'Scan Card Barcode or Enter Member ID / Phone...',
+                          prefixIcon:
+                              const Icon(Icons.barcode_reader, size: 20),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.arrow_forward_rounded),
+                            onPressed: () => performScan(searchCtrl.text),
+                          ),
+                          filled: true,
+                          fillColor: isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF1F5F9),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onSubmitted: (val) => performScan(val),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Visual Result Card (Green / Red / Neutral)
+                      if (scanStatus != null) ...[
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: statusBgColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: statusBgColor, width: 2),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                scanStatus == 'granted'
+                                    ? Icons.check_circle_rounded
+                                    : Icons.cancel_rounded,
+                                color: statusBgColor,
+                                size: 54,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                scanStatus == 'granted'
+                                    ? 'ACCESS GRANTED'
+                                    : (scanStatus == 'denied'
+                                        ? 'ACCESS DENIED'
+                                        : 'CARD NOT FOUND'),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: statusBgColor,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                statusMessage,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : const Color(0xFF334155),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              if (selectedMember != null) ...[
+                                const Divider(height: 20),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Member Name:'),
+                                    Text(
+                                      selectedMember!['name'] ?? '',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Membership Plan:'),
+                                    Text(
+                                      selectedMember!['plan'] ?? 'Standard',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Locker & Trainer:'),
+                                    Text(
+                                      '${selectedMember!['locker'] ?? 'None'} • ${selectedMember!['trainer'] ?? 'General'}',
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Days Remaining:'),
+                                    Text(
+                                      '${selectedMember!['days_left']} Days Left',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: scanStatus == 'granted'
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFFEF4444),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (scanStatus == 'denied') ...[
+                                  const SizedBox(height: 14),
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF3B82F6),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    icon: const Icon(Icons.autorenew_rounded,
+                                        size: 16),
+                                    label: const Text(
+                                        'Instant Renew Membership (+30 Days)'),
+                                    onPressed: () async {
+                                      await _renewMembership(selectedMember!);
+                                      setDialogState(() {
+                                        scanStatus = 'granted';
+                                        statusMessage =
+                                            'Renewed for 30 Days! Access Granted.';
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ],
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 36),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(Icons.contactless_rounded,
+                                  size: 48,
+                                  color: isDark
+                                      ? const Color(0xFF475569)
+                                      : const Color(0xFF94A3B8)),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Awaiting barcode card swipe or scanner trigger...',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _loadMembers();
+                  },
+                  child: const Text('Close Gate'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _renewMembership(Map<String, dynamic> m) async {
@@ -232,7 +609,7 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                     'status': 'Active',
                     'created_at': DateTime.now().toIso8601String(),
                   });
-                  if (mounted) Navigator.pop(ctx);
+                  if (ctx.mounted) Navigator.pop(ctx);
                   _loadMembers();
                 }
               },
@@ -271,6 +648,17 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
           ],
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white),
+              onPressed: _showTurnstileCheckInDialog,
+              icon: const Icon(Icons.qr_code_scanner_rounded, size: 16),
+              label: const Text('Turnstile Check-In (کارڈ سکین)'),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Reload SQLite Data',
@@ -296,6 +684,65 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Automated Expiry Notice Banner
+                  Builder(
+                    builder: (context) {
+                      final expiredCount = _members
+                          .where((m) => m['status'] == 'Expired')
+                          .length;
+                      final expiringSoonCount = _members
+                          .where((m) => m['status'] == 'Expiring Soon')
+                          .length;
+                      if (expiredCount == 0 && expiringSoonCount == 0) {
+                        return const SizedBox.shrink();
+                      }
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 18),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: const Color(0xFFF59E0B)
+                                  .withValues(alpha: 0.5)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.notifications_active_rounded,
+                                color: Color(0xFFF59E0B), size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Membership Expiry Notice: $expiredCount members have expired and $expiringSoonCount members are expiring within 3 days. Send renewal alerts via WhatsApp/SMS.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF92400E),
+                                ),
+                              ),
+                            ),
+                            if (expiredCount > 0)
+                              TextButton(
+                                onPressed: () {
+                                  setState(() => _filter = 'Expired');
+                                  _loadMembers();
+                                },
+                                child: const Text('View Expired',
+                                    style: TextStyle(
+                                        color: Color(0xFFEF4444),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11)),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
                   // Filter Pills
                   Row(
                     children: [
@@ -472,10 +919,12 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                                 final status =
                                     m['status']?.toString() ?? 'Active';
                                 Color statusColor = const Color(0xFF10B981);
-                                if (status == 'Expiring Soon')
+                                if (status == 'Expiring Soon') {
                                   statusColor = const Color(0xFFF59E0B);
-                                if (status == 'Expired')
+                                }
+                                if (status == 'Expired') {
                                   statusColor = const Color(0xFFEF4444);
+                                }
 
                                 final feeVal = (m['fee'] is num)
                                     ? (m['fee'] as num).toDouble()
@@ -588,6 +1037,8 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                                                 color: Color(0xFF10B981)),
                                             tooltip: 'Mark Attendance Check-In',
                                             onPressed: () async {
+                                              final messenger =
+                                                  ScaffoldMessenger.of(context);
                                               final db = await DatabaseService
                                                   .initialize();
                                               await db.saveModuleRecord(
@@ -603,8 +1054,7 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                                                 },
                                               );
                                               if (!mounted) return;
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
+                                              messenger.showSnackBar(
                                                 SnackBar(
                                                   content: Text(
                                                       'Attendance saved to database for $nameVal'),

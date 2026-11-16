@@ -88,6 +88,22 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
     });
   }
 
+  void _applyTierPreset(SaasTierPreset tier) {
+    setState(() {
+      _activePresets = {tier.industryPreset.toLowerCase()};
+      _activeModules =
+          Set<String>.from(tier.modules.map((m) => m.toLowerCase()));
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:
+            Text('Applied SaaS Tier: ${tier.name} (${tier.pricePerMonth})'),
+        backgroundColor: const Color(0xFF10B981),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _toggleModule(String key, bool enabled) {
     setState(() {
       if (enabled) {
@@ -551,6 +567,128 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // SaaS Subscription Tier Presets
+                  Row(
+                    children: [
+                      const Icon(Icons.workspace_premium_rounded,
+                          color: Color(0xFFF59E0B), size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Commercial SaaS Tier Presets (تجارتی سبسکرپشن پیکجز)',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 14),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFF10B981).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text('1-Tap Apply',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF10B981))),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: ModuleRegistry.tierPresets.map((tier) {
+                          final isApplied = tier.modules.every(
+                              (m) => _activeModules.contains(m.toLowerCase()));
+                          return InkWell(
+                            onTap: () => _applyTierPreset(tier),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              width: (constraints.maxWidth > 800)
+                                  ? (constraints.maxWidth - 40) / 5
+                                  : (constraints.maxWidth > 500)
+                                      ? (constraints.maxWidth - 20) / 2
+                                      : constraints.maxWidth,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isApplied
+                                    ? const Color(0xFF4F46E5)
+                                        .withValues(alpha: 0.12)
+                                    : (isDark
+                                        ? const Color(0xFF0F172A)
+                                        : const Color(0xFFF8FAFC)),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isApplied
+                                      ? const Color(0xFF4F46E5)
+                                      : (isDark
+                                          ? const Color(0xFF334155)
+                                          : const Color(0xFFE2E8F0)),
+                                  width: isApplied ? 2 : 1,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          tier.name,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (isApplied)
+                                        const Icon(Icons.check_circle_rounded,
+                                            size: 14, color: Color(0xFF10B981)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    tier.pricePerMonth,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF10B981),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    tier.subtitle,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF64748B),
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 14),
                   Row(
                     children: [
                       const Icon(Icons.tune_rounded,

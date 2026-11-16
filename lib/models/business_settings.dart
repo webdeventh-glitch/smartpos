@@ -1055,4 +1055,124 @@ class ModuleRegistry {
     cloudSync,
     lanMultiCounter,
   ];
+
+  // ==========================================
+  // DYNAMIC MODULAR SAAS TIER PRESETS
+  // ==========================================
+  static const starterRetailTier = SaasTierPreset(
+    id: 'starter_retail',
+    name: 'Starter Retail / Grocery Tier',
+    subtitle: 'Core POS, Stock, Purchases & Khata (Minimalist & Ultra-Fast)',
+    pricePerMonth: 'Rs 2,500 / month',
+    industryPreset: BusinessSettings.presetRetailSuperStore,
+    modules: [
+      corePos,
+      returns,
+      expenses,
+      stockTransfers,
+      stockAudit,
+    ],
+  );
+
+  static const pharmacyHealthTier = SaasTierPreset(
+    id: 'pharmacy_health',
+    name: 'Pharmacy & Healthcare Tier',
+    subtitle: 'Batch & Expiry (FEFO), Drug Act Form 2A & Strip Pricing',
+    pricePerMonth: 'Rs 5,000 / month',
+    industryPreset: BusinessSettings.presetPharmacy,
+    modules: [
+      corePos,
+      pharmacy,
+      returns,
+      expenses,
+      stockTransfers,
+      stockAudit,
+    ],
+  );
+
+  static const restaurantCafeTier = SaasTierPreset(
+    id: 'restaurant_cafe',
+    name: 'Restaurant & Cafe Tier',
+    subtitle: 'Table Layout, Live KDS Screen, KOT Printing & Modifiers',
+    pricePerMonth: 'Rs 5,000 / month',
+    industryPreset: BusinessSettings.presetRestaurantCafe,
+    modules: [
+      corePos,
+      restaurant,
+      hrm,
+      returns,
+      expenses,
+    ],
+  );
+
+  static const serviceRepairTier = SaasTierPreset(
+    id: 'service_repair',
+    name: 'Service & Repair Center Tier',
+    subtitle: 'Device Job Sheets, Spare Parts Inventory & Defect Checklists',
+    pricePerMonth: 'Rs 5,000 / month',
+    industryPreset: BusinessSettings.presetMobileElectronics,
+    modules: [
+      corePos,
+      repair,
+      variations,
+      returns,
+      expenses,
+      stockTransfers,
+    ],
+  );
+
+  static const enterpriseSuperstoreTier = SaasTierPreset(
+    id: 'enterprise_superstore',
+    name: 'Enterprise Superstore Tier',
+    subtitle:
+        'All Modules + Multi-Counter LAN Socket + Double-Entry Accounting + HRM',
+    pricePerMonth: 'Rs 10,000 / month',
+    industryPreset: BusinessSettings.presetRetailSuperStore,
+    modules: [
+      corePos,
+      accounting,
+      restaurant,
+      pharmacy,
+      repair,
+      hotel,
+      gym,
+      manufacturing,
+      hrm,
+      variations,
+      stockTransfers,
+      returns,
+      expenses,
+      stockAudit,
+      fiscalClosing,
+      cloudSync,
+      lanMultiCounter,
+    ],
+  );
+
+  static const List<SaasTierPreset> tierPresets = [
+    starterRetailTier,
+    pharmacyHealthTier,
+    restaurantCafeTier,
+    serviceRepairTier,
+    enterpriseSuperstoreTier,
+  ];
+}
+
+/// Dynamic SaaS Tier Preset definition for commercial monetization and modular feature packaging
+class SaasTierPreset {
+  final String id;
+  final String name;
+  final String subtitle;
+  final String pricePerMonth;
+  final String industryPreset;
+  final List<String> modules;
+
+  const SaasTierPreset({
+    required this.id,
+    required this.name,
+    required this.subtitle,
+    required this.pricePerMonth,
+    required this.industryPreset,
+    required this.modules,
+  });
 }
