@@ -522,6 +522,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
           );
         }
 
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(

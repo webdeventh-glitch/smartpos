@@ -633,7 +633,7 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                             );
 
                             await db.createStockTransfer(transfer);
-                            Navigator.pop(ctx);
+                            if (ctx.mounted) Navigator.pop(ctx);
                             _loadData();
 
                             if (mounted) {
@@ -1147,7 +1147,7 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                             );
 
                             await db.createStockAdjustment(adjustment);
-                            Navigator.pop(ctx);
+                            if (ctx.mounted) Navigator.pop(ctx);
                             _loadData();
 
                             if (mounted) {
@@ -1685,7 +1685,7 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                                         .updateStockTransferStatus(
                                                             t.id!, 'completed');
                                                     _loadData();
-                                                    if (mounted) {
+                                                    if (context.mounted) {
                                                       ScaffoldMessenger.of(
                                                               context)
                                                           .showSnackBar(

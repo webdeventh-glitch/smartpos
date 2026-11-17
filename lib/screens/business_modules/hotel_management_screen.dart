@@ -152,7 +152,7 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     'check_in': '',
                     'room_service': 0.0,
                   });
-                  if (mounted) Navigator.pop(ctx);
+                  if (ctx.mounted) Navigator.pop(ctx);
                   _loadRooms();
                 }
               },
@@ -263,7 +263,7 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     'check_in': 'Today',
                     'room_service': 0.0,
                   });
-                  if (mounted) Navigator.pop(ctx);
+                  if (ctx.mounted) Navigator.pop(ctx);
                   _loadRooms();
                 }
               },
@@ -296,6 +296,7 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
       return s != 'settled';
     }).toList();
 
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -975,10 +976,12 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                           final r = _rooms[idx];
                           final status = r['status']?.toString() ?? 'available';
                           Color statusColor = const Color(0xFF10B981);
-                          if (status == 'occupied')
+                          if (status == 'occupied') {
                             statusColor = const Color(0xFF3B82F6);
-                          if (status == 'cleaning')
+                          }
+                          if (status == 'cleaning') {
                             statusColor = const Color(0xFFF59E0B);
+                          }
 
                           final rateVal = (r['rate'] is num)
                               ? (r['rate'] as num).toDouble()

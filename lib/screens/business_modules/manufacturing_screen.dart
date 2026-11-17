@@ -600,7 +600,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                       data: wo,
                     );
 
-                    Navigator.pop(ctx);
+                    if (ctx.mounted) Navigator.pop(ctx);
                     await _loadProductionData();
 
                     if (mounted) {
@@ -797,7 +797,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                                     data: order,
                                   );
                                   order['_dbId'] = dbId;
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   setState(() {
                                     _workOrders.insert(0, order);
                                   });

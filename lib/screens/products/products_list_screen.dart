@@ -204,10 +204,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     final costCtrl =
         TextEditingController(text: product.purchasePrice.toStringAsFixed(2));
     Contact? selectedSup = suppliers.isNotEmpty ? suppliers.first : null;
+    if (!mounted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currency = widget.settings.currencySymbol;
-
-    if (!mounted) return;
 
     await showDialog(
       context: context,

@@ -546,7 +546,7 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                                     status: f['status'] as String,
                                     data: f,
                                   );
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                         content: Text(
@@ -574,7 +574,7 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                                     status: f['status'] as String,
                                     data: f,
                                   );
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                         content: Text(

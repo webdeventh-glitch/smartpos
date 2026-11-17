@@ -609,7 +609,7 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                     'status': 'Active',
                     'created_at': DateTime.now().toIso8601String(),
                   });
-                  if (mounted) Navigator.pop(ctx);
+                  if (ctx.mounted) Navigator.pop(ctx);
                   _loadMembers();
                 }
               },
@@ -919,10 +919,12 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                                 final status =
                                     m['status']?.toString() ?? 'Active';
                                 Color statusColor = const Color(0xFF10B981);
-                                if (status == 'Expiring Soon')
+                                if (status == 'Expiring Soon') {
                                   statusColor = const Color(0xFFF59E0B);
-                                if (status == 'Expired')
+                                }
+                                if (status == 'Expired') {
                                   statusColor = const Color(0xFFEF4444);
+                                }
 
                                 final feeVal = (m['fee'] is num)
                                     ? (m['fee'] as num).toDouble()
@@ -1049,7 +1051,7 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                                                       .toIso8601String(),
                                                 },
                                               );
-                                              if (!mounted) return;
+                                              if (!context.mounted) return;
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(
                                                 SnackBar(

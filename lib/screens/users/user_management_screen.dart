@@ -671,7 +671,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
                 final db = await DatabaseService.initialize();
                 await db.updateUser(updated);
-                Navigator.pop(ctx);
+                if (ctx.mounted) Navigator.pop(ctx);
                 _loadUsers();
 
                 if (!mounted) return;
@@ -719,7 +719,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
               if (user.id != null) {
                 final db = await DatabaseService.initialize();
                 await db.deleteUser(user.id!);
-                Navigator.pop(ctx);
+                if (ctx.mounted) Navigator.pop(ctx);
                 _loadUsers();
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(

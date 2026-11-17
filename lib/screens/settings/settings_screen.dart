@@ -962,7 +962,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 mainAxisSpacing: 12,
                               ),
                               itemCount: filtered.length,
-                              itemBuilder: (context, idx) {
+                              itemBuilder: (itemCtx, idx) {
                                 final ind = filtered[idx];
                                 final isSelected =
                                     _businessType.toLowerCase() ==
@@ -1339,6 +1339,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           await db.updateBusinessSettings(updated);
           widget.onSettingsUpdated(updated);
 
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -4738,7 +4739,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                                               _loadSubData();
                                             } catch (e) {
                                               if (mounted) {
-                                                ScaffoldMessenger.of(context)
+                                                ScaffoldMessenger.of(
+                                                        this.context)
                                                     .showSnackBar(
                                                   SnackBar(
                                                     content: Text('$e'),
@@ -10017,7 +10019,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           final db = await DatabaseService.initialize();
                           await db.saveAiSettings(updated);
                           setState(() => _aiSettings = updated);
-                          if (context.mounted) {
+                          if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                   content: Text(

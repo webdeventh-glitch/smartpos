@@ -263,10 +263,13 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                 ],
               ),
             ),
+            // ignore: deprecated_member_use
             Radio<String>(
               value: mode,
+              // ignore: deprecated_member_use
               groupValue: _syncMode,
               activeColor: const Color(0xFF4F46E5),
+              // ignore: deprecated_member_use
               onChanged: (val) {
                 if (val != null) setState(() => _syncMode = val);
               },

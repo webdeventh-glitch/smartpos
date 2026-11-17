@@ -1364,7 +1364,6 @@ class _ReportsScreenState extends State<ReportsScreen>
   Widget _buildRegisterShiftTab(String cur, bool isDark) {
     double totalCash = 0.0;
     double totalCard = 0.0;
-    double totalClosing = 0.0;
     double totalVariance = 0.0;
     int openCount = 0;
 
@@ -1373,7 +1372,6 @@ class _ReportsScreenState extends State<ReportsScreen>
       final cash = (r['total_sales_cash'] as num?)?.toDouble() ?? 0.0;
       final card = (r['total_sales_card'] as num?)?.toDouble() ?? 0.0;
       final other = (r['total_sales_other'] as num?)?.toDouble() ?? 0.0;
-      final closing = (r['closing_amount'] as num?)?.toDouble() ?? 0.0;
       final diff = (r['difference'] as num?)?.toDouble() ?? 0.0;
 
       totalCash += cash;
@@ -1381,7 +1379,6 @@ class _ReportsScreenState extends State<ReportsScreen>
       if (status == 'open') {
         openCount++;
       } else {
-        totalClosing += closing;
         totalVariance += diff;
       }
     }
@@ -2225,10 +2222,11 @@ class _ReportsScreenState extends State<ReportsScreen>
                               isDark ? Colors.white38 : Colors.grey;
                           if (idx == 0) {
                             rankColor = const Color(0xFFF59E0B); // Gold
-                          } else if (idx == 1)
+                          } else if (idx == 1) {
                             rankColor = const Color(0xFF94A3B8); // Silver
-                          else if (idx == 2)
+                          } else if (idx == 2) {
                             rankColor = const Color(0xFFD97706); // Bronze
+                          }
 
                           return DataRow(
                             cells: [
@@ -3064,7 +3062,11 @@ class _ReportsScreenState extends State<ReportsScreen>
                           ],
                         ),
                         subtitle: Text(
-                          entry.newValues ?? entry.oldValues ?? entry.createdAt,
+                          entry.newValues.isNotEmpty
+                              ? entry.newValues
+                              : (entry.oldValues.isNotEmpty
+                                  ? entry.oldValues
+                                  : entry.createdAt),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 11),

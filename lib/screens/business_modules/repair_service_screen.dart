@@ -213,7 +213,7 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                     'status': 'Diagnosing',
                     'date': DateTime.now().toString().substring(0, 10),
                   });
-                  if (mounted) Navigator.pop(ctx);
+                  if (ctx.mounted) Navigator.pop(ctx);
                   _loadJobs();
                 }
               },

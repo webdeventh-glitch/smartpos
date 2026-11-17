@@ -944,13 +944,6 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
   /// Builds Medication / Solar / Agency A4 Invoice Matching Customer's Bill
   Widget _buildA4AgencyInvoice(String currency) {
     final items = widget.sale.items ?? [];
-    double totalPackValue = 0.0;
-    double totalPackDisc = 0.0;
-
-    for (var it in items) {
-      totalPackValue += (it.unitPrice * it.quantity);
-      totalPackDisc += it.resolvedDiscountAmount;
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

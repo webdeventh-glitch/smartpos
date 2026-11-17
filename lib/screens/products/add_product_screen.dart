@@ -373,7 +373,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           );
                           final db = await DatabaseService.initialize();
                           await db.addUnit(newUnit);
-                          Navigator.pop(ctx);
+                          if (ctx.mounted) Navigator.pop(ctx);
                           await _loadMetadata();
                           final newLabel = short.isNotEmpty && short != name
                               ? '$name ($short)'

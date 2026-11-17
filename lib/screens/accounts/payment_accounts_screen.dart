@@ -342,7 +342,7 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                             note: noteCtrl.text.trim(),
                           ));
 
-                          Navigator.pop(ctx);
+                          if (ctx.mounted) Navigator.pop(ctx);
                           _load();
 
                           if (mounted) {
@@ -644,7 +644,7 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                           );
 
                           await db.transferAccountFunds(transfer);
-                          Navigator.pop(ctx);
+                          if (ctx.mounted) Navigator.pop(ctx);
                           _load();
 
                           if (mounted) {
@@ -876,7 +876,7 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                             note: noteCtrl.text.trim(),
                             paymentMethod: paymentMethod,
                           );
-                          Navigator.pop(ctx);
+                          if (ctx.mounted) Navigator.pop(ctx);
                           _load();
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(

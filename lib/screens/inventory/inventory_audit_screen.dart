@@ -67,7 +67,6 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
         _allProducts.fold(0.0, (sum, p) => sum + p.stockQuantity);
     final totalValuation = _allProducts.fold(
         0.0, (sum, p) => sum + (p.stockQuantity * p.purchasePrice));
-    final deadUnits = _deadStock.fold(0.0, (sum, p) => sum + p.stockQuantity);
     final deadValuation = _deadStock.fold(
         0.0, (sum, p) => sum + (p.stockQuantity * p.purchasePrice));
 

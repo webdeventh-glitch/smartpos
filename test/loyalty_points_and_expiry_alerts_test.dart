@@ -91,7 +91,7 @@ void main() {
       expect(payableTotal, equals(1500.0)); // No discount applied automatically
 
       // When admin/cashier explicitly checks redeem points
-      final loyaltyDiscount =
+      const loyaltyDiscount =
           customerPoints > grandTotal ? grandTotal : customerPoints;
       payableTotal = calculatePayable(redeem: true, discount: loyaltyDiscount);
 

@@ -499,12 +499,6 @@ class _MainShellState extends ConsumerState<MainShell> {
         return CommissionAgentsScreen(settings: _settings);
       case AppRoute.discountRules:
         return DiscountRulesScreen(settings: _settings);
-      default:
-        return DashboardScreen(
-          settings: _settings,
-          onNavigateToPos: _onOpenPos,
-          onNavigateToRoute: _navigateTo,
-        );
     }
   }
 

@@ -19,7 +19,6 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
   bool _loading = true;
   List<Sale> _allSales = [];
   List<Sale> _filteredSales = [];
-  final String _searchQuery = '';
   String _selectedMethod = 'all';
   String _selectedStatus = 'all'; // 'all', 'final', 'draft', 'quotation'
 

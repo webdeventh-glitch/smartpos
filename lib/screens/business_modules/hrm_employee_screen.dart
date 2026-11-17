@@ -792,7 +792,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                       await _loadPaymentAccounts();
                     }
 
-                    Navigator.pop(ctx);
+                    if (ctx.mounted) Navigator.pop(ctx);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

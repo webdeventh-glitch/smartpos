@@ -62,7 +62,6 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
   final List<_PurchaseLineItem> _lineItems = [];
 
   String _status = 'received';
-  final String _paymentMethod = 'cash';
   bool _loading = true;
   bool _isSaving = false;
   BusinessSettings? _settings;

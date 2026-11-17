@@ -29,7 +29,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic> _metrics = {};
-  Map<String, dynamic> _todayMetrics = {};
   List<Map<String, dynamic>> _salesTrend = [];
   Map<String, double> _paymentBreakdown = {};
   List<Map<String, dynamic>> _topProducts = [];
@@ -110,7 +109,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         endDate: range.end,
         forceRefresh: isRefresh,
       );
-      final todayMetrics = await db.getTodaySalesMetrics();
       final trend = await db.getDailySalesTrend(
         days: _dateFilter == 'Today' ? 7 : 30,
         startDate: range.start,
@@ -133,7 +131,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         setState(() {
           _metrics = metrics;
-          _todayMetrics = todayMetrics;
           _salesTrend = trend;
           _paymentBreakdown = paymentBreakdown;
           _topProducts = topProducts;
@@ -162,13 +159,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       }
     }
-  }
-
-  String _getTimeOfDayGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
   }
 
   void _openRegisterDialog() {
@@ -296,243 +286,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ================= STAT CARD =================
-  Widget _heroStatCard({
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBg,
-    required String title,
-    required String value,
-    required String subtitle,
-    String? badgeText,
-    Color? badgeBg,
-    Color? badgeTextColor,
-    IconData? badgeIcon,
-    VoidCallback? onTap,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Material(
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        hoverColor: isDark
-            ? const Color(0xFF334155).withValues(alpha: 0.3)
-            : const Color(0xFFF8FAFC),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color:
-                    isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withValues(alpha: 0.2)
-                    : const Color(0x06000000),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Top Row: Icon + Badge
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color:
-                          isDark ? iconColor.withValues(alpha: 0.15) : iconBg,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: iconColor, size: 22),
-                  ),
-                  if (badgeText != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? (badgeTextColor ?? const Color(0xFF4F46E5))
-                                .withValues(alpha: 0.15)
-                            : (badgeBg ?? const Color(0xFFEEF2FF)),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: (badgeTextColor ?? const Color(0xFF4F46E5))
-                              .withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (badgeIcon != null) ...[
-                            Icon(badgeIcon,
-                                size: 12,
-                                color:
-                                    badgeTextColor ?? const Color(0xFF4F46E5)),
-                            const SizedBox(width: 4),
-                          ],
-                          Text(
-                            badgeText,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: badgeTextColor ?? const Color(0xFF4F46E5),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
-              // Metric Value
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    letterSpacing: -0.6,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Label & Subtitle
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? const Color(0xFFCBD5E1)
-                            : const Color(0xFF475569),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF94A3B8),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ================= SECONDARY COMPACT STAT PILL =================
-  Widget _compactMetricItem({
-    required IconData icon,
-    required Color color,
-    required String label,
-    required String value,
-    required String note,
-    VoidCallback? onTap,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Expanded(
-      child: Material(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          hoverColor: isDark
-              ? const Color(0xFF334155).withValues(alpha: 0.3)
-              : const Color(0xFFF8FAFC),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: isDark
-                      ? const Color(0xFF334155)
-                      : const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: isDark ? 0.2 : 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: color, size: 18),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        label,
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? const Color(0xFF94A3B8)
-                                : const Color(0xFF64748B)),
-                      ),
-                      const SizedBox(height: 2),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          value,
-                          style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF0F172A)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  note,
-                  style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF94A3B8)),
-                ),
-              ],
-            ),
           ),
         ),
       ),
