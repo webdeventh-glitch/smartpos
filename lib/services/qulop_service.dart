@@ -418,6 +418,22 @@ class QulopService {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
+    // Anti-Clock Rollback: Check if system clock was moved before license issue date
+    final issueDate = DateTime.tryParse(issueStr);
+    if (issueDate != null &&
+        detectClockRollback(now, lastKnownActiveDate: issueDate)) {
+      return QulopStatus(
+        isValid: false,
+        tier: QulopTier.invalid,
+        tierLabel: 'Clock Rollback Detected',
+        message:
+            'System clock has been set backward earlier than license issue date (${issueDate.toIso8601String().split('T').first}). Please correct your system clock.',
+        clientName: clientName,
+        targetMac: targetMac,
+        issueDate: issueDate,
+      );
+    }
+
     if (expiryDate != null && expiryDate.isBefore(today)) {
       return QulopStatus(
         isValid: false,
@@ -503,6 +519,23 @@ class QulopService {
       trialStart = DateTime.now();
     }
 
+    // Anti-Clock Rollback: Check if system clock was rolled back before trial start date
+    if (settings.trialStartDate.trim().isNotEmpty &&
+        detectClockRollback(DateTime.now(), lastKnownActiveDate: trialStart)) {
+      final status = QulopStatus(
+        isValid: false,
+        tier: QulopTier.invalid,
+        tierLabel: 'Clock Rollback Detected',
+        message:
+            'System clock has been set backward earlier than initial trial installation. Please correct your system clock to continue.',
+        clientName: settings.businessName,
+        targetMac: currentMac,
+        issueDate: trialStart,
+      );
+      qulopNotifier.value = status;
+      return status;
+    }
+
     final trialExpiry = trialStart.add(const Duration(days: 30));
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -551,6 +584,15 @@ class QulopService {
 
   static Future<QulopStatus> checkCurrentLicense(BusinessSettings settings) =>
       checkCurrentQulop(settings);
+
+  /// Anti-Clock Tampering Check (Detects system clock rollback)
+  static bool detectClockRollback(DateTime currentNow,
+      {DateTime? lastKnownActiveDate}) {
+    if (lastKnownActiveDate == null) return false;
+    // Allow a grace window of 12 hours for time zone shifts, but flag backward jumps beyond that
+    return currentNow
+        .isBefore(lastKnownActiveDate.subtract(const Duration(hours: 12)));
+  }
 
   /// Generates a ready-to-send WhatsApp / SMS message template for the customer
   static String generateWhatsAppTemplate({

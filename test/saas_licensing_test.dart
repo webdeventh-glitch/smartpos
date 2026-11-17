@@ -143,5 +143,43 @@ void main() {
       expect(template, contains('QULOP-YRL-ABCD-1234'));
       expect(template, contains('21/10/2027'));
     });
+
+    test('7. Clock rollback prior to license issue date triggers tamper alert',
+        () async {
+      final hostMac = await QulopService.getDeviceMacAddress();
+      // License issued on a future date (e.g. tomorrow or client rolled back clock)
+      final futureIssue = DateTime.now().add(const Duration(days: 2));
+
+      final keyWithFutureIssue = QulopService.generatePurchaseKey(
+        macAddress: hostMac,
+        clientName: 'Tampering Store',
+        tierCode: 'YRL',
+        issueDate: futureIssue,
+      );
+
+      final status = await QulopService.verifyQulopKey(keyWithFutureIssue);
+      expect(status.isValid, isFalse);
+      expect(status.tier, equals(QulopTier.invalid));
+      expect(status.tierLabel, contains('Clock Rollback Detected'));
+      expect(status.message, contains('earlier than license issue date'));
+    });
+
+    test(
+        '8. Clock rollback prior to initial trial installation triggers tamper alert',
+        () async {
+      // Trial was started on a future date (simulating user moving clock back)
+      final futureTrialStart = DateTime.now().add(const Duration(days: 5));
+      final settings = BusinessSettings(
+        purchaseKey: '',
+        trialStartDate: futureTrialStart.toIso8601String(),
+      );
+
+      final status = await QulopService.checkCurrentQulop(settings);
+      expect(status.isValid, isFalse);
+      expect(status.tier, equals(QulopTier.invalid));
+      expect(status.tierLabel, contains('Clock Rollback Detected'));
+      expect(
+          status.message, contains('earlier than initial trial installation'));
+    });
   });
 }
