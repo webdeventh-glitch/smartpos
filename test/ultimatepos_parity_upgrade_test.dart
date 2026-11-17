@@ -371,6 +371,109 @@ void main() {
       expect(activeBatches.last.batchNumber, equals('BATCH-2027-LATE'));
     });
 
+    test(
+        'Phase 4: Repair Job Sheet lifecycle, device pattern & service status tracking',
+        () async {
+      // 1. Customer brings device for repair
+      final jobId = await dbService.addRepairJob({
+        'job_no': 'REP-2026-401',
+        'customer': 'Noman Tariq',
+        'phone': '03121234567',
+        'device': 'Samsung Galaxy S24 Ultra',
+        'imei': '358992019283741',
+        'fault': 'Cracked AMOLED Display & Rapid Battery Drain',
+        'technician': 'Engr. Farhan',
+        'estimated_cost': 22500.0,
+        'advance': 5000.0,
+        'status': 'Diagnosing',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      expect(jobId, greaterThan(0));
+
+      // 2. Technician accepts job -> In Progress
+      await dbService.updateRepairJob(jobId, {
+        'status': 'In Progress',
+        'technician': 'Engr. Farhan',
+      });
+
+      final inProgressJobs =
+          await dbService.getRepairJobs(status: 'In Progress');
+      expect(inProgressJobs.isNotEmpty, isTrue);
+      expect(inProgressJobs.first['customer'], equals('Noman Tariq'));
+      expect(
+          inProgressJobs.first['device'], contains('Samsung Galaxy S24 Ultra'));
+
+      // 3. Repair finished & Quality Check Passed -> Completed
+      await dbService.updateRepairJob(jobId, {
+        'status': 'Completed',
+        'estimated_cost': 22000.0,
+      });
+
+      final completedJobs = await dbService.getRepairJobs(status: 'Completed');
+      expect(completedJobs.length, equals(1));
+      expect((completedJobs.first['estimated_cost'] as num).toDouble(),
+          equals(22000.0));
+
+      // 4. Customer picks up device -> Delivered
+      await dbService.updateRepairJob(jobId, {'status': 'Delivered'});
+      final deliveredJobs = await dbService.getRepairJobs(status: 'Delivered');
+      expect(deliveredJobs.length, equals(1));
+    });
+
+    test(
+        'Phase 4: Multi-Counter bill tokens (TKN-...) generation & barcode retrieval',
+        () async {
+      // 1. Sales Counter 2 parks a multi-item cart as a tokenized bill
+      const tokenNote = 'TKN-88219 • Counter 2 - Electronics';
+      final draft = ParkedSale(
+        customerName: 'Kashif Mehmood',
+        note: tokenNote,
+        total: 14500.0,
+        discountType: 'fixed',
+        discountValue: 500.0,
+        orderTax: 0.0,
+        shippingCharge: 0.0,
+        createdAt: DateTime.now().toIso8601String(),
+        itemsJson: jsonEncode([
+          {
+            'product_id': 101,
+            'product_name': 'Mechanical Gaming Keyboard',
+            'quantity': 1.0,
+            'unit_price': 8500.0,
+          },
+          {
+            'product_id': 102,
+            'product_name': 'RGB Gaming Mouse 16000DPI',
+            'quantity': 1.0,
+            'unit_price': 6000.0,
+          },
+        ]),
+      );
+
+      final draftId = await dbService.parkSale(draft);
+      expect(draftId, greaterThan(0));
+
+      // 2. Main Payment Counter queries live held tokens
+      final allDrafts = await dbService.getParkedSales();
+      expect(allDrafts.length, equals(1));
+      final retrieved = allDrafts.first;
+      expect(retrieved.id, equals(draftId));
+      expect(retrieved.customerName, equals('Kashif Mehmood'));
+      expect(retrieved.note, equals(tokenNote));
+      expect(retrieved.total, equals(14500.0));
+
+      final items = jsonDecode(retrieved.itemsJson) as List<dynamic>;
+      expect(items.length, equals(2));
+
+      // 3. Customer pays at Main Counter -> Token is settled and removed from queue
+      final deletedCount = await dbService.deleteParkedSale(draftId);
+      expect(deletedCount, equals(1));
+
+      final queueAfterSettlement = await dbService.getParkedSales();
+      expect(queueAfterSettlement.isEmpty, isTrue);
+    });
+
     test('Phase 5: HRM attendance punch logs status and records history',
         () async {
       const dateKey = '2026-11-15';
