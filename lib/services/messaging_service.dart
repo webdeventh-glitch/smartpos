@@ -33,22 +33,26 @@ class MessagingService {
     required String message,
     String recipientName = 'Customer',
     SmsGateway? gatewayOverride,
+    http.Client? httpClient,
+    bool logToDb = true,
   }) async {
     final db = await DatabaseService.initialize();
     final cleanPhone = formatPhoneNumber(to);
     final gateway = gatewayOverride ?? await db.getActiveSmsGateway();
 
     if (gateway == null || gateway.apiUrl.trim().isEmpty) {
-      await db.addMessageLog(MessageLog(
-        recipientName: recipientName,
-        phoneNumber: cleanPhone,
-        channel: 'sms',
-        messageBody: message,
-        status: 'failed',
-        gatewayName: 'None',
-        errorDetails: 'No active SMS gateway configured in Settings.',
-        createdAt: DateTime.now().toIso8601String(),
-      ));
+      if (logToDb) {
+        await db.addMessageLog(MessageLog(
+          recipientName: recipientName,
+          phoneNumber: cleanPhone,
+          channel: 'sms',
+          messageBody: message,
+          status: 'failed',
+          gatewayName: 'None',
+          errorDetails: 'No active SMS gateway configured in Settings.',
+          createdAt: DateTime.now().toIso8601String(),
+        ));
+      }
       return false;
     }
 
@@ -67,66 +71,257 @@ class MessagingService {
           .replaceAll('{secret}', Uri.encodeComponent(gateway.apiSecret));
 
       http.Response response;
+      final client = httpClient ?? http.Client();
 
-      if (method == 'GET') {
-        response =
-            await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
-      } else {
-        // POST request
-        Map<String, String> headers = {'Content-Type': 'application/json'};
-        if (gateway.apiKey.isNotEmpty && gateway.provider == 'twilio') {
-          final credentials = base64Encode(
-              utf8.encode('${gateway.apiKey}:${gateway.apiSecret}'));
-          headers['Authorization'] = 'Basic $credentials';
+      try {
+        if (method == 'GET') {
+          response = await client
+              .get(Uri.parse(url))
+              .timeout(const Duration(seconds: 15));
+        } else {
+          // POST request
+          Map<String, String> headers = {'Content-Type': 'application/json'};
+          if (gateway.apiKey.isNotEmpty && gateway.provider == 'twilio') {
+            final credentials = base64Encode(
+                utf8.encode('${gateway.apiKey}:${gateway.apiSecret}'));
+            headers['Authorization'] = 'Basic $credentials';
+          }
+
+          String body = gateway.payloadFormat.isNotEmpty
+              ? gateway.payloadFormat
+                  .replaceAll('{to}', cleanPhone)
+                  .replaceAll('{message}', message)
+                  .replaceAll('{mask}', mask)
+                  .replaceAll('{key}', gateway.apiKey)
+              : jsonEncode({
+                  'to': cleanPhone,
+                  'message': message,
+                  'sender': mask,
+                  'api_key': gateway.apiKey,
+                });
+
+          response = await client
+              .post(Uri.parse(url), headers: headers, body: body)
+              .timeout(const Duration(seconds: 15));
         }
-
-        String body = gateway.payloadFormat.isNotEmpty
-            ? gateway.payloadFormat
-                .replaceAll('{to}', cleanPhone)
-                .replaceAll('{message}', message)
-                .replaceAll('{mask}', mask)
-                .replaceAll('{key}', gateway.apiKey)
-            : jsonEncode({
-                'to': cleanPhone,
-                'message': message,
-                'sender': mask,
-                'api_key': gateway.apiKey,
-              });
-
-        response = await http
-            .post(Uri.parse(url), headers: headers, body: body)
-            .timeout(const Duration(seconds: 15));
+      } finally {
+        if (httpClient == null) {
+          client.close();
+        }
       }
 
       final isSuccess = response.statusCode >= 200 && response.statusCode < 300;
 
+      if (logToDb) {
+        await db.addMessageLog(MessageLog(
+          recipientName: recipientName,
+          phoneNumber: cleanPhone,
+          channel: 'sms',
+          messageBody: message,
+          status: isSuccess ? 'sent' : 'failed',
+          gatewayName: gateway.name,
+          errorDetails: isSuccess
+              ? 'HTTP ${response.statusCode}'
+              : 'Error ${response.statusCode}: ${response.body}',
+          createdAt: DateTime.now().toIso8601String(),
+        ));
+      }
+
+      return isSuccess;
+    } catch (e) {
+      if (logToDb) {
+        await db.addMessageLog(MessageLog(
+          recipientName: recipientName,
+          phoneNumber: cleanPhone,
+          channel: 'sms',
+          messageBody: message,
+          status: 'failed',
+          gatewayName: gateway.name,
+          errorDetails: e.toString(),
+          createdAt: DateTime.now().toIso8601String(),
+        ));
+      }
+      return false;
+    }
+  }
+
+  /// Dispatches an automated background checkout SMS to customer without blocking UI.
+  /// Formats message using standard tags:
+  /// {customer}, {business}, {invoice_no}, {amount}, {paid}, {due}
+  /// If offline or gateway fails, message is saved with status 'pending_retry' in SQLite queue.
+  static Future<bool> dispatchAutoCheckoutNotification({
+    required Sale sale,
+    required BusinessSettings settings,
+    String? customerPhone,
+    String? customerName,
+    String? customTemplate,
+    SmsGateway? gatewayOverride,
+    http.Client? httpClient,
+  }) async {
+    final db = await DatabaseService.initialize();
+
+    // Resolve phone
+    String phone = (customerPhone ?? '').trim();
+    if (phone.isEmpty && sale.customerId != null) {
+      final contact = await db.getContactById(sale.customerId!);
+      phone = (contact?.phone ?? '').trim();
+    }
+    if (phone.isEmpty) return false;
+
+    final resolvedCustomer =
+        (customerName ?? sale.customerName).trim().isNotEmpty
+            ? (customerName ?? sale.customerName).trim()
+            : 'Valued Customer';
+    final resolvedBusiness = settings.businessName.trim().isNotEmpty
+        ? settings.businessName.trim()
+        : 'Smart POS';
+
+    final template = (customTemplate != null &&
+            customTemplate.trim().isNotEmpty)
+        ? customTemplate
+        : 'Dear {customer}, thank you for shopping at {business}! Invoice: #{invoice_no}. Total: Rs {amount}, Paid: Rs {paid}, Due: Rs {due}.';
+
+    final messageText = template
+        .replaceAll('{customer}', resolvedCustomer)
+        .replaceAll('{customer_name}', resolvedCustomer)
+        .replaceAll('{business}', resolvedBusiness)
+        .replaceAll('{business_name}', resolvedBusiness)
+        .replaceAll('{invoice_no}', sale.invoiceNo)
+        .replaceAll('{amount}', sale.totalAmount.toStringAsFixed(2))
+        .replaceAll('{paid}', sale.paidAmount.toStringAsFixed(2))
+        .replaceAll('{due}', sale.dueAmount.toStringAsFixed(2));
+
+    final cleanPhone = formatPhoneNumber(phone);
+    final gateway = gatewayOverride ?? await db.getActiveSmsGateway();
+
+    if (gateway == null || gateway.apiUrl.trim().isEmpty) {
+      // Offline / unconfigured queueing
       await db.addMessageLog(MessageLog(
-        recipientName: recipientName,
+        recipientName: resolvedCustomer,
         phoneNumber: cleanPhone,
         channel: 'sms',
-        messageBody: message,
-        status: isSuccess ? 'sent' : 'failed',
+        messageBody: messageText,
+        status: 'pending_retry',
+        gatewayName: 'None',
+        errorDetails:
+            'Offline / No active SMS gateway configured. Queued for auto retry.',
+        createdAt: DateTime.now().toIso8601String(),
+      ));
+      return false;
+    }
+
+    try {
+      final method = gateway.httpMethod.toUpperCase();
+      final mask = gateway.senderId.isNotEmpty ? gateway.senderId : 'SMARTPOS';
+
+      String url = gateway.apiUrl
+          .replaceAll('{to}', Uri.encodeComponent(cleanPhone))
+          .replaceAll('{mobile}', Uri.encodeComponent(cleanPhone))
+          .replaceAll('{message}', Uri.encodeComponent(messageText))
+          .replaceAll('{text}', Uri.encodeComponent(messageText))
+          .replaceAll('{mask}', Uri.encodeComponent(mask))
+          .replaceAll('{sender}', Uri.encodeComponent(mask))
+          .replaceAll('{key}', Uri.encodeComponent(gateway.apiKey))
+          .replaceAll('{secret}', Uri.encodeComponent(gateway.apiSecret));
+
+      http.Response response;
+      final client = httpClient ?? http.Client();
+
+      try {
+        if (method == 'GET') {
+          response = await client
+              .get(Uri.parse(url))
+              .timeout(const Duration(seconds: 10));
+        } else {
+          Map<String, String> headers = {'Content-Type': 'application/json'};
+          if (gateway.apiKey.isNotEmpty && gateway.provider == 'twilio') {
+            final credentials = base64Encode(
+                utf8.encode('${gateway.apiKey}:${gateway.apiSecret}'));
+            headers['Authorization'] = 'Basic $credentials';
+          }
+
+          String body = gateway.payloadFormat.isNotEmpty
+              ? gateway.payloadFormat
+                  .replaceAll('{to}', cleanPhone)
+                  .replaceAll('{message}', messageText)
+                  .replaceAll('{mask}', mask)
+                  .replaceAll('{key}', gateway.apiKey)
+              : jsonEncode({
+                  'to': cleanPhone,
+                  'message': messageText,
+                  'sender': mask,
+                  'api_key': gateway.apiKey,
+                });
+
+          response = await client
+              .post(Uri.parse(url), headers: headers, body: body)
+              .timeout(const Duration(seconds: 10));
+        }
+      } finally {
+        if (httpClient == null) {
+          client.close();
+        }
+      }
+
+      final isSuccess = response.statusCode >= 200 && response.statusCode < 300;
+      await db.addMessageLog(MessageLog(
+        recipientName: resolvedCustomer,
+        phoneNumber: cleanPhone,
+        channel: 'sms',
+        messageBody: messageText,
+        status: isSuccess ? 'sent' : 'pending_retry',
         gatewayName: gateway.name,
         errorDetails: isSuccess
             ? 'HTTP ${response.statusCode}'
-            : 'Error ${response.statusCode}: ${response.body}',
+            : 'HTTP Error ${response.statusCode}: ${response.body}',
         createdAt: DateTime.now().toIso8601String(),
       ));
 
       return isSuccess;
     } catch (e) {
+      // Offline / network failure -> save as pending_retry
       await db.addMessageLog(MessageLog(
-        recipientName: recipientName,
+        recipientName: resolvedCustomer,
         phoneNumber: cleanPhone,
         channel: 'sms',
-        messageBody: message,
-        status: 'failed',
+        messageBody: messageText,
+        status: 'pending_retry',
         gatewayName: gateway.name,
         errorDetails: e.toString(),
         createdAt: DateTime.now().toIso8601String(),
       ));
       return false;
     }
+  }
+
+  /// Retries all queued messages in 'pending_retry' status.
+  /// Returns the count of successfully delivered messages.
+  static Future<int> retryFailedMessages({
+    SmsGateway? gatewayOverride,
+    http.Client? httpClient,
+  }) async {
+    final db = await DatabaseService.initialize();
+    final pending = await db.getPendingRetryMessageLogs();
+    if (pending.isEmpty) return 0;
+
+    int successCount = 0;
+    for (final log in pending) {
+      if (log.id == null) continue;
+      final ok = await sendSms(
+        to: log.phoneNumber,
+        message: log.messageBody,
+        recipientName: log.recipientName,
+        gatewayOverride: gatewayOverride,
+        httpClient: httpClient,
+        logToDb: false,
+      );
+      if (ok) {
+        await db.updateMessageLogStatus(log.id!, 'sent',
+            errorDetails: 'Retried successfully');
+        successCount++;
+      }
+    }
+    return successCount;
   }
 
   /// Opens WhatsApp Desktop or WhatsApp Web with pre-formatted message

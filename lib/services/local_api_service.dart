@@ -250,6 +250,48 @@ class LocalApiService {
         return;
       }
 
+      // Route: POST /stock/delta (LAN terminal adjusts or decrements stock atomically)
+      if (method == 'POST' &&
+          (normalizedPath == '/stock/delta' ||
+              normalizedPath == '/products/stock/delta')) {
+        final content = await utf8.decoder.bind(request).join();
+        final data = jsonDecode(content) as Map<String, dynamic>;
+        final productId = (data['product_id'] as num?)?.toInt();
+        if (productId == null) {
+          await _sendJson(response, HttpStatus.badRequest,
+              {'success': false, 'error': 'Missing product_id'});
+          return;
+        }
+        final delta = (data['delta'] as num?)?.toDouble() ?? 0.0;
+        final variationId = (data['variation_id'] as num?)?.toInt();
+        final locationId = (data['location_id'] as num?)?.toInt();
+
+        final newStock = await db.applyRemoteStockDelta(
+          productId: productId,
+          variationId: variationId,
+          delta: delta,
+          locationId: locationId,
+        );
+
+        broadcastEvent('stock_delta', {
+          'product_id': productId,
+          'variation_id': variationId,
+          'delta': delta,
+          'location_id': locationId,
+          'new_stock': newStock,
+        });
+
+        await _sendJson(response, HttpStatus.ok, {
+          'success': true,
+          'product_id': productId,
+          'variation_id': variationId,
+          'delta': delta,
+          'location_id': locationId,
+          'new_stock': newStock,
+        });
+        return;
+      }
+
       // Route: GET /drafts (live Salesman Counter Tokens / Held Bills)
       if (method == 'GET' && normalizedPath == '/drafts') {
         final drafts = await db.getParkedSales();
@@ -471,6 +513,18 @@ class LocalApiService {
         );
 
         if (saleStatus == 'final') {
+          for (final item in cartItems) {
+            if (item.product.id != null) {
+              final itemQty = item.quantity *
+                  (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+              broadcastEvent('stock_delta', {
+                'product_id': item.product.id,
+                'variation_id': item.variationId,
+                'delta': -itemQty,
+                'location_id': locationId,
+              });
+            }
+          }
           broadcastEvent('stock_changed', {
             'invoice_no': completed.invoiceNo,
             'location_id': locationId,

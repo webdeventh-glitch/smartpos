@@ -279,8 +279,33 @@ class SettingsRepository extends BaseRepository {
     return rows.map((r) => MessageLog.fromMap(r)).toList();
   }
 
+  Future<List<MessageLog>> getPendingRetryMessageLogs() async {
+    final rows = await db.query(
+      'message_logs',
+      where: "status = 'pending_retry'",
+      orderBy: 'id ASC',
+    );
+    return rows.map((r) => MessageLog.fromMap(r)).toList();
+  }
+
   Future<int> addMessageLog(MessageLog log) async {
     return await db.insert('message_logs', log.toMap());
+  }
+
+  Future<int> updateMessageLogStatus(
+    int id,
+    String status, {
+    String? errorDetails,
+  }) async {
+    return await db.update(
+      'message_logs',
+      {
+        'status': status,
+        if (errorDetails != null) 'error_details': errorDetails,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   // ===================== AI SETTINGS =====================

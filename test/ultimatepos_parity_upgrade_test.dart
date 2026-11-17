@@ -1,17 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:desktop_starter/models/models.dart';
 import 'package:desktop_starter/services/database_service.dart';
+import 'package:desktop_starter/services/lan_realtime_service.dart';
+import 'package:desktop_starter/services/messaging_service.dart';
 
 void main() {
   setUpAll(() {
     sqfliteFfiInit();
   });
 
-  group('UltimatePOS Parity Upgrades Test Suite (Phases 1 - 5)', () {
+  group('UltimatePOS Parity Upgrades Test Suite (Phases 1 - 7)', () {
     late DatabaseService dbService;
     late Directory tempDir;
     late String dbPath;
@@ -809,6 +813,198 @@ void main() {
       expect(starterSettings.isModuleEnabled(ModuleRegistry.hotel), isFalse);
       expect(starterSettings.isModuleEnabled(ModuleRegistry.gym), isFalse);
       expect(starterSettings.isModuleEnabled(ModuleRegistry.returns), isTrue);
+    });
+
+    test(
+        'Phase 7: Multi-Counter LAN Stock Socket Broker & Atomic Remote Delta Sync',
+        () async {
+      // 1. Create a product with initial stock = 50.0
+      final prodId = await dbService.insertProduct(Product(
+        name: 'Wireless Barcode Scanner 2.4G',
+        sku: 'WBS-24G',
+        barcode: 'WBS-24G-01',
+        purchasePrice: 2500.0,
+        sellingPrice: 4200.0,
+        stockQuantity: 50.0,
+      ));
+
+      // 2. Simulate Primary LAN Server receiving stock delta of -3.0 from Counter 2 sale
+      final newStockAfterSale = await dbService.applyRemoteStockDelta(
+        productId: prodId,
+        delta: -3.0,
+        locationId: 1,
+      );
+
+      expect(newStockAfterSale, equals(47.0));
+
+      final updatedProd = await dbService.getProduct(prodId);
+      expect(updatedProd?.stockQuantity, equals(47.0));
+
+      // Verify location stock table was updated atomically
+      final locRows = await dbService.db.query(
+        'product_locations',
+        where: 'product_id = ? AND location_id = ?',
+        whereArgs: [prodId, 1],
+      );
+      expect(locRows.isNotEmpty, isTrue);
+      expect((locRows.first['qty_available'] as num).toDouble(), equals(47.0));
+
+      // 3. Test real-time LAN socket broadcast event stream
+      final eventsEmitted = <Map<String, dynamic>>[];
+      final sub = LanRealtimeService.instance.events.listen(eventsEmitted.add);
+
+      LanRealtimeService.instance.notifyLocalEvent('stock_delta', {
+        'product_id': prodId,
+        'delta': -2.0,
+        'location_id': 1,
+        'new_stock': 45.0,
+      });
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await sub.cancel();
+
+      expect(eventsEmitted.length, equals(1));
+      expect(eventsEmitted.first['type'], equals('stock_delta'));
+      final payload = eventsEmitted.first['data'] as Map<String, dynamic>;
+      expect(payload['product_id'], equals(prodId));
+      expect(payload['new_stock'], equals(45.0));
+
+      // 4. Test positive stock delta (e.g. stock replenishment or blind return)
+      final newStockAfterRestock = await dbService.applyRemoteStockDelta(
+        productId: prodId,
+        delta: 10.0,
+        locationId: 1,
+      );
+      expect(newStockAfterRestock, equals(57.0));
+      final reloaded = await dbService.getProduct(prodId);
+      expect(reloaded?.stockQuantity, equals(57.0));
+    });
+
+    test(
+        'Phase 7: Automated Background Checkout SMS Gateway & Offline Retry Queue',
+        () async {
+      // 1. Add active SMS Gateway
+      final gateway = SmsGateway(
+        name: 'Test Telecom Gateway',
+        provider: 'generic_http',
+        apiUrl:
+            'https://sms.example.com/api/send?to={to}&msg={message}&key={key}',
+        apiKey: 'SECRET-API-KEY-123',
+        senderId: 'SMARTPOS',
+        httpMethod: 'GET',
+        isActive: true,
+        createdAt: DateTime.now().toIso8601String(),
+      );
+      final gwId = await dbService.addSmsGateway(gateway);
+      final activeGw = gateway.copyWith(id: gwId);
+
+      // 2. Prepare test customer and sale
+      final custId = await dbService.addContact(Contact(
+        name: 'Haji Muhammad Iqbal',
+        type: 'customer',
+        phone: '03007654321',
+        balance: 0.0,
+      ));
+
+      final testSale = Sale(
+        invoiceNo: 'INV-2026-7001',
+        customerId: custId,
+        customerName: 'Haji Muhammad Iqbal',
+        subtotal: 10000.0,
+        totalAmount: 10000.0,
+        paidAmount: 8000.0,
+        paymentMethod: 'cash',
+        paymentStatus: 'partial',
+        saleStatus: 'final',
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      final settings = BusinessSettings(
+        businessName: 'Iqbal Super Mart',
+      );
+
+      // 3. Successful online dispatch via MockClient
+      String? requestedUrl;
+      final onlineClient = MockClient((request) async {
+        requestedUrl = request.url.toString();
+        return http.Response(
+            jsonEncode({'status': 'ok', 'msg_id': 'MSG-8899'}), 200);
+      });
+
+      final success = await MessagingService.dispatchAutoCheckoutNotification(
+        sale: testSale,
+        settings: settings,
+        customerPhone: '03007654321',
+        gatewayOverride: activeGw,
+        httpClient: onlineClient,
+      );
+
+      expect(success, isTrue);
+      expect(requestedUrl, contains('923007654321'));
+      expect(requestedUrl, contains('SECRET-API-KEY-123'));
+
+      // Verify message logged as 'sent'
+      final logs = await dbService.getMessageLogs();
+      expect(logs.isNotEmpty, isTrue);
+      final sentLog =
+          logs.firstWhere((l) => l.phoneNumber.contains('923007654321'));
+      expect(sentLog.status, equals('sent'));
+      expect(sentLog.messageBody, contains('Iqbal Super Mart'));
+      expect(sentLog.messageBody, contains('INV-2026-7001'));
+      expect(sentLog.messageBody, contains('8000.00'));
+      expect(sentLog.messageBody, contains('2000.00'));
+
+      // 4. Offline simulation: Gateway network failure / connection drop
+      final offlineClient = MockClient((request) async {
+        throw const SocketException('Connection reset by peer (No Internet)');
+      });
+
+      final offlineSale = Sale(
+        invoiceNo: 'INV-2026-7002',
+        customerId: custId,
+        customerName: 'Haji Muhammad Iqbal',
+        subtotal: 5000.0,
+        totalAmount: 5000.0,
+        paidAmount: 5000.0,
+        paymentMethod: 'cash',
+        paymentStatus: 'paid',
+        saleStatus: 'final',
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      final failed = await MessagingService.dispatchAutoCheckoutNotification(
+        sale: offlineSale,
+        settings: settings,
+        customerPhone: '03007654321',
+        gatewayOverride: activeGw,
+        httpClient: offlineClient,
+      );
+
+      expect(failed, isFalse);
+
+      // Verify offline message was queued into SQLite as 'pending_retry'
+      final pendingQueue = await dbService.getPendingRetryMessageLogs();
+      expect(pendingQueue.length, equals(1));
+      expect(pendingQueue.first.status, equals('pending_retry'));
+      expect(pendingQueue.first.messageBody, contains('INV-2026-7002'));
+
+      // 5. Background Retry Gateway: network restored -> retryFailedMessages()
+      final retriedSuccess = await MessagingService.retryFailedMessages(
+        gatewayOverride: activeGw,
+        httpClient: onlineClient,
+      );
+
+      expect(retriedSuccess, equals(1));
+
+      // Verify queue is now cleared
+      final pendingAfterRetry = await dbService.getPendingRetryMessageLogs();
+      expect(pendingAfterRetry.isEmpty, isTrue);
+
+      final allLogs = await dbService.getMessageLogs();
+      final retriedLog =
+          allLogs.firstWhere((l) => l.messageBody.contains('INV-2026-7002'));
+      expect(retriedLog.status, equals('sent'));
+      expect(retriedLog.errorDetails, equals('Retried successfully'));
     });
   });
 }

@@ -156,6 +156,26 @@ class LanRealtimeService {
             final type = parsed['type'] as String? ?? '';
             if (type == 'drafts_updated') {
               unawaited(refreshPendingCount());
+            } else if (type == 'stock_delta') {
+              final rawData = parsed['data'];
+              final data = (rawData is Map<String, dynamic>)
+                  ? rawData
+                  : <String, dynamic>{};
+              final prodId = (data['product_id'] as num?)?.toInt();
+              final delta = (data['delta'] as num?)?.toDouble();
+              final varId = (data['variation_id'] as num?)?.toInt();
+              final locId = (data['location_id'] as num?)?.toInt();
+              if (prodId != null && delta != null && delta != 0.0) {
+                final db = DatabaseService.instanceOrNull;
+                if (db != null) {
+                  unawaited(db.applyRemoteStockDelta(
+                    productId: prodId,
+                    variationId: varId,
+                    delta: delta,
+                    locationId: locId,
+                  ));
+                }
+              }
             }
             if (!_eventController.isClosed) {
               _eventController.add(parsed);
@@ -409,6 +429,50 @@ class LanRealtimeService {
         success: false,
         invoiceNo: null,
         saleId: null,
+        error: e.toString(),
+      );
+    }
+  }
+
+  /// Pushes a real-time stock delta adjustment to Primary Server (which broadcasts to all other counters).
+  Future<({bool success, double? newStock, String? error})>
+      broadcastStockDelta({
+    required int productId,
+    int? variationId,
+    required double delta,
+    int? locationId,
+    String? host,
+    int? port,
+    String? apiKey,
+  }) async {
+    try {
+      final uri = _buildUri('/api/v1/stock/delta', host: host, port: port);
+      final body = {
+        'product_id': productId,
+        'variation_id': variationId,
+        'delta': delta,
+        'location_id': locationId,
+      };
+      final resp = await http
+          .post(uri, headers: _headers(apiKey), body: jsonEncode(body))
+          .timeout(const Duration(seconds: 4));
+      final decoded = jsonDecode(resp.body) as Map<String, dynamic>;
+      if (resp.statusCode == 200 && decoded['success'] == true) {
+        return (
+          success: true,
+          newStock: (decoded['new_stock'] as num?)?.toDouble(),
+          error: null,
+        );
+      }
+      return (
+        success: false,
+        newStock: null,
+        error: decoded['error'] as String? ?? 'HTTP ${resp.statusCode}',
+      );
+    } catch (e) {
+      return (
+        success: false,
+        newStock: null,
         error: e.toString(),
       );
     }

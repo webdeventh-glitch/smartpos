@@ -194,7 +194,13 @@ class DatabaseService {
   Future<void> deleteSmsGateway(int id) => settingsRepo.deleteSmsGateway(id);
   Future<List<MessageLog>> getMessageLogs({int limit = 100}) =>
       settingsRepo.getMessageLogs(limit: limit);
+  Future<List<MessageLog>> getPendingRetryMessageLogs() =>
+      settingsRepo.getPendingRetryMessageLogs();
   Future<int> addMessageLog(MessageLog log) => settingsRepo.addMessageLog(log);
+  Future<int> updateMessageLogStatus(int id, String status,
+          {String? errorDetails}) =>
+      settingsRepo.updateMessageLogStatus(id, status,
+          errorDetails: errorDetails);
   Future<AiSettings> getAiSettings() => settingsRepo.getAiSettings();
   Future<void> saveAiSettings(AiSettings settings) =>
       settingsRepo.saveAiSettings(settings);
@@ -277,6 +283,67 @@ class DatabaseService {
   Future<int> updateProduct(Product product) =>
       productRepo.updateProduct(product);
   Future<int> deleteProduct(int id) => productRepo.deleteProduct(id);
+
+  /// Applies a real-time remote stock delta (e.g. from Primary LAN server or another counter).
+  /// Updates local product stock (and variations/locations if provided) atomically.
+  Future<double> applyRemoteStockDelta({
+    required int productId,
+    int? variationId,
+    required double delta,
+    int? locationId,
+    bool clampAtZero = false,
+  }) async {
+    return await db.transaction((txn) async {
+      await salesRepo.adjustProductAndVariationStock(
+        txn,
+        productId: productId,
+        variationId: variationId,
+        delta: delta,
+        clampAtZero: clampAtZero,
+      );
+
+      if (locationId != null) {
+        final nowStr = DateTime.now().toIso8601String();
+        final locRows = await txn.query(
+          'product_locations',
+          where: 'product_id = ? AND location_id = ?',
+          whereArgs: [productId, locationId],
+        );
+        if (locRows.isNotEmpty) {
+          await txn.rawUpdate(
+            'UPDATE product_locations SET qty_available = MAX(0, qty_available + ?), updated_at = ? WHERE product_id = ? AND location_id = ?',
+            [delta, nowStr, productId, locationId],
+          );
+        } else {
+          final prodRows = await txn.query(
+            'products',
+            columns: ['stock_quantity'],
+            where: 'id = ?',
+            whereArgs: [productId],
+          );
+          final currentQty =
+              (prodRows.firstOrNull?['stock_quantity'] as num?)?.toDouble() ??
+                  0.0;
+          await txn.insert('product_locations', {
+            'product_id': productId,
+            'location_id': locationId,
+            'qty_available': currentQty,
+            'updated_at': nowStr,
+          });
+        }
+      }
+
+      final pRows = await txn.query(
+        'products',
+        columns: ['stock_quantity'],
+        where: 'id = ?',
+        whereArgs: [productId],
+        limit: 1,
+      );
+      return (pRows.firstOrNull?['stock_quantity'] as num?)?.toDouble() ?? 0.0;
+    });
+  }
+
   Future<List<Product>> getLowStockProducts() =>
       productRepo.getLowStockProducts();
   Future<List<Category>> getCategories() => productRepo.getCategories();
