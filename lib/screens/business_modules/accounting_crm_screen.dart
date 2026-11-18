@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class AccountingCrmScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -517,16 +518,18 @@ class _AccountingCrmScreenState extends State<AccountingCrmScreen>
           indicatorWeight: 3,
           unselectedLabelColor:
               isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-          tabs: const [
-            Tab(
+          tabs: [
+            const Tab(
                 icon: Icon(Icons.account_tree_rounded, size: 18),
                 text: 'Live Chart of Accounts'),
-            Tab(
+            const Tab(
                 icon: Icon(Icons.menu_book_rounded, size: 18),
                 text: 'Journal Vouchers Register'),
             Tab(
-                icon: Icon(Icons.account_balance_wallet_outlined, size: 18),
-                text: 'Cheque Management (چیک مینجمنٹ)'),
+                icon:
+                    const Icon(Icons.account_balance_wallet_outlined, size: 18),
+                text: PosLocalization.tr('Cheque Management',
+                    settings: widget.settings)),
           ],
         ),
         actions: [

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class GymFitnessScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -656,7 +657,8 @@ class _GymFitnessScreenState extends State<GymFitnessScreen> {
                   foregroundColor: Colors.white),
               onPressed: _showTurnstileCheckInDialog,
               icon: const Icon(Icons.qr_code_scanner_rounded, size: 16),
-              label: const Text('Turnstile Check-In (کارڈ سکین)'),
+              label: Text(PosLocalization.tr('Turnstile Check-In',
+                  settings: widget.settings)),
             ),
           ),
           IconButton(

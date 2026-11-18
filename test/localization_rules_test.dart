@@ -126,5 +126,85 @@ void main() {
       expect(PosLocalization.isRtl('es'), false);
       expect(PosLocalization.isRtl('nl'), false);
     });
+
+    test(
+        'Rule 4: Setup Wizard & Installation screens are 100% dynamically translatable without baked-in text',
+        () {
+      // 1. Urdu Primary (pure Urdu without brackets)
+      final urduSettings = BusinessSettings(primaryLanguage: 'ur');
+      expect(
+          PosLocalization.tr('Proceed to Login Screen', settings: urduSettings),
+          'لاگ ان اسکرین پر جائیں');
+      expect(PosLocalization.tr('1. License Lock', settings: urduSettings),
+          '1. لائسنس کی تنصیب');
+      expect(
+          PosLocalization.tr('Installation & Setup Completed!',
+              settings: urduSettings),
+          'تنصیب اور سسٹم سیٹ اپ مکمل ہو گیا!');
+      expect(PosLocalization.tr('Cheque Management', settings: urduSettings),
+          'چیک مینجمنٹ');
+      expect(PosLocalization.tr('Turnstile Check-In', settings: urduSettings),
+          'ٹرن اسٹائل چیک ان (کارڈ سکین)');
+      expect(PosLocalization.tr('Live KDS Screen', settings: urduSettings),
+          'لائیو کچن ڈسپلے اسکرین (KDS)');
+
+      // 2. Arabic Primary
+      final arSettings = BusinessSettings(primaryLanguage: 'ar');
+      expect(
+          PosLocalization.tr('Proceed to Login Screen', settings: arSettings),
+          'الانتقال إلى شاشة الدخول');
+      expect(
+          PosLocalization.tr('Installation & Setup Completed!',
+              settings: arSettings),
+          'اكتمل التثبيت والإعداد بنجاح!');
+      expect(
+          PosLocalization.tr('Cooking', settings: arSettings), 'قيد التحضير');
+      expect(PosLocalization.tr('Ready', settings: arSettings), 'جاهز');
+      expect(PosLocalization.tr('Served', settings: arSettings), 'تم التقديم');
+
+      // 3. Spanish Primary
+      final esSettings = BusinessSettings(primaryLanguage: 'es');
+      expect(
+          PosLocalization.tr('Proceed to Login Screen', settings: esSettings),
+          'Ir a la pantalla de inicio de sesión');
+      expect(PosLocalization.tr('Cooking', settings: esSettings), 'Cocinando');
+      expect(PosLocalization.tr('Ready', settings: esSettings), 'Listo');
+
+      // 4. Dutch Primary
+      final nlSettings = BusinessSettings(primaryLanguage: 'nl');
+      expect(
+          PosLocalization.tr('Proceed to Login Screen', settings: nlSettings),
+          'Doorgaan naar inlogscherm');
+      expect(
+          PosLocalization.tr('Installation & Setup Completed!',
+              settings: nlSettings),
+          'Installatie en configuratie succesvol voltooid!');
+
+      // 5. English Primary with Secondary Disabled (Clean English only)
+      final enCleanSettings = BusinessSettings(
+        primaryLanguage: 'en',
+        enableSecondaryLanguage: false,
+      );
+      expect(
+          PosLocalization.tr('Proceed to Login Screen',
+              settings: enCleanSettings),
+          'Proceed to Login Screen');
+      expect(
+          PosLocalization.tr('Installation & Setup Completed!',
+              settings: enCleanSettings),
+          'Installation & Setup Completed!');
+
+      // 6. English Primary with Urdu Secondary Enabled (Bilingual English (Urdu))
+      final enUrSettings = BusinessSettings(
+        primaryLanguage: 'en',
+        enableSecondaryLanguage: true,
+        secondaryLanguage: 'ur',
+      );
+      expect(
+          PosLocalization.tr('Proceed to Login Screen', settings: enUrSettings),
+          'Proceed to Login Screen (لاگ ان اسکرین پر جائیں)');
+      expect(PosLocalization.tr('Cheque Management', settings: enUrSettings),
+          'Cheque Management (چیک مینجمنٹ)');
+    });
   });
 }

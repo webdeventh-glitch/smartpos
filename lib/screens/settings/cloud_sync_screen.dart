@@ -305,27 +305,30 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                       color: Color(0xFF0EA5E9), size: 28),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Cloud & MySQL Sync Engine',
                         style: TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Hybrid Local SQLite + Laravel / MySQL Sync Architecture (آن لائن و آف لائن ڈیٹا سنک)',
-                        style:
-                            TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                        PosLocalization.tr(
+                            'Hybrid Local SQLite + Laravel / MySQL Sync Architecture',
+                            settings: widget.settings),
+                        style: const TextStyle(
+                            fontSize: 13, color: Color(0xFF94A3B8)),
                       ),
                     ],
                   ),
                 ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.save_rounded, size: 18),
-                  label: const Text('Save Settings (محفوظ کریں)'),
+                  label: Text(PosLocalization.tr('Save Settings',
+                      settings: widget.settings)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
@@ -440,7 +443,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.sync_rounded, size: 18),
-                    label: const Text('Sync Now (ابھی سنک کریں)'),
+                    label: Text(PosLocalization.tr('Sync Now',
+                        settings: widget.settings)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF10B981),
                       foregroundColor: Colors.white,
@@ -457,14 +461,16 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
             const SizedBox(height: 24),
 
             // Section 1: Choose Operating Sync Mode
-            const Text(
-              '1. Deployment & Sync Mode (آپریٹنگ موڈ منتخب کریں)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              PosLocalization.tr('1. Deployment & Sync Mode',
+                  settings: widget.settings),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             _buildModeOption(
               mode: 'offline',
-              title: 'Offline Only (صرف آف لائن لوکل SQLite)',
+              title:
+                  PosLocalization.tr('Offline Only', settings: widget.settings),
               subtitle:
                   'Runs 100% locally on this computer. Zero internet or external database connection needed.',
               urduDesc:
@@ -474,8 +480,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
             ),
             _buildModeOption(
               mode: 'hybrid',
-              title:
-                  'Both Online & Offline - Hybrid Sync (آن لائن اور آف لائن دونوں)',
+              title: PosLocalization.tr('Both Online & Offline - Hybrid Sync',
+                  settings: widget.settings),
               subtitle:
                   'Local SQLite guarantees instant billing without internet; automatically synchronizes with Laravel / MySQL server in the background.',
               urduDesc:
@@ -485,7 +491,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
             ),
             _buildModeOption(
               mode: 'online',
-              title: '️ Online Cloud Server (ڈائریکٹ کلاؤڈ API)',
+              title: PosLocalization.tr('Online Cloud Server',
+                  settings: widget.settings),
               subtitle:
                   'Connected directly to centralized Laravel REST API with local offline caching fallback.',
               urduDesc: 'مرکزی کلاؤڈ سرور سے لائیو منسلک رہتا ہے',
@@ -497,9 +504,11 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
 
             // Section 2: Laravel / MySQL Server Configuration
             if (_syncMode != 'offline') ...[
-              const Text(
-                '2. Laravel / MySQL Server Configuration (آن لائن سرور سیٹنگز)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                PosLocalization.tr('2. Laravel / MySQL Server Configuration',
+                    settings: widget.settings),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Container(

@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/pdf_export_service.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 
 class RepairServiceScreen extends StatefulWidget {
@@ -643,7 +644,7 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
         <h1 style="margin: 0 0 4px 0; font-size: 22px; color: #0f172a; text-transform: uppercase;">$biz</h1>
         <div style="font-size: 12px; color: #64748b;">$address ${phone.isNotEmpty ? '• Tel: $phone' : ''}</div>
         <div style="display: inline-block; margin-top: 8px; background: #0f172a; color: white; padding: 4px 16px; border-radius: 4px; font-weight: bold; font-size: 14px; letter-spacing: 1px;">
-          REPAIR & SERVICE INTAKE VOUCHER (جاب شیٹ)
+          ${PosLocalization.tr('REPAIR & SERVICE INTAKE VOUCHER', settings: widget.settings)}
         </div>
       </div>
 
@@ -703,7 +704,7 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
       </table>
 
       <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 10px; color: #64748b; line-height: 1.4; margin-bottom: 24px;">
-        <strong>Terms & Conditions of Service (قوانین و شرائط):</strong><br>
+        <strong>${PosLocalization.tr('Terms & Conditions of Service', settings: widget.settings)}:</strong><br>
         1. <strong>Data Backup:</strong> The customer is solely responsible for creating a complete backup of all personal data, photos, and files prior to repair. The service center accepts no liability for data loss or operating system reinstalls.<br>
         2. <strong>Diagnostic Changes:</strong> Repair cost estimates and turnaround times are provisional. If additional concealed defects (such as board corrosion or liquid damage) are found during internal inspection, a revised estimate will be provided before proceeding.<br>
         3. <strong>Unclaimed Devices:</strong> Devices not collected within 30 days of completion notification will incur daily storage charges and may be disposed of to recover service and spare parts costs.<br>

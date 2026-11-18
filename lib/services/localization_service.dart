@@ -448,16 +448,10 @@ class PosLocalization {
           'Note: Report expiries with original bill.',
 
       // Setup & Settings
-      '1. License Lock': '1. License Lock',
-      '2. Business & Presets': '2. Business & Presets',
-      '3. Topology & DB': '3. Topology & DB',
-      '4. Master Admin': '4. Master Admin',
       'Back': 'Back',
       'Continue to Next Step': 'Continue to Next Step',
       'Complete Installation & Launch': 'Complete Installation & Launch',
       'Primary Language': 'Primary Language',
-      'Enable Secondary Language (Optional)':
-          'Enable Secondary Language (Optional)',
       'When unchecked, only primary language is shown across the app':
           'When unchecked, only primary language is shown across the app',
       'Secondary Language is only available when Primary Language is English':
@@ -683,6 +677,183 @@ class PosLocalization {
       'Out of Stock': 'Out of Stock',
       'Unit': 'Unit',
       'Batch': 'Batch',
+      '1. License Lock': '1. License Lock',
+      '2. Business & Presets': '2. Business & Presets',
+      '3. Topology & DB': '3. Topology & DB',
+      '4. Master Admin': '4. Master Admin',
+      'Step 1: Machine Hardware-Bound License Activation':
+          'Step 1: Machine Hardware-Bound License Activation',
+      'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine.':
+          'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine.',
+      'Detected Host Machine Hardware ID (HWID):':
+          'Detected Host Machine Hardware ID (HWID):',
+      'Copy HWID': 'Copy HWID',
+      'Verify & Activate': 'Verify & Activate',
+      'Activate Instant 30-Day Free Trial (Hardware Bound)':
+          'Activate Instant 30-Day Free Trial (Hardware Bound)',
+      'No internet required for activation':
+          'No internet required for activation',
+      'HARDWARE BOUND': 'HARDWARE BOUND',
+      'Step 2: Business Profile & Industry Workflows':
+          'Step 2: Business Profile & Industry Workflows',
+      'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).':
+          'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).',
+      'Smart POS Activation Key': 'Smart POS Activation Key',
+      'Business Logo': 'Business Logo',
+      'Business / Store Name': 'Business / Store Name',
+      'NTN / Tax ID': 'NTN / Tax ID',
+      'Official Currency': 'Official Currency',
+      'Regional Time Zone': 'Regional Time Zone',
+      'Local Embedded API Server Port': 'Local Embedded API Server Port',
+      'Primary Server Local IP': 'Primary Server Local IP',
+      'API Port': 'API Port',
+      'Remote Cloud API URL': 'Remote Cloud API URL',
+      'Branch ID': 'Branch ID',
+      'Cloud API Secret Key': 'Cloud API Secret Key',
+      'Primary Database Host / IP': 'Primary Database Host / IP',
+      'Port': 'Port',
+      'Database Name': 'Database Name',
+      'DB Username': 'DB Username',
+      'DB Password': 'DB Password',
+      'Admin Full Name': 'Admin Full Name',
+      'Master Username': 'Master Username',
+      'Email Address': 'Email Address',
+      'Mobile Number': 'Mobile Number',
+      'Master Password': 'Master Password',
+      'Confirm Master Password': 'Confirm Master Password',
+      'Upload Logo': 'Upload Logo',
+      'Change': 'Change',
+      'Search 130+ Currencies': 'Search 130+ Currencies',
+      'Search 80+ Timezones': 'Search 80+ Timezones',
+      'Main': 'Main',
+      'Enable Secondary Language (Optional)':
+          'Enable Secondary Language (Optional)',
+      'Select Business Industry Model (16 Supported Industries):':
+          'Select Business Industry Model (16 Supported Industries):',
+      '1 Business Model At A Time': '1 Business Model At A Time',
+      'Pre-load Starter Products, Categories & Suppliers':
+          'Pre-load Starter Products, Categories & Suppliers',
+      'RECOMMENDED': 'RECOMMENDED',
+      'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing.':
+          'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing.',
+      'ACTIVE EXCLUSIVE': 'ACTIVE EXCLUSIVE',
+      'Step 3: Network Topology & Hybrid Database Engine':
+          'Step 3: Network Topology & Hybrid Database Engine',
+      'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).':
+          'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).',
+      'Primary Server & Mobile REST API Server Configuration':
+          'Primary Server & Mobile REST API Server Configuration',
+      'LAN Secondary Terminals & the Flutter Mobile App on the same Wi-Fi will connect to this PC':
+          'LAN Secondary Terminals & the Flutter Mobile App on the same Wi-Fi will connect to this PC',
+      'Connect to Primary Server Machine:':
+          'Connect to Primary Server Machine:',
+      'Cloud Sync Server Configuration:': 'Cloud Sync Server Configuration:',
+      'Primary Central Database Engine (Admin Choice)':
+          'Primary Central Database Engine (Admin Choice)',
+      'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.':
+          'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.',
+      'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password. Or use "smartpos" / "smartpos123".':
+          'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password. Or use "smartpos" / "smartpos123".',
+      'Clear for Laragon': 'Clear for Laragon',
+      'Offline-First Local SQLite Sync Guarantee':
+          'Offline-First Local SQLite Sync Guarantee',
+      'All point-of-sale transactions write to SQLite locally first. Even if your central database server or network is temporarily down, cashiers can continue billing without interruption.':
+          'All point-of-sale transactions write to SQLite locally first. Even if your central database server or network is temporarily down, cashiers can continue billing without interruption.',
+      'Step 4: Super Admin Master Credentials':
+          'Step 4: Super Admin Master Credentials',
+      'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.':
+          'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.',
+      'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.':
+          'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.',
+      'Installation & Setup Completed!': 'Installation & Setup Completed!',
+      'System installation and database configuration completed successfully.':
+          'System installation and database configuration completed successfully.',
+      'Store / Business Name': 'Store / Business Name',
+      'Industry Profile': 'Industry Profile',
+      'Database Engine': 'Database Engine',
+      'Commercial Catalog': 'Commercial Catalog',
+      'Master Admin Username': 'Master Admin Username',
+      'Starter products, categories & suppliers pre-loaded':
+          'Starter products, categories & suppliers pre-loaded',
+      'Clean blank database initialized': 'Clean blank database initialized',
+      'Direct Login Bypassed for Security':
+          'Direct Login Bypassed for Security',
+      'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials.':
+          'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials.',
+      'Proceed to Login Screen': 'Proceed to Login Screen',
+      'Master Admin username cannot be empty.':
+          'Master Admin username cannot be empty.',
+      'Passwords do not match. Please re-enter.':
+          'Passwords do not match. Please re-enter.',
+      'Please enter Business / Store Name.':
+          'Please enter Business / Store Name.',
+      'Please select at least one Business Industry Preset.':
+          'Please select at least one Business Industry Preset.',
+      'Please provide Primary Server IP for LAN terminal mode.':
+          'Please provide Primary Server IP for LAN terminal mode.',
+      'A verified License Key or Active Free Trial is required to proceed.':
+          'A verified License Key or Active Free Trial is required to proceed.',
+      'MySQL Connection Notice': 'MySQL Connection Notice',
+      'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?':
+          'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?',
+      'Back to Settings': 'Back to Settings',
+      'Switch to SQLite & Launch POS': 'Switch to SQLite & Launch POS',
+      'Installation Error': 'Installation Error',
+      'Close': 'Close',
+      'Cheque Management': 'Cheque Management',
+      'Turnstile Check-In': 'Turnstile Check-In',
+      'Live KDS Screen': 'Live KDS Screen',
+      'Cooking': 'Cooking',
+      'Ready': 'Ready',
+      'Served': 'Served',
+      'REPAIR & SERVICE INTAKE VOUCHER': 'REPAIR & SERVICE INTAKE VOUCHER',
+      'Terms & Conditions of Service': 'Terms & Conditions of Service',
+      'Credit Limit': 'Credit Limit',
+      'Period': 'Period',
+      'Custom Range': 'Custom Range',
+      'No transactions or invoices found for the selected period.':
+          'No transactions or invoices found for the selected period.',
+      'Record Payment': 'Record Payment',
+      'OFFICIAL LEDGER TRANSACTIONS REGISTER':
+          'OFFICIAL LEDGER TRANSACTIONS REGISTER',
+      'DATE & TIME': 'DATE & TIME',
+      'TYPE': 'TYPE',
+      'NARRATION & DETAILS': 'NARRATION & DETAILS',
+      'DEBIT (Dr)': 'DEBIT (Dr)',
+      'CREDIT (Cr)': 'CREDIT (Cr)',
+      'RUNNING BAL': 'RUNNING BAL',
+      'GRAND TOTALS': 'GRAND TOTALS',
+      'PAYMENT': 'PAYMENT',
+      'RETURN': 'RETURN',
+      'PURCHASE': 'PURCHASE',
+      'INVOICE': 'INVOICE',
+      'OPENING': 'OPENING',
+      'Save Modules': 'Save Modules',
+      'Commercial SaaS Tier Presets': 'Commercial SaaS Tier Presets',
+      'Quick Presets': 'Quick Presets',
+      'Minimalist Core Only': 'Minimalist Core Only',
+      'Hybrid Local SQLite + Laravel / MySQL Sync Architecture':
+          'Hybrid Local SQLite + Laravel / MySQL Sync Architecture',
+      'Save Settings': 'Save Settings',
+      'Sync Now': 'Sync Now',
+      '1. Deployment & Sync Mode': '1. Deployment & Sync Mode',
+      'Offline Only': 'Offline Only',
+      'Both Online & Offline - Hybrid Sync':
+          'Both Online & Offline - Hybrid Sync',
+      'Enable All 16 Modules': 'تفعيل كافة الموديولات الـ 16',
+      'Search modules by name or keywords...':
+          'البحث بالاسم أو الكلمات الدلالية...',
+      'Customize active modules. Inactive features are hidden from the sidebar & POS to keep your workspace clean.':
+          'تخصيص الموديولات النشطة لتنظيم مساحة العمل وإخفاء الميزات غير المستخدمة.',
+      'Smart POS Industry Presets': 'نماذج الأنشطة التجارية',
+      'Online Cloud Server': 'خادم سحابي مباشر',
+      '2. Laravel / MySQL Server Configuration':
+          'إعدادات خادم الاتصال عبر الإنترنت',
+      'Live exchange rates synced successfully!':
+          'تم تحديث أسعار الصرف الحية بنجاح!',
+      'Error fetching exchange rates:': 'خطأ في جلب أسعار الصرف:',
+      'Adapt software units, categories & POS to your trade':
+          'مواءمة الوحدات والفئات ونقطة البيع مع مجال عملك',
     },
 
     // Urdu (اردو)
@@ -827,15 +998,10 @@ class PosLocalization {
           'نوٹ: ایکسپائری کی اطلاع 6 ماہ قبل مع اصل بل نمبر کیساتھ دیں۔',
 
       // Setup & Settings
-      '1. License Lock': '1. لائسنس کی',
-      '2. Business & Presets': '2. کاروباری تفصیلات',
-      '3. Topology & DB': '3. نیٹ ورک و ڈیٹا بیس',
-      '4. Master Admin': '4. ماسٹر ایڈمن',
       'Back': 'واپس',
       'Continue to Next Step': 'اگلا مرحلہ',
       'Complete Installation & Launch': 'انسٹالیشن مکمل کریں اور چلائیں',
       'Primary Language': 'بنیادی زبان (Primary Language)',
-      'Enable Secondary Language (Optional)': 'ثانوی زبان فعال کریں (اختیاری)',
       'When unchecked, only primary language is shown across the app':
           'غیر فعال ہونے پر، پوری ایپ صرف بنیادی زبان میں دکھائی دے گی',
       'Secondary Language is only available when Primary Language is English':
@@ -1050,6 +1216,166 @@ class PosLocalization {
       'Out of Stock': 'ختم ہو چکا ہے',
       'Unit': 'یونٹ',
       'Batch': 'بیچ',
+      '1. License Lock': '1. لائسنس کی تنصیب',
+      '2. Business & Presets': '2. کاروباری ماڈل و معلومات',
+      '3. Topology & DB': '3. نیٹ ورک و ڈیٹا بیس',
+      '4. Master Admin': '4. سپر ایڈمن اکاؤنٹ',
+      'Step 1: Machine Hardware-Bound License Activation':
+          'مرحلہ 1: ہارڈ ویئر باؤنڈ لائسنس کی تنصیب و تصدیق',
+      'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine.':
+          'ہر سسٹم (پرائمری سرور یا سیکنڈری لین ٹرمینل) کے لیے ایک مصدقہ لائسنس درکار ہے جو اس کمپیوٹر کے ہارڈ ویئر سے جڑا ہو۔',
+      'Detected Host Machine Hardware ID (HWID):':
+          'اس کمپیوٹر کا ہارڈ ویئر آئی ڈی (HWID):',
+      'Copy HWID': 'ہارڈ ویئر آئی ڈی کاپی کریں',
+      'Verify & Activate': 'تصدیق کریں اور فعال کریں',
+      'Activate Instant 30-Day Free Trial (Hardware Bound)':
+          'فوری 30 دن کی مفت ٹرائل شروع کریں (ہارڈ ویئر باؤنڈ)',
+      'No internet required for activation':
+          'ایکٹیویشن کے لیے انٹرنیٹ کی ضرورت نہیں ہے',
+      'HARDWARE BOUND': 'ہارڈ ویئر سے محفوظ',
+      'Step 2: Business Profile & Industry Workflows':
+          'مرحلہ 2: کاروباری پروفائل اور انڈسٹری ورک فلو',
+      'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).':
+          'کاروباری ماڈل منتخب کریں تاکہ بارکوڈ، آئی ایم ای آئی، سولر یا ریسٹورنٹ کے متعلقہ فیچرز فعال ہو سکیں۔',
+      'Smart POS Activation Key': 'اسمارٹ پی او ایس ایکٹیویشن کی',
+      'Business Logo': 'کاروباری لوگو',
+      'Business / Store Name': 'دکان / کاروبار کا نام',
+      'NTN / Tax ID': 'این ٹی این / ٹیکس شناختی نمبر',
+      'Official Currency': 'سرکاری کرنسی',
+      'Regional Time Zone': 'علاقائی ٹائم زون',
+      'Local Embedded API Server Port': 'مقامی ایمبیڈڈ API سرور پورٹ',
+      'Primary Server Local IP': 'مرکزی سرور کا لوکل IP ایڈریس',
+      'API Port': 'اے پی آئی پورٹ',
+      'Remote Cloud API URL': 'ریموٹ کلاؤڈ API یو آر ایل',
+      'Branch ID': 'برانچ کوڈ / شناختی نمبر',
+      'Cloud API Secret Key': 'کلاؤڈ API خفیہ کی',
+      'Primary Database Host / IP': 'پرائمری ڈیٹا بیس ہوسٹ / IP',
+      'Port': 'پورٹ',
+      'Database Name': 'ڈیٹا بیس کا نام',
+      'DB Username': 'ڈی بی صارف کا نام (Username)',
+      'DB Password': 'ڈی بی پاسورڈ',
+      'Admin Full Name': 'ایڈمن کا مکمل نام',
+      'Master Username': 'ماسٹر یوزر نیم',
+      'Email Address': 'ای میل ایڈریس',
+      'Mobile Number': 'موبائل نمبر',
+      'Master Password': 'ماسٹر پاسورڈ',
+      'Confirm Master Password': 'ماسٹر پاسورڈ کی تصدیق کریں',
+      'Upload Logo': 'لوگو اپ لوڈ کریں',
+      'Change': 'تبدیل کریں',
+      'Search 130+ Currencies': '130 سے زائد کرنسیاں تلاش کریں',
+      'Search 80+ Timezones': '80 سے زائد ٹائم زونز تلاش کریں',
+      'Main': 'بنیادی',
+      'Enable Secondary Language (Optional)': 'ثانوی زبان فعال کریں (اختیاری)',
+      'Select Business Industry Model (16 Supported Industries):':
+          'کاروباری ماڈل منتخب کریں (16 معاونت شدہ شعبہ جات):',
+      '1 Business Model At A Time': 'ایک وقت میں صرف ایک کاروباری ماڈل',
+      'Pre-load Starter Products, Categories & Suppliers':
+          'ابتدائی نمونہ اشیاء، کیٹیگریز اور سپلائرز شامل کریں',
+      'RECOMMENDED': 'تجویز کردہ',
+      'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing.':
+          'تجرباتی اشیاء، کیٹیگریز اور سپلائرز شامل کریں تاکہ سسٹم فوراً فروخت اور ٹیسٹنگ کے لیے تیار ہو۔',
+      'ACTIVE EXCLUSIVE': 'فعال کاروباری ماڈل',
+      'Step 3: Network Topology & Hybrid Database Engine':
+          'مرحلہ 3: نیٹ ورک ٹوپولوجی اور ہائبرڈ ڈیٹا بیس انجن',
+      'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).':
+          'منتخب کریں کہ یہ کمپیوٹر آپ کے اسٹور نیٹ ورک میں کس طرح کام کرے گا (مین سرور، لین کاؤنٹر، یا کلاؤڈ ہائبرڈ)۔',
+      'Primary Server & Mobile REST API Server Configuration':
+          'پرائمری سرور اور موبائل ریسٹ اے پی آئی کنفیگریشن',
+      'LAN Secondary Terminals & the Flutter Mobile App on the same Wi-Fi will connect to this PC':
+          'نیٹ ورک کے دیگر کاؤنٹرز اور موبائل ایپ اسی کمپیوٹر کے آئی پی سے منسلک ہوں گے۔',
+      'Connect to Primary Server Machine:': 'مرکزی سرور کمپیوٹر سے منسلک ہوں:',
+      'Cloud Sync Server Configuration:': 'کلاؤڈ سنک سرور کی ترتیبات:',
+      'Primary Central Database Engine (Admin Choice)':
+          'مرکزی ڈیٹا بیس انجن (ایڈمن کا انتخاب)',
+      'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.':
+          'سینٹرل ڈیٹا بیس کے لیے MySQL یا PostgreSQL منتخب کریں۔ SQLite ہمیشہ لوکل محفوظ رہتی ہے اور سرور سے منسلک ہونے پر خودکار سنک ہو جاتی ہے۔',
+      'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password. Or use "smartpos" / "smartpos123".':
+          'لارگان یا زیمپ میں ڈیفالٹ صارف root بغیر پاسورڈ ہوتا ہے (پاسورڈ خالی چھوڑیں)، یا smartpos استعمال کریں۔',
+      'Clear for Laragon': 'لارگان کے لیے خالی کریں',
+      'Offline-First Local SQLite Sync Guarantee':
+          'آف لائن فرسٹ لوکل SQLite تحفظ',
+      'All point-of-sale transactions write to SQLite locally first. Even if your central database server or network is temporarily down, cashiers can continue billing without interruption.':
+          'تمام سیلز پہلے مقامی کمپیوٹر پر محفوظ ہوتی ہیں۔ اگر مرکزی سرور یا انٹرنیٹ بند بھی ہو تو بھی کیشیئر بلنگ جاری رکھ سکتے ہیں۔',
+      'Step 4: Super Admin Master Credentials':
+          'مرحلہ 4: سپر ایڈمن ماسٹر لاگ ان کی تفصیلات',
+      'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.':
+          'سسٹم کا بنیادی سپر ایڈمن اکاؤنٹ بنائیں۔ پاسورڈ انتہائی محفوظ ترین Argon2id ٹیکنالوجی سے اینکرپٹ ہوتے ہیں۔',
+      'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.':
+          'سیکیورٹی شیلڈ فعال ہے: تمام پاسورڈز اور ڈیٹا جدید ترین Argon2id اور AES-256-GCM سے محفوظ ہیں۔',
+      'Installation & Setup Completed!': 'تنصیب اور سسٹم سیٹ اپ مکمل ہو گیا!',
+      'System installation and database configuration completed successfully.':
+          'سسٹم کی تنصیب اور ڈیٹا بیس کنفیگریشن کامیابی سے مکمل ہو چکی ہے۔',
+      'Store / Business Name': 'اسٹور / کاروبار کا نام',
+      'Industry Profile': 'کاروباری شعبہ و پروفائل',
+      'Database Engine': 'ڈیٹا بیس انجن',
+      'Commercial Catalog': 'تجارتی کیٹلاگ',
+      'Master Admin Username': 'ماسٹر ایڈمن یوزر نیم',
+      'Starter products, categories & suppliers pre-loaded':
+          'ابتدائی اشیاء، کیٹیگریز اور سپلائرز شامل کر دیے گئے ہیں',
+      'Clean blank database initialized': 'خالی ڈیٹا بیس تیار کیا گیا ہے',
+      'Direct Login Bypassed for Security':
+          'سیکیورٹی وجوہات کے باعث براہ راست لاگ ان بائی پاس کیا گیا',
+      'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials.':
+          'سرکاری لاگ ان اسکرین پر جانے کے لیے نیچے کلک کریں اور اپنے نئے ایڈمن اکاؤنٹ سے لاگ ان کریں۔',
+      'Proceed to Login Screen': 'لاگ ان اسکرین پر جائیں',
+      'Master Admin username cannot be empty.':
+          'ماسٹر ایڈمن کا یوزر نیم خالی نہیں ہو سکتا۔',
+      'Passwords do not match. Please re-enter.':
+          'پاسورڈز مماثل نہیں ہیں۔ براہ کرم دوبارہ درج کریں۔',
+      'Please enter Business / Store Name.':
+          'براہ کرم دکان یا کاروبار کا نام درج کریں۔',
+      'Please select at least one Business Industry Preset.':
+          'براہ کرم کم از کم ایک کاروباری ماڈل منتخب کریں۔',
+      'Please provide Primary Server IP for LAN terminal mode.':
+          'لین ٹرمینل موڈ کے لیے مرکزی سرور کا IP ایڈریس درج کریں۔',
+      'A verified License Key or Active Free Trial is required to proceed.':
+          'آگے بڑھنے کے لیے مصدقہ لائسنس کی یا فعال فری ٹرائل درکار ہے۔',
+      'MySQL Connection Notice': 'MySQL کنکشن کی اطلاع',
+      'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?':
+          'اسمارٹ پی او ایس میں تیز رفتار ایمبیڈڈ SQLite شامل ہے جو بغیر کسی سیٹ اپ کے آف لائن کام کرتی ہے۔\n\nکیا آپ اسٹینڈ الون SQLite موڈ پر شروع کرنا چاہتے ہیں؟',
+      'Back to Settings': 'سیٹنگز پر واپس جائیں',
+      'Switch to SQLite & Launch POS': 'SQLite پر سوئچ کریں اور شروع کریں',
+      'Installation Error': 'تنصیب میں خرابی',
+      'Close': 'بند کریں',
+      'Cheque Management': 'چیک مینجمنٹ',
+      'Turnstile Check-In': 'ٹرن اسٹائل چیک ان (کارڈ سکین)',
+      'Live KDS Screen': 'لائیو کچن ڈسپلے اسکرین (KDS)',
+      'Cooking': 'تیار ہو رہا ہے',
+      'Ready': 'تیار ہے',
+      'Served': 'پیش کر دیا گیا',
+      'REPAIR & SERVICE INTAKE VOUCHER': 'جاب شیٹ و رسید مرمت',
+      'Terms & Conditions of Service': 'قوانین و شرائط برائے خدمات',
+      'Credit Limit': 'حد قرضہ',
+      'Period': 'مدت',
+      'Custom Range': 'تاریخ منتخب کریں',
+      'No transactions or invoices found for the selected period.':
+          'اس منتخب مدت میں کوئی لین دین یا بل ریکارڈ نہیں ہے۔',
+      'Record Payment': 'ادائیگی یا وصولی درج کریں',
+      'OFFICIAL LEDGER TRANSACTIONS REGISTER': 'کھاتہ رجسٹر مکمل تفصیلات',
+      'DATE & TIME': 'تاریخ و وقت',
+      'TYPE': 'قسم',
+      'NARRATION & DETAILS': 'تفصیل و کیفیت',
+      'DEBIT (Dr)': 'بنام (Dr)',
+      'CREDIT (Cr)': 'جمع (Cr)',
+      'RUNNING BAL': 'بقیہ کھاتہ',
+      'GRAND TOTALS': 'کل میزان کھاتہ',
+      'PAYMENT': 'وصولی / ادائیگی',
+      'RETURN': 'واپسی',
+      'PURCHASE': 'خریداری',
+      'INVOICE': 'بل / انوائس',
+      'OPENING': 'سابقہ بقایا',
+      'Save Modules': 'ماڈیولز محفوظ کریں',
+      'Commercial SaaS Tier Presets': 'تجارتی سبسکرپشن پیکجز',
+      'Quick Presets': 'فوری پری سیٹ',
+      'Minimalist Core Only': 'سادہ بلنگ',
+      'Hybrid Local SQLite + Laravel / MySQL Sync Architecture':
+          'آن لائن و آف لائن ڈیٹا سنک آرکیٹیکچر',
+      'Save Settings': 'سیٹنگز محفوظ کریں',
+      'Sync Now': 'ابھی سنک کریں',
+      '1. Deployment & Sync Mode': 'آپریٹنگ موڈ منتخب کریں',
+      'Offline Only': 'صرف آف لائن لوکل SQLite',
+      'Both Online & Offline - Hybrid Sync':
+          'آن لائن اور آف لائن دونوں - ہائبرڈ سنک',
     },
 
     // Farsi (فارسی)
@@ -1196,15 +1522,10 @@ class PosLocalization {
           'توجه: گزارش انقضا ۶ ماه قبل همراه با اصل فاکتور الزامی است.',
 
       // Setup & Settings
-      '1. License Lock': '۱. لایسنس',
-      '2. Business & Presets': '۲. کسب و کار',
-      '3. Topology & DB': '۳. شبکه و دیتابیس',
-      '4. Master Admin': '۴. مدیر ارشد',
       'Back': 'بازگشت',
       'Continue to Next Step': 'ادامه به مرحله بعد',
       'Complete Installation & Launch': 'تکمیل نصب و راه‌اندازی',
       'Primary Language': 'زبان اصلی (Primary Language)',
-      'Enable Secondary Language (Optional)': 'فعال‌سازی زبان دوم (اختیاری)',
       'When unchecked, only primary language is shown across the app':
           'در صورت غیرفعال بودن، تمام نرم‌افزار صرفاً به زبان اصلی نمایش داده خواهد شد',
       'Secondary Language is only available when Primary Language is English':
@@ -1297,6 +1618,165 @@ class PosLocalization {
       'Manage Other Users & Staff Permissions':
           'مدیریت کاربران و تعیین اختیارات',
       'PAYMENT CURRENCY': 'واحد پول پرداخت',
+      '1. License Lock': '۱. فعال‌سازی لایسنس',
+      '2. Business & Presets': '۲. اطلاعات و نوع کسب و کار',
+      '3. Topology & DB': '۳. شبکه و پایگاه داده',
+      '4. Master Admin': '۴. حساب کاربری مدیر ارشد',
+      'Step 1: Machine Hardware-Bound License Activation':
+          'مرحله ۱: فعال‌سازی مجوز متصل به سخت‌افزار',
+      'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine.':
+          'هر دستگاه نیازمند مجوزی معتبر و متصل به سخت‌افزار همان سیستم است.',
+      'Detected Host Machine Hardware ID (HWID):':
+          'شناسه سخت‌افزاری شناسایی شده (HWID):',
+      'Copy HWID': 'کپی شناسه سخت‌افزار',
+      'Verify & Activate': 'بررسی و فعال‌سازی',
+      'Activate Instant 30-Day Free Trial (Hardware Bound)':
+          'فعال‌سازی آزمایشی رایگان ۳۰ روزه',
+      'No internet required for activation': 'فعال‌سازی بدون نیاز به اینترنت',
+      'HARDWARE BOUND': 'قفل سخت‌افزاری',
+      'Step 2: Business Profile & Industry Workflows':
+          'مرحله ۲: پروفایل کسب و کار و گردش کار تخصصی',
+      'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).':
+          'مدل کسب و کار خود را انتخاب کنید تا امکانات اختصاصی فعال شوند.',
+      'Smart POS Activation Key': 'کلید فعال‌سازی اسمارت پوز',
+      'Business Logo': 'لوگوی کسب و کار',
+      'Business / Store Name': 'نام فروشگاه / کسب و کار',
+      'NTN / Tax ID': 'شناسه مالیاتی',
+      'Official Currency': 'واحد پول رسمی',
+      'Regional Time Zone': 'منطقه زمانی',
+      'Local Embedded API Server Port': 'پورت سرور محلی API',
+      'Primary Server Local IP': 'آی‌پی محلی سرور اصلی',
+      'API Port': 'پورت API',
+      'Remote Cloud API URL': 'آدرس API ابری',
+      'Branch ID': 'کد شعبه',
+      'Cloud API Secret Key': 'کلید مخفی API ابری',
+      'Primary Database Host / IP': 'میزبان / آی‌پی پایگاه داده اصلی',
+      'Port': 'پورت',
+      'Database Name': 'نام پایگاه داده',
+      'DB Username': 'نام کاربری دیتابیس',
+      'DB Password': 'رمز عبور دیتابیس',
+      'Admin Full Name': 'نام کامل مدیر سیستم',
+      'Master Username': 'نام کاربری اصلی',
+      'Email Address': 'آدرس ایمیل',
+      'Mobile Number': 'شماره همراه',
+      'Master Password': 'رمز عبور اصلی',
+      'Confirm Master Password': 'تایید رمز عبور اصلی',
+      'Upload Logo': 'بارگذاری لوگو',
+      'Change': 'تغییر',
+      'Search 130+ Currencies': 'جستجوی بیش از ۱۳۰ واحد پول',
+      'Search 80+ Timezones': 'جستجوی مناطق زمانی',
+      'Main': 'اصلی',
+      'Enable Secondary Language (Optional)': 'فعال‌سازی زبان دوم (اختیاری)',
+      'Select Business Industry Model (16 Supported Industries):':
+          'انتخاب نوع کسب و کار (۱۶ صنعت پشتیبانی شده):',
+      '1 Business Model At A Time': 'یک مدل در هر سیستم',
+      'Pre-load Starter Products, Categories & Suppliers':
+          'بارگذاری اقلام، دسته‌ها و تامین‌کنندگان نمونه',
+      'RECOMMENDED': 'پیشنهادی',
+      'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing.':
+          'بارگذاری آزمایشی اقلام و تامین‌کنندگان برای آماده‌سازی فوری سیستم برای فروش و آزمایش.',
+      'ACTIVE EXCLUSIVE': 'مدل فعال',
+      'Step 3: Network Topology & Hybrid Database Engine':
+          'مرحله ۳: توپولوژی شبکه و موتور داده ترکیبی',
+      'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).':
+          'نحوه اتصال این سیستم در شبکه فروشگاه را مشخص کنید.',
+      'Primary Server & Mobile REST API Server Configuration':
+          'پیکربندی سرور اصلی و رابط موبایل',
+      'LAN Secondary Terminals & the Flutter Mobile App on the same Wi-Fi will connect to this PC':
+          'پایانه‌های فرعی و اپلیکیشن موبایل از طریق وای‌فای به این سیستم متصل می‌شوند.',
+      'Connect to Primary Server Machine:': 'اتصال به سیستم سرور اصلی:',
+      'Cloud Sync Server Configuration:': 'پیکربندی سرور همگام‌سازی ابری:',
+      'Primary Central Database Engine (Admin Choice)':
+          'موتور پایگاه داده مرکزی',
+      'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.':
+          'پایگاه داده MySQL یا PostgreSQL را به عنوان سرور مرکزی انتخاب کنید. SQLite همیشه به صورت آفلاین فعال است.',
+      'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password. Or use "smartpos" / "smartpos123".':
+          'نکته: در Laragon یا XAMPP نام کاربری پیش‌فرض root بدون رمز عبور است.',
+      'Clear for Laragon': 'پاک کردن برای لارگون',
+      'Offline-First Local SQLite Sync Guarantee':
+          'تضمین کارکرد آفلاین پایگاه داده لوکال',
+      'All point-of-sale transactions write to SQLite locally first. Even if your central database server or network is temporarily down, cashiers can continue billing without interruption.':
+          'همه تراکنش‌ها ابتدا در SQLite محلی ثبت می‌شوند. در صورت قطع شبکه، فرآیند فروش بدون وقفه ادامه می‌یابد.',
+      'Step 4: Super Admin Master Credentials':
+          'مرحله ۴: مشخصات دسترسی مدیر کل',
+      'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.':
+          'حساب کاربری مالک سیستم را تعریف کنید. رمزها با Argon2id به صورت رمزنگاری پیشرفته ذخیره می‌شوند.',
+      'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.':
+          'سپر امنیتی فعال: رمزها با Argon2id و AES-256-GCM محافظت می‌شوند.',
+      'Installation & Setup Completed!': 'نصب و پیکربندی با موفقیت پایان یافت!',
+      'System installation and database configuration completed successfully.':
+          'نصب سیستم و پیکربندی پایگاه داده با موفقیت تکمیل شد.',
+      'Store / Business Name': 'نام فروشگاه / کسب و کار',
+      'Industry Profile': 'پروفایل صنعت',
+      'Database Engine': 'موتور پایگاه داده',
+      'Commercial Catalog': 'کاتالوگ تجاری',
+      'Master Admin Username': 'نام کاربری مدیر ارشد',
+      'Starter products, categories & suppliers pre-loaded':
+          'کالاها، دسته‌ها و تامین‌کنندگان اولیه بارگذاری شدند',
+      'Clean blank database initialized': 'پایگاه داده خالی راه‌اندازی شد',
+      'Direct Login Bypassed for Security':
+          'ورود مستقیم به دلایل امنیتی غیرفعال شد',
+      'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials.':
+          'برای ورود، دکمه زیر را زده و با مشخصات مدیر ارشد وارد شوید.',
+      'Proceed to Login Screen': 'ورود به صفحه لاگین',
+      'Master Admin username cannot be empty.':
+          'نام کاربری مدیر ارشد نمی‌تواند خالی باشد.',
+      'Passwords do not match. Please re-enter.':
+          'رمزهای عبور یکسان نیستند. دوباره بررسی کنید.',
+      'Please enter Business / Store Name.':
+          'لطفاً نام فروشگاه یا کسب و کار را وارد کنید.',
+      'Please select at least one Business Industry Preset.':
+          'لطفاً حداقل یک مدل تجاری را انتخاب کنید.',
+      'Please provide Primary Server IP for LAN terminal mode.':
+          'لطفاً آی‌پی سرور اصلی را برای حالت پایانه وارد کنید.',
+      'A verified License Key or Active Free Trial is required to proceed.':
+          'جهت ادامه، کلید لایسنس تایید شده یا دوره آزمایشی فعال الزامی است.',
+      'MySQL Connection Notice': 'اطلاعیه اتصال به MySQL',
+      'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?':
+          'اسمارت پوز مجهز به پایگاه داده داخلی و سریع SQLite است که به صورت آفلاین بدون نیاز به تنظیمات کار می‌کند.\n\nآیا مایلید از حالت آفلاین SQLite استفاده کنید؟',
+      'Back to Settings': 'بازگشت به تنظیمات',
+      'Switch to SQLite & Launch POS': 'تغییر به SQLite و راه‌اندازی فروشگاه',
+      'Installation Error': 'خطا در نصب',
+      'Close': 'بستن',
+      'Cheque Management': 'مدیریت چک‌ها',
+      'Turnstile Check-In': 'ثبت ورود گیت و کارت',
+      'Live KDS Screen': 'نمایشگر زنده آشپزخانه (KDS)',
+      'Cooking': 'در حال پخت',
+      'Ready': 'آماده تحویل',
+      'Served': 'تحویل داده شد',
+      'REPAIR & SERVICE INTAKE VOUCHER': 'قبض پذیرش تعمیرات و خدمات',
+      'Terms & Conditions of Service': 'قوانین و شرایط خدمات',
+      'Credit Limit': 'سقف اعتبار',
+      'Period': 'دوره زمانی',
+      'Custom Range': 'بازه انتخابی',
+      'No transactions or invoices found for the selected period.':
+          'هیچ تراکنش یا فاکتوری در این دوره یافت نشد.',
+      'Record Payment': 'ثبت دریافت یا پرداخت',
+      'OFFICIAL LEDGER TRANSACTIONS REGISTER': 'دفتر معین رسمی و ریز تراکنش‌ها',
+      'DATE & TIME': 'تاریخ و ساعت',
+      'TYPE': 'نوع',
+      'NARRATION & DETAILS': 'شرح سند و جزئیات',
+      'DEBIT (Dr)': 'بدهکار (Dr)',
+      'CREDIT (Cr)': 'بستانکار (Cr)',
+      'RUNNING BAL': 'مانده حساب',
+      'GRAND TOTALS': 'جمع کل حساب',
+      'PAYMENT': 'دریافت / پرداخت',
+      'RETURN': 'مرجوعی',
+      'PURCHASE': 'خرید کالا',
+      'INVOICE': 'فاکتور',
+      'OPENING': 'مانده قبلی',
+      'Save Modules': 'ذخیره ماژول‌ها',
+      'Commercial SaaS Tier Presets': 'بسته‌های اشتراک تجاری',
+      'Quick Presets': 'پیکربندی سریع',
+      'Minimalist Core Only': 'فقط فروش ساده',
+      'Hybrid Local SQLite + Laravel / MySQL Sync Architecture':
+          'معماری همگام‌سازی آفلاین و آنلاین',
+      'Save Settings': 'ذخیره تنظیمات',
+      'Sync Now': 'همگام‌سازی فوری',
+      '1. Deployment & Sync Mode': 'انتخاب حالت استقرار و همگام‌سازی',
+      'Offline Only': 'فقط آفلاین با SQLite',
+      'Both Online & Offline - Hybrid Sync':
+          'هم آنلاین و هم آفلاین - سنک هیبریدی',
     },
 
     // Arabic (العربية)
@@ -1442,15 +1922,10 @@ class PosLocalization {
           'ملاحظة: الإبلاغ عن انتهاء الصلاحية قبل 6 أشهر مع الفاتورة الأصلية.',
 
       // Setup & Settings
-      '1. License Lock': '1. مفتاح الترخيص',
-      '2. Business & Presets': '2. بيانات المنشأة',
-      '3. Topology & DB': '3. الشبكة وقاعدة البيانات',
-      '4. Master Admin': '4. المدير العام',
       'Back': 'رجوع',
       'Continue to Next Step': 'متابعة للخطوة التالية',
       'Complete Installation & Launch': 'إتمام التثبيت وتشغيل النظام',
       'Primary Language': 'اللغة الأساسية (Primary Language)',
-      'Enable Secondary Language (Optional)': 'تفعيل لغة ثانوية (اختياري)',
       'When unchecked, only primary language is shown across the app':
           'عند عدم التحديد، ستظهر المنظومة بأكملها باللغة الأساسية فقط',
       'Secondary Language is only available when Primary Language is English':
@@ -1542,6 +2017,164 @@ class PosLocalization {
       'Manage Other Users & Staff Permissions':
           'إدارة الموظفين وتحديد الصلاحيات',
       'PAYMENT CURRENCY': 'عملة الدفع',
+      '1. License Lock': '1. تفعيل الترخيص',
+      '2. Business & Presets': '2. ملف النشاط التجاري',
+      '3. Topology & DB': '3. الشبكة وقاعدة البيانات',
+      '4. Master Admin': '4. حساب المشرف العام',
+      'Step 1: Machine Hardware-Bound License Activation':
+          'الخطوة 1: تفعيل ترخيص النظام المرتبط بالجهاز',
+      'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine.':
+          'يتطلب كل جهاز ترخيصاً معتمداً مرتبطاً بالمكونات المادية للجهاز.',
+      'Detected Host Machine Hardware ID (HWID):':
+          'معرف الجهاز المكتشف (HWID):',
+      'Copy HWID': 'نسخ معرف الجهاز',
+      'Verify & Activate': 'تحقق وتفعيل',
+      'Activate Instant 30-Day Free Trial (Hardware Bound)':
+          'تفعيل تجربة مجانية لمدة 30 يوماً',
+      'No internet required for activation': 'لا يلزم اتصال بالإنترنت للتفعيل',
+      'HARDWARE BOUND': 'مرتبط بالعتاد',
+      'Step 2: Business Profile & Industry Workflows':
+          'الخطوة 2: ملف النشاط وإعدادات نوع التجارة',
+      'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).':
+          'اختر نموذج عملك لتفعيل الميزات المتخصصة لنشاطك التجاري.',
+      'Smart POS Activation Key': 'مفتاح تفعيل سمارت بوس',
+      'Business Logo': 'شعار المتجر / النشاط',
+      'Business / Store Name': 'اسم المتجر / النشاط التجاري',
+      'NTN / Tax ID': 'الرقم الضريبي',
+      'Official Currency': 'العملة الرسمية',
+      'Regional Time Zone': 'المنطقة الزمنية',
+      'Local Embedded API Server Port': 'منفذ خادم API المحلي',
+      'Primary Server Local IP': 'عنوان IP المحلي للخادم الرئيسي',
+      'API Port': 'منفذ API',
+      'Remote Cloud API URL': 'رابط API السحابي',
+      'Branch ID': 'معرف الفرع',
+      'Cloud API Secret Key': 'المفتاح السري لـ API السحابي',
+      'Primary Database Host / IP': 'عنوان مضيف قاعدة البيانات الرئيسية',
+      'Port': 'المنفذ',
+      'Database Name': 'اسم قاعدة البيانات',
+      'DB Username': 'اسم مستخدم قاعدة البيانات',
+      'DB Password': 'كلمة مرور قاعدة البيانات',
+      'Admin Full Name': 'الاسم الكامل للمدير',
+      'Master Username': 'اسم المستخدم الرئيسي',
+      'Email Address': 'البريد الإلكتروني',
+      'Mobile Number': 'رقم الجوال',
+      'Master Password': 'كلمة المرور الرئيسية',
+      'Confirm Master Password': 'تأكيد كلمة المرور الرئيسية',
+      'Upload Logo': 'رفع الشعار',
+      'Change': 'تغيير',
+      'Search 130+ Currencies': 'البحث في أكثر من 130 عملة',
+      'Search 80+ Timezones': 'البحث في المناطق الزمنية',
+      'Main': 'رئيسي',
+      'Enable Secondary Language (Optional)': 'تفعيل اللغة الثانوية (اختياري)',
+      'Select Business Industry Model (16 Supported Industries):':
+          'اختر نموذج النشاط التجاري (16 نموذجاً مدعوماً):',
+      '1 Business Model At A Time': 'نموذج عمل واحد في كل مرة',
+      'Pre-load Starter Products, Categories & Suppliers':
+          'تحميل منتجات وفئات وموردين كعينة أولية',
+      'RECOMMENDED': 'موصى به',
+      'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing.':
+          'إضافة منتجات تجريبية وموردين ليكون النظام جاهزاً للبيع والاختبار مباشرة.',
+      'ACTIVE EXCLUSIVE': 'النموذج النشط',
+      'Step 3: Network Topology & Hybrid Database Engine':
+          'الخطوة 3: هيكلية الشبكة وقاعدة البيانات المزدوجة',
+      'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).':
+          'حدد طريقة تشغيل هذا الجهاز في شبكة متجرك (خادم رئيسي، نقطة بيع طرفية، أو هجين).',
+      'Primary Server & Mobile REST API Server Configuration':
+          'إعدادات الخادم الرئيسي وواجهة تطبيقات الجوال',
+      'LAN Secondary Terminals & the Flutter Mobile App on the same Wi-Fi will connect to this PC':
+          'ستتصل نقاط البيع الفرعية وتطبيق الجوال عبر نفس الشبكة بهذا الجهاز.',
+      'Connect to Primary Server Machine:': 'الاتصال بجهاز الخادم الرئيسي:',
+      'Cloud Sync Server Configuration:': 'إعدادات خادم المزامنة السحابية:',
+      'Primary Central Database Engine (Admin Choice)':
+          'محرك قاعدة البيانات المركزي',
+      'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.':
+          'اختر MySQL أو PostgreSQL كقاعدة بيانات مركزية. سيعمل SQLite محلياً لضمان سرعة المعاملات ومزامنتها تلقائياً.',
+      'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password. Or use "smartpos" / "smartpos123".':
+          'ملاحظة: في Laragon أو XAMPP، المستخدم الافتراضي هو root بدون كلمة مرور.',
+      'Clear for Laragon': 'تفريغ لـ Laragon',
+      'Offline-First Local SQLite Sync Guarantee':
+          'ضمان استمرارية العمل دون اتصال مع SQLite',
+      'All point-of-sale transactions write to SQLite locally first. Even if your central database server or network is temporarily down, cashiers can continue billing without interruption.':
+          'تُحفظ كافة المبيعات محلياً أولاً. حتى في حال انقطاع الشبكة، تستمر عمليات البيع والفوترة بلا توقف.',
+      'Step 4: Super Admin Master Credentials':
+          'الخطوة 4: بيانات اعتماد المشرف العام',
+      'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.':
+          'أنشئ حساب المشرف العام الأولي. كلمات المرور مشفرة بأحدث تقنيات التشفير Argon2id.',
+      'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.':
+          'درع الأمان نشط: كلمات المرور والبيانات محمية بتشفير Argon2id و AES-256-GCM.',
+      'Installation & Setup Completed!': 'اكتمل التثبيت والإعداد بنجاح!',
+      'System installation and database configuration completed successfully.':
+          'تم إعداد قاعدة البيانات وتثبيت النظام بنجاح تام.',
+      'Store / Business Name': 'اسم المتجر / النشاط',
+      'Industry Profile': 'ملف النشاط التجاري',
+      'Database Engine': 'محرك قاعدة البيانات',
+      'Commercial Catalog': 'كتالوج المنتجات',
+      'Master Admin Username': 'اسم مستخدم المشرف الرئيسي',
+      'Starter products, categories & suppliers pre-loaded':
+          'تم تحميل المنتجات والفئات والموردين الأولية',
+      'Clean blank database initialized': 'تمت تهيئة قاعدة بيانات فارغة ونظيفة',
+      'Direct Login Bypassed for Security':
+          'تم تجاوز الدخول المباشر لأسباب أمنية',
+      'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials.':
+          'يرجى النقر أدناه للانتقال إلى شاشة تسجيل الدخول والمصادقة ببيانات المشرف الجديدة.',
+      'Proceed to Login Screen': 'الانتقال إلى شاشة الدخول',
+      'Master Admin username cannot be empty.':
+          'لا يمكن أن يكون اسم مستخدم المشرف فارغاً.',
+      'Passwords do not match. Please re-enter.':
+          'كلمات المرور غير متطابقة. يرجى إعادة الإدخال.',
+      'Please enter Business / Store Name.': 'يرجى إدخال اسم المتجر أو النشاط.',
+      'Please select at least one Business Industry Preset.':
+          'يرجى اختيار نموذج عمل تجاري واحد على الأقل.',
+      'Please provide Primary Server IP for LAN terminal mode.':
+          'يرجى تحديد عنوان IP للخادم الرئيسي لوضع نقطة البيع الطرفية.',
+      'A verified License Key or Active Free Trial is required to proceed.':
+          'يلزم وجود مفتاح ترخيص معتمد أو فترة تجريبية نشطة للمتابعة.',
+      'MySQL Connection Notice': 'تنبيه اتصال MySQL',
+      'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?':
+          'يتضمن النظام محرك SQLite مدمج وسريع يعمل دون اتصال وبدون إعدادات إضافية.\n\nهل ترغب في البدء بوضع SQLite المستقل الآن؟',
+      'Back to Settings': 'العودة إلى الإعدادات',
+      'Switch to SQLite & Launch POS': 'التحويل إلى SQLite وبدء التشغيل',
+      'Installation Error': 'خطأ في التثبيت',
+      'Close': 'إغلاق',
+      'Cheque Management': 'إدارة الشيكات',
+      'Turnstile Check-In': 'تسجيل دخول البوابة (البطاقة)',
+      'Live KDS Screen': 'شاشة المطبخ المباشرة (KDS)',
+      'Cooking': 'قيد التحضير',
+      'Ready': 'جاهز',
+      'Served': 'تم التقديم',
+      'REPAIR & SERVICE INTAKE VOUCHER': 'سند استلام الصيانة والخدمة',
+      'Terms & Conditions of Service': 'الشروط والأحكام الخاصة بالخدمة',
+      'Credit Limit': 'حد الائتمان',
+      'Period': 'الفترة',
+      'Custom Range': 'نطاق مخصص',
+      'No transactions or invoices found for the selected period.':
+          'لا توجد معاملات أو فواتير مسجلة في هذه الفترة.',
+      'Record Payment': 'تسجيل دفعة',
+      'OFFICIAL LEDGER TRANSACTIONS REGISTER':
+          'سجل المعاملات وكشف الحساب الرسمي',
+      'DATE & TIME': 'التاريخ والوقت',
+      'TYPE': 'النوع',
+      'NARRATION & DETAILS': 'البيان والتفاصيل',
+      'DEBIT (Dr)': 'مدين (Dr)',
+      'CREDIT (Cr)': 'دائن (Cr)',
+      'RUNNING BAL': 'الرصيد التراكمي',
+      'GRAND TOTALS': 'الإجمالي العام',
+      'PAYMENT': 'سداد',
+      'RETURN': 'مرتجع',
+      'PURCHASE': 'مشتريات',
+      'INVOICE': 'فاتورة',
+      'OPENING': 'رصيد افتتاحي',
+      'Save Modules': 'حفظ الموديولات',
+      'Commercial SaaS Tier Presets': 'حزم الاشتراكات التجارية',
+      'Quick Presets': 'الإعدادات السريعة',
+      'Minimalist Core Only': 'الفوترة البسيطة فقط',
+      'Hybrid Local SQLite + Laravel / MySQL Sync Architecture':
+          'بنية المزامنة المزدوجة المتكاملة',
+      'Save Settings': 'حفظ الإعدادات',
+      'Sync Now': 'مزامنة الآن',
+      '1. Deployment & Sync Mode': 'وضع التشغيل والمزامنة',
+      'Offline Only': 'دون اتصال فقط مع SQLite',
+      'Both Online & Offline - Hybrid Sync': 'متصل وغير متصل - مزامنة مزدوجة',
     },
 
     // Pashto (پښتو)
@@ -1642,6 +2275,557 @@ class PosLocalization {
       'Manage Other Users & Staff Permissions':
           'د نورو کاروونکو د واکونو تنظیم',
       'PAYMENT CURRENCY': 'د ورکړې پیسې',
+      '1. License Lock': '۱. د لایسنس تایید',
+      '2. Business & Presets': '۲. د سوداګرۍ پیژندنه',
+      '3. Topology & DB': '۳. شبکه او ډیټابیس',
+      '4. Master Admin': '۴. د عمومي مدیر حساب',
+      'Step 1: Machine Hardware-Bound License Activation':
+          'لومړی پړاو: د هارډویر پورې تړلې لایسنس فعالول',
+      'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine.':
+          'هر سیسټم د کار لپاره یو باوري لایسنس ته اړتیا لري چې له دغه کمپیوټر سره تړلی وي.',
+      'Detected Host Machine Hardware ID (HWID):':
+          'د کمپیوټر پېژندګلوي (HWID):',
+      'Copy HWID': 'د HWID کاپي کول',
+      'Verify & Activate': 'تایید او فعالول',
+      'Activate Instant 30-Day Free Trial (Hardware Bound)':
+          'د ۳۰ ورځو وړیا ازمایښت فعالول',
+      'No internet required for activation':
+          'د فعالولو لپاره انټرنیټ ته اړتیا نشته',
+      'HARDWARE BOUND': 'له هارډویر سره تړلی',
+      'Step 2: Business Profile & Industry Workflows':
+          'دویم پړاو: د سوداګرۍ پیژندنه او کاري جریان',
+      'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).':
+          'خپل سوداګریز ماډل وټاکئ ترڅو اړوندې اسانتیاوې فعالې شي.',
+      'Smart POS Activation Key': 'د سمارټ پوز د فعالولو کیلي',
+      'Business Logo': 'د کاروبار نښه (لوګو)',
+      'Business / Store Name': 'د پلورنځي / شرکت نوم',
+      'NTN / Tax ID': 'د مالیې شمېره (NTN)',
+      'Official Currency': 'رسمي پیسې',
+      'Regional Time Zone': 'سیمه ییز وخت زون',
+      'Local Embedded API Server Port': 'د محلي API سرور پورټ',
+      'Primary Server Local IP': 'د اصلي سرور محلي IP',
+      'API Port': 'د API پورټ',
+      'Remote Cloud API URL': 'د ریموټ کلاوډ API ادرس',
+      'Branch ID': 'د څانګې پېژند',
+      'Cloud API Secret Key': 'د کلاوډ API پټه کیلي',
+      'Primary Database Host / IP': 'د اصلي ډیټابیس سرور ادرس',
+      'Port': 'پورټ',
+      'Database Name': 'د ډیټابیس نوم',
+      'DB Username': 'د ډیټابیس کارن نوم',
+      'DB Password': 'د ډیټابیس پټنوم',
+      'Admin Full Name': 'د مدیر بشپړ نوم',
+      'Master Username': 'اصلي کارن نوم',
+      'Email Address': 'برېښنالیک',
+      'Mobile Number': 'د موبایل شمېره',
+      'Master Password': 'اصلي پټنوم',
+      'Confirm Master Password': 'د اصلي پټنوم تصدیق',
+      'Upload Logo': 'لوګو پورته کړئ',
+      'Change': 'بدلول',
+      'Search 130+ Currencies': 'په ۱۳۰+ پیسو کې لټون',
+      'Search 80+ Timezones': 'د وخت په زونونو کې لټون',
+      'Main': 'اصلي',
+      'Enable Secondary Language (Optional)': 'دویمه ژبه فعالول (اختیاري)',
+      'Select Business Industry Model (16 Supported Industries):':
+          'د سوداګرۍ بڼه وټاکئ (۱۶ ملاتړ شوي مسلکونه):',
+      '1 Business Model At A Time': 'په یو وخت کې یو ماډل',
+      'Pre-load Starter Products, Categories & Suppliers':
+          'لومړني نمونه توکي او کټګورۍ شاملول',
+      'RECOMMENDED': 'وړاندیز شوی',
+      'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing.':
+          'ازمایښتي توکي او سپلائران اضافه کړئ ترڅو سیسټم سمدستي د پلور لپاره چمتو شي.',
+      'ACTIVE EXCLUSIVE': 'فعال ماډل',
+      'Step 3: Network Topology & Hybrid Database Engine':
+          'درېیم پړاو: د شبکې جوړښت او ګډ ډیټابیس انجن',
+      'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).':
+          'وټاکئ چې دا کمپیوټر به ستاسو په پلورنځي کې څنګه کار کوي.',
+      'Primary Server & Mobile REST API Server Configuration':
+          'د اصلي سرور او موبایل API تنظیمات',
+      'LAN Secondary Terminals & the Flutter Mobile App on the same Wi-Fi will connect to this PC':
+          'نور کاونټرونه او د موبایل اپلیکیشن به له دغه کمپیوټر سره وصل شي.',
+      'Connect to Primary Server Machine:': 'له مرکزي سرور کمپیوټر سره اړیکه:',
+      'Cloud Sync Server Configuration:': 'د کلاوډ سنک سرور ترتیبات:',
+      'Primary Central Database Engine (Admin Choice)': 'د مرکزي ډیټابیس ډول',
+      'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.':
+          'د مرکزي ډیټابیس لپاره MySQL یا PostgreSQL وټاکئ. SQLite تل په محلي ډول چمتو وي.',
+      'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password. Or use "smartpos" / "smartpos123".':
+          'په لارګون یا زامپ کې ډیفالټ یوزر root پرته له پاسورډ څخه وي.',
+      'Clear for Laragon': 'د لارګون لپاره تشول',
+      'Offline-First Local SQLite Sync Guarantee':
+          'د آفلاین کار ډاډمن SQLite سیسټم',
+      'All point-of-sale transactions write to SQLite locally first. Even if your central database server or network is temporarily down, cashiers can continue billing without interruption.':
+          'ټول بلونه لومړی په کمپیوټر کې ثبت کیږي او په قطعي سره کار نه ودریږي.',
+      'Step 4: Super Admin Master Credentials':
+          'څلورم پړاو: د عمومي مدیر د ننوتلو معلومات',
+      'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.':
+          'د ادارې اصلي اکاونټ جوړ کړئ. پاسورډونه په بشپړ ډول خوندي ساتل کیږي.',
+      'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.':
+          'امنیتي خوندیتوب فعال: ټول پټنومونه په Argon2id او AES-256-GCM خوندي دي.',
+      'Installation & Setup Completed!':
+          'تنصیب او چمتووالی په بریالیتوب سره بشپړ شو!',
+      'System installation and database configuration completed successfully.':
+          'د سیسټم لګول او ډیټابیس جوړول په بریالیتوب سره پای ته ورسېدل.',
+      'Store / Business Name': 'د هټۍ / شرکت نوم',
+      'Industry Profile': 'د سوداګرۍ بڼه',
+      'Database Engine': 'د ډیټابیس انجن',
+      'Commercial Catalog': 'د توکو لیست',
+      'Master Admin Username': 'د عمومي مدیر کارن نوم',
+      'Starter products, categories & suppliers pre-loaded':
+          'لومړني توکي او کټګورۍ شاملې شوې',
+      'Clean blank database initialized': 'پاک ډیټابیس چمتو شو',
+      'Direct Login Bypassed for Security':
+          'د امنیت په پار مستقیم ننوتل وتړل شول',
+      'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials.':
+          'د ننوتلو پاڼې ته د تګ لپاره لاندې کلیک وکړئ او په خپلو نویو معلوماتو ننوځئ.',
+      'Proceed to Login Screen': 'د ننوتلو پاڼې ته لاړ شئ',
+      'Master Admin username cannot be empty.':
+          'د مدیر کارن نوم نشي خالي کیدی.',
+      'Passwords do not match. Please re-enter.':
+          'پټنومونه سره یو شان نه دي. بیا هڅه وکړئ.',
+      'Please enter Business / Store Name.': 'مهرباني وکړئ د هټۍ نوم ولیکئ.',
+      'Please select at least one Business Industry Preset.':
+          'مهرباني وکړئ لږترلږه یو سوداګریز ماډل وټاکئ.',
+      'Please provide Primary Server IP for LAN terminal mode.':
+          'مهرباني وکړئ د اصلي سرور IP ادرس ولیکئ.',
+      'A verified License Key or Active Free Trial is required to proceed.':
+          'مخکې تګ لپاره تایید شوی لایسنس یا آزمایښتي دوره اړینه ده.',
+      'MySQL Connection Notice': 'د MySQL اړیکې خبرتیا',
+      'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?':
+          'په سمارټ پوز کې خورا چټک SQLite ډیټابیس شته چې پرته له انټرنیټ کار کوي.\n\nایا غواړئ په SQLite حالت کې پیل وکړئ؟',
+      'Back to Settings': 'ترتیباتو ته بېرته تلل',
+      'Switch to SQLite & Launch POS': 'SQLite ته اوښتل او د سیسټم پیل',
+      'Installation Error': 'د لګولو تېروتنه',
+      'Close': 'بندول',
+      'Cheque Management': 'د چکونو تنظیم',
+      'Turnstile Check-In': 'د دروازې چیک ان (کارډ سکین)',
+      'Live KDS Screen': 'د پخلنځي پرده (KDS)',
+      'Cooking': 'پخېږي',
+      'Ready': 'چمتو دی',
+      'Served': 'ورکړل شو',
+      'REPAIR & SERVICE INTAKE VOUCHER': 'د ترمیم او خدماتو رسید',
+      'Terms & Conditions of Service': 'د خدماتو اصول او شرایط',
+      'Credit Limit': 'د پور حد',
+      'Period': 'موده',
+      'Custom Range': 'ځانګړې نېټه',
+      'No transactions or invoices found for the selected period.':
+          'په دې ټاکلې موده کې هیڅ حساب یا بل نشته.',
+      'Record Payment': 'تادیه ثبتول',
+      'OFFICIAL LEDGER TRANSACTIONS REGISTER': 'د رسمي کهاتې او حساب راجستر',
+      'DATE & TIME': 'نېټه او وخت',
+      'TYPE': 'ډول',
+      'NARRATION & DETAILS': 'تفصیل او یادښت',
+      'DEBIT (Dr)': 'بنام مال (Dr)',
+      'CREDIT (Cr)': 'جمع پیسې (Cr)',
+      'RUNNING BAL': 'پاتې حساب',
+      'GRAND TOTALS': 'ټولیزه مجموعه',
+      'PAYMENT': 'تادیه',
+      'RETURN': 'بېرته ګرځول',
+      'PURCHASE': 'پېرودنه',
+      'INVOICE': 'بل',
+      'OPENING': 'پخوانی حساب',
+      'Save Modules': 'ماډیولونه خوندي کړئ',
+      'Commercial SaaS Tier Presets': 'تجارتی بسته ګانې',
+      'Quick Presets': 'چټک ترتیبات',
+      'Minimalist Core Only': 'ساده پلور',
+      'Hybrid Local SQLite + Laravel / MySQL Sync Architecture':
+          'د انلاین او آفلاین سنک سیسټم',
+      'Save Settings': 'ترتیبات خوندي کړئ',
+      'Sync Now': 'اوس سنک کړئ',
+      '1. Deployment & Sync Mode': 'د کار او سنک بڼه وټاکئ',
+      'Offline Only': 'یوازې آفلاین SQLite',
+      'Both Online & Offline - Hybrid Sync': 'آنلاین او آفلاین دواړه',
+      'Enable All 16 Modules': 'ټول ۱۶ واړه ماډیولونه فعال کړئ',
+      'Search modules by name or keywords...': 'د نوم له لارې لټون وکړئ...',
+      'Customize active modules. Inactive features are hidden from the sidebar & POS to keep your workspace clean.':
+          'فعال ماډیولونه تنظیم کړئ ترڅو کار اسانه شي.',
+      'Smart POS Industry Presets': 'د سوداګریزو مسلکونو بڼې',
+      'Online Cloud Server': 'مستقیم کلاوډ سرور',
+      '2. Laravel / MySQL Server Configuration': 'د انلاین سرور ترتیبات',
+      'Live exchange rates synced successfully!':
+          'د تبادلې ژوندی نرخونه په بریالیتوب سره تازه شول!',
+      'Error fetching exchange rates:':
+          'د تبادلې نرخونو په ترلاسه کولو کې تېروتنه:',
+      'Adapt software units, categories & POS to your trade':
+          'د خپلې سوداګرۍ سره د سیسټم واحدونه او کټګورۍ برابرې کړئ',
+    },
+
+    // Spanish (Español)
+    'es': {
+      '1. License Lock': '1. Bloqueo de licencia',
+      '2. Business & Presets': '2. Negocio y perfiles',
+      '3. Topology & DB': '3. Topología y BD',
+      '4. Master Admin': '4. Administrador maestro',
+      'Step 1: Machine Hardware-Bound License Activation':
+          'Paso 1: Activación de licencia ligada al hardware',
+      'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine.':
+          'Cada sistema requiere una licencia criptográfica vinculada a este equipo.',
+      'Detected Host Machine Hardware ID (HWID):':
+          'ID de hardware detectado (HWID):',
+      'Copy HWID': 'Copiar HWID',
+      'Verify & Activate': 'Verificar y activar',
+      'Activate Instant 30-Day Free Trial (Hardware Bound)':
+          'Activar prueba gratuita de 30 días',
+      'No internet required for activation':
+          'No requiere internet para la activación',
+      'HARDWARE BOUND': 'VINCULADO AL HARDWARE',
+      'Step 2: Business Profile & Industry Workflows':
+          'Paso 2: Perfil comercial y flujo de trabajo del sector',
+      'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).':
+          'Seleccione su modelo de negocio para habilitar funciones específicas.',
+      'Smart POS Activation Key': 'Clave de activación Smart POS',
+      'Business Logo': 'Logo del negocio',
+      'Business / Store Name': 'Nombre del negocio',
+      'NTN / Tax ID': 'Número de identificación fiscal',
+      'Official Currency': 'Moneda oficial',
+      'Regional Time Zone': 'Zona horaria regional',
+      'Local Embedded API Server Port': 'Puerto del servidor API local',
+      'Primary Server Local IP': 'IP local del servidor principal',
+      'API Port': 'Puerto API',
+      'Remote Cloud API URL': 'URL de API en la nube',
+      'Branch ID': 'ID de sucursal',
+      'Cloud API Secret Key': 'Clave secreta de la API en la nube',
+      'Primary Database Host / IP': 'Host / IP de base de datos principal',
+      'Port': 'Puerto',
+      'Database Name': 'Nombre de base de datos',
+      'DB Username': 'Usuario de la base de datos',
+      'DB Password': 'Contraseña de la base de datos',
+      'Admin Full Name': 'Nombre completo del administrador',
+      'Master Username': 'Nombre de usuario principal',
+      'Email Address': 'Correo electrónico',
+      'Mobile Number': 'Número de móvil',
+      'Master Password': 'Contraseña principal',
+      'Confirm Master Password': 'Confirmar contraseña principal',
+      'Upload Logo': 'Subir logo',
+      'Change': 'Cambiar',
+      'Search 130+ Currencies': 'Buscar más de 130 monedas',
+      'Search 80+ Timezones': 'Buscar zonas horarias',
+      'Main': 'Principal',
+      'Enable Secondary Language (Optional)':
+          'Activar idioma secundario (opcional)',
+      'Select Business Industry Model (16 Supported Industries):':
+          'Seleccione el modelo comercial (16 industrias compatibles):',
+      '1 Business Model At A Time': '1 modelo comercial a la vez',
+      'Pre-load Starter Products, Categories & Suppliers':
+          'Precargar productos, categorías y proveedores iniciales',
+      'RECOMMENDED': 'RECOMENDADO',
+      'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing.':
+          'Carga mercancía, unidades y proveedores para que el POS esté listo para vender y probar.',
+      'ACTIVE EXCLUSIVE': 'ACTIVO EXCLUSIVO',
+      'Step 3: Network Topology & Hybrid Database Engine':
+          'Paso 3: Topología de red y motor de base de datos híbrido',
+      'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).':
+          'Seleccione el modo de red de este equipo (Servidor, Terminal LAN o Híbrido).',
+      'Primary Server & Mobile REST API Server Configuration':
+          'Configuración del servidor principal y API móvil',
+      'LAN Secondary Terminals & the Flutter Mobile App on the same Wi-Fi will connect to this PC':
+          'Las terminales secundarias y la app móvil se conectarán a esta IP.',
+      'Connect to Primary Server Machine:':
+          'Conectar a máquina servidor principal:',
+      'Cloud Sync Server Configuration:':
+          'Configuración de sincronización en la nube:',
+      'Primary Central Database Engine (Admin Choice)':
+          'Motor de base de datos central (Elección del admin)',
+      'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.':
+          'Elija MySQL o PostgreSQL como base de datos central. SQLite siempre está activo localmente para transacciones sin conexión.',
+      'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password. Or use "smartpos" / "smartpos123".':
+          'En Laragon o XAMPP el usuario MySQL por defecto es root sin contraseña.',
+      'Clear for Laragon': 'Limpiar para Laragon',
+      'Offline-First Local SQLite Sync Guarantee':
+          'Garantía local SQLite sin conexión primero',
+      'All point-of-sale transactions write to SQLite locally first. Even if your central database server or network is temporarily down, cashiers can continue billing without interruption.':
+          'Todas las ventas se guardan primero en SQLite local. Los cajeros continúan facturando sin interrupción.',
+      'Step 4: Super Admin Master Credentials':
+          'Paso 4: Credenciales del superadministrador',
+      'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.':
+          'Cree la cuenta principal de administrador. Las contraseñas se protegen con Argon2id.',
+      'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.':
+          'Escudo de seguridad activo: Contraseñas protegidas con Argon2id y AES-256-GCM.',
+      'Installation & Setup Completed!':
+          '¡Instalación y configuración completadas!',
+      'System installation and database configuration completed successfully.':
+          'La instalación del sistema y la base de datos finalizaron con éxito.',
+      'Store / Business Name': 'Nombre del negocio / tienda',
+      'Industry Profile': 'Perfil del sector',
+      'Database Engine': 'Motor de base de datos',
+      'Commercial Catalog': 'Catálogo comercial',
+      'Master Admin Username': 'Usuario administrador maestro',
+      'Starter products, categories & suppliers pre-loaded':
+          'Productos, categorías y proveedores iniciales cargados',
+      'Clean blank database initialized': 'Base de datos limpia inicializada',
+      'Direct Login Bypassed for Security':
+          'Acceso directo omitido por seguridad',
+      'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials.':
+          'Haga clic a continuación para ir a la pantalla de inicio de sesión e ingresar con sus nuevas credenciales.',
+      'Proceed to Login Screen': 'Ir a la pantalla de inicio de sesión',
+      'Master Admin username cannot be empty.':
+          'El nombre de usuario administrador no puede estar vacío.',
+      'Passwords do not match. Please re-enter.':
+          'Las contraseñas no coinciden. Vuelva a ingresarlas.',
+      'Please enter Business / Store Name.':
+          'Por favor ingrese el nombre del negocio.',
+      'Please select at least one Business Industry Preset.':
+          'Por favor seleccione al menos un modelo de negocio.',
+      'Please provide Primary Server IP for LAN terminal mode.':
+          'Por favor proporcione la IP del servidor principal para modo LAN.',
+      'A verified License Key or Active Free Trial is required to proceed.':
+          'Se requiere una clave de licencia verificada o prueba activa para continuar.',
+      'MySQL Connection Notice': 'Aviso de conexión MySQL',
+      'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?':
+          'Smart POS incluye SQLite de alta velocidad que funciona sin conexión.\n\n¿Desea iniciar en modo SQLite independiente ahora?',
+      'Back to Settings': 'Volver a configuración',
+      'Switch to SQLite & Launch POS': 'Cambiar a SQLite e iniciar POS',
+      'Installation Error': 'Error de instalación',
+      'Close': 'Cerrar',
+      'Cheque Management': 'Gestión de cheques',
+      'Turnstile Check-In': 'Acceso por torniquete',
+      'Live KDS Screen': 'Pantalla de cocina en vivo',
+      'Cooking': 'Cocinando',
+      'Ready': 'Listo',
+      'Served': 'Servido',
+      'REPAIR & SERVICE INTAKE VOUCHER': 'COMPROBANTE DE SERVICIO Y REPARACIÓN',
+      'Terms & Conditions of Service': 'Términos y condiciones del servicio',
+      'Credit Limit': 'Límite de crédito',
+      'Period': 'Período',
+      'Custom Range': 'Rango personalizado',
+      'No transactions or invoices found for the selected period.':
+          'No se encontraron transacciones en el período seleccionado.',
+      'Record Payment': 'Registrar pago',
+      'OFFICIAL LEDGER TRANSACTIONS REGISTER':
+          'REGISTRO OFICIAL DE TRANSACCIONES',
+      'DATE & TIME': 'FECHA Y HORA',
+      'TYPE': 'TIPO',
+      'NARRATION & DETAILS': 'DETALLES Y CONCEPTO',
+      'DEBIT (Dr)': 'DÉBITO (Dr)',
+      'CREDIT (Cr)': 'CRÉDITO (Cr)',
+      'RUNNING BAL': 'SALDO ACTUAL',
+      'GRAND TOTALS': 'TOTALES GENERALES',
+      'PAYMENT': 'PAGO',
+      'RETURN': 'DEVOLUCIÓN',
+      'PURCHASE': 'COMPRA',
+      'INVOICE': 'FACTURA',
+      'OPENING': 'APERTURA',
+      'Save Modules': 'Guardar módulos',
+      'Commercial SaaS Tier Presets': 'Paquetes de suscripción comercial',
+      'Quick Presets': 'Ajustes rápidos',
+      'Minimalist Core Only': 'Facturación básica solamente',
+      'Hybrid Local SQLite + Laravel / MySQL Sync Architecture':
+          'Arquitectura de sincronización híbrida',
+      'Save Settings': 'Guardar configuración',
+      'Sync Now': 'Sincronizar ahora',
+      '1. Deployment & Sync Mode': '1. Modo de despliegue y sincronización',
+      'Offline Only': 'Solo sin conexión',
+      'Both Online & Offline - Hybrid Sync': 'Tanto en línea como sin conexión',
+      'Dashboard': 'Panel de control',
+      'POS Terminal': 'Terminal POS',
+      'Products': 'Productos',
+      'Sales': 'Ventas',
+      'Purchases': 'Compras',
+      'Expenses': 'Gastos',
+      'Contacts': 'Contactos',
+      'Settings': 'Configuración',
+      'Enable All 16 Modules': 'Habilitar los 16 módulos',
+      'Search modules by name or keywords...':
+          'Buscar por nombre o palabra clave...',
+      'Customize active modules. Inactive features are hidden from the sidebar & POS to keep your workspace clean.':
+          'Personalice los módulos activos para mantener limpio su espacio de trabajo.',
+      'Smart POS Industry Presets': 'Perfiles comerciales predefinidos',
+      'Online Cloud Server': 'Servidor en la nube en línea',
+      '2. Laravel / MySQL Server Configuration':
+          '2. Configuración del servidor Laravel / MySQL',
+      'Live exchange rates synced successfully!':
+          '¡Tipos de cambio actualizados con éxito!',
+      'Error fetching exchange rates:': 'Error al obtener los tipos de cambio:',
+      'Adapt software units, categories & POS to your trade':
+          'Adapte las unidades, categorías y el POS a su comercio',
+    },
+
+    // Dutch (Nederlands)
+    'nl': {
+      '1. License Lock': '1. Licentiekoppeling',
+      '2. Business & Presets': '2. Bedrijf & profielen',
+      '3. Topology & DB': '3. Topologie & DB',
+      '4. Master Admin': '4. Hoofdbeheerder',
+      'Step 1: Machine Hardware-Bound License Activation':
+          'Stap 1: Aan hardware gekoppelde licentieactivatie',
+      'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine.':
+          'Elk systeem vereist een geactiveerde licentie gekoppeld aan deze machine.',
+      'Detected Host Machine Hardware ID (HWID):':
+          'Gedetecteerde hardware-ID (HWID):',
+      'Copy HWID': 'Kopieer HWID',
+      'Verify & Activate': 'Verifiëren en activeren',
+      'Activate Instant 30-Day Free Trial (Hardware Bound)':
+          'Start 30 dagen gratis proefperiode',
+      'No internet required for activation':
+          'Geen internet vereist voor activatie',
+      'HARDWARE BOUND': 'GEKOPPELD AAN HARDWARE',
+      'Step 2: Business Profile & Industry Workflows':
+          'Stap 2: Bedrijfsprofiel en sectorinstellingen',
+      'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).':
+          'Selecteer uw bedrijfsmodel om specifieke functies in te schakelen.',
+      'Smart POS Activation Key': 'Smart POS activatiesleutel',
+      'Business Logo': 'Bedrijfslogo',
+      'Business / Store Name': 'Bedrijfsnaam',
+      'NTN / Tax ID': 'Btw-nummer / Fiscaal ID',
+      'Official Currency': 'Officiële valuta',
+      'Regional Time Zone': 'Regionale tijdzone',
+      'Local Embedded API Server Port': 'Lokale ingebouwde API-serverpoort',
+      'Primary Server Local IP': 'Lokaal IP van primaire server',
+      'API Port': 'API-poort',
+      'Remote Cloud API URL': 'Cloud API-URL',
+      'Branch ID': 'Filiaal-ID',
+      'Cloud API Secret Key': 'Geheime sleutel voor cloud-API',
+      'Primary Database Host / IP': 'Primaire databasehost / IP',
+      'Port': 'Poort',
+      'Database Name': 'Databasenaam',
+      'DB Username': 'Database gebruikersnaam',
+      'DB Password': 'Database wachtwoord',
+      'Admin Full Name': 'Volledige naam beheerder',
+      'Master Username': 'Hoofdgebruikersnaam',
+      'Email Address': 'E-mailadres',
+      'Mobile Number': 'Mobiel nummer',
+      'Master Password': 'Hoofdwachtwoord',
+      'Confirm Master Password': 'Bevestig hoofdwachtwoord',
+      'Upload Logo': 'Logo uploaden',
+      'Change': 'Wijzigen',
+      'Search 130+ Currencies': 'Zoek in 130+ valuta\'s',
+      'Search 80+ Timezones': 'Zoek in tijdzones',
+      'Main': 'Hoofd',
+      'Enable Secondary Language (Optional)':
+          'Secundaire taal inschakelen (optioneel)',
+      'Select Business Industry Model (16 Supported Industries):':
+          'Selecteer bedrijfsmodel (16 ondersteunde sectoren):',
+      '1 Business Model At A Time': '1 bedrijfsmodel tegelijk',
+      'Pre-load Starter Products, Categories & Suppliers':
+          'Initiële producten, categorieën en leveranciers laden',
+      'RECOMMENDED': 'AANBEVOLEN',
+      'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing.':
+          'Laadt voorraad, eenheden en contacten zodat de kassa direct gereed is voor verkoop.',
+      'ACTIVE EXCLUSIVE': 'ACTIEF EXCLUSIEF',
+      'Step 3: Network Topology & Hybrid Database Engine':
+          'Stap 3: Netwerktopologie en hybride database-engine',
+      'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).':
+          'Kies hoe dit systeem in uw netwerk werkt (Server, LAN-terminal of hybride).',
+      'Primary Server & Mobile REST API Server Configuration':
+          'Primaire server en mobiele API-configuratie',
+      'LAN Secondary Terminals & the Flutter Mobile App on the same Wi-Fi will connect to this PC':
+          'Secundaire kassa\'s en mobiele app verbinden met dit IP-adres.',
+      'Connect to Primary Server Machine:': 'Verbinden met primaire server:',
+      'Cloud Sync Server Configuration:':
+          'Configuratie cloud-synchronisatieserver:',
+      'Primary Central Database Engine (Admin Choice)':
+          'Centrale database-engine (Keuze beheerder)',
+      'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.':
+          'Kies MySQL of PostgreSQL als centrale database. SQLite blijft lokaal actief voor offline continuïteit.',
+      'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password. Or use "smartpos" / "smartpos123".':
+          'In Laragon of XAMPP is de standaard MySQL-gebruiker root zonder wachtwoord.',
+      'Clear for Laragon': 'Wissen voor Laragon',
+      'Offline-First Local SQLite Sync Guarantee':
+          'Offline-first lokale SQLite-garantie',
+      'All point-of-sale transactions write to SQLite locally first. Even if your central database server or network is temporarily down, cashiers can continue billing without interruption.':
+          'Alle kassa-transacties worden lokaal opgeslagen. Kassiers kunnen zonder onderbreking blijven werken.',
+      'Step 4: Super Admin Master Credentials':
+          'Stap 4: Inloggegevens voor hoofdbeheerder',
+      'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.':
+          'Maak het hoofdbeheerdersaccount aan. Wachtwoorden worden beveiligd met Argon2id.',
+      'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.':
+          'Beveiligingsschild actief: Wachtwoorden beveiligd met Argon2id en AES-256-GCM.',
+      'Installation & Setup Completed!':
+          'Installatie en configuratie succesvol voltooid!',
+      'System installation and database configuration completed successfully.':
+          'Systeeminstallatie en databaseconfiguratie zijn succesvol afgerond.',
+      'Store / Business Name': 'Winkel / Bedrijfsnaam',
+      'Industry Profile': 'Sectorprofiel',
+      'Database Engine': 'Database-engine',
+      'Commercial Catalog': 'Commerciële catalogus',
+      'Master Admin Username': 'Gebruikersnaam beheerder',
+      'Starter products, categories & suppliers pre-loaded':
+          'Basisproducten, categorieën en leveranciers geladen',
+      'Clean blank database initialized':
+          'Schone lege database geïnitialiseerd',
+      'Direct Login Bypassed for Security':
+          'Direct inloggen overgeslagen wegens veiligheid',
+      'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials.':
+          'Klik hieronder om naar het inlogscherm te gaan en in te loggen met uw beheerdersaccount.',
+      'Proceed to Login Screen': 'Doorgaan naar inlogscherm',
+      'Master Admin username cannot be empty.':
+          'Gebruikersnaam van beheerder mag niet leeg zijn.',
+      'Passwords do not match. Please re-enter.':
+          'Wachtwoorden komen niet overeen. Voer opnieuw in.',
+      'Please enter Business / Store Name.':
+          'Voer alstublieft de bedrijfsnaam in.',
+      'Please select at least one Business Industry Preset.':
+          'Selecteer minimaal één bedrijfsmodel.',
+      'Please provide Primary Server IP for LAN terminal mode.':
+          'Geef het IP-adres van de primaire server op.',
+      'A verified License Key or Active Free Trial is required to proceed.':
+          'Een geverifieerde licentiesleutel of actieve proefperiode is vereist.',
+      'MySQL Connection Notice': 'MySQL-verbindingsbericht',
+      'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?':
+          'Smart POS bevat een snelle embedded SQLite-database die offline werkt.\n\nWilt u nu starten in zelfstandige SQLite-modus?',
+      'Back to Settings': 'Terug naar instellingen',
+      'Switch to SQLite & Launch POS':
+          'Overschakelen naar SQLite en POS starten',
+      'Installation Error': 'Installatiefout',
+      'Close': 'Sluiten',
+      'Cheque Management': 'Chequebeheer',
+      'Turnstile Check-In': 'Draaikruis check-in',
+      'Live KDS Screen': 'Live keukenscherm (KDS)',
+      'Cooking': 'In bereiding',
+      'Ready': 'Gereed',
+      'Served': 'Geserveerd',
+      'REPAIR & SERVICE INTAKE VOUCHER': 'INNAMEBEWIJS REPARATIE & SERVICE',
+      'Terms & Conditions of Service': 'Algemene servicevoorwaarden',
+      'Credit Limit': 'Kredietlimiet',
+      'Period': 'Periode',
+      'Custom Range': 'Aangepast bereik',
+      'No transactions or invoices found for the selected period.':
+          'Geen transacties gevonden voor de geselecteerde periode.',
+      'Record Payment': 'Betaling registreren',
+      'OFFICIAL LEDGER TRANSACTIONS REGISTER':
+          'OFFICIEEL GROOTBOEKTRANSACTIEREGISTER',
+      'DATE & TIME': 'DATUM & TIJD',
+      'TYPE': 'TYPE',
+      'NARRATION & DETAILS': 'OMSCHRIJVING & DETAILS',
+      'DEBIT (Dr)': 'DEBET (Dr)',
+      'CREDIT (Cr)': 'CREDIT (Cr)',
+      'RUNNING BAL': 'LOPENDE SALDO',
+      'GRAND TOTALS': 'EINDTOTALEN',
+      'PAYMENT': 'BETALING',
+      'RETURN': 'RETOUR',
+      'PURCHASE': 'INKOOP',
+      'INVOICE': 'FACTUUR',
+      'OPENING': 'OPENINGSBALANS',
+      'Save Modules': 'Modules opslaan',
+      'Commercial SaaS Tier Presets': 'Commerciële SaaS-abonnementen',
+      'Quick Presets': 'Snelle voorinstellingen',
+      'Minimalist Core Only': 'Alleen basis facturatie',
+      'Hybrid Local SQLite + Laravel / MySQL Sync Architecture':
+          'Hybride synchronisatie-architectuur',
+      'Save Settings': 'Instellingen opslaan',
+      'Sync Now': 'Nu synchroniseren',
+      '1. Deployment & Sync Mode': '1. Implementatie- en synchronisatiemodus',
+      'Offline Only': 'Alleen offline',
+      'Both Online & Offline - Hybrid Sync': 'Zowel online als offline',
+      'Dashboard': 'Dashboard',
+      'POS Terminal': 'Kassa',
+      'Products': 'Producten',
+      'Sales': 'Verkopen',
+      'Purchases': 'Inkopen',
+      'Expenses': 'Uitgaven',
+      'Contacts': 'Contacten',
+      'Settings': 'Instellingen',
+      'Enable All 16 Modules': 'Schakel alle 16 modules in',
+      'Search modules by name or keywords...': 'Zoek op naam of trefwoorden...',
+      'Customize active modules. Inactive features are hidden from the sidebar & POS to keep your workspace clean.':
+          'Pas actieve modules aan voor een overzichtelijke werkomgeving.',
+      'Smart POS Industry Presets': 'Smart POS sectorprofielen',
+      'Online Cloud Server': 'Online cloudserver',
+      '2. Laravel / MySQL Server Configuration':
+          '2. Laravel / MySQL serverconfiguratie',
+      'Live exchange rates synced successfully!':
+          'Live wisselkoersen succesvol bijgewerkt!',
+      'Error fetching exchange rates:': 'Fout bij ophalen wisselkoersen:',
+      'Adapt software units, categories & POS to your trade':
+          'Pas eenheden, categorieën en kassa aan op uw branche',
     },
   };
 }

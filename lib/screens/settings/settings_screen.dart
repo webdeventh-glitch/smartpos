@@ -861,9 +861,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   ),
                                 ),
                                 Text(
-                                  _enableSecondaryLanguage
-                                      ? 'کاروباری ماڈل تبدیل کریں • Adapt software units, categories & POS to your trade'
-                                      : 'Adapt software units, categories & POS to your trade',
+                                  PosLocalization.tr(
+                                    'Adapt software units, categories & POS to your trade',
+                                    primaryOverride: _primaryLanguage,
+                                    secondaryOverride: _secondaryLanguage,
+                                    enableSecondaryOverride:
+                                        _enableSecondaryLanguage,
+                                  ),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isDark
@@ -1348,7 +1352,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       color: Colors.white, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                      'لائیو ایکسچینج ریٹس کامیابی سے اپ ڈیٹ ہو گئے! (${result.rates.length} currencies synced)'),
+                      '${PosLocalization.tr("Live exchange rates synced successfully!", primaryOverride: _primaryLanguage, secondaryOverride: _secondaryLanguage, enableSecondaryOverride: _enableSecondaryLanguage)} (${result.rates.length} currencies synced)'),
                 ],
               ),
               backgroundColor: const Color(0xFF10B981),
@@ -1365,7 +1369,8 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('ایکسچینج ریٹس حاصل کرنے میں خرابی: $e'),
+              content: Text(
+                  '${PosLocalization.tr("Error fetching exchange rates:", primaryOverride: _primaryLanguage, secondaryOverride: _secondaryLanguage, enableSecondaryOverride: _enableSecondaryLanguage)} $e'),
               backgroundColor: Colors.red),
         );
       }
@@ -7746,10 +7751,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _primaryLanguage == 'en' &&
-                                      _enableSecondaryLanguage
-                                  ? 'Primary Language (بنیادی زبان)'
-                                  : 'Primary Language',
+                              PosLocalization.tr(
+                                'Primary Language',
+                                primaryOverride: _primaryLanguage,
+                                secondaryOverride: _secondaryLanguage,
+                                enableSecondaryOverride:
+                                    _enableSecondaryLanguage,
+                              ),
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 13),
                             ),

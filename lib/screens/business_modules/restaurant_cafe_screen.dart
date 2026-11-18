@@ -3,6 +3,7 @@ import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/thermal_printer_service.dart';
+import '../../services/localization_service.dart';
 import 'kitchen_display_system_screen.dart';
 
 class RestaurantCafeScreen extends StatefulWidget {
@@ -196,8 +197,10 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                 ).then((_) => _loadData());
               },
               icon: const Icon(Icons.fullscreen, size: 16),
-              label: const Text('Live KDS Screen (کچن اسکرین)',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(
+                  PosLocalization.tr('Live KDS Screen',
+                      settings: widget.settings),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
           const SizedBox(width: 8),
@@ -959,18 +962,23 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                           _loadData();
                                         },
                                         itemBuilder: (context) => [
-                                          const PopupMenuItem(
+                                          PopupMenuItem(
                                             value: 'Cooking',
-                                            child: Text(
-                                                'Cooking (تیار ہو رہا ہے)'),
+                                            child: Text(PosLocalization.tr(
+                                                'Cooking',
+                                                settings: widget.settings)),
                                           ),
-                                          const PopupMenuItem(
+                                          PopupMenuItem(
                                             value: 'Ready',
-                                            child: Text('Ready (تیار ہے)'),
+                                            child: Text(PosLocalization.tr(
+                                                'Ready',
+                                                settings: widget.settings)),
                                           ),
-                                          const PopupMenuItem(
+                                          PopupMenuItem(
                                             value: 'Served',
-                                            child: Text('Served (پیش کر دیا)'),
+                                            child: Text(PosLocalization.tr(
+                                                'Served',
+                                                settings: widget.settings)),
                                           ),
                                         ],
                                         child: Container(

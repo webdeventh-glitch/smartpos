@@ -807,7 +807,7 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                                 size: 15, color: textSecondary),
                             const SizedBox(width: 4),
                             Text(
-                              '${widget.settings.enableSecondaryLanguage ? "Credit Limit (حد قرضہ)" : "Credit Limit"}: $cur${contact.creditLimit.toStringAsFixed(2)}',
+                              '${PosLocalization.tr("Credit Limit", settings: widget.settings)}: $cur${contact.creditLimit.toStringAsFixed(2)}',
                               style:
                                   TextStyle(fontSize: 12, color: textSecondary),
                             ),
@@ -930,71 +930,81 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final card1 = _kpiStatCard(
-          titleUrdu: enSec ? 'سابقہ بقایا رقم' : '',
+          titleUrdu: enSec
+              ? PosLocalization.tr('Opening Balance',
+                  settings: widget.settings,
+                  primaryOverride: widget.settings.secondaryLanguage)
+              : '',
           titleEng: 'Opening Balance',
           amount: _openingBalance,
           cur: cur,
-          subtitle: enSec
-              ? 'Carried forward from previous period (سابقہ ادوار کا بقیہ)'
-              : 'Carried forward from previous period',
+          subtitle: PosLocalization.tr('Carried forward from previous period',
+              settings: widget.settings),
           icon: Icons.account_balance_wallet_outlined,
           color: const Color(0xFF64748B),
           isDark: isDark,
         );
         final card2 = _kpiStatCard(
           titleUrdu: enSec
-              ? (isCustomer
-                  ? 'بنام / کل مالیت (انوائسز)'
-                  : 'کل مال خریداری (انوائسز)')
+              ? PosLocalization.tr(
+                  isCustomer
+                      ? 'Total Invoices / Billed (Dr)'
+                      : 'Total Purchases (Cr)',
+                  settings: widget.settings,
+                  primaryOverride: widget.settings.secondaryLanguage)
               : '',
           titleEng: isCustomer
               ? 'Total Invoices / Billed (Dr)'
               : 'Total Purchases (Cr)',
           amount: isCustomer ? _totalDebit : _totalCredit,
           cur: cur,
-          subtitle: enSec
-              ? (isCustomer
-                  ? 'Total merchandise billed (کل مال کی قیمت)'
-                  : 'Total inventory received')
-              : (isCustomer
+          subtitle: PosLocalization.tr(
+              isCustomer
                   ? 'Total merchandise billed'
-                  : 'Total inventory received'),
+                  : 'Total inventory received',
+              settings: widget.settings),
           icon: Icons.receipt_long_rounded,
           color: const Color(0xFF3B82F6),
           isDark: isDark,
         );
         final card3 = _kpiStatCard(
           titleUrdu: enSec
-              ? (isCustomer ? 'جمع / کل موصول شدہ رقم' : 'کل ادا شدہ رقم')
+              ? PosLocalization.tr(
+                  isCustomer
+                      ? 'Total Paid / Recoveries (Cr)'
+                      : 'Total Payments Made (Dr)',
+                  settings: widget.settings,
+                  primaryOverride: widget.settings.secondaryLanguage)
               : '',
           titleEng: isCustomer
               ? 'Total Paid / Recoveries (Cr)'
               : 'Total Payments Made (Dr)',
           amount: isCustomer ? _totalCredit : _totalDebit,
           cur: cur,
-          subtitle: enSec
-              ? (isCustomer
-                  ? 'Cash & bank settlements (موصول شدہ نقد و بینک)'
-                  : 'Payments disbursed')
-              : (isCustomer ? 'Cash & bank settlements' : 'Payments disbursed'),
+          subtitle: PosLocalization.tr(
+              isCustomer ? 'Cash & bank settlements' : 'Payments disbursed',
+              settings: widget.settings),
           icon: Icons.price_check_rounded,
           color: const Color(0xFF10B981),
           isDark: isDark,
         );
         final card4 = _kpiStatCard(
-          titleUrdu: enSec ? 'خالص واجب الادا بقایا' : '',
+          titleUrdu: enSec
+              ? PosLocalization.tr('Net Closing Balance',
+                  settings: widget.settings,
+                  primaryOverride: widget.settings.secondaryLanguage)
+              : '',
           titleEng: 'Net Closing Balance',
           amount: _closingBalance,
           cur: cur,
           subtitle: _closingBalance > 0
-              ? (isCustomer
-                  ? (enSec
-                      ? 'Amount Customer Owes You (واجب الوصول)'
-                      : 'Amount Customer Owes You')
-                  : (enSec
-                      ? 'Amount You Owe Supplier (واجب الادا)'
-                      : 'Amount You Owe Supplier'))
-              : (enSec ? 'Account Cleared (کھاتہ بے باق)' : 'Account Cleared'),
+              ? PosLocalization.tr(
+                  isCustomer
+                      ? 'Amount Customer Owes You'
+                      : 'Amount You Owe Supplier',
+                  settings: widget.settings)
+              : PosLocalization.tr('Account Cleared',
+                  settings: widget.settings),
           icon: Icons.account_balance_rounded,
           color: _closingBalance > 0
               ? const Color(0xFFEF4444)
@@ -1182,23 +1192,31 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final enSec = widget.settings.enableSecondaryLanguage;
         final chips = Wrap(
           spacing: 6,
           runSpacing: 6,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(enSec ? 'Period (مدت):' : 'Period:',
+            Text('${PosLocalization.tr("Period", settings: widget.settings)}:',
                 style:
                     const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
             const SizedBox(width: 4),
             _filterChoiceChip(
-                enSec ? 'All Time (مکمل)' : 'All Time', 'all', isDark),
-            _filterChoiceChip(enSec ? 'Today (آج)' : 'Today', 'today', isDark),
-            _filterChoiceChip(enSec ? 'This Month (یہ مہینہ)' : 'This Month',
-                'month', isDark),
-            _filterChoiceChip(enSec ? 'Last 30 Days (30 دن)' : 'Last 30 Days',
-                '30days', isDark),
+                PosLocalization.tr('All Time', settings: widget.settings),
+                'all',
+                isDark),
+            _filterChoiceChip(
+                PosLocalization.tr('Today', settings: widget.settings),
+                'today',
+                isDark),
+            _filterChoiceChip(
+                PosLocalization.tr('This Month', settings: widget.settings),
+                'month',
+                isDark),
+            _filterChoiceChip(
+                PosLocalization.tr('Last 30 Days', settings: widget.settings),
+                '30days',
+                isDark),
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 visualDensity: VisualDensity.compact,
@@ -1214,9 +1232,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
               label: Text(
                 _dateFilter == 'custom' && _startDate != null
                     ? '${DateFormat("dd MMM").format(_startDate!)} - ${DateFormat("dd MMM").format(_endDate!)}'
-                    : (enSec
-                        ? 'Custom Range (تاریخ منتخب کریں)'
-                        : 'Custom Range'),
+                    : PosLocalization.tr('Custom Range',
+                        settings: widget.settings),
                 style: const TextStyle(fontSize: 11),
               ),
               onPressed: _selectCustomDateRange,
@@ -1393,7 +1410,9 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
             if (widget.settings.enableSecondaryLanguage) ...[
               const SizedBox(height: 4),
               Text(
-                'اس منتخب مدت میں کوئی لین دین یا بل ریکارڈ نہیں ہے۔',
+                PosLocalization.tr(
+                    'No transactions or invoices found for the selected period.',
+                    settings: widget.settings),
                 style: TextStyle(fontSize: 12, color: textSecondary),
               ),
             ],
@@ -1403,9 +1422,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                   backgroundColor: const Color(0xFF059669),
                   foregroundColor: Colors.white),
               icon: const Icon(Icons.add, size: 16),
-              label: Text(widget.settings.enableSecondaryLanguage
-                  ? 'Record Payment / نئی وصولی درج کریں'
-                  : 'Record Payment'),
+              label: Text(PosLocalization.tr('Record Payment',
+                  settings: widget.settings)),
               onPressed: _openQuickPaymentModal,
             ),
           ],
@@ -1440,9 +1458,8 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                       size: 16, color: Color(0xFF4F46E5)),
                   const SizedBox(width: 8),
                   Text(
-                    widget.settings.enableSecondaryLanguage
-                        ? 'OFFICIAL LEDGER TRANSACTIONS REGISTER (کھاتہ رجسٹر مکمل تفصیلات)'
-                        : 'OFFICIAL LEDGER TRANSACTIONS REGISTER',
+                    PosLocalization.tr('OFFICIAL LEDGER TRANSACTIONS REGISTER',
+                        settings: widget.settings),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
@@ -1464,7 +1481,6 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
               builder: (context, constraints) {
                 final double tableWidth =
                     math.max(constraints.maxWidth, 1050.0);
-                final enSec = widget.settings.enableSecondaryLanguage;
                 return Scrollbar(
                   controller: _tableHorizontalScroll,
                   thumbVisibility: true,
@@ -1506,24 +1522,29 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                             children: [
                               _tableHeaderCell('#', isDark),
                               _tableHeaderCell(
-                                  enSec ? 'DATE & TIME / تاریخ' : 'DATE & TIME',
+                                  PosLocalization.tr('DATE & TIME',
+                                      settings: widget.settings),
                                   isDark),
                               _tableHeaderCell(
-                                  enSec ? 'TYPE / قسم' : 'TYPE', isDark),
+                                  PosLocalization.tr('TYPE',
+                                      settings: widget.settings),
+                                  isDark),
                               _tableHeaderCell('REF / INVOICE #', isDark),
                               _tableHeaderCell(
-                                  enSec
-                                      ? 'NARRATION & DETAILS / تفصیل'
-                                      : 'NARRATION & DETAILS',
+                                  PosLocalization.tr('NARRATION & DETAILS',
+                                      settings: widget.settings),
                                   isDark),
                               _tableHeaderCell(
-                                  enSec ? 'DEBIT / بنام Dr' : 'DEBIT (Dr)',
+                                  PosLocalization.tr('DEBIT (Dr)',
+                                      settings: widget.settings),
                                   isDark),
                               _tableHeaderCell(
-                                  enSec ? 'CREDIT / جمع Cr' : 'CREDIT (Cr)',
+                                  PosLocalization.tr('CREDIT (Cr)',
+                                      settings: widget.settings),
                                   isDark),
                               _tableHeaderCell(
-                                  enSec ? 'RUNNING BAL / بقیہ' : 'RUNNING BAL',
+                                  PosLocalization.tr('RUNNING BAL',
+                                      settings: widget.settings),
                                   isDark),
                               _tableHeaderCell('ACTION', isDark),
                             ],
@@ -1539,10 +1560,16 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                                     e.transactionType.contains('purchase');
 
                             final balType = e.runningBalance > 0
-                                ? (isCustomer ? "Dr (واجب)" : "Cr (واجب)")
+                                ? (isCustomer
+                                    ? PosLocalization.tr("Due",
+                                        settings: widget.settings)
+                                    : PosLocalization.tr("Payable",
+                                        settings: widget.settings))
                                 : (e.runningBalance < 0
-                                    ? "Adv (جمع)"
-                                    : "Cleared");
+                                    ? PosLocalization.tr("Advance",
+                                        settings: widget.settings)
+                                    : PosLocalization.tr("Cleared",
+                                        settings: widget.settings));
 
                             final balColor = e.runningBalance > 0
                                 ? const Color(0xFFDC2626)
@@ -1730,9 +1757,7 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                 alignment: WrapAlignment.spaceBetween,
                 children: [
                   Text(
-                    widget.settings.enableSecondaryLanguage
-                        ? 'GRAND TOTALS (کل میزان کھاتہ):'
-                        : 'GRAND TOTALS:',
+                    '${PosLocalization.tr("GRAND TOTALS", settings: widget.settings)}:',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 12),
                   ),
@@ -1765,9 +1790,7 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          widget.settings.enableSecondaryLanguage
-                              ? 'Net Balance: $cur${_closingBalance.toStringAsFixed(2)} ${_closingBalance > 0 ? "(واجب الادا)" : "(بے باق)"}'
-                              : 'Net Balance: $cur${_closingBalance.toStringAsFixed(2)} ${_closingBalance > 0 ? (_isCustomer ? "(Receivable)" : "(Payable)") : "(Settled)"}',
+                          '${PosLocalization.tr("Net Balance", settings: widget.settings)}: $cur${_closingBalance.toStringAsFixed(2)} ${_closingBalance > 0 ? (_isCustomer ? "(${PosLocalization.tr("Due", settings: widget.settings)})" : "(${PosLocalization.tr("Payable", settings: widget.settings)})") : "(${PosLocalization.tr("Cleared", settings: widget.settings)})"}',
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 12,
@@ -1791,29 +1814,28 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
   Widget _typeBadge(String type, bool isDark) {
     Color bg = const Color(0xFFEEF2FF);
     Color fg = const Color(0xFF4F46E5);
-    final enSec = widget.settings.enableSecondaryLanguage;
     String label = type.toUpperCase().replaceAll('_', ' ');
 
     if (type.contains('payment')) {
       bg = const Color(0xFFD1FAE5);
       fg = const Color(0xFF065F46);
-      label = enSec ? 'PAYMENT / وصولی' : 'PAYMENT';
+      label = PosLocalization.tr('PAYMENT', settings: widget.settings);
     } else if (type.contains('return')) {
       bg = const Color(0xFFFEF3C7);
       fg = const Color(0xFF92400E);
-      label = enSec ? 'RETURN / واپسی' : 'RETURN';
+      label = PosLocalization.tr('RETURN', settings: widget.settings);
     } else if (type.contains('purchase')) {
       bg = const Color(0xFFE0E7FF);
       fg = const Color(0xFF3730A3);
-      label = enSec ? 'PURCHASE / خریداری' : 'PURCHASE';
+      label = PosLocalization.tr('PURCHASE', settings: widget.settings);
     } else if (type.contains('sale')) {
       bg = const Color(0xFFEDE9FE);
       fg = const Color(0xFF4338CA);
-      label = enSec ? 'INVOICE / بل' : 'INVOICE';
+      label = PosLocalization.tr('INVOICE', settings: widget.settings);
     } else if (type.contains('opening')) {
       bg = const Color(0xFFF1F5F9);
       fg = const Color(0xFF475569);
-      label = enSec ? 'OPENING / سابقہ' : 'OPENING';
+      label = PosLocalization.tr('OPENING', settings: widget.settings);
     }
 
     return Container(

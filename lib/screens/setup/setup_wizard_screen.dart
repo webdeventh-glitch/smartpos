@@ -557,8 +557,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     final adminUsername = _adminUserCtrl.text.trim();
     if (adminUsername.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Master Admin username cannot be empty.'),
+        SnackBar(
+            content:
+                Text(_translateLabel('Master Admin username cannot be empty.')),
             backgroundColor: Colors.redAccent),
       );
       return;
@@ -575,8 +576,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     }
     if (pass != confirm) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Passwords do not match. Please re-enter.'),
+        SnackBar(
+            content: Text(
+                _translateLabel('Passwords do not match. Please re-enter.')),
             backgroundColor: Colors.redAccent),
       );
       return;
@@ -759,12 +761,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             builder: (ctx) => AlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16)),
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded,
+                  const Icon(Icons.warning_amber_rounded,
                       color: Colors.amber, size: 28),
-                  SizedBox(width: 10),
-                  Text('MySQL Connection Notice'),
+                  const SizedBox(width: 10),
+                  Text(_translateLabel('MySQL Connection Notice')),
                 ],
               ),
               content: Column(
@@ -784,9 +786,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: const Color(0xFFA7F3D0)),
                     ),
-                    child: const Text(
-                      'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?',
-                      style: TextStyle(
+                    child: Text(
+                      _translateLabel(
+                          'Smart POS includes a high-speed embedded SQLite database engine that works offline with zero setup required.\n\nWould you like to launch using Standalone SQLite Mode now?'),
+                      style: const TextStyle(
                           fontSize: 12, color: Color(0xFF065F46), height: 1.4),
                     ),
                   ),
@@ -795,7 +798,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Back to Settings'),
+                  child: Text(_translateLabel('Back to Settings')),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -808,7 +811,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   ),
                   onPressed: () => Navigator.pop(ctx, true),
                   icon: const Icon(Icons.rocket_launch_rounded, size: 16),
-                  label: const Text('Switch to SQLite & Launch POS'),
+                  label: Text(_translateLabel('Switch to SQLite & Launch POS')),
                 ),
               ],
             ),
@@ -882,12 +885,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Installation Error'),
+                    title: Text(_translateLabel('Installation Error')),
                     content: SingleChildScrollView(child: Text('$e\n\n$stack')),
                     actions: [
                       TextButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Close')),
+                          child: Text(_translateLabel('Close'))),
                     ],
                   ),
                 );
@@ -904,9 +907,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       // Step 1: Validate license
       if (_licenseStatus == null || !_licenseStatus!.isValid) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'A verified License Key or Active Free Trial is required to proceed.'),
+          SnackBar(
+            content: Text(_translateLabel(
+                'A verified License Key or Active Free Trial is required to proceed.')),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -916,8 +919,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       // Step 2: Validate business name
       if (_bizNameCtrl.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enter Business / Store Name.'),
+          SnackBar(
+            content:
+                Text(_translateLabel('Please enter Business / Store Name.')),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -925,9 +929,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       }
       if (_selectedPresets.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Please select at least one Business Industry Preset.'),
+          SnackBar(
+            content: Text(_translateLabel(
+                'Please select at least one Business Industry Preset.')),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -938,9 +942,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       if (_deploymentMode == 'lan_secondary' &&
           _lanHostCtrl.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Please provide Primary Server IP for LAN terminal mode.'),
+          SnackBar(
+            content: Text(_translateLabel(
+                'Please provide Primary Server IP for LAN terminal mode.')),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -1259,7 +1263,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Step 1: Machine Hardware-Bound License Activation',
+                _translateLabel(
+                    'Step 1: Machine Hardware-Bound License Activation'),
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -1270,7 +1275,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine\'s Motherboard / MAC ID.',
+          _translateLabel(
+              'Every system (Primary Server or Secondary LAN Terminal) requires an activated license cryptographically bound to this machine.'),
           style: TextStyle(
               fontSize: 13,
               color:
@@ -1304,8 +1310,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Detected Host Machine Hardware ID (HWID):',
-                        style: TextStyle(
+                    Text(
+                        _translateLabel(
+                            'Detected Host Machine Hardware ID (HWID):'),
+                        style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Colors.grey)),
@@ -1330,7 +1338,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               OutlinedButton.icon(
                 onPressed: _copyHardwareId,
                 icon: const Icon(Icons.copy_rounded, size: 16),
-                label: const Text('Copy HWID'),
+                label: Text(_translateLabel('Copy HWID')),
                 style: OutlinedButton.styleFrom(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1378,7 +1386,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.verified_rounded, size: 18),
-              label: const Text('Verify & Activate'),
+              label: Text(_translateLabel('Verify & Activate')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
                 foregroundColor: Colors.white,
@@ -1405,15 +1413,15 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 onPressed: _isVerifyingLicense ? null : _activateTrialKey,
                 icon: const Icon(Icons.auto_awesome,
                     color: Color(0xFF4F46E5), size: 18),
-                label: const Text(
-                    'Activate Instant 30-Day Free Trial (Hardware Bound)'),
+                label: Text(_translateLabel(
+                    'Activate Instant 30-Day Free Trial (Hardware Bound)')),
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFF4F46E5),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
               ),
-              Text('No internet required for activation',
+              Text(_translateLabel('No internet required for activation'),
                   style: TextStyle(
                       fontSize: 11,
                       color: isDark ? Colors.grey : const Color(0xFF64748B))),
@@ -1484,8 +1492,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                               color: const Color(0xFF10B981),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text('HARDWARE BOUND',
-                                style: TextStyle(
+                            child: Text(_translateLabel('HARDWARE BOUND'),
+                                style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold)),
@@ -1529,7 +1537,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
             Text(
-              'Step 2: Business Profile & Industry Workflows',
+              _translateLabel('Step 2: Business Profile & Industry Workflows'),
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1539,7 +1547,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).',
+          _translateLabel(
+              'Select one or multiple industry presets to enable domain-specific POS workflows (barcodes, IMEI, solar BOM, restaurant KOT).'),
           style: TextStyle(
               fontSize: 13,
               color:
@@ -1624,9 +1633,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                       ? const Color(0xFF64748B)
                                       : const Color(0xFF94A3B8)),
                               const SizedBox(height: 6),
-                              const Text(
-                                'Upload Logo',
-                                style: TextStyle(
+                              Text(
+                                _translateLabel('Upload Logo'),
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF4F46E5),
@@ -1918,14 +1927,14 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             ),
                           );
                         },
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.search,
+                            const Icon(Icons.search,
                                 size: 14, color: Color(0xFF4F46E5)),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
-                              'Search 130+ Currencies',
-                              style: TextStyle(
+                              _translateLabel('Search 130+ Currencies'),
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF4F46E5),
@@ -2069,14 +2078,14 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             ),
                           );
                         },
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.search,
+                            const Icon(Icons.search,
                                 size: 14, color: Color(0xFF0284C7)),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
-                              'Search 80+ Timezones',
-                              style: TextStyle(
+                              _translateLabel('Search 80+ Timezones'),
+                              style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF0284C7),
@@ -2487,7 +2496,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 color: Color(0xFF4F46E5), size: 18),
             const SizedBox(width: 8),
             Text(
-              'Select Business Industry Model (16 Supported Industries):',
+              _translateLabel(
+                  'Select Business Industry Model (16 Supported Industries):'),
               style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -2502,9 +2512,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 border: Border.all(
                     color: const Color(0xFF10B981).withValues(alpha: 0.3)),
               ),
-              child: const Text(
-                '1 Business Model At A Time',
-                style: TextStyle(
+              child: Text(
+                _translateLabel('1 Business Model At A Time'),
+                style: const TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF10B981)),
@@ -2621,9 +2631,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   children: [
                     Row(
                       children: [
-                        const Text(
-                          'Pre-load Starter Products, Categories & Suppliers',
-                          style: TextStyle(
+                        Text(
+                          _translateLabel(
+                              'Pre-load Starter Products, Categories & Suppliers'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         const SizedBox(width: 8),
@@ -2635,9 +2646,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                 const Color(0xFF10B981).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
-                            'RECOMMENDED',
-                            style: TextStyle(
+                          child: Text(
+                            _translateLabel('RECOMMENDED'),
+                            style: const TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF10B981)),
@@ -2647,7 +2658,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing. (تجرباتی اشیاء، کیٹیگریز اور سپلائرز شامل کریں تاکہ سسٹم فوراً تیار ہو)',
+                      _translateLabel(
+                          'Seeds realistic merchandise, units, and vendor contacts for your selected business so the POS is immediately ready for sales and testing.'),
                       style: TextStyle(
                           fontSize: 11,
                           color: isDark
@@ -2721,7 +2733,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        'ACTIVE EXCLUSIVE',
+                        _translateLabel('ACTIVE EXCLUSIVE'),
                         style: TextStyle(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w900,
@@ -2761,7 +2773,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             const Icon(Icons.hub_rounded, color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
             Text(
-              'Step 3: Network Topology & Hybrid Database Engine',
+              _translateLabel(
+                  'Step 3: Network Topology & Hybrid Database Engine'),
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -2771,7 +2784,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).',
+          _translateLabel(
+              'Select how this Smart POS machine interacts with your store network (Server, LAN Terminal, or Cloud Hybrid).'),
           style: TextStyle(
               fontSize: 13,
               color:
@@ -2836,14 +2850,15 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.check_circle_outline,
+                    const Icon(Icons.check_circle_outline,
                         color: Color(0xFF10B981), size: 18),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
-                        'Primary Server & Mobile REST API Server Configuration',
-                        style: TextStyle(
+                        _translateLabel(
+                            'Primary Server & Mobile REST API Server Configuration'),
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 13)),
                   ],
                 ),
@@ -2864,13 +2879,15 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       ),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       flex: 2,
                       child: Padding(
-                        padding: EdgeInsets.only(top: 20),
+                        padding: const EdgeInsets.only(top: 20),
                         child: Text(
-                          'LAN Secondary Terminals & the Flutter Mobile App on the same Wi-Fi will connect to this PC\'s local IP and port.',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          _translateLabel(
+                              'LAN Secondary Terminals & the Flutter Mobile App on the same Wi-Fi will connect to this PC'),
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ),
                     ),
@@ -2893,9 +2910,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Connect to Primary Server Machine:',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(_translateLabel('Connect to Primary Server Machine:'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -2947,9 +2964,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Cloud Sync Server Configuration:',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(_translateLabel('Cloud Sync Server Configuration:'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -3019,7 +3036,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       color: Color(0xFF4F46E5), size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    'Primary Central Database Engine (Admin Choice)',
+                    _translateLabel(
+                        'Primary Central Database Engine (Admin Choice)'),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -3030,7 +3048,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.',
+                _translateLabel(
+                    'Choose MySQL or PostgreSQL as the central enterprise database. SQLite is always active locally for instant offline transactions and auto-syncs when the primary server is reached.'),
                 style: TextStyle(
                     fontSize: 12,
                     color: isDark
@@ -3222,7 +3241,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password (DB Password خالی رکھیں). Or use "smartpos" / "smartpos123".',
+                        _translateLabel(
+                            'Tip: In Laragon / XAMPP, default MySQL user is "root" with NO password. Or use "smartpos" / "smartpos123".'),
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark
@@ -3249,14 +3269,15 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                             border: Border.all(
                                 color: Colors.orange.withValues(alpha: 0.4)),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.clear, size: 12, color: Colors.orange),
-                              SizedBox(width: 4),
+                              const Icon(Icons.clear,
+                                  size: 12, color: Colors.orange),
+                              const SizedBox(width: 4),
                               Text(
-                                'Clear for Laragon',
-                                style: TextStyle(
+                                _translateLabel('Clear for Laragon'),
+                                style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.orange),
@@ -3292,7 +3313,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Offline-First Local SQLite Sync Guarantee',
+                            _translateLabel(
+                                'Offline-First Local SQLite Sync Guarantee'),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
@@ -3303,7 +3325,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'All point-of-sale transactions write to SQLite locally first. Even if your central ${_primaryDbType.toUpperCase()} server or network is temporarily down, cashiers can continue billing without interruption. Queued sales sync automatically once the central database reconnects.',
+                            _translateLabel(
+                                'All point-of-sale transactions write to SQLite locally first. Even if your central database server or network is temporarily down, cashiers can continue billing without interruption.'),
                             style: TextStyle(
                               fontSize: 11,
                               height: 1.35,
@@ -3552,7 +3575,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 color: Color(0xFF4F46E5), size: 20),
             const SizedBox(width: 8),
             Text(
-              'Step 4: Super Admin Master Credentials',
+              _translateLabel('Step 4: Super Admin Master Credentials'),
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -3562,7 +3585,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.',
+          _translateLabel(
+              'Create the sole initial owner/superadmin account. Passwords are hashed using Argon2id with a unique per-user random salt before saving.'),
           style: TextStyle(
               fontSize: 13,
               color:
@@ -3707,14 +3731,16 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             border: Border.all(
                 color: const Color(0xFF10B981).withValues(alpha: 0.3)),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 22),
-              SizedBox(width: 12),
+              const Icon(Icons.shield_rounded,
+                  color: Color(0xFF10B981), size: 22),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.',
-                  style: TextStyle(
+                  _translateLabel(
+                      'Security Shield Active: Passwords are protected with Argon2id + unique random salt and stored credentials are encrypted with AES-256-GCM.'),
+                  style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF047857),
                       fontWeight: FontWeight.w600),
@@ -3834,7 +3860,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           const SizedBox(height: 16),
 
           Text(
-            'Installation & Setup Completed!',
+            _translateLabel('Installation & Setup Completed!'),
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -3845,7 +3871,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'سسٹم کی تنصیب اور ڈیٹا بیس کنفیگریشن کامیابی سے مکمل ہو چکی ہے',
+            _translateLabel(
+                'System installation and database configuration completed successfully.'),
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -3932,16 +3959,17 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Direct Login Bypassed for Security',
-                        style: TextStyle(
+                      Text(
+                        _translateLabel('Direct Login Bypassed for Security'),
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                             color: Color(0xFF4F46E5)),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials ("${_adminUserCtrl.text.trim()}").',
+                        _translateLabel(
+                            'Please click below to navigate to the official Login Screen and authenticate using your new administrator credentials.'),
                         style: TextStyle(
                             fontSize: 12,
                             color: isDark
@@ -3968,9 +3996,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 widget.onSetupComplete(targetSettings);
               },
               icon: const Icon(Icons.login_rounded, size: 20),
-              label: const Text(
-                'Proceed to Login Screen (لاگ ان اسکرین پر جائیں)',
-                style: TextStyle(
+              label: Text(
+                _translateLabel('Proceed to Login Screen'),
+                style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.3),

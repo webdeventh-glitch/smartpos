@@ -522,10 +522,12 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'Customize active modules. Inactive features are hidden from the sidebar & POS to keep your workspace clean. (ماڈیولر کنفیگریشن)',
-                        style:
-                            TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                      Text(
+                        PosLocalization.tr(
+                            'Customize active modules. Inactive features are hidden from the sidebar & POS to keep your workspace clean.',
+                            settings: widget.settings),
+                        style: const TextStyle(
+                            fontSize: 13, color: Color(0xFF94A3B8)),
                       ),
                     ],
                   ),
@@ -538,7 +540,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.save_rounded, size: 18),
-                  label: const Text('Save Modules (محفوظ کریں)'),
+                  label: Text(PosLocalization.tr('Save Modules',
+                      settings: widget.settings)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
@@ -573,9 +576,10 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                       const Icon(Icons.workspace_premium_rounded,
                           color: Color(0xFFF59E0B), size: 20),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Commercial SaaS Tier Presets (تجارتی سبسکرپشن پیکجز)',
-                        style: TextStyle(
+                      Text(
+                        PosLocalization.tr('Commercial SaaS Tier Presets',
+                            settings: widget.settings),
+                        style: const TextStyle(
                             fontWeight: FontWeight.w800, fontSize: 14),
                       ),
                       const Spacer(),
@@ -694,9 +698,10 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                       const Icon(Icons.tune_rounded,
                           color: Color(0xFF4F46E5), size: 20),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Quick Presets (فوری پری سیٹ)',
-                        style: TextStyle(
+                      Text(
+                        PosLocalization.tr('Quick Presets',
+                            settings: widget.settings),
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const Spacer(),
@@ -726,7 +731,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.speed_rounded, size: 16),
-                        label: const Text('Minimalist Core Only (سادہ بلنگ)'),
+                        label: Text(PosLocalization.tr('Minimalist Core Only',
+                            settings: widget.settings)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF0D9488),
                           side: const BorderSide(color: Color(0xFF0D9488)),
@@ -735,7 +741,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.domain_add_rounded, size: 16),
-                        label: const Text('Enable All 16 Modules (تمام فعال)'),
+                        label: Text(PosLocalization.tr('Enable All 16 Modules',
+                            settings: widget.settings)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF8B5CF6),
                           side: const BorderSide(color: Color(0xFF8B5CF6)),
@@ -765,15 +772,17 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                               isDark ? Colors.white : const Color(0xFF0F172A)),
                       onChanged: (val) =>
                           setState(() => _searchQuery = val.trim()),
-                      decoration: const InputDecoration(
-                        hintText:
-                            'Search modules by name, keywords, or Urdu (تلاش کریں)...',
-                        hintStyle:
-                            TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                        prefixIcon: Icon(Icons.search,
+                      decoration: InputDecoration(
+                        hintText: PosLocalization.tr(
+                            'Search modules by name or keywords...',
+                            settings: widget.settings),
+                        hintStyle: const TextStyle(
+                            fontSize: 12, color: Color(0xFF94A3B8)),
+                        prefixIcon: const Icon(Icons.search,
                             size: 18, color: Color(0xFF94A3B8)),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 10),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 10),
                       ),
                     ),
                   ),
