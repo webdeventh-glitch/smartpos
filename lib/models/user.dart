@@ -73,6 +73,7 @@ class User {
       role.toLowerCase() == 'manager' || role.toLowerCase() == 'store manager';
   bool get isSalesman => role.toLowerCase() == 'salesman';
   bool get isCashier => role.toLowerCase() == 'cashier';
+  bool get isActive => status.toLowerCase() == 'active';
 
   /// Permission checker: Super Admin can always view cost price
   bool get canViewCostPriceEffective => isSuperAdmin || canViewCostPrice;

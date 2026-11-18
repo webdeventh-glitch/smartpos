@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 import '../../services/currency_rate_service.dart';
 import '../../services/localization_service.dart';
 
@@ -172,103 +173,160 @@ class _PaymentModalState extends State<PaymentModal> {
 
   void _showSupervisorOverrideDialog(
       double projectedBalance, double creditLimit) {
-    final pinCtrl = TextEditingController();
+    final userCtrl = TextEditingController();
+    final passCtrl = TextEditingController();
+    bool isAuthenticating = false;
+    String? localError;
+
     showDialog(
       context: context,
       builder: (ctx) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.security_rounded,
-                    color: Color(0xFFEF4444), size: 22),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Supervisor Credit Override',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Projected balance of ${widget.currencySymbol}${projectedBalance.toStringAsFixed(2)} exceeds allowed customer limit (${widget.currencySymbol}${creditLimit.toStringAsFixed(2)}) by ${widget.currencySymbol}${(projectedBalance - creditLimit).toStringAsFixed(2)}.\n\nEnter Supervisor Security PIN to authorize this credit sale:',
-                style: TextStyle(
-                    fontSize: 13,
-                    color: isDark
-                        ? const Color(0xFFCBD5E1)
-                        : const Color(0xFF334155)),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: pinCtrl,
-                obscureText: true,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Supervisor PIN (Default: 1234)',
-                  prefixIcon: Icon(Icons.lock_outline_rounded),
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                final entered = pinCtrl.text.trim();
-                if (entered == '1234' ||
-                    entered == '9999' ||
-                    entered == '0000') {
-                  setState(() {
-                    _isSupervisorApproved = true;
-                    _validationError = null;
-                  });
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          'Supervisor override authorized: Credit limit bypassed for this sale.'),
-                      backgroundColor: Color(0xFF10B981),
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content:
-                          Text('Invalid Supervisor PIN! Authorization denied.'),
-                      backgroundColor: Colors.red,
+                    child: const Icon(Icons.security_rounded,
+                        color: Color(0xFFEF4444), size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Supervisor Credit Override',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Projected balance of ${widget.currencySymbol}${projectedBalance.toStringAsFixed(2)} exceeds allowed customer limit (${widget.currencySymbol}${creditLimit.toStringAsFixed(2)}) by ${widget.currencySymbol}${(projectedBalance - creditLimit).toStringAsFixed(2)}.\n\nEnter Supervisor / Admin credentials to authorize this credit sale:',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: isDark
+                            ? const Color(0xFFCBD5E1)
+                            : const Color(0xFF334155)),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: userCtrl,
+                    decoration: const InputDecoration(
+                      labelText:
+                          'Supervisor Username (Optional if single admin)',
+                      prefixIcon: Icon(Icons.person_outline_rounded),
+                      border: OutlineInputBorder(),
+                      isDense: true,
                     ),
-                  );
-                }
-              },
-              child: const Text('Authorize Override'),
-            ),
-          ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: passCtrl,
+                    obscureText: true,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Supervisor Password / PIN*',
+                      prefixIcon: Icon(Icons.lock_outline_rounded),
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  if (localError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      localError!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF4444),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: isAuthenticating
+                      ? null
+                      : () async {
+                          final cred = passCtrl.text.trim();
+                          if (cred.isEmpty) {
+                            setDialogState(() {
+                              localError = 'Please enter password or PIN.';
+                            });
+                            return;
+                          }
+                          setDialogState(() {
+                            isAuthenticating = true;
+                            localError = null;
+                          });
+
+                          final res =
+                              await AuthService.verifySupervisorOverride(
+                            cred,
+                            username: userCtrl.text.trim().isNotEmpty
+                                ? userCtrl.text.trim()
+                                : null,
+                          );
+
+                          if (res.authorized) {
+                            if (mounted) {
+                              setState(() {
+                                _isSupervisorApproved = true;
+                                _validationError = null;
+                              });
+                            }
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Supervisor override authorized by ${res.supervisorName}: Credit limit bypassed for this sale.'),
+                                  backgroundColor: const Color(0xFF10B981),
+                                ),
+                              );
+                            }
+                          } else {
+                            setDialogState(() {
+                              isAuthenticating = false;
+                              localError =
+                                  'Invalid credentials! Supervisor authorization denied.';
+                            });
+                          }
+                        },
+                  child: isAuthenticating
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Authorize Override'),
+                ),
+              ],
+            );
+          },
         );
       },
     );

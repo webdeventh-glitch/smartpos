@@ -391,9 +391,17 @@ class DatabaseService {
     required Sale sale,
     required List<CartItem> items,
     List<Map<String, dynamic>>? splitTenders,
+    int pointsRedeemed = 0,
+    int pointsEarned = 0,
   }) =>
       salesRepo.updateSale(
-          saleId: saleId, sale: sale, items: items, splitTenders: splitTenders);
+        saleId: saleId,
+        sale: sale,
+        items: items,
+        splitTenders: splitTenders,
+        pointsRedeemed: pointsRedeemed,
+        pointsEarned: pointsEarned,
+      );
   Future<void> deleteSale(int saleId) => salesRepo.deleteSale(saleId);
   Future<List<Sale>> getSales({String? status, String? search}) =>
       salesRepo.getSales(status: status, search: search);

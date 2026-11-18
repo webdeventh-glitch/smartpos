@@ -352,14 +352,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.18.3"
-  mysql_client:
-    dependency: "direct main"
-    description:
-      name: mysql_client
-      sha256: "6a0fdcbe3e0721c637f97ad24649be2f70dbce2b21ede8f962910e640f753fc2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.27"
   mysql_client_plus:
     dependency: "direct main"
     description:

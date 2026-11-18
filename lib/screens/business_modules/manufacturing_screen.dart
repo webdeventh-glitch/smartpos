@@ -389,7 +389,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
     );
   }
 
-  void _showExecuteProductionRunModal(Map<String, dynamic> wo) {
+  void _showExecuteProductionRunModal(Map<String, dynamic> wo) async {
     final currency = widget.settings.currencySymbol;
     final woNo = wo['orderNo'] as String? ?? 'WO-NEW';
     final recipeName = wo['recipe'] as String? ?? 'Custom Product';
@@ -406,6 +406,28 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
               recipeName.toLowerCase().contains(p.name.toLowerCase()),
           orElse: () => _products.isNotEmpty ? _products.first : null,
         );
+
+    final db = await DatabaseService.initialize();
+
+    // Query bundle components (raw materials) for matched finished product
+    List<Map<String, dynamic>> bundleComponents = [];
+    if (matchedProduct?.id != null) {
+      bundleComponents = await db.db.rawQuery(
+        '''
+        SELECT pb.*, p.name as product_name, p.stock_quantity as current_stock, p.unit
+        FROM product_bundles pb
+        LEFT JOIN products p ON pb.sub_product_id = p.id
+        WHERE pb.parent_product_id = ?
+        ORDER BY pb.id ASC
+        ''',
+        [matchedProduct!.id],
+      );
+    }
+
+    Product? manualRawMaterial;
+    final manualRawQtyCtrl = TextEditingController(text: '1.0');
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -454,86 +476,242 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
               ),
               content: SizedBox(
                 width: 480,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF0F172A)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: isDark
-                                ? const Color(0xFF334155)
-                                : const Color(0xFFE2E8F0)),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.inventory_2_rounded,
+                                color: Color(0xFF14B8A6), size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(recipeName,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13)),
+                                  if (matchedProduct != null)
+                                    Text(
+                                      'Linked Product: ${matchedProduct.name} • Current Stock: ${matchedProduct.stockQuantity.toInt()}',
+                                      style: const TextStyle(
+                                          fontSize: 11, color: Colors.grey),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Row(
+                      const SizedBox(height: 14),
+                      Row(
                         children: [
-                          const Icon(Icons.inventory_2_rounded,
-                              color: Color(0xFF14B8A6), size: 20),
-                          const SizedBox(width: 10),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(recipeName,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13)),
-                                if (matchedProduct != null)
-                                  Text(
-                                    'Linked Product: ${matchedProduct.name} • Current Stock: ${matchedProduct.stockQuantity.toInt()}',
-                                    style: const TextStyle(
-                                        fontSize: 11, color: Colors.grey),
-                                  ),
-                              ],
+                            child: TextField(
+                              controller: yieldCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Finished Goods Produced*',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              onChanged: (_) => setDlgState(() {}),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: scrapCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Defects / Scrap Units',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: yieldCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Finished Goods Produced*',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: overheadCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Production Overhead Expense ($currency)',
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Raw materials consumption preview / configuration
+                      if (bundleComponents.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF14B8A6).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: const Color(0xFF14B8A6)
+                                    .withValues(alpha: 0.25)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.hub_rounded,
+                                      size: 16, color: Color(0xFF14B8A6)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Bill of Materials (${bundleComponents.length} Raw Materials to Deduct)',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              ...bundleComponents.map((comp) {
+                                final compName = (comp['product_name'] ??
+                                        'Material #${comp['sub_product_id']}')
+                                    .toString();
+                                final compRatio =
+                                    (comp['quantity'] as num?)?.toDouble() ??
+                                        1.0;
+                                final curStock = (comp['current_stock'] as num?)
+                                        ?.toDouble() ??
+                                    0.0;
+                                final prodYield =
+                                    double.tryParse(yieldCtrl.text) ??
+                                        targetQty;
+                                final totalDeduct = compRatio * prodYield;
+                                final hasShortage = curStock < totalDeduct;
+
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 2),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '• $compName ($compRatio/unit)',
+                                          style: const TextStyle(fontSize: 11),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Deduct: ${totalDeduct.toStringAsFixed(1)} | Stock: ${curStock.toStringAsFixed(1)}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: hasShortage
+                                              ? const Color(0xFFEF4444)
+                                              : const Color(0xFF10B981),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: scrapCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Defects / Scrap Units',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFCBD5E1)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.inventory_rounded,
+                                      size: 15, color: Colors.grey),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Deduct Raw Material Product (Optional)',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<Product?>(
+                                initialValue: manualRawMaterial,
+                                isDense: true,
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  border: OutlineInputBorder(),
+                                  hintText:
+                                      'Select raw material product to deduct',
+                                ),
+                                items: [
+                                  const DropdownMenuItem(
+                                    value: null,
+                                    child: Text('None / Pre-deducted'),
+                                  ),
+                                  ..._products
+                                      .where((p) => p.id != matchedProduct?.id)
+                                      .take(30)
+                                      .map((p) => DropdownMenuItem(
+                                            value: p,
+                                            child: Text(
+                                              '${p.name} (Stock: ${p.stockQuantity.toInt()})',
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          )),
+                                ],
+                                onChanged: (p) =>
+                                    setDlgState(() => manualRawMaterial = p),
+                              ),
+                              if (manualRawMaterial != null) ...[
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: manualRawQtyCtrl,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText:
+                                        'Raw material consumed per finished unit',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: overheadCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Production Overhead Expense ($currency)',
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -556,58 +734,121 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                     final scrapQty = double.tryParse(scrapCtrl.text) ?? 0.0;
                     final overhead = double.tryParse(overheadCtrl.text) ?? 0.0;
 
-                    final db = await DatabaseService.initialize();
+                    // Atomic transaction: Increment finished goods & deduct raw materials
+                    int rawMaterialsDeducted = 0;
+                    await db.db.transaction((txn) async {
+                      // 1. Increment Finished Product inventory in SQLite
+                      if (matchedProduct != null && matchedProduct.id != null) {
+                        await txn.rawUpdate(
+                          'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
+                          [producedQty, matchedProduct.id],
+                        );
+                        // Update location inventory
+                        await txn.rawUpdate(
+                          'UPDATE product_locations SET qty_available = qty_available + ? WHERE product_id = ?',
+                          [producedQty, matchedProduct.id],
+                        );
+                      }
 
-                    // 1. Increment Finished Product inventory in SQLite
-                    if (matchedProduct != null && matchedProduct.id != null) {
-                      await db.db.rawUpdate(
-                        'UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?',
-                        [producedQty, matchedProduct.id],
+                      // 2. Deduct Raw Material components
+                      if (bundleComponents.isNotEmpty) {
+                        for (final comp in bundleComponents) {
+                          final subProdId = comp['sub_product_id'] as int?;
+                          if (subProdId != null) {
+                            final compRatio =
+                                (comp['quantity'] as num?)?.toDouble() ?? 1.0;
+                            final deductQty = compRatio * producedQty;
+                            await txn.rawUpdate(
+                              'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+                              [deductQty, subProdId],
+                            );
+                            await txn.rawUpdate(
+                              'UPDATE product_locations SET qty_available = qty_available - ? WHERE product_id = ?',
+                              [deductQty, subProdId],
+                            );
+                            rawMaterialsDeducted++;
+                          }
+                        }
+                      } else if (manualRawMaterial != null &&
+                          manualRawMaterial?.id != null) {
+                        final compRatio =
+                            double.tryParse(manualRawQtyCtrl.text) ?? 1.0;
+                        final deductQty = compRatio * producedQty;
+                        await txn.rawUpdate(
+                          'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+                          [deductQty, manualRawMaterial!.id],
+                        );
+                        await txn.rawUpdate(
+                          'UPDATE product_locations SET qty_available = qty_available - ? WHERE product_id = ?',
+                          [deductQty, manualRawMaterial!.id],
+                        );
+                        rawMaterialsDeducted++;
+                      }
+
+                      // 3. Log overhead expense if specified
+                      if (overhead > 0) {
+                        await txn.insert('expenses', {
+                          'category': 'Manufacturing Overhead',
+                          'amount': overhead,
+                          'ref_no': 'MFG-$woNo',
+                          'note':
+                              'Production run overhead for $recipeName ($woNo)',
+                          'date': DateTime.now().toIso8601String(),
+                          'payment_method': 'cash',
+                        });
+                      }
+
+                      // 4. Mark work order completed
+                      wo['status'] = 'Completed';
+                      wo['progress'] = 1.0;
+                      wo['producedQty'] = producedQty;
+                      wo['scrapQty'] = scrapQty;
+                      wo['completedAt'] = DateTime.now().toIso8601String();
+                      if (bundleComponents.isNotEmpty) {
+                        wo['consumedComponents'] = bundleComponents
+                            .map((c) => {
+                                  'id': c['sub_product_id'],
+                                  'name': c['product_name'],
+                                  'deducted':
+                                      ((c['quantity'] as num?)?.toDouble() ??
+                                              1.0) *
+                                          producedQty,
+                                })
+                            .toList();
+                      } else if (manualRawMaterial != null) {
+                        wo['consumedComponents'] = [
+                          {
+                            'id': manualRawMaterial!.id,
+                            'name': manualRawMaterial!.name,
+                            'deducted':
+                                (double.tryParse(manualRawQtyCtrl.text) ??
+                                        1.0) *
+                                    producedQty,
+                          }
+                        ];
+                      }
+
+                      await db.saveModuleRecord(
+                        id: wo['_dbId'] as int?,
+                        moduleKey: 'manufacturing',
+                        recordType: 'work_order',
+                        title: '${wo['orderNo']} • ${wo['recipe']}',
+                        status: 'Completed',
+                        data: wo,
                       );
-                      // Update location inventory
-                      await db.db.rawUpdate(
-                        'UPDATE product_locations SET qty_available = qty_available + ? WHERE product_id = ?',
-                        [producedQty, matchedProduct.id],
-                      );
-                    }
-
-                    // 2. Log overhead expense if specified
-                    if (overhead > 0) {
-                      await db.db.insert('expenses', {
-                        'category': 'Manufacturing Overhead',
-                        'amount': overhead,
-                        'ref_no': 'MFG-$woNo',
-                        'note':
-                            'Production run overhead for $recipeName ($woNo)',
-                        'date': DateTime.now().toIso8601String(),
-                        'payment_method': 'cash',
-                      });
-                    }
-
-                    // 3. Mark work order completed
-                    wo['status'] = 'Completed';
-                    wo['progress'] = 1.0;
-                    wo['producedQty'] = producedQty;
-                    wo['scrapQty'] = scrapQty;
-                    wo['completedAt'] = DateTime.now().toIso8601String();
-
-                    await db.saveModuleRecord(
-                      id: wo['_dbId'] as int?,
-                      moduleKey: 'manufacturing',
-                      recordType: 'work_order',
-                      title: '${wo['orderNo']} • ${wo['recipe']}',
-                      status: 'Completed',
-                      data: wo,
-                    );
+                    });
 
                     if (ctx.mounted) Navigator.pop(ctx);
                     await _loadProductionData();
 
                     if (mounted) {
+                      final rawMsg = rawMaterialsDeducted > 0
+                          ? ' & $rawMaterialsDeducted raw materials deducted'
+                          : '';
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                              'Work Order $woNo completed: +${producedQty.toInt()} units added to finished stock!'),
+                              'Work Order $woNo completed: +${producedQty.toInt()} units added to finished stock$rawMsg!'),
                           backgroundColor: const Color(0xFF10B981),
                         ),
                       );

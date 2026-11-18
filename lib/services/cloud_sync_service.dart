@@ -264,10 +264,103 @@ class CloudSyncService {
           if (data is Map<String, dynamic>) {
             // Apply remote updates to local SQLite if provided
             if (data['products'] is List) {
-              pulledCount += (data['products'] as List).length;
+              for (final raw in (data['products'] as List)) {
+                if (raw is Map<String, dynamic>) {
+                  final sku = (raw['sku'] ?? '').toString().trim();
+                  final barcode = (raw['barcode'] ?? '').toString().trim();
+                  final code = sku.isNotEmpty ? sku : barcode;
+                  if (code.isNotEmpty) {
+                    final existing = await db.getProductByCode(code);
+                    final p = Product(
+                      id: existing?.id,
+                      name: (raw['name'] ?? existing?.name ?? 'Unnamed Product')
+                          .toString(),
+                      sku: sku.isNotEmpty ? sku : (existing?.sku ?? ''),
+                      barcode: barcode.isNotEmpty
+                          ? barcode
+                          : (existing?.barcode ?? ''),
+                      categoryName: (raw['category_name'] ??
+                              existing?.categoryName ??
+                              'General')
+                          .toString(),
+                      brandName: (raw['brand_name'] ??
+                              existing?.brandName ??
+                              'Standard')
+                          .toString(),
+                      unit: (raw['unit'] ?? existing?.unit ?? 'Pc').toString(),
+                      purchasePrice:
+                          (raw['purchase_price'] as num?)?.toDouble() ??
+                              existing?.purchasePrice ??
+                              0.0,
+                      sellingPrice:
+                          (raw['selling_price'] as num?)?.toDouble() ??
+                              existing?.sellingPrice ??
+                              0.0,
+                      stockQuantity:
+                          (raw['stock_quantity'] as num?)?.toDouble() ??
+                              existing?.stockQuantity ??
+                              0.0,
+                      alertQuantity:
+                          (raw['alert_quantity'] as num?)?.toDouble() ??
+                              existing?.alertQuantity ??
+                              5.0,
+                      batchNumber: raw['batch_number']?.toString() ??
+                          existing?.batchNumber,
+                      expiryDate: raw['expiry_date']?.toString() ??
+                          existing?.expiryDate,
+                    );
+                    if (existing == null) {
+                      await db.addProduct(p);
+                    } else {
+                      await db.updateProduct(p);
+                    }
+                    pulledCount++;
+                  }
+                }
+              }
             }
             if (data['customers'] is List) {
-              pulledCount += (data['customers'] as List).length;
+              final existingContacts = await db.getContacts();
+              for (final raw in (data['customers'] as List)) {
+                if (raw is Map<String, dynamic>) {
+                  final name = (raw['name'] ?? '').toString().trim();
+                  if (name.isNotEmpty) {
+                    final phone = (raw['phone'] ?? '').toString().trim();
+                    final existing = existingContacts.where((c) {
+                      if (c.name.toLowerCase() == name.toLowerCase()) {
+                        return true;
+                      }
+                      if (phone.isNotEmpty && c.phone == phone) return true;
+                      return false;
+                    }).firstOrNull;
+
+                    final contact = Contact(
+                      id: existing?.id,
+                      type: (raw['type'] ?? existing?.type ?? 'customer')
+                          .toString(),
+                      name: name,
+                      businessName: raw['business_name']?.toString() ??
+                          existing?.businessName,
+                      phone: phone.isNotEmpty ? phone : (existing?.phone ?? ''),
+                      email: (raw['email'] ?? existing?.email ?? '').toString(),
+                      address: (raw['address'] ?? existing?.address ?? '')
+                          .toString(),
+                      balance: (raw['balance'] as num?)?.toDouble() ??
+                          existing?.balance ??
+                          0.0,
+                      creditLimit: (raw['credit_limit'] as num?)?.toDouble() ??
+                          existing?.creditLimit ??
+                          1000.0,
+                    );
+                    if (existing == null) {
+                      await db.addContact(contact);
+                    } else {
+                      await db.updateContact(contact);
+                    }
+                    pulledCount++;
+                  }
+                }
+              }
             }
           }
         }

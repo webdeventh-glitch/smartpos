@@ -4019,19 +4019,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         (!_isCurrentCustomerWalkIn && _selectedCustomer?.id != null)
             ? (paidAmount / 100).floorToDouble()
             : 0.0;
-    if (_resumedSaleId != null &&
-        saleStatus == 'final' &&
-        _selectedCustomer?.id != null &&
-        !_isCurrentCustomerWalkIn) {
-      if (redeemedPoints > 0) {
-        await db.updateContactLoyaltyPoints(
-            _selectedCustomer!.id!, -redeemedPoints);
-      }
-      if (earnedPoints > 0) {
-        await db.updateContactLoyaltyPoints(
-            _selectedCustomer!.id!, earnedPoints);
-      }
-    }
 
     if (redeemedPoints > 0 || earnedPoints > 0) {
       final loyaltySummary =
@@ -4086,6 +4073,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         sale: sale,
         items: List.from(_cart),
         splitTenders: splitTenders,
+        pointsRedeemed: redeemedPoints.round(),
+        pointsEarned: earnedPoints.round(),
       );
     } else if (widget.settings.isLanSecondaryTerminal &&
         widget.settings.serverHost.trim().isNotEmpty &&

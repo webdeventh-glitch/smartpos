@@ -637,4 +637,63 @@ class AuthService {
     sessionMessageNotifier.value = null;
     currentUserNotifier.value = user;
   }
+
+  /// Verifies supervisor or admin credentials (password or PIN) to authorize overrides
+  /// such as credit limit bypasses, sensitive voids, or discount exceptions.
+  /// If [username] is provided, checks that specific user; otherwise checks any active
+  /// user possessing supervisor/admin privileges.
+  static Future<({bool authorized, String supervisorName})>
+      verifySupervisorOverride(
+    String credential, {
+    String? username,
+  }) async {
+    final cleanCred = credential.trim();
+    if (cleanCred.isEmpty) return (authorized: false, supervisorName: '');
+
+    final db = await DatabaseService.initialize();
+    final users = await db.getUsers();
+
+    for (final u in users) {
+      if (!u.isActive) continue;
+
+      final isAuthorizedRole = u.isSuperAdmin ||
+          u.role.toLowerCase() == 'admin' ||
+          u.role.toLowerCase() == 'supervisor' ||
+          u.hasPermission('credit_limit.override') ||
+          u.hasPermission('sale.override_credit');
+      if (!isAuthorizedRole) continue;
+
+      if (username != null && username.trim().isNotEmpty) {
+        if (u.username.toLowerCase() != username.trim().toLowerCase()) continue;
+      }
+
+      final isPassMatch = verifyPassword(cleanCred, u.password) ||
+          _verifyLegacySha256(cleanCred, u.password);
+
+      if (isPassMatch) {
+        try {
+          await db.logAuditAction(
+            action: 'supervisor_override_authorized',
+            entityType: 'credit_limit',
+            userId: u.id,
+            userName: u.name.isNotEmpty ? u.name : u.username,
+            details:
+                'Supervisor override authorized by ${u.name} (@${u.username})',
+          );
+        } catch (_) {}
+        return (authorized: true, supervisorName: u.name);
+      }
+    }
+
+    try {
+      await db.logAuditAction(
+        action: 'supervisor_override_failed',
+        entityType: 'credit_limit',
+        userName: username ?? 'Unknown',
+        details: 'Failed supervisor override authorization attempt',
+      );
+    } catch (_) {}
+
+    return (authorized: false, supervisorName: '');
+  }
 }

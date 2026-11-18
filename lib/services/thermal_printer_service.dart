@@ -79,17 +79,169 @@ class ThermalPrinterService {
   ];
 
   static String _asciiSafe(String input) {
+    if (input.isEmpty) return input;
+    // Map known currency symbols, typographic dashes, and symbols to clean ASCII equivalents
+    final mapped = input
+        .replaceAll('₨', 'Rs.')
+        .replaceAll('₹', 'Rs.')
+        .replaceAll('€', 'EUR')
+        .replaceAll('£', 'GBP')
+        .replaceAll('¥', 'JPY')
+        .replaceAll('₩', 'KRW')
+        .replaceAll('฿', 'THB')
+        .replaceAll('₫', 'VND')
+        .replaceAll('₱', 'PHP')
+        .replaceAll('₪', 'ILS')
+        .replaceAll('¢', 'c')
+        .replaceAll('—', '-')
+        .replaceAll('–', '-')
+        .replaceAll('‒', '-')
+        .replaceAll('―', '-')
+        .replaceAll('•', '-')
+        .replaceAll('◦', '-')
+        .replaceAll('‣', '-')
+        .replaceAll('⁃', '-')
+        .replaceAll('■', '-')
+        .replaceAll('□', '-')
+        .replaceAll('▪', '-')
+        .replaceAll('▫', '-')
+        .replaceAll('“', '"')
+        .replaceAll('”', '"')
+        .replaceAll('«', '"')
+        .replaceAll('»', '"')
+        .replaceAll('„', '"')
+        .replaceAll('‘', "'")
+        .replaceAll('’', "'")
+        .replaceAll('‚', "'")
+        .replaceAll('‛', "'")
+        .replaceAll('…', '...')
+        .replaceAll('™', '(TM)')
+        .replaceAll('©', '(C)')
+        .replaceAll('®', '(R)')
+        .replaceAll('°', ' deg')
+        .replaceAll('×', 'x')
+        .replaceAll('÷', '/')
+        .replaceAll('±', '+/-')
+        .replaceAll('¼', '1/4')
+        .replaceAll('½', '1/2')
+        .replaceAll('¾', '3/4')
+        .replaceAll('№', 'No.')
+        .replaceAll('\u00A0', ' ');
+
     final buf = StringBuffer();
-    for (final code in input.runes) {
+    for (final code in mapped.runes) {
       if (code >= 32 && code <= 126) {
         buf.writeCharCode(code);
       } else if (code == 10 || code == 13 || code == 9) {
         buf.writeCharCode(code);
       } else {
-        buf.write(' ');
+        final replacement = _transliterateRune(code);
+        if (replacement != null) {
+          buf.write(replacement);
+        } else {
+          buf.write(' ');
+        }
       }
     }
     return buf.toString();
+  }
+
+  static String? _transliterateRune(int code) {
+    switch (code) {
+      case 0x00E0:
+      case 0x00E1:
+      case 0x00E2:
+      case 0x00E3:
+      case 0x00E4:
+      case 0x00E5:
+      case 0x0101:
+        return 'a';
+      case 0x00C0:
+      case 0x00C1:
+      case 0x00C2:
+      case 0x00C3:
+      case 0x00C4:
+      case 0x00C5:
+      case 0x0100:
+        return 'A';
+      case 0x00E8:
+      case 0x00E9:
+      case 0x00EA:
+      case 0x00EB:
+      case 0x0113:
+        return 'e';
+      case 0x00C8:
+      case 0x00C9:
+      case 0x00CA:
+      case 0x00CB:
+      case 0x0112:
+        return 'E';
+      case 0x00EC:
+      case 0x00ED:
+      case 0x00EE:
+      case 0x00EF:
+      case 0x012B:
+        return 'i';
+      case 0x00CC:
+      case 0x00CD:
+      case 0x00CE:
+      case 0x00CF:
+      case 0x012A:
+        return 'I';
+      case 0x00F2:
+      case 0x00F3:
+      case 0x00F4:
+      case 0x00F5:
+      case 0x00F6:
+      case 0x00F8:
+      case 0x014D:
+        return 'o';
+      case 0x00D2:
+      case 0x00D3:
+      case 0x00D4:
+      case 0x00D5:
+      case 0x00D6:
+      case 0x00D8:
+      case 0x014C:
+        return 'O';
+      case 0x00F9:
+      case 0x00FA:
+      case 0x00FB:
+      case 0x00FC:
+      case 0x016B:
+        return 'u';
+      case 0x00D9:
+      case 0x00DA:
+      case 0x00DB:
+      case 0x00DC:
+      case 0x016A:
+        return 'U';
+      case 0x00E7:
+        return 'c';
+      case 0x00C7:
+        return 'C';
+      case 0x00F1:
+        return 'n';
+      case 0x00D1:
+        return 'N';
+      case 0x00FD:
+      case 0x00FF:
+        return 'y';
+      case 0x00DD:
+        return 'Y';
+      case 0x00DF:
+        return 'ss';
+      case 0x00E6:
+        return 'ae';
+      case 0x00C6:
+        return 'AE';
+      case 0x0153:
+        return 'oe';
+      case 0x0152:
+        return 'OE';
+      default:
+        return null;
+    }
   }
 
   static PaperSize _resolvePaperSize(String width) =>
@@ -127,8 +279,9 @@ class ThermalPrinterService {
     final generator = Generator(paperSize, profile);
     final is58 = paperSize == PaperSize.mm58;
     final chars = is58 ? 32 : 48;
-    final cur = _asciiSafe(
+    final rawCur = _asciiSafe(
         settings.currencySymbol.isNotEmpty ? settings.currencySymbol : 'Rs');
+    final cur = rawCur.trim().isNotEmpty ? rawCur.trim() : 'Rs';
     final activeLayout = layout ?? InvoiceLayout.fromBusinessSettings(settings);
 
     final List<int> bytes = [];

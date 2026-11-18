@@ -473,6 +473,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
     required Sale sale,
     required List<CartItem> items,
     List<Map<String, dynamic>>? splitTenders,
+    int pointsRedeemed = 0,
+    int pointsEarned = 0,
   }) async {
     final updated = await db.transaction((txn) async {
       final oldSaleRows = await txn.query('sales',
@@ -606,6 +608,17 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
           'UPDATE contacts SET balance = balance + ? WHERE id = ?',
           [sale.dueAmount, sale.customerId],
         );
+      }
+
+      // Update customer loyalty points if now final
+      if (isNowFinal && sale.customerId != null) {
+        final netPointsDelta = pointsEarned - pointsRedeemed;
+        if (netPointsDelta != 0) {
+          await txn.rawUpdate(
+            'UPDATE contacts SET loyalty_points = MAX(0, loyalty_points + ?) WHERE id = ?',
+            [netPointsDelta.toDouble(), sale.customerId],
+          );
+        }
       }
 
       // Update cash register whenever updated sale is final (old tender buckets were reverted above)
