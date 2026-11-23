@@ -355,6 +355,15 @@ The setup wizard combines 4 major steps with extensive inline styling, database 
   [X] HRM Fast Barcode/PIN Clock-In modal & Cashier Sales Commission Auto-Calculator.
   [X] Pharmacy Narcotic & Controlled Substances Prescription Register (DRAP compliance).
   [X] Unified Fiscal & Messaging Settings in Tax Configuration.
+
++---------------------------------------------------------------------------------------+
+| PHASE 6: ADVANCED WORKFLOWS, LOANS, PRICING & SCRAP ENGINES - [COMPLETED & VERIFIED]   |
++---------------------------------------------------------------------------------------+
+  [X] Advanced Manufacturing 4-Stage Workflow (Batching -> Assembly -> Quality -> Stocked).
+  [X] Manufacturing Defects/Scrap Waste Tracking, Percentage & Financial Valuation.
+  [X] Near-Expiry Escalating Discount Engine (20% @ <=60 days, 40% clearance @ <=30 days).
+  [X] HRM Staff Advance Salary Loans Ledger & Monthly Payroll Installment Auto-Deductions.
+  [X] Restaurant Dine-In 5% Service Charge Automation & Dining Mode Dynamic Fee Sync.
 ```
 
 ---

@@ -69,6 +69,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
     },
   ];
 
+  List<Map<String, dynamic>> _staffLoans = [];
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +78,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
     _loadStaff();
     _loadPaymentAccounts();
     _loadCommissionSales();
+    _loadStaffLoans();
   }
 
   @override
@@ -83,6 +86,35 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
     _tabCtrl.dispose();
     _quickScanCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadStaffLoans() async {
+    final db = await DatabaseService.initialize();
+    var loans = await db.getModuleRecords('hrm', recordType: 'staff_loan');
+    if (loans.isEmpty) {
+      final seedLoan = <String, dynamic>{
+        'loanId': 'LN-101',
+        'empId': 'EMP-02',
+        'employeeName': 'Saad Tariq',
+        'totalAmount': 30000.0,
+        'monthlyInstallment': 5000.0,
+        'remainingBalance': 25000.0,
+        'dateIssued': '15 Oct 2026',
+        'status': 'active',
+        'notes': 'Emergency medical advance salary loan',
+      };
+      await db.saveModuleRecord(
+        moduleKey: 'hrm',
+        recordType: 'staff_loan',
+        title: '${seedLoan['loanId']} • ${seedLoan['employeeName']}',
+        status: 'active',
+        data: seedLoan,
+      );
+      loans = await db.getModuleRecords('hrm', recordType: 'staff_loan');
+    }
+    if (mounted) {
+      setState(() => _staffLoans = loans);
+    }
   }
 
   Future<void> _loadPaymentAccounts() async {
@@ -481,6 +513,540 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
     );
   }
 
+  void _showIssueLoanDialog() {
+    final currency = widget.settings.currencySymbol;
+    Map<String, dynamic>? selectedEmployee =
+        _staff.isNotEmpty ? _staff.first : null;
+    final amountCtrl = TextEditingController(text: '25000');
+    final installmentCtrl = TextEditingController(text: '5000');
+    final notesCtrl = TextEditingController(text: 'Personal advance loan');
+    PaymentAccount? selectedAccount =
+        _paymentAccounts.isNotEmpty ? _paymentAccounts.first : null;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (ctx, setDlgState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.handshake_rounded,
+                        color: Color(0xFF2563EB), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('Issue Staff Advance Loan',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: SizedBox(
+                width: 440,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<Map<String, dynamic>>(
+                      initialValue: selectedEmployee,
+                      decoration: const InputDecoration(
+                        labelText: 'Select Staff Member',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: _staff.map((emp) {
+                        return DropdownMenuItem(
+                          value: emp,
+                          child: Text('${emp['name']} (${emp['role']})',
+                              overflow: TextOverflow.ellipsis),
+                        );
+                      }).toList(),
+                      onChanged: (val) =>
+                          setDlgState(() => selectedEmployee = val),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: amountCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Principal Amount ($currency)',
+                              border: const OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: installmentCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Monthly Deduction ($currency)',
+                              border: const OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<PaymentAccount>(
+                      initialValue: selectedAccount,
+                      decoration: const InputDecoration(
+                        labelText: 'Disbursal Payment Account',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: _paymentAccounts.map((a) {
+                        return DropdownMenuItem(
+                          value: a,
+                          child: Text(
+                              '${a.name} ($currency${a.currentBalance.toStringAsFixed(0)})',
+                              overflow: TextOverflow.ellipsis),
+                        );
+                      }).toList(),
+                      onChanged: (val) =>
+                          setDlgState(() => selectedAccount = val),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: notesCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Purpose / Notes',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.check_rounded, size: 16),
+                  label: const Text('Disburse & Record Loan'),
+                  onPressed: () async {
+                    if (selectedEmployee == null) return;
+                    final total = double.tryParse(amountCtrl.text) ?? 0.0;
+                    final inst = double.tryParse(installmentCtrl.text) ?? 0.0;
+                    if (total <= 0) return;
+
+                    final loanNo = 'LN-${100 + _staffLoans.length + 1}';
+                    final newLoan = <String, dynamic>{
+                      'loanId': loanNo,
+                      'empId': selectedEmployee!['empId'],
+                      'employeeName': selectedEmployee!['name'],
+                      'totalAmount': total,
+                      'monthlyInstallment': inst > 0 ? inst : (total / 5),
+                      'remainingBalance': total,
+                      'dateIssued':
+                          DateFormat('dd MMM yyyy').format(DateTime.now()),
+                      'status': 'active',
+                      'notes': notesCtrl.text.trim(),
+                    };
+
+                    final db = await DatabaseService.initialize();
+                    await db.saveModuleRecord(
+                      moduleKey: 'hrm',
+                      recordType: 'staff_loan',
+                      title: '$loanNo • ${selectedEmployee!['name']}',
+                      status: 'active',
+                      data: newLoan,
+                    );
+
+                    // Insert into expenses
+                    await db.db.insert('expenses', {
+                      'category': 'Staff Advance Loans',
+                      'amount': total,
+                      'ref_no': loanNo,
+                      'note':
+                          'Staff advance loan to ${selectedEmployee!['name']} ($loanNo)',
+                      'date': DateTime.now().toIso8601String(),
+                      'payment_method': selectedAccount?.name ?? 'cash',
+                    });
+
+                    // Deduct from account balance if account selected
+                    if (selectedAccount?.id != null) {
+                      await db.db.rawUpdate(
+                        'UPDATE payment_accounts SET current_balance = current_balance - ? WHERE id = ?',
+                        [total, selectedAccount!.id],
+                      );
+                      await _loadPaymentAccounts();
+                    }
+
+                    await _loadStaffLoans();
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Advance loan $loanNo issued to ${selectedEmployee!['name']}!'),
+                          backgroundColor: const Color(0xFF10B981),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showStaffLoansDialog() {
+    final currency = widget.settings.currencySymbol;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (ctx, setDlgState) {
+            double totalOutstanding = 0.0;
+            double totalMonthlyRepay = 0.0;
+            int activeCount = 0;
+
+            for (final l in _staffLoans) {
+              final isAct =
+                  (l['status'] as String? ?? '').toLowerCase() == 'active';
+              final rem = (l['remainingBalance'] as num?)?.toDouble() ?? 0.0;
+              final inst = (l['monthlyInstallment'] as num?)?.toDouble() ?? 0.0;
+              if (isAct && rem > 0) {
+                totalOutstanding += rem;
+                totalMonthlyRepay += inst;
+                activeCount++;
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.handshake_rounded,
+                        color: Color(0xFF2563EB), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Staff Advance Salary Loans & Installments',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text('Automated payroll installment deduction ledger',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B))),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2563EB),
+                      foregroundColor: Colors.white,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Issue Advance Loan'),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showIssueLoanDialog();
+                    },
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 680,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Summary KPIs
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2563EB)
+                                    .withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: const Color(0xFF2563EB)
+                                        .withValues(alpha: 0.3)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Active Staff Loans',
+                                      style: TextStyle(
+                                          fontSize: 11, color: Colors.grey)),
+                                  Text('$activeCount Staff Members',
+                                      style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEA580C)
+                                    .withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: const Color(0xFFEA580C)
+                                        .withValues(alpha: 0.3)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Total Capital Outstanding',
+                                      style: TextStyle(
+                                          fontSize: 11, color: Colors.grey)),
+                                  Text(
+                                      '$currency${totalOutstanding.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFEA580C))),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: const Color(0xFF10B981)
+                                        .withValues(alpha: 0.3)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Monthly Deduction Flow',
+                                      style: TextStyle(
+                                          fontSize: 11, color: Colors.grey)),
+                                  Text(
+                                      '$currency${totalMonthlyRepay.toStringAsFixed(0)} / mo',
+                                      style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF10B981))),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (_staffLoans.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text('No advance loans recorded.',
+                              style: TextStyle(color: Colors.grey)),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _staffLoans.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (ctx, idx) {
+                            final l = _staffLoans[idx];
+                            final isAct =
+                                (l['status'] as String? ?? '').toLowerCase() ==
+                                    'active';
+                            final tot =
+                                (l['totalAmount'] as num?)?.toDouble() ?? 0.0;
+                            final rem =
+                                (l['remainingBalance'] as num?)?.toDouble() ??
+                                    0.0;
+                            final inst =
+                                (l['monthlyInstallment'] as num?)?.toDouble() ??
+                                    0.0;
+                            final repaidPct = tot > 0
+                                ? ((tot - rem) / tot).clamp(0.0, 1.0)
+                                : 1.0;
+
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF0F172A)
+                                    : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: isDark
+                                        ? const Color(0xFF334155)
+                                        : const Color(0xFFE2E8F0)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 7, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF2563EB)
+                                                  .withValues(alpha: 0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(l['loanId'] ?? 'LN',
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 11,
+                                                    color: Color(0xFF2563EB))),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(l['employeeName'] ?? 'Staff',
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13)),
+                                          Text(' (${l['empId']})',
+                                              style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey)),
+                                        ],
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: isAct
+                                              ? const Color(0xFF10B981)
+                                                  .withValues(alpha: 0.15)
+                                              : Colors.grey
+                                                  .withValues(alpha: 0.15),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          isAct ? 'ACTIVE' : 'REPAID',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: isAct
+                                                ? const Color(0xFF10B981)
+                                                : Colors.grey,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                          'Principal: $currency${tot.toStringAsFixed(0)} • Repaid: ${(repaidPct * 100).toStringAsFixed(0)}%',
+                                          style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.grey)),
+                                      Text(
+                                          'Deduction: $currency${inst.toStringAsFixed(0)}/mo • Remaining: $currency${rem.toStringAsFixed(0)}',
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: rem > 0
+                                                  ? const Color(0xFFEA580C)
+                                                  : const Color(0xFF10B981))),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(3),
+                                    child: LinearProgressIndicator(
+                                      value: repaidPct,
+                                      backgroundColor: isDark
+                                          ? const Color(0xFF1E293B)
+                                          : const Color(0xFFE2E8F0),
+                                      color: isAct
+                                          ? const Color(0xFF2563EB)
+                                          : const Color(0xFF10B981),
+                                      minHeight: 5,
+                                    ),
+                                  ),
+                                  if (l['notes'] != null &&
+                                      (l['notes'] as String).isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text('Note: ${l['notes']}',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            fontStyle: FontStyle.italic,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF64748B))),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showProcessPayrollDialog() {
     final currency = widget.settings.currencySymbol;
     String selectedMonth = DateFormat('MMMM yyyy').format(DateTime.now());
@@ -489,11 +1055,26 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
 
     final allowancesMap = <String, double>{};
     final deductionsMap = <String, double>{};
+    final loanDeductionsMap = <String, double>{};
 
     for (final emp in _staff) {
       final id = emp['empId'] as String;
       allowancesMap[id] = 2000.0; // Default Medical / Conveyance
-      deductionsMap[id] = 0.0;
+
+      // Auto-populate loan installment deduction if active loan exists
+      double loanInstallment = 0.0;
+      for (final l in _staffLoans) {
+        final lEmpId = l['empId'] as String?;
+        final isAct = (l['status'] as String? ?? '').toLowerCase() == 'active';
+        final rem = (l['remainingBalance'] as num?)?.toDouble() ?? 0.0;
+        final inst = (l['monthlyInstallment'] as num?)?.toDouble() ?? 0.0;
+        if (lEmpId == id && isAct && rem > 0) {
+          final ded = inst <= rem ? inst : rem;
+          loanInstallment += ded;
+        }
+      }
+      loanDeductionsMap[id] = loanInstallment;
+      deductionsMap[id] = loanInstallment;
     }
 
     showDialog(
@@ -654,10 +1235,18 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 13)),
                                         Text(
-                                            '${emp['role']} • Basic: $currency${basic.toStringAsFixed(0)}',
-                                            style: const TextStyle(
+                                            (loanDeductionsMap[id] != null &&
+                                                    loanDeductionsMap[id]! > 0)
+                                                ? '${emp['role']} • Basic: $currency${basic.toStringAsFixed(0)} • Loan Deduct: -$currency${loanDeductionsMap[id]!.toStringAsFixed(0)}'
+                                                : '${emp['role']} • Basic: $currency${basic.toStringAsFixed(0)}',
+                                            style: TextStyle(
                                                 fontSize: 11,
-                                                color: Colors.grey)),
+                                                color: (loanDeductionsMap[id] !=
+                                                            null &&
+                                                        loanDeductionsMap[id]! >
+                                                            0)
+                                                    ? const Color(0xFFEA580C)
+                                                    : Colors.grey)),
                                       ],
                                     ),
                                   ),
@@ -803,6 +1392,39 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                       );
                       await _loadPaymentAccounts();
                     }
+
+                    // 4. Deduct installments from active staff loans
+                    for (final l in _staffLoans) {
+                      final lEmpId = l['empId'] as String?;
+                      final isAct =
+                          (l['status'] as String? ?? '').toLowerCase() ==
+                              'active';
+                      final rem =
+                          (l['remainingBalance'] as num?)?.toDouble() ?? 0.0;
+                      final inst =
+                          (l['monthlyInstallment'] as num?)?.toDouble() ?? 0.0;
+                      if (lEmpId != null && isAct && rem > 0) {
+                        final expectedDeduct = inst <= rem ? inst : rem;
+                        final actualDeduct = deductionsMap[lEmpId] ?? 0.0;
+                        if (actualDeduct >= expectedDeduct) {
+                          final newRem = (rem - expectedDeduct)
+                              .clamp(0.0, double.infinity);
+                          l['remainingBalance'] = newRem;
+                          if (newRem <= 0) {
+                            l['status'] = 'repaid';
+                          }
+                          await db.saveModuleRecord(
+                            id: l['_dbId'] as int?,
+                            moduleKey: 'hrm',
+                            recordType: 'staff_loan',
+                            title: '${l['loanId']} • ${l['employeeName']}',
+                            status: l['status'] as String,
+                            data: l,
+                          );
+                        }
+                      }
+                    }
+                    await _loadStaffLoans();
 
                     if (ctx.mounted) Navigator.pop(ctx);
                     if (mounted) {
@@ -1445,6 +2067,17 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     ),
                     Row(
                       children: [
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF2563EB)),
+                            foregroundColor: const Color(0xFF2563EB),
+                          ),
+                          onPressed: _showStaffLoansDialog,
+                          icon: const Icon(Icons.handshake_rounded, size: 16),
+                          label: Text(
+                              'Staff Loans (${_staffLoans.where((l) => (l['status'] as String? ?? '').toLowerCase() == 'active').length})'),
+                        ),
+                        const SizedBox(width: 10),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF2563EB),
@@ -1509,6 +2142,53 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                                       color: isDark
                                           ? const Color(0xFF94A3B8)
                                           : const Color(0xFF64748B))),
+                              Builder(builder: (_) {
+                                final activeLoan = _staffLoans.firstWhere(
+                                  (l) =>
+                                      l['empId'] == e['empId'] &&
+                                      (l['status'] as String? ?? '')
+                                              .toLowerCase() ==
+                                          'active' &&
+                                      ((l['remainingBalance'] as num?) ?? 0) >
+                                          0,
+                                  orElse: () => {},
+                                );
+                                if (activeLoan.isNotEmpty) {
+                                  final rem =
+                                      (activeLoan['remainingBalance'] as num?)
+                                              ?.toDouble() ??
+                                          0.0;
+                                  final inst =
+                                      (activeLoan['monthlyInstallment'] as num?)
+                                              ?.toDouble() ??
+                                          0.0;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 3),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEA580C)
+                                                .withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            'Loan: -$currency${inst.toStringAsFixed(0)}/mo (Bal: $currency${rem.toStringAsFixed(0)})',
+                                            style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFFEA580C)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              }),
                             ],
                           ),
                           Row(

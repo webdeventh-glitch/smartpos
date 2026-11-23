@@ -66,7 +66,8 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
       'startDate': '21 Oct 2026',
       'technician': 'Production Line A',
       'status': 'In Production',
-      'progress': 0.65,
+      'progress': 0.50,
+      'stage': '2. Processing & Assembly',
     },
     {
       'orderNo': 'WO-802',
@@ -76,6 +77,10 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
       'technician': 'Cutting & Stitching Unit',
       'status': 'Completed',
       'progress': 1.0,
+      'stage': '4. Completed & Stocked',
+      'scrapQty': 12.0,
+      'scrapRate': 1.18,
+      'scrapLoss': 4200.0,
     },
     {
       'orderNo': 'WO-803',
@@ -85,6 +90,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
       'technician': 'Liquid Filling Section',
       'status': 'Planned',
       'progress': 0.1,
+      'stage': '1. Batching & Preparation',
     },
   ];
 
@@ -407,6 +413,23 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
           orElse: () => _products.isNotEmpty ? _products.first : null,
         );
 
+    // Calculate estimated unit cost for scrap loss valuation
+    double estUnitCost = 0.0;
+    for (final r in _recipes) {
+      final rName = (r['product'] as String? ?? '').toLowerCase().trim();
+      if (rName == recipeName.toLowerCase().trim() ||
+          recipeName.toLowerCase().contains(rName)) {
+        estUnitCost = (r['unitCost'] as num?)?.toDouble() ?? 0.0;
+        break;
+      }
+    }
+    if (estUnitCost <= 0.0 && matchedProduct != null) {
+      estUnitCost = matchedProduct.purchasePrice > 0
+          ? matchedProduct.purchasePrice
+          : (matchedProduct.sellingPrice * 0.65);
+    }
+    if (estUnitCost <= 0.0) estUnitCost = 150.0;
+
     final db = await DatabaseService.initialize();
 
     // Query bundle components (raw materials) for matched finished product
@@ -543,10 +566,94 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                                 border: OutlineInputBorder(),
                                 isDense: true,
                               ),
+                              onChanged: (_) => setDlgState(() {}),
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 10),
+                      Builder(
+                        builder: (_) {
+                          final produced =
+                              double.tryParse(yieldCtrl.text) ?? targetQty;
+                          final scrap = double.tryParse(scrapCtrl.text) ?? 0.0;
+                          final totalUnits = produced + scrap;
+                          final scrapRate = totalUnits > 0
+                              ? (scrap / totalUnits) * 100.0
+                              : 0.0;
+                          final scrapLoss = scrap * estUnitCost;
+
+                          Color rateColor = const Color(0xFF10B981);
+                          String rateStatus = 'Optimal (<3%)';
+                          if (scrapRate > 6.0) {
+                            rateColor = const Color(0xFFEF4444);
+                            rateStatus = 'Critical Loss Alert (>6%)';
+                          } else if (scrapRate > 3.0) {
+                            rateColor = const Color(0xFFF59E0B);
+                            rateStatus = 'Elevated Scrap (3-6%)';
+                          }
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: rateColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: rateColor.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.delete_sweep_rounded,
+                                        size: 16, color: rateColor),
+                                    const SizedBox(width: 6),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                            'Scrap Rate: ${scrapRate.toStringAsFixed(1)}% ($rateStatus)',
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: rateColor)),
+                                        Text(
+                                            'Defects: ${scrap.toInt()} of ${totalUnits.toInt()} total run',
+                                            style: TextStyle(
+                                                fontSize: 10,
+                                                color: isDark
+                                                    ? const Color(0xFF94A3B8)
+                                                    : const Color(0xFF64748B))),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text('Financial Loss:',
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: isDark
+                                                ? const Color(0xFF94A3B8)
+                                                : const Color(0xFF64748B))),
+                                    Text(
+                                        '$currency${scrapLoss.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w900,
+                                            color: rateColor)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
                       const SizedBox(height: 14),
                       TextField(
                         controller: overheadCtrl,
@@ -798,11 +905,19 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                         });
                       }
 
+                      final totalRun = producedQty + scrapQty;
+                      final scrapRate =
+                          totalRun > 0 ? (scrapQty / totalRun) * 100.0 : 0.0;
+                      final scrapLoss = scrapQty * estUnitCost;
+
                       // 4. Mark work order completed
                       wo['status'] = 'Completed';
                       wo['progress'] = 1.0;
+                      wo['stage'] = '4. Completed & Stocked';
                       wo['producedQty'] = producedQty;
                       wo['scrapQty'] = scrapQty;
+                      wo['scrapRate'] = scrapRate;
+                      wo['scrapLoss'] = scrapLoss;
                       wo['completedAt'] = DateTime.now().toIso8601String();
                       if (bundleComponents.isNotEmpty) {
                         wo['consumedComponents'] = bundleComponents
@@ -860,6 +975,153 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
           },
         );
       },
+    );
+  }
+
+  String _getWoStage(Map<String, dynamic> wo) {
+    if (wo['stage'] != null && (wo['stage'] as String).isNotEmpty) {
+      return wo['stage'] as String;
+    }
+    final prog = (wo['progress'] as num?)?.toDouble() ?? 0.0;
+    final status = (wo['status'] as String? ?? '').toLowerCase();
+    if (status == 'completed' || prog >= 1.0) return '4. Completed & Stocked';
+    if (prog >= 0.70) return '3. Quality & Packaging';
+    if (prog >= 0.40) return '2. Processing & Assembly';
+    return '1. Batching & Preparation';
+  }
+
+  Future<void> _advanceWorkOrderStage(Map<String, dynamic> wo) async {
+    final curStage = _getWoStage(wo);
+    String nextStage;
+    double nextProgress;
+    String nextStatus;
+
+    if (curStage.startsWith('1')) {
+      nextStage = '2. Processing & Assembly';
+      nextProgress = 0.50;
+      nextStatus = 'In Production';
+    } else if (curStage.startsWith('2')) {
+      nextStage = '3. Quality & Packaging';
+      nextProgress = 0.75;
+      nextStatus = 'In Quality Control';
+    } else if (curStage.startsWith('3')) {
+      _showExecuteProductionRunModal(wo);
+      return;
+    } else {
+      return;
+    }
+
+    wo['stage'] = nextStage;
+    wo['progress'] = nextProgress;
+    wo['status'] = nextStatus;
+
+    final db = await DatabaseService.initialize();
+    await db.saveModuleRecord(
+      id: wo['_dbId'] as int?,
+      moduleKey: 'manufacturing',
+      recordType: 'work_order',
+      title: '${wo['orderNo']} • ${wo['recipe']}',
+      status: nextStatus,
+      data: wo,
+    );
+
+    if (mounted) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${wo['orderNo']} advanced to $nextStage!'),
+          backgroundColor: const Color(0xFF14B8A6),
+        ),
+      );
+    }
+  }
+
+  Widget _buildPipelineStepper(String currentStage, bool isDark) {
+    const stages = [
+      ('1. Batching', Icons.science_rounded),
+      ('2. Assembly', Icons.precision_manufacturing_rounded),
+      ('3. Quality', Icons.fact_check_rounded),
+      ('4. Completed', Icons.check_circle_rounded),
+    ];
+    int activeIdx = 0;
+    if (currentStage.startsWith('2')) activeIdx = 1;
+    if (currentStage.startsWith('3')) activeIdx = 2;
+    if (currentStage.startsWith('4')) activeIdx = 3;
+
+    return Row(
+      children: List.generate(stages.length, (i) {
+        final (title, icon) = stages[i];
+        final isPassed = i < activeIdx;
+        final isCurrent = i == activeIdx;
+        final color = isPassed || isCurrent
+            ? (i == 3 ? const Color(0xFF10B981) : const Color(0xFF14B8A6))
+            : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1));
+
+        return Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: isCurrent
+                        ? color.withValues(alpha: 0.18)
+                        : (isPassed
+                            ? color.withValues(alpha: 0.08)
+                            : Colors.transparent),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isCurrent
+                          ? color
+                          : (isPassed
+                              ? color.withValues(alpha: 0.4)
+                              : Colors.transparent),
+                      width: isCurrent ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 13, color: color),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight:
+                                isCurrent ? FontWeight.bold : FontWeight.w500,
+                            color: isCurrent || isPassed
+                                ? (isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A))
+                                : (isDark
+                                    ? const Color(0xFF64748B)
+                                    : const Color(0xFF94A3B8)),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (i < stages.length - 1)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Icon(Icons.arrow_forward_ios_rounded,
+                      size: 9,
+                      color: isPassed
+                          ? const Color(0xFF14B8A6)
+                          : (isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0))),
+                ),
+            ],
+          ),
+        );
+      }),
     );
   }
 
@@ -1147,38 +1409,107 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                             ),
                           ),
                           const SizedBox(height: 12),
+                          _buildPipelineStepper(_getWoStage(wo), isDark),
+                          const SizedBox(height: 14),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              if (!isCompleted)
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF10B981),
-                                    foregroundColor: Colors.white,
-                                    visualDensity: VisualDensity.compact,
+                              if (isCompleted &&
+                                  (wo['scrapQty'] as num? ?? 0) > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        ((wo['scrapRate'] as num?) ?? 0) > 6.0
+                                            ? const Color(0xFFEF4444)
+                                                .withValues(alpha: 0.15)
+                                            : const Color(0xFF10B981)
+                                                .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
                                   ),
-                                  onPressed: () =>
-                                      _showExecuteProductionRunModal(wo),
-                                  icon: const Icon(
-                                      Icons.check_circle_outline_rounded,
-                                      size: 16),
-                                  label: const Text('Complete Production Run'),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.delete_sweep_rounded,
+                                        size: 14,
+                                        color:
+                                            ((wo['scrapRate'] as num?) ?? 0) >
+                                                    6.0
+                                                ? const Color(0xFFEF4444)
+                                                : const Color(0xFF10B981),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Scrap: ${(wo['scrapQty'] as num).toInt()} Units (${((wo['scrapRate'] as num?) ?? 0.0).toStringAsFixed(1)}% • Loss: $currency${((wo['scrapLoss'] as num?) ?? 0.0).toStringAsFixed(0)})',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                          color:
+                                              ((wo['scrapRate'] as num?) ?? 0) >
+                                                      6.0
+                                                  ? const Color(0xFFEF4444)
+                                                  : const Color(0xFF10B981),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 )
                               else
-                                Row(
-                                  children: [
-                                    const Icon(Icons.check_circle_rounded,
-                                        color: Color(0xFF10B981), size: 16),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Stock Incremented (+${wo['producedQty'] ?? wo['qty']} Units)',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                          color: Color(0xFF10B981)),
+                                const SizedBox.shrink(),
+                              Row(
+                                children: [
+                                  if (!isCompleted) ...[
+                                    OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(
+                                            color: Color(0xFF14B8A6)),
+                                        foregroundColor:
+                                            const Color(0xFF14B8A6),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      onPressed: () =>
+                                          _advanceWorkOrderStage(wo),
+                                      icon: const Icon(
+                                          Icons.arrow_forward_rounded,
+                                          size: 15),
+                                      label: Text(
+                                          'Advance Stage (${_getWoStage(wo).split('. ').last})'),
                                     ),
-                                  ],
-                                ),
+                                    const SizedBox(width: 8),
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFF10B981),
+                                        foregroundColor: Colors.white,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      onPressed: () =>
+                                          _showExecuteProductionRunModal(wo),
+                                      icon: const Icon(
+                                          Icons.check_circle_outline_rounded,
+                                          size: 16),
+                                      label:
+                                          const Text('Complete Production Run'),
+                                    ),
+                                  ] else
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.check_circle_rounded,
+                                            color: Color(0xFF10B981), size: 16),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Stock Incremented (+${wo['producedQty'] ?? wo['qty']} Units)',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                              color: Color(0xFF10B981)),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
                         ],

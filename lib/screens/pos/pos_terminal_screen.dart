@@ -4120,7 +4120,78 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           expiryDate: selectedExpiryDate,
         );
     _applyProductTaxIfConfigured(product);
+    _checkAndApplyNearExpiryDiscount(product, selectedExpiryDate);
+    _refreshRestaurantServiceChargeIfDineIn();
     _refocusBarcodeIfEnabled();
+  }
+
+  void _checkAndApplyNearExpiryDiscount(Product product, String? expiryDate) {
+    if (!widget.settings.isPharmacy && !widget.settings.isBatchExpiryEnabled) {
+      return;
+    }
+    final targetExp = expiryDate ?? product.expiryDate;
+    final expDays = _getDaysUntilExpiry(targetExp);
+    if (expDays == null || expDays <= 0 || expDays > 60) return;
+
+    // 40% clearance discount if <= 30 days, 20% near-expiry discount if <= 60 days
+    final discPercent = expDays <= 30 ? 40.0 : 20.0;
+    final cart = ref.read(cartProvider);
+    final idx = cart.items.lastIndexWhere((it) => it.product.id == product.id);
+    if (idx != -1) {
+      ref
+          .read(cartProvider.notifier)
+          .setItemDiscount(idx, 'percentage', discPercent);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.discount_rounded,
+                    color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '⚡ Auto-applied ${discPercent.toInt()}% Near-Expiry Clearance Discount for ${product.name} ($expDays days left • $targetExp)!',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFFD97706),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  void _syncDiningModeServiceCharge(String mode) {
+    if (!widget.settings.isRestaurantEnabled) return;
+    if (mode == 'Dine-In') {
+      final subtotal = ref.read(cartProvider).salesSubtotal;
+      final serviceCharge = (subtotal * 0.05).roundToDouble();
+      ref.read(cartProvider.notifier).setShippingCharge(serviceCharge);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Dine-In mode: 5% Service Charge (${widget.settings.currencySymbol}${serviceCharge.toStringAsFixed(2)}) applied to order.'),
+            backgroundColor: const Color(0xFFEA580C),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      ref.read(cartProvider.notifier).setShippingCharge(0.0);
+    }
+  }
+
+  void _refreshRestaurantServiceChargeIfDineIn() {
+    if (widget.settings.isRestaurantEnabled && _diningMode == 'Dine-In') {
+      final subtotal = ref.read(cartProvider).salesSubtotal;
+      final serviceCharge = (subtotal * 0.05).roundToDouble();
+      ref.read(cartProvider.notifier).setShippingCharge(serviceCharge);
+    }
   }
 
   void _refocusBarcodeIfEnabled() {
@@ -4303,6 +4374,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           expiryDate: product.expiryDate,
         );
     _applyProductTaxIfConfigured(product);
+    _checkAndApplyNearExpiryDiscount(product, product.expiryDate);
+    _refreshRestaurantServiceChargeIfDineIn();
   }
 
   void _onBarcodeSubmitted(String code) async {
@@ -6708,6 +6781,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               _diningMode = 'Dine-In';
                             }
                           });
+                          _syncDiningModeServiceCharge(_diningMode);
                         },
                       ),
                       const SizedBox(width: 6),
