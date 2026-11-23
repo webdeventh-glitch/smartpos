@@ -21,6 +21,51 @@ class LocalApiService {
   bool _isRunning = false;
   DateTime? _startedAt;
 
+  static Map<String, dynamic> customerDisplayState = {
+    'businessName': 'Smart POS',
+    'customerName': 'Walk-in Customer',
+    'items': <Map<String, dynamic>>[],
+    'subtotal': 0.0,
+    'discount': 0.0,
+    'tax': 0.0,
+    'grandTotal': 0.0,
+    'amountPaid': 0.0,
+    'changeDue': 0.0,
+    'currency': 'Rs.',
+    'status': 'idle',
+  };
+
+  /// Updates live cart state broadcasted to customer-facing dual screens.
+  static void updateCustomerDisplayCart({
+    required String businessName,
+    required String customerName,
+    required List<Map<String, dynamic>> items,
+    required double subtotal,
+    required double discount,
+    required double tax,
+    required double grandTotal,
+    double amountPaid = 0.0,
+    double changeDue = 0.0,
+    String currency = 'Rs.',
+    String status = 'in_progress',
+  }) {
+    customerDisplayState = {
+      'businessName': businessName,
+      'customerName': customerName,
+      'items': items,
+      'subtotal': subtotal,
+      'discount': discount,
+      'tax': tax,
+      'grandTotal': grandTotal,
+      'amountPaid': amountPaid,
+      'changeDue': changeDue,
+      'currency': currency,
+      'status': status,
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+    instance.broadcastEvent('customer_display_updated', customerDisplayState);
+  }
+
   bool get isRunning => _isRunning;
   int get port => _server?.port ?? _port;
   DateTime? get startedAt => _startedAt;
@@ -195,6 +240,25 @@ class LocalApiService {
           'hardware_id': hwid,
           'server_time': DateTime.now().toIso8601String(),
         });
+        return;
+      }
+
+      // Route: GET /customer-display (HTML for customer pole / secondary screen)
+      if (method == 'GET' &&
+          (path == '/customer-display' ||
+              normalizedPath == '/customer-display')) {
+        response.headers.contentType = ContentType.html;
+        response.statusCode = HttpStatus.ok;
+        response.write(_renderCustomerDisplayHtml());
+        await response.close();
+        return;
+      }
+
+      // Route: GET /api/customer-display (Live JSON cart state for pole/secondary display)
+      if (method == 'GET' &&
+          (path == '/api/customer-display' ||
+              normalizedPath == '/customer-display-data')) {
+        await _sendJson(response, HttpStatus.ok, customerDisplayState);
         return;
       }
 
@@ -551,5 +615,183 @@ class LocalApiService {
       await _sendJson(response, HttpStatus.internalServerError,
           {'success': false, 'error': e.toString()});
     }
+  }
+
+  String _renderCustomerDisplayHtml() {
+    return '''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Display - Smart POS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: #0b0f19; color: #f8fafc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    header { background: #1e293b; padding: 18px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; }
+    .store-info h1 { font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; }
+    .store-info p { font-size: 13px; color: #94a3b8; font-weight: 500; margin-top: 2px; }
+    .badge { background: #4f46e5; color: white; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .main-content { display: flex; flex: 1; height: calc(100vh - 80px); }
+    .items-pane { flex: 3; background: #0f172a; border-right: 1px solid #1e293b; display: flex; flex-direction: column; overflow: hidden; }
+    .table-header { display: flex; background: #1e293b; padding: 12px 24px; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #334155; }
+    .col-name { flex: 5; }
+    .col-qty { flex: 2; text-align: center; }
+    .col-price { flex: 2; text-align: right; }
+    .col-total { flex: 2; text-align: right; }
+    .items-list { flex: 1; overflow-y: auto; padding: 12px 24px; }
+    .item-row { display: flex; padding: 14px 0; border-bottom: 1px solid #1e293b; font-size: 15px; align-items: center; }
+    .item-row .col-name { font-weight: 600; color: #f1f5f9; }
+    .item-row .col-qty { color: #38bdf8; font-weight: 700; }
+    .item-row .col-price { color: #94a3b8; }
+    .item-row .col-total { font-weight: 800; color: #10b981; font-size: 16px; }
+    .empty-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; }
+    .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5; stroke: currentColor; fill: none; }
+    .summary-pane { flex: 2; background: #182234; padding: 28px; display: flex; flex-direction: column; justify-content: space-between; }
+    .summary-card { background: #0f172a; border: 1px solid #334155; border-radius: 16px; padding: 22px; margin-bottom: 16px; }
+    .summary-line { display: flex; justify-content: space-between; font-size: 15px; color: #94a3b8; margin-bottom: 12px; }
+    .summary-line.highlight { color: #34d399; font-weight: 600; }
+    .total-box { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4); margin-bottom: 16px; }
+    .total-label { font-size: 14px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; color: rgba(255, 255, 255, 0.85); }
+    .total-amount { font-size: 40px; font-weight: 900; color: #ffffff; margin-top: 6px; letter-spacing: -0.5px; }
+    .payment-box { background: #0f172a; border: 1px solid #059669; border-radius: 12px; padding: 16px; }
+    .payment-box .summary-line { margin-bottom: 8px; font-size: 16px; font-weight: bold; color: #f8fafc; }
+    .change-highlight { color: #10b981 !important; font-size: 20px !important; }
+    .status-banner { text-align: center; font-size: 14px; font-weight: 700; padding: 12px; border-radius: 8px; background: #334155; color: #94a3b8; }
+    .status-banner.completed { background: #064e3b; color: #34d399; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="store-info">
+      <h1 id="storeName">Smart POS</h1>
+      <p id="customerGreeting">Welcome • Walk-in Customer</p>
+    </div>
+    <div class="badge" id="statusBadge">Live POS Display</div>
+  </header>
+  <div class="main-content">
+    <div class="items-pane">
+      <div class="table-header">
+        <div class="col-name">Product Name</div>
+        <div class="col-qty">Quantity</div>
+        <div class="col-price">Unit Price</div>
+        <div class="col-total">Total</div>
+      </div>
+      <div class="items-list" id="itemsList">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
+          <p>Ready for next transaction</p>
+        </div>
+      </div>
+    </div>
+    <div class="summary-pane">
+      <div>
+        <div class="total-box">
+          <div class="total-label">Total Amount Due</div>
+          <div class="total-amount" id="grandTotal">Rs. 0.00</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-line">
+            <span>Subtotal</span>
+            <span id="subtotal">Rs. 0.00</span>
+          </div>
+          <div class="summary-line highlight" id="discountRow" style="display:none;">
+            <span>Discount Applied</span>
+            <span id="discount">-Rs. 0.00</span>
+          </div>
+          <div class="summary-line" id="taxRow" style="display:none;">
+            <span>Order Tax</span>
+            <span id="tax">Rs. 0.00</span>
+          </div>
+        </div>
+        <div class="payment-box" id="paymentBox" style="display:none;">
+          <div class="summary-line">
+            <span>Amount Paid</span>
+            <span id="amountPaid">Rs. 0.00</span>
+          </div>
+          <div class="summary-line">
+            <span>Change Due</span>
+            <span id="changeDue" class="change-highlight">Rs. 0.00</span>
+          </div>
+        </div>
+      </div>
+      <div class="status-banner" id="statusBanner">
+        Scanning Items...
+      </div>
+    </div>
+  </div>
+  <script>
+    async function updateDisplay() {
+      try {
+        const res = await fetch('/api/customer-display');
+        if (res.ok) {
+          const d = await res.json();
+          document.getElementById('storeName').textContent = d.businessName || 'Smart POS';
+          document.getElementById('customerGreeting').textContent = (d.customerName ? 'Customer: ' + d.customerName : 'Welcome Customer');
+          const cur = d.currency || 'Rs.';
+          document.getElementById('grandTotal').textContent = cur + ' ' + Number(d.grandTotal || 0).toFixed(2);
+          document.getElementById('subtotal').textContent = cur + ' ' + Number(d.subtotal || 0).toFixed(2);
+          
+          if (d.discount > 0) {
+            document.getElementById('discountRow').style.display = 'flex';
+            document.getElementById('discount').textContent = '-' + cur + ' ' + Number(d.discount).toFixed(2);
+          } else {
+            document.getElementById('discountRow').style.display = 'none';
+          }
+
+          if (d.tax > 0) {
+            document.getElementById('taxRow').style.display = 'flex';
+            document.getElementById('tax').textContent = cur + ' ' + Number(d.tax).toFixed(2);
+          } else {
+            document.getElementById('taxRow').style.display = 'none';
+          }
+
+          if (d.amountPaid > 0) {
+            document.getElementById('paymentBox').style.display = 'block';
+            document.getElementById('amountPaid').textContent = cur + ' ' + Number(d.amountPaid).toFixed(2);
+            document.getElementById('changeDue').textContent = cur + ' ' + Number(d.changeDue).toFixed(2);
+          } else {
+            document.getElementById('paymentBox').style.display = 'none';
+          }
+
+          const banner = document.getElementById('statusBanner');
+          if (d.status === 'completed') {
+            banner.className = 'status-banner completed';
+            banner.textContent = 'Transaction Complete • Thank You!';
+            document.getElementById('statusBadge').textContent = 'Completed';
+          } else if (d.items && d.items.length > 0) {
+            banner.className = 'status-banner';
+            banner.textContent = 'Scanning Items (' + d.items.length + ' in cart)';
+            document.getElementById('statusBadge').textContent = 'In Progress';
+          } else {
+            banner.className = 'status-banner';
+            banner.textContent = 'Welcome! Ready for your purchase.';
+            document.getElementById('statusBadge').textContent = 'Ready';
+          }
+
+          const listEl = document.getElementById('itemsList');
+          if (!d.items || d.items.length === 0) {
+            listEl.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg><p>Ready for next transaction</p></div>';
+          } else {
+            let html = '';
+            for (const it of d.items) {
+              const q = Number(it.quantity || 1);
+              const qStr = (q % 1 === 0 ? q : q.toFixed(2)) + (it.unit ? ' ' + it.unit : '');
+              html += '<div class="item-row">' +
+                '<div class="col-name">' + (it.name || 'Item') + '</div>' +
+                '<div class="col-qty">' + qStr + '</div>' +
+                '<div class="col-price">' + cur + ' ' + Number(it.price || 0).toFixed(2) + '</div>' +
+                '<div class="col-total">' + cur + ' ' + Number(it.subtotal || 0).toFixed(2) + '</div>' +
+                '</div>';
+            }
+            listEl.innerHTML = html;
+          }
+        }
+      } catch (err) {}
+      setTimeout(updateDisplay, 600);
+    }
+    updateDisplay();
+  </script>
+</body>
+</html>''';
   }
 }

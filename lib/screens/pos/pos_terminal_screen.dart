@@ -29,6 +29,7 @@ import '../../services/currency_rate_service.dart';
 import '../../services/number_to_words_service.dart';
 import '../../services/thermal_printer_service.dart';
 import '../../services/localization_service.dart';
+import '../../services/weight_scale_service.dart';
 import '../../widgets/product_thumbnail.dart';
 import '../returns/sales_return_dialog.dart';
 import 'components/pos_hotkey_manager.dart';
@@ -2185,6 +2186,69 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         ),
                       ],
                     ),
+                    if (isWeight) ...[
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFD97706),
+                          side: const BorderSide(
+                              color: Color(0xFFD97706), width: 1.2),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.scale_rounded, size: 20),
+                        label: const Text(
+                          'Read Electronic Scale (RS-232 / COM)',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                        onPressed: () async {
+                          final reading = await WeightScaleService.instance
+                              .readScaleWeight();
+                          if (reading != null) {
+                            qtyCtrl.text = reading.weight.toString();
+                            setDlgState(() {});
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Scale Reading: ${reading.weight} ${reading.unit} (${reading.isStable ? "Stable" : "Unstable"})'),
+                                  backgroundColor: const Color(0xFF059669),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          } else {
+                            final ports = await WeightScaleService.instance
+                                .getAvailableComPorts();
+                            final portsStr = ports.isEmpty
+                                ? 'None detected'
+                                : ports.join(', ');
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Scale not responding on $portsStr. Use test weight (1.25 kg)?'),
+                                  action: SnackBarAction(
+                                    label: 'Use 1.25',
+                                    textColor: Colors.amber,
+                                    onPressed: () {
+                                      final sim = WeightScaleService.instance
+                                          .generateSimulatedReading();
+                                      qtyCtrl.text = sim.weight.toString();
+                                      setDlgState(() {});
+                                    },
+                                  ),
+                                  duration: const Duration(seconds: 4),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 12),
 
                     // Smart Context-Aware Quick Presets
@@ -4209,6 +4273,14 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             return false;
           });
         }
+        if (completedSale.id != null) {
+          _syncCustomerDisplay(
+            cartSnapshot,
+            status: 'completed',
+            paid: (saleStatus == 'quotation') ? 0.0 : tendered,
+            change: (saleStatus == 'quotation') ? 0.0 : changeReturn,
+          );
+        }
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -5134,6 +5206,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         return _clearCart;
       case 'recentSales':
         return _openRecentTransactionsModal;
+      case 'openDrawer':
+        return _openCashDrawer;
       case 'registerDetails':
         return () => showDialog(
               context: context,
@@ -5144,12 +5218,28 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
   }
 
+  Future<void> _openCashDrawer() async {
+    final success = await ThermalPrinterService.openCashDrawerStandalone();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Cash drawer pulse sent to printer.'
+              : 'No thermal printer configured for cash drawer.'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: success ? const Color(0xFF10B981) : Colors.orange,
+        ),
+      );
+    }
+  }
+
   bool get _isEditingText =>
       FocusManager.instance.primaryFocus?.context?.widget is EditableText;
 
   Map<ShortcutActivator, VoidCallback> _buildDynamicShortcuts() {
     return PosHotkeyManager.buildShortcuts(
       onToggleProductPanel: _toggleProductPanelVisibility,
+      onOpenDrawer: _openCashDrawer,
       onOpenCustomProductDialog: _openCustomProductDialog,
       onToggleWholesaleMode: _toggleWholesaleMode,
       onUndo: () => ref.read(cartProvider.notifier).undo(),
@@ -5211,9 +5301,30 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             ),
                           ],
                         ),
-                        IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => Navigator.pop(ctx)),
+                        Row(
+                          children: [
+                            IconButton(
+                              tooltip: 'Open in Browser / External Dual-Screen',
+                              icon: const Icon(Icons.open_in_new_rounded,
+                                  color: Color(0xFF4F46E5), size: 20),
+                              onPressed: () {
+                                final port = LocalApiService.instance.port;
+                                final url =
+                                    'http://localhost:$port/customer-display';
+                                if (Platform.isWindows) {
+                                  Process.run('cmd', ['/c', 'start', '', url]);
+                                } else if (Platform.isMacOS) {
+                                  Process.run('open', [url]);
+                                } else {
+                                  Process.run('xdg-open', [url]);
+                                }
+                              },
+                            ),
+                            IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () => Navigator.pop(ctx)),
+                          ],
+                        ),
                       ],
                     ),
                     const Divider(height: 20),
@@ -5320,6 +5431,34 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         },
       ),
     );
+  }
+
+  void _syncCustomerDisplay(CartState cart,
+      {String status = 'in_progress', double paid = 0.0, double change = 0.0}) {
+    try {
+      final items = cart.items
+          .map((item) => {
+                'name': item.displayName,
+                'quantity': item.quantity,
+                'unit': item.selectedUnitName ?? item.product.unit,
+                'price': item.unitPrice,
+                'subtotal': item.subtotal,
+              })
+          .toList();
+      LocalApiService.updateCustomerDisplayCart(
+        businessName: widget.settings.businessName,
+        customerName: _selectedCustomer?.name ?? 'Walk-in Customer',
+        items: items,
+        subtotal: cart.subtotal,
+        discount: cart.calculatedDiscount,
+        tax: cart.orderTax,
+        grandTotal: cart.grandTotal,
+        amountPaid: paid,
+        changeDue: change,
+        currency: widget.settings.currencySymbol,
+        status: status,
+      );
+    } catch (_) {}
   }
 
   void _openPriceCheckerDialog() {
@@ -5818,6 +5957,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           if (mounted) _applyPromoDiscountIfApplicable(next.items);
         });
       }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _syncCustomerDisplay(next);
+      });
     });
 
     final currency = widget.settings.currencySymbol;
@@ -6192,6 +6334,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               onTap: _openCustomerFacingDisplay,
                               color: const Color(0xFF0D9488),
                               tooltip: 'Customer Facing Display',
+                              isDark: isDark,
+                            ),
+                            _topIconBtn(
+                              icon: Icons.point_of_sale_rounded,
+                              onTap: _openCashDrawer,
+                              color: const Color(0xFF10B981),
+                              tooltip: 'Open Cash Drawer [Ctrl+D]',
                               isDark: isDark,
                             ),
                             const SizedBox(width: 6),

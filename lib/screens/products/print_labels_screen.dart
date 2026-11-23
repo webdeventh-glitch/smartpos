@@ -22,11 +22,15 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
   final Map<int, int> _selectedProductQuantities = {};
 
   // Print Settings
-  String _paperSize = '24 Labels per Sheet (A4)';
+  String _paperSize = 'Continuous Roll (50mm x 25mm)';
+  double _customWidthMm = 50.0;
+  double _customHeightMm = 25.0;
   bool _showBusinessName = true;
   bool _showProductName = true;
   bool _showPrice = true;
   bool _showBarcodeNumber = true;
+  bool _showExpiryDate = false;
+  bool _showBatchNo = false;
 
   @override
   void initState() {
@@ -92,9 +96,114 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
       }
     }
 
-    final int cols = _paperSize.contains('30') ? 3 : 3;
+    final bool isRoll = _paperSize.contains('Roll') ||
+        _paperSize.contains('Custom') ||
+        _paperSize.contains('Jewelry');
+
+    if (isRoll) {
+      double widthMm = 50.0;
+      double heightMm = 25.0;
+
+      if (_paperSize.contains('38mm x 25mm')) {
+        widthMm = 38.0;
+        heightMm = 25.0;
+      } else if (_paperSize.contains('40mm x 30mm')) {
+        widthMm = 40.0;
+        heightMm = 30.0;
+      } else if (_paperSize.contains('100mm x 50mm')) {
+        widthMm = 100.0;
+        heightMm = 50.0;
+      } else if (_paperSize.contains('38mm x 15mm')) {
+        widthMm = 38.0;
+        heightMm = 15.0;
+      } else if (_paperSize.contains('Custom')) {
+        widthMm = _customWidthMm > 10 ? _customWidthMm : 50.0;
+        heightMm = _customHeightMm > 10 ? _customHeightMm : 25.0;
+      }
+
+      final pageFormat = PdfPageFormat(
+        widthMm * PdfPageFormat.mm,
+        heightMm * PdfPageFormat.mm,
+        marginAll: 1.5 * PdfPageFormat.mm,
+      );
+
+      for (final p in expanded) {
+        final code = p.barcode.trim().isEmpty ? p.sku : p.barcode.trim();
+        final barcodeH = (heightMm * 0.40).clamp(10.0, 32.0);
+        final barcodeW = (widthMm * 0.82).clamp(24.0, 220.0);
+        final fontSizeName = (heightMm < 20 || widthMm < 40) ? 6.0 : 8.0;
+
+        doc.addPage(
+          pw.Page(
+            pageFormat: pageFormat,
+            build: (_) => pw.Center(
+              child: pw.Column(
+                mainAxisSize: pw.MainAxisSize.min,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  if (_showBusinessName && heightMm >= 22)
+                    pw.Text(
+                      widget.settings.businessName,
+                      style: const pw.TextStyle(
+                          fontSize: 6.5, fontWeight: pw.FontWeight.bold),
+                      maxLines: 1,
+                    ),
+                  if (_showProductName)
+                    pw.Text(
+                      p.name,
+                      style: pw.TextStyle(
+                          fontSize: fontSizeName,
+                          fontWeight: pw.FontWeight.bold),
+                      maxLines: 1,
+                    ),
+                  pw.SizedBox(height: 1),
+                  pw.BarcodeWidget(
+                    barcode: pw.Barcode.code128(),
+                    data: code,
+                    width: barcodeW,
+                    height: barcodeH,
+                    drawText: _showBarcodeNumber,
+                    textStyle: const pw.TextStyle(fontSize: 6),
+                  ),
+                  if (_showPrice) ...[
+                    pw.SizedBox(height: 1),
+                    pw.Text(
+                      '$currency ${p.sellingPrice.toStringAsFixed(2)}',
+                      style: pw.TextStyle(
+                          fontSize: fontSizeName + 0.5,
+                          fontWeight: pw.FontWeight.bold),
+                    ),
+                  ],
+                  if (_showExpiryDate &&
+                      p.expiryDate != null &&
+                      p.expiryDate!.isNotEmpty) ...[
+                    pw.Text(
+                      'EXP: ${p.expiryDate}',
+                      style: const pw.TextStyle(fontSize: 5.5),
+                    ),
+                  ],
+                  if (_showBatchNo &&
+                      p.batchNumber != null &&
+                      p.batchNumber!.isNotEmpty) ...[
+                    pw.Text(
+                      'BATCH: ${p.batchNumber}',
+                      style: const pw.TextStyle(fontSize: 5.5),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+      return doc.save();
+    }
+
+    // A4 Sheet Layout (24, 30, or 40 labels per A4 sheet)
+    final int cols = _paperSize.contains('40') ? 4 : 3;
     final int perPage =
-        _paperSize.contains('30') ? 30 : (_paperSize.contains('Roll') ? 8 : 24);
+        _paperSize.contains('40') ? 40 : (_paperSize.contains('30') ? 30 : 24);
     final chunks = <List<Product>>[];
     for (int i = 0; i < expanded.length; i += perPage) {
       chunks.add(expanded.sublist(
@@ -105,17 +214,18 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
       doc.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(16),
+          margin: const pw.EdgeInsets.all(12),
           build: (_) => pw.Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 8,
+            runSpacing: 8,
             children: pageItems.map((p) {
               final code = p.barcode.trim().isEmpty ? p.sku : p.barcode.trim();
               return pw.Container(
-                width: (PdfPageFormat.a4.availableWidth - (cols * 10)) / cols,
-                padding: const pw.EdgeInsets.all(8),
+                width:
+                    (PdfPageFormat.a4.availableWidth - ((cols - 1) * 8)) / cols,
+                padding: const pw.EdgeInsets.all(6),
                 decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.grey400, width: 0.7),
+                  border: pw.Border.all(color: PdfColors.grey400, width: 0.6),
                   borderRadius: pw.BorderRadius.circular(4),
                 ),
                 child: pw.Column(
@@ -125,31 +235,44 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                       pw.Text(
                         widget.settings.businessName,
                         style: const pw.TextStyle(
-                            fontSize: 8, fontWeight: pw.FontWeight.bold),
+                            fontSize: 7.5, fontWeight: pw.FontWeight.bold),
                         maxLines: 1,
                       ),
                     if (_showProductName)
                       pw.Text(
                         p.name,
                         style: const pw.TextStyle(
-                            fontSize: 9, fontWeight: pw.FontWeight.bold),
+                            fontSize: 8.5, fontWeight: pw.FontWeight.bold),
                         maxLines: 1,
                       ),
-                    pw.SizedBox(height: 4),
+                    pw.SizedBox(height: 2),
                     pw.BarcodeWidget(
                       barcode: pw.Barcode.code128(),
                       data: code,
-                      width: 140,
-                      height: 30,
+                      width: 130,
+                      height: 26,
                       drawText: _showBarcodeNumber,
+                      textStyle: const pw.TextStyle(fontSize: 6.5),
                     ),
                     if (_showPrice) ...[
-                      pw.SizedBox(height: 3),
+                      pw.SizedBox(height: 2),
                       pw.Text(
                         '$currency ${p.sellingPrice.toStringAsFixed(2)}',
                         style: const pw.TextStyle(
-                            fontSize: 10, fontWeight: pw.FontWeight.bold),
+                            fontSize: 9.5, fontWeight: pw.FontWeight.bold),
                       ),
+                    ],
+                    if (_showExpiryDate &&
+                        p.expiryDate != null &&
+                        p.expiryDate!.isNotEmpty) ...[
+                      pw.Text('EXP: ${p.expiryDate}',
+                          style: const pw.TextStyle(fontSize: 6)),
+                    ],
+                    if (_showBatchNo &&
+                        p.batchNumber != null &&
+                        p.batchNumber!.isNotEmpty) ...[
+                      pw.Text('BATCH: ${p.batchNumber}',
+                          style: const pw.TextStyle(fontSize: 6)),
                     ],
                   ],
                 ),
@@ -446,10 +569,15 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                                     const BorderSide(color: Color(0xFFE2E8F0))),
                           ),
                           items: [
-                            '24 Labels per Sheet (A4)',
-                            '40 Labels per Sheet (A4)',
                             'Continuous Roll (50mm x 25mm)',
+                            '38mm x 25mm (Thermal Roll)',
+                            '40mm x 30mm (Thermal Roll)',
+                            '100mm x 50mm (Shipping Roll)',
                             'Jewelry Tag (38mm x 15mm)',
+                            'Custom Roll (mm)',
+                            '24 Labels per Sheet (A4)',
+                            '30 Labels per Sheet (A4)',
+                            '40 Labels per Sheet (A4)',
                           ]
                               .map((e) => DropdownMenuItem(
                                   value: e,
@@ -460,6 +588,54 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                             if (val != null) setState(() => _paperSize = val);
                           },
                         ),
+                        if (_paperSize == 'Custom Roll (mm)') ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  initialValue:
+                                      _customWidthMm.toStringAsFixed(0),
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'Width (mm)',
+                                    isDense: true,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  onChanged: (v) {
+                                    final val = double.tryParse(v);
+                                    if (val != null && val > 0) {
+                                      setState(() => _customWidthMm = val);
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextFormField(
+                                  initialValue:
+                                      _customHeightMm.toStringAsFixed(0),
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'Height (mm)',
+                                    isDense: true,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  onChanged: (v) {
+                                    final val = double.tryParse(v);
+                                    if (val != null && val > 0) {
+                                      setState(() => _customHeightMm = val);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 14),
                         const Text('Fields to Print on Label',
                             style: TextStyle(
@@ -515,6 +691,30 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                                 activeColor: const Color(0xFF4F46E5),
                                 onChanged: (v) => setState(
                                     () => _showBarcodeNumber = v ?? true),
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              CheckboxListTile(
+                                dense: true,
+                                title: const Text('Show Expiry Date',
+                                    style: TextStyle(fontSize: 13)),
+                                value: _showExpiryDate,
+                                activeColor: const Color(0xFF4F46E5),
+                                onChanged: (v) => setState(
+                                    () => _showExpiryDate = v ?? false),
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              CheckboxListTile(
+                                dense: true,
+                                title: const Text('Show Batch / Lot No',
+                                    style: TextStyle(fontSize: 13)),
+                                value: _showBatchNo,
+                                activeColor: const Color(0xFF4F46E5),
+                                onChanged: (v) =>
+                                    setState(() => _showBatchNo = v ?? false),
                                 controlAffinity:
                                     ListTileControlAffinity.leading,
                                 contentPadding: EdgeInsets.zero,
@@ -647,6 +847,28 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                                         fontSize: 12,
                                         fontWeight: FontWeight.w900,
                                         color: Color(0xFF0F172A)),
+                                  ),
+                                ],
+                                if (_showExpiryDate &&
+                                    p.expiryDate != null &&
+                                    p.expiryDate!.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'EXP: ${p.expiryDate}',
+                                    style: const TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFDC2626)),
+                                  ),
+                                ],
+                                if (_showBatchNo &&
+                                    p.batchNumber != null &&
+                                    p.batchNumber!.isNotEmpty) ...[
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    'BATCH: ${p.batchNumber}',
+                                    style: const TextStyle(
+                                        fontSize: 9, color: Color(0xFF475569)),
                                   ),
                                 ],
                               ],

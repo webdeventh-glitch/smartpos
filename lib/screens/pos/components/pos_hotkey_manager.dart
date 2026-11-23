@@ -10,6 +10,7 @@ class PosHotkeyManager {
   /// Builds the complete map of [ShortcutActivator] to [VoidCallback] for the POS terminal.
   static Map<ShortcutActivator, VoidCallback> buildShortcuts({
     required VoidCallback onToggleProductPanel,
+    VoidCallback? onOpenDrawer,
     required VoidCallback onOpenCustomProductDialog,
     required VoidCallback onToggleWholesaleMode,
     required VoidCallback onUndo,
@@ -27,6 +28,9 @@ class PosHotkeyManager {
     final map = <ShortcutActivator, VoidCallback>{
       const SingleActivator(LogicalKeyboardKey.keyB, control: true):
           onToggleProductPanel,
+      if (onOpenDrawer != null)
+        const SingleActivator(LogicalKeyboardKey.keyD, control: true):
+            onOpenDrawer,
       const SingleActivator(LogicalKeyboardKey.f11): onOpenCustomProductDialog,
       const SingleActivator(LogicalKeyboardKey.f12): onToggleWholesaleMode,
       const SingleActivator(LogicalKeyboardKey.keyZ, control: true): onUndo,

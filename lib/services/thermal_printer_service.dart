@@ -904,4 +904,33 @@ class ThermalPrinterService {
     await sendBytes(printer, bytes);
     return true;
   }
+
+  /// Builds ESC/POS pulse bytes for triggering standard RJ11 cash drawer kick.
+  /// Generates pulses on both Pin 2 (0) and Pin 5 (1) for broad manufacturer compatibility
+  /// (Epson, Star, Citizen, Bixolon, Xprinter, Posiflex).
+  static List<int> buildCashDrawerKickBytes({int pin = 0}) {
+    return <int>[
+      // ESC p m t1 t2
+      0x1B, 0x70, pin == 1 ? 0x01 : 0x00, 0x19, 0xFA,
+      // Fallback pulse for secondary pin
+      0x1B, 0x70, 0x01, 0x19, 0xFA,
+    ];
+  }
+
+  /// Dispatches a standalone RJ11 cash drawer kick pulse to the configured default thermal printer.
+  static Future<bool> openCashDrawerStandalone(
+      {ThermalPrinterConfig? printerOverride}) async {
+    final db = await DatabaseService.initialize();
+    final printer = printerOverride ?? await db.getDefaultPrinter();
+    if (printer == null) {
+      AppLogger.warning('ThermalPrinterService',
+          'No thermal printer configured for standalone cash drawer kick.');
+      return false;
+    }
+    final bytes = buildCashDrawerKickBytes();
+    await sendBytes(printer, bytes);
+    AppLogger.info('ThermalPrinterService',
+        'Dispatched standalone RJ11 cash drawer kick to ${printer.name}');
+    return true;
+  }
 }

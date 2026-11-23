@@ -73,6 +73,11 @@ class KeyboardShortcutsService {
         defaultKeyLabel: 'Ctrl+B',
         isGlobalOrForm: true),
     ShortcutActionSpec(
+        id: 'openDrawer',
+        label: 'Kick / Pop Cash Drawer (RJ11)',
+        defaultKeyLabel: 'Ctrl+D',
+        isGlobalOrForm: true),
+    ShortcutActionSpec(
         id: 'focusSearch',
         label: 'Focus Barcode / Search Box',
         defaultKeyLabel: 'Esc',
