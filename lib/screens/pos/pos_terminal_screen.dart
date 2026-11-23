@@ -35,6 +35,7 @@ import '../../widgets/product_thumbnail.dart';
 import '../returns/sales_return_dialog.dart';
 import 'components/pos_hotkey_manager.dart';
 import 'components/pos_summary_bar.dart';
+import '../../services/promotions_service.dart';
 
 class PosTerminalScreen extends ConsumerStatefulWidget {
   final BusinessSettings settings;
@@ -185,6 +186,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     _catalogScrollController.addListener(_onCatalogScroll);
     _initLanRealtimeSync();
     _loadInitialData();
+    PromotionsService.instance.loadSettings().then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   void _initLanRealtimeSync() {
@@ -4121,6 +4125,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         );
     _applyProductTaxIfConfigured(product);
     _checkAndApplyNearExpiryDiscount(product, selectedExpiryDate);
+    _evaluatePromotionalPricing(product);
     _refreshRestaurantServiceChargeIfDineIn();
     _refocusBarcodeIfEnabled();
   }
@@ -4192,6 +4197,377 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       final serviceCharge = (subtotal * 0.05).roundToDouble();
       ref.read(cartProvider.notifier).setShippingCharge(serviceCharge);
     }
+  }
+
+  void _evaluatePromotionalPricing(Product product) {
+    final cart = ref.read(cartProvider);
+    final idx = cart.items.lastIndexWhere((it) => it.product.id == product.id);
+    if (idx == -1) return;
+    final item = cart.items[idx];
+
+    final promo = PromotionsService.instance;
+
+    // 1. Check Happy Hour auto-application if cart discount not manually overridden
+    if (promo.isHappyHourActive() && cart.discountValue == 0) {
+      ref
+          .read(cartProvider.notifier)
+          .setOrderDiscount('percentage', promo.happyHourDiscountPercent);
+    }
+
+    // 2. Check Tiered Volume Pricing (bulk discounts)
+    final volDiscount = promo.getVolumeDiscountPercent(item.quantity);
+    if (volDiscount > 0) {
+      ref
+          .read(cartProvider.notifier)
+          .setItemDiscount(idx, 'percentage', volDiscount);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.stacked_line_chart_rounded,
+                    color: Colors.white, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '🎉 Bulk Volume Discount: ${volDiscount.toInt()}% OFF applied for ${item.quantity.toInt()}x ${product.name}!',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF6366F1),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    // 3. Check BOGO (Buy X Get Y)
+    final freeUnits = promo.calculateBogoFreeUnits(item.quantity);
+    if (freeUnits > 0) {
+      final bogoSavings =
+          promo.calculateBogoSavings(item.unitPrice, item.quantity);
+      final effDiscountPercent =
+          (bogoSavings / (item.quantity * item.unitPrice)) * 100.0;
+      ref
+          .read(cartProvider.notifier)
+          .setItemDiscount(idx, 'percentage', effDiscountPercent);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.card_giftcard_rounded,
+                    color: Colors.white, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '🎁 ${promo.bogoRuleName}: $freeUnits free item(s) discounted on ${product.name}!',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showPromotionsDialog() {
+    final promo = PromotionsService.instance;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          final isHhNow = promo.isHappyHourActive();
+
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.campaign_rounded,
+                      color: Color(0xFF6366F1), size: 22),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Promotions, BOGO & Tiered Pricing',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('Enterprise automated discount rules',
+                          style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 500,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Section 1: Happy Hour
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isHhNow
+                            ? const Color(0xFFF59E0B).withValues(alpha: 0.12)
+                            : (isDark
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF8FAFC)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isHhNow
+                              ? const Color(0xFFF59E0B)
+                              : (isDark
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.local_fire_department_rounded,
+                                      size: 18,
+                                      color: isHhNow
+                                          ? const Color(0xFFF59E0B)
+                                          : const Color(0xFF6366F1)),
+                                  const SizedBox(width: 8),
+                                  const Text('Time-Bound Happy Hours',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13)),
+                                ],
+                              ),
+                              Switch(
+                                value: promo.isHappyHourEnabled,
+                                activeThumbColor: const Color(0xFFF59E0B),
+                                onChanged: (val) {
+                                  setDlgState(
+                                      () => promo.isHappyHourEnabled = val);
+                                  promo.saveSettings();
+                                  setState(() {});
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Active Window: ${promo.happyHourStartHour}:00 to ${promo.happyHourEndHour}:00 • Discount: ${promo.happyHourDiscountPercent.toInt()}% OFF',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B)),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isHhNow
+                                  ? const Color(0xFFF59E0B)
+                                      .withValues(alpha: 0.2)
+                                  : Colors.grey.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              isHhNow
+                                  ? '🔥 CURRENTLY ACTIVE (Auto-applied to cart)'
+                                  : 'Inactive right now (starts at ${promo.happyHourStartHour}:00)',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isHhNow
+                                    ? const Color(0xFFD97706)
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Section 2: BOGO
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.card_giftcard_rounded,
+                                      size: 18, color: Color(0xFF10B981)),
+                                  SizedBox(width: 8),
+                                  Text('Buy X Get Y (BOGO) Rules',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13)),
+                                ],
+                              ),
+                              Switch(
+                                value: promo.isBogoEnabled,
+                                activeThumbColor: const Color(0xFF10B981),
+                                onChanged: (val) {
+                                  setDlgState(() => promo.isBogoEnabled = val);
+                                  promo.saveSettings();
+                                  setState(() {});
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${promo.bogoRuleName}: Buy ${promo.bogoBuyQty} items, get ${promo.bogoGetQty} free unit automatically.',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Section 3: Tiered Volume Pricing
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.stacked_line_chart_rounded,
+                                      size: 18, color: Color(0xFF6366F1)),
+                                  SizedBox(width: 8),
+                                  Text('Tiered Volume Bulk Discounts',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13)),
+                                ],
+                              ),
+                              Switch(
+                                value: promo.isTieredPricingEnabled,
+                                activeThumbColor: const Color(0xFF6366F1),
+                                onChanged: (val) {
+                                  setDlgState(
+                                      () => promo.isTieredPricingEnabled = val);
+                                  promo.saveSettings();
+                                  setState(() {});
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ...promo.volumeTiers.map((t) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      '• ${t.minQty}${t.maxQty != null ? ' - ${t.maxQty}' : '+'} units in cart line',
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    Text(
+                                      '${t.discountPercent.toInt()}% Discount',
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF6366F1)),
+                                    ),
+                                  ],
+                                ),
+                              )),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Close'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.flash_on_rounded, size: 16),
+                label: const Text('Apply Happy Hour Discount to Cart'),
+                onPressed: () {
+                  ref.read(cartProvider.notifier).setOrderDiscount(
+                      'percentage', promo.happyHourDiscountPercent);
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Applied ${promo.happyHourDiscountPercent.toInt()}% Happy Hour order discount to current cart!'),
+                      backgroundColor: const Color(0xFFF59E0B),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _refocusBarcodeIfEnabled() {
@@ -4375,6 +4751,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         );
     _applyProductTaxIfConfigured(product);
     _checkAndApplyNearExpiryDiscount(product, product.expiryDate);
+    _evaluatePromotionalPricing(product);
     _refreshRestaurantServiceChargeIfDineIn();
   }
 
@@ -6817,6 +7194,34 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         onPressed: _showNarcoticRegisterDialog,
                       ),
                     ],
+
+                    // Advanced Promotions / Happy Hour Button
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            PromotionsService.instance.isHappyHourActive()
+                                ? const Color(0xFFF59E0B)
+                                : const Color(0xFF6366F1),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                      ),
+                      icon: Icon(
+                        PromotionsService.instance.isHappyHourActive()
+                            ? Icons.local_fire_department_rounded
+                            : Icons.campaign_rounded,
+                        size: 14,
+                      ),
+                      label: Text(
+                        PromotionsService.instance.isHappyHourActive()
+                            ? 'Happy Hour (${PromotionsService.instance.happyHourDiscountPercent.toInt()}% OFF)'
+                            : 'Promos & BOGO',
+                        style: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: _showPromotionsDialog,
+                    ),
 
                     if (widget.settings.isSolarHardwareEnabled) ...[
                       const SizedBox(width: 8),

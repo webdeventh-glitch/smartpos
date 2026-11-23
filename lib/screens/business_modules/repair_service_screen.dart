@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/messaging_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../services/localization_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
@@ -730,6 +731,29 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                             style: TextStyle(fontSize: 11)),
                                       ),
                                       const SizedBox(width: 8),
+                                      OutlinedButton.icon(
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor:
+                                              const Color(0xFF25D366),
+                                          side: const BorderSide(
+                                              color: Color(0xFF25D366)),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        onPressed: () =>
+                                            _notifyCustomerRepairCompletion(
+                                                job,
+                                                jobNoVal,
+                                                estCostVal,
+                                                advanceVal,
+                                                status,
+                                                currency),
+                                        icon: const Icon(
+                                            Icons.chat_bubble_outline_rounded,
+                                            size: 14),
+                                        label: const Text('Notify',
+                                            style: TextStyle(fontSize: 11)),
+                                      ),
+                                      const SizedBox(width: 8),
                                       if (status != 'Delivered')
                                         ElevatedButton(
                                           style: ElevatedButton.styleFrom(
@@ -1114,6 +1138,111 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _notifyCustomerRepairCompletion(
+    Map<String, dynamic> job,
+    String jobNoVal,
+    double estCostVal,
+    double advanceVal,
+    String status,
+    String currency,
+  ) {
+    final customerName = job['customer']?.toString() ?? 'Customer';
+    final customerPhone =
+        job['phone']?.toString() ?? job['customer_phone']?.toString() ?? '';
+    final device = job['device']?.toString() ?? 'Device';
+    final balanceDue = (estCostVal - advanceVal).clamp(0.0, double.infinity);
+    final phoneCtrl = TextEditingController(text: customerPhone);
+    final msgCtrl = TextEditingController(
+      text:
+          'Dear $customerName, your device "$device" (Repair Job #$jobNoVal) is now $status and ready for pickup at ${widget.settings.businessName}.\n\nTotal Due: $currency${balanceDue.toStringAsFixed(2)}.\n\nThank you for choosing ${widget.settings.businessName}!',
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF25D366).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(Icons.chat_rounded,
+                  color: Color(0xFF25D366), size: 20),
+            ),
+            const SizedBox(width: 10),
+            Text('Notify $customerName ($jobNoVal)',
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SizedBox(
+          width: 440,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: phoneCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Customer WhatsApp / Mobile Phone',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.phone_rounded, size: 18),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: msgCtrl,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Notification Message',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.send_rounded, size: 16),
+            label: const Text('Send Notification'),
+            onPressed: () async {
+              final phone = phoneCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
+              final text = msgCtrl.text;
+              if (phone.isNotEmpty) {
+                await MessagingService.sendWhatsAppDirect(
+                  to: phone,
+                  message: text,
+                  recipientName: customerName,
+                );
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        'Notification dispatched to $customerName ($phone)!'),
+                    backgroundColor: const Color(0xFF10B981),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
       ),
     );
   }

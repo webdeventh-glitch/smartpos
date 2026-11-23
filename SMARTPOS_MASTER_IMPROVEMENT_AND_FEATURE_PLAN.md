@@ -364,6 +364,16 @@ The setup wizard combines 4 major steps with extensive inline styling, database 
   [X] Near-Expiry Escalating Discount Engine (20% @ <=60 days, 40% clearance @ <=30 days).
   [X] HRM Staff Advance Salary Loans Ledger & Monthly Payroll Installment Auto-Deductions.
   [X] Restaurant Dine-In 5% Service Charge Automation & Dining Mode Dynamic Fee Sync.
+
++---------------------------------------------------------------------------------------+
+| PHASE 7: ENTERPRISE PROMOTIONS, BOGO, WAITER WEB APP & NOTIFICATIONS - [COMPLETED]    |
++---------------------------------------------------------------------------------------+
+  [X] Advanced Promotional Engine: Time-Bound Happy Hours (configurable active windows & % off).
+  [X] Buy X Get Y (BOGO) Auto-Calculation Engine & Free Units Discounting in Cart.
+  [X] Tiered Volume Bulk Pricing (1-5 units standard, 6-10 @ 10% off, 11+ @ 20% off).
+  [X] Promotions & BOGO Terminal Dialog with Live Happy Hour Active Status Indicator.
+  [X] Responsive Mobile Waiter Order-Taking Web App (/waiter-ordering & /api/waiter/* on LAN).
+  [X] Repair Service Customer Completion WhatsApp & SMS Dispatcher with Balance Due.
 ```
 
 ---

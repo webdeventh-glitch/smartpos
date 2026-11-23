@@ -254,11 +254,65 @@ class LocalApiService {
         return;
       }
 
+      // Route: GET /waiter-ordering (Mobile responsive waiter order-taking web interface)
+      if (method == 'GET' &&
+          (path == '/waiter-ordering' ||
+              normalizedPath == '/waiter-ordering')) {
+        response.headers.contentType = ContentType.html;
+        response.statusCode = HttpStatus.ok;
+        response.write(_renderWaiterOrderingHtml());
+        await response.close();
+        return;
+      }
+
       // Route: GET /api/customer-display (Live JSON cart state for pole/secondary display)
       if (method == 'GET' &&
           (path == '/api/customer-display' ||
               normalizedPath == '/customer-display-data')) {
         await _sendJson(response, HttpStatus.ok, customerDisplayState);
+        return;
+      }
+
+      // Route: GET /api/waiter/menu (Returns public menu for waiter mobile ordering on LAN)
+      if (method == 'GET' &&
+          (path == '/api/waiter/menu' ||
+              normalizedPath == '/api/waiter/menu')) {
+        final products = await db.getProducts();
+        final list = products
+            .map((p) => {
+                  'id': p.id,
+                  'name': p.name,
+                  'sku': p.sku,
+                  'selling_price': p.sellingPrice,
+                  'category_name': p.categoryName,
+                })
+            .toList();
+        await _sendJson(response, HttpStatus.ok, {'products': list});
+        return;
+      }
+
+      // Route: POST /api/waiter/order (Submits KOT order from mobile waiter)
+      if (method == 'POST' &&
+          (path == '/api/waiter/order' ||
+              normalizedPath == '/api/waiter/order')) {
+        final content = await utf8.decoder.bind(request).join();
+        final body = jsonDecode(content) as Map<String, dynamic>;
+        final tableNo = body['tableNo']?.toString() ?? 'Table 1';
+        final items = (body['items'] as List?) ?? [];
+
+        // Broadcast KOT event to local LAN POS & KDS
+        broadcastEvent('kot_order_received', {
+          'table': tableNo,
+          'diningMode': 'Dine-In',
+          'items': items,
+          'timestamp': DateTime.now().toIso8601String(),
+        });
+
+        await _sendJson(response, HttpStatus.created, {
+          'success': true,
+          'message':
+              'KOT order received for $tableNo and dispatched to kitchen!',
+        });
         return;
       }
 
@@ -790,6 +844,200 @@ class LocalApiService {
       setTimeout(updateDisplay, 600);
     }
     updateDisplay();
+  </script>
+</body>
+</html>''';
+  }
+
+  String _renderWaiterOrderingHtml() {
+    return '''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SmartPOS - Waiter Mobile Order Terminal</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: #0b0f19; color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 90px; }
+    header { background: #1e293b; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 100; }
+    .header-title { font-size: 16px; font-weight: 800; color: #ffffff; }
+    .header-sub { font-size: 11px; color: #94a3b8; }
+    .table-select { background: #0f172a; color: #38bdf8; border: 1.5px solid #0284c7; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; outline: none; }
+    .category-scroll { display: flex; overflow-x: auto; gap: 8px; padding: 12px 16px; background: #0f172a; border-bottom: 1px solid #1e293b; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+    .category-chip { background: #1e293b; color: #94a3b8; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #334155; }
+    .category-chip.active { background: #0284c7; color: white; border-color: #38bdf8; }
+    .menu-container { padding: 14px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .item-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: transform 0.1s; }
+    .item-card:active { transform: scale(0.97); }
+    .item-name { font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .item-price { font-size: 14px; font-weight: 900; color: #10b981; }
+    .item-cat { font-size: 10px; color: #64748b; margin-bottom: 6px; }
+    .btn-add { background: #0284c7; color: white; border: none; border-radius: 6px; padding: 6px; font-size: 12px; font-weight: bold; margin-top: 8px; cursor: pointer; width: 100%; }
+    .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; border-top: 2px solid #0284c7; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; z-index: 200; box-shadow: 0 -4px 12px rgba(0,0,0,0.4); }
+    .cart-summary { display: flex; flex-direction: column; }
+    .cart-total { font-size: 18px; font-weight: 900; color: #10b981; }
+    .cart-count { font-size: 11px; color: #94a3b8; }
+    .btn-send { background: #10b981; color: white; border: none; border-radius: 8px; padding: 10px 18px; font-size: 14px; font-weight: 800; cursor: pointer; }
+    .btn-send:disabled { background: #475569; opacity: 0.6; }
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 10px 20px; border-radius: 999px; font-size: 13px; font-weight: bold; z-index: 999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+  </style>
+</head>
+<body>
+  <div id="toast" class="toast">KOT Sent to Kitchen!</div>
+  <header>
+    <div>
+      <div class="header-title">SmartPOS Waiter</div>
+      <div class="header-sub">Mobile Table Ordering</div>
+    </div>
+    <select id="tableSelect" class="table-select">
+      <option value="Table 1">Table 1</option>
+      <option value="Table 2">Table 2</option>
+      <option value="Table 3">Table 3</option>
+      <option value="Table 4">Table 4</option>
+      <option value="Table 5">Table 5</option>
+      <option value="Table 6">Table 6</option>
+      <option value="Table 7">Table 7</option>
+      <option value="Table 8">Table 8</option>
+      <option value="Table 9">Table 9</option>
+      <option value="Table 10">Table 10</option>
+      <option value="Takeaway">Takeaway</option>
+    </select>
+  </header>
+
+  <div id="categoryContainer" class="category-scroll">
+    <div class="category-chip active" onclick="filterCat('All')">All Items</div>
+  </div>
+
+  <div id="menuContainer" class="menu-container">
+    <div style="grid-column: 1/-1; text-align: center; color: #64748b; padding: 40px;">Loading menu items...</div>
+  </div>
+
+  <div class="cart-bar">
+    <div class="cart-summary">
+      <div id="cartTotal" class="cart-total">Rs. 0.00</div>
+      <div id="cartCount" class="cart-count">0 items selected</div>
+    </div>
+    <button id="btnSend" class="btn-send" onclick="sendKotOrder()" disabled>Send KOT</button>
+  </div>
+
+  <script>
+    let allProducts = [];
+    let cart = {};
+    let activeCategory = 'All';
+
+    async function loadMenu() {
+      try {
+        const res = await fetch('/api/waiter/menu');
+        const data = await res.json();
+        allProducts = data.products || [];
+        renderCategories();
+        renderMenu();
+      } catch (e) {
+        document.getElementById('menuContainer').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#ef4444;">Failed to load menu. Ensure POS server is running on LAN.</div>';
+      }
+    }
+
+    function renderCategories() {
+      const cats = ['All', ...new Set(allProducts.map(p => p.category_name || 'General'))];
+      const container = document.getElementById('categoryContainer');
+      container.innerHTML = cats.map(c =>
+        '<div class="category-chip ' + (c === activeCategory ? 'active' : '') + '" onclick="filterCat(\\'' + c + '\\')">' + c + '</div>'
+      ).join('');
+    }
+
+    function filterCat(cat) {
+      activeCategory = cat;
+      renderCategories();
+      renderMenu();
+    }
+
+    function renderMenu() {
+      const container = document.getElementById('menuContainer');
+      const filtered = activeCategory === 'All' ? allProducts : allProducts.filter(p => (p.category_name || 'General') === activeCategory);
+      if (filtered.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #64748b; padding: 40px;">No items in this category.</div>';
+        return;
+      }
+      container.innerHTML = filtered.map(p => {
+        const qty = cart[p.id]?.qty || 0;
+        return '<div class="item-card" onclick="addToCart(' + p.id + ')">' +
+          '<div>' +
+            '<div class="item-name">' + p.name + '</div>' +
+            '<div class="item-cat">' + (p.category_name || 'General') + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div class="item-price">Rs. ' + Number(p.selling_price || 0).toFixed(2) + '</div>' +
+            '<button class="btn-add">' + (qty > 0 ? ('Added (' + qty + ')') : '+ Add') + '</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function addToCart(id) {
+      const p = allProducts.find(x => x.id === id);
+      if (!p) return;
+      if (!cart[id]) {
+        cart[id] = { id: p.id, name: p.name, price: Number(p.selling_price || 0), qty: 1 };
+      } else {
+        cart[id].qty += 1;
+      }
+      updateCartBar();
+      renderMenu();
+    }
+
+    function updateCartBar() {
+      let count = 0;
+      let total = 0;
+      for (const id in cart) {
+        count += cart[id].qty;
+        total += cart[id].qty * cart[id].price;
+      }
+      document.getElementById('cartTotal').textContent = 'Rs. ' + total.toFixed(2);
+      document.getElementById('cartCount').textContent = count + ' items selected';
+      document.getElementById('btnSend').disabled = count === 0;
+    }
+
+    async function sendKotOrder() {
+      const table = document.getElementById('tableSelect').value;
+      const itemsList = Object.values(cart);
+      if (itemsList.length === 0) return;
+
+      const btn = document.getElementById('btnSend');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const res = await fetch('/api/waiter/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tableNo: table,
+            items: itemsList
+          })
+        });
+        if (res.ok) {
+          showToast('KOT Sent for ' + table + '!');
+          cart = {};
+          updateCartBar();
+          renderMenu();
+        } else {
+          alert('Failed to send order');
+        }
+      } catch (err) {
+        alert('Network error sending order to POS server');
+      } finally {
+        btn.textContent = 'Send KOT';
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 2500);
+    }
+
+    loadMenu();
   </script>
 </body>
 </html>''';
