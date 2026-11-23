@@ -208,31 +208,62 @@ class ProductRepository extends BaseRepository {
       } else if (rawUnit.contains('meter') ||
           rawUnit.contains('mtr') ||
           rawUnit == 'm') {
-        results.add(Unit(
-            actualName: 'Shalwar Piece (2.25 Mtr)',
-            shortName: '2.25m',
-            allowDecimal: true,
-            baseUnitMultiplier: 2.25));
-        results.add(Unit(
-            actualName: 'Suit Piece (2.5 Mtr)',
-            shortName: '2.5m',
-            allowDecimal: true,
-            baseUnitMultiplier: 2.5));
-        results.add(Unit(
-            actualName: 'Full Suit (4 Mtr)',
-            shortName: '4m',
-            allowDecimal: true,
-            baseUnitMultiplier: 4.0));
-        results.add(Unit(
-            actualName: 'Thaan (20 Mtr)',
-            shortName: 'Thaan',
-            allowDecimal: true,
-            baseUnitMultiplier: 20.0));
-        results.add(Unit(
-            actualName: 'Roll (100 Mtr)',
-            shortName: 'Roll',
-            allowDecimal: true,
-            baseUnitMultiplier: 100.0));
+        final settings = await dbService.settingsRepo.getBusinessSettings();
+        final isFabrics = settings.isFabrics;
+        final prodNameLower = product.name.toLowerCase();
+        final prodCatLower = product.categoryName.toLowerCase();
+        final isFabricItem = isFabrics ||
+            prodNameLower.contains('cloth') ||
+            prodNameLower.contains('fabric') ||
+            prodNameLower.contains('kapra') ||
+            prodNameLower.contains('lawn') ||
+            prodCatLower.contains('cloth') ||
+            prodCatLower.contains('fabric');
+
+        if (isFabricItem) {
+          results.add(Unit(
+              actualName: 'Shalwar Piece (2.25 Mtr)',
+              shortName: '2.25m',
+              allowDecimal: true,
+              baseUnitMultiplier: 2.25));
+          results.add(Unit(
+              actualName: 'Suit Piece (2.5 Mtr)',
+              shortName: '2.5m',
+              allowDecimal: true,
+              baseUnitMultiplier: 2.5));
+          results.add(Unit(
+              actualName: 'Full Suit (4 Mtr)',
+              shortName: '4m',
+              allowDecimal: true,
+              baseUnitMultiplier: 4.0));
+          results.add(Unit(
+              actualName: 'Thaan (20 Mtr)',
+              shortName: 'Thaan',
+              allowDecimal: true,
+              baseUnitMultiplier: 20.0));
+          results.add(Unit(
+              actualName: 'Roll (100 Mtr)',
+              shortName: 'Roll',
+              allowDecimal: true,
+              baseUnitMultiplier: 100.0));
+        } else {
+          // Hardware, Cables, Wires, Solar, Pipes, Electrical (Coil, Roll, Bundle)
+          results.add(Unit(
+              actualName: 'Coil (90 Mtr)',
+              shortName: 'Coil',
+              allowDecimal: true,
+              baseUnitMultiplier: 90.0));
+          results.add(Unit(
+              actualName: 'Roll (100 Mtr)',
+              shortName: 'Roll',
+              allowDecimal: true,
+              baseUnitMultiplier: 100.0));
+          results.add(Unit(
+              actualName: 'Bundle (50 Mtr)',
+              shortName: 'Bundle',
+              allowDecimal: true,
+              baseUnitMultiplier: 50.0));
+        }
       } else if (rawUnit.contains('pc') ||
           rawUnit.contains('piece') ||
           rawUnit.contains('each') ||

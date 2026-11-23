@@ -9477,65 +9477,85 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                         ),
                                                       ),
                                                       const SizedBox(height: 3),
-                                                      InkWell(
-                                                        onTap: () =>
-                                                            _openUnitSelectorForCartItem(
-                                                                item, index),
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(4),
-                                                        child: Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal: 6,
-                                                                  vertical: 2),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: isDark
-                                                                ? const Color(
-                                                                    0xFF334155)
-                                                                : const Color(
-                                                                    0xFFEFF6FF),
+                                                      ConstrainedBox(
+                                                        constraints:
+                                                            const BoxConstraints(
+                                                                maxWidth: 105),
+                                                        child: FittedBox(
+                                                          fit: BoxFit.scaleDown,
+                                                          child: InkWell(
+                                                            onTap: () =>
+                                                                _openUnitSelectorForCartItem(
+                                                                    item,
+                                                                    index),
                                                             borderRadius:
                                                                 BorderRadius
                                                                     .circular(
                                                                         4),
-                                                            border: Border.all(
-                                                                color: const Color(
-                                                                        0xFF3B82F6)
-                                                                    .withValues(
-                                                                        alpha:
-                                                                            0.4),
-                                                                width: 0.8),
-                                                          ),
-                                                          child: Row(
-                                                            mainAxisSize:
-                                                                MainAxisSize
-                                                                    .min,
-                                                            children: [
-                                                              Text(
-                                                                item.selectedUnitName ??
-                                                                    item.product
-                                                                        .unit,
-                                                                style: const TextStyle(
-                                                                    fontSize:
-                                                                        10,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    color: Color(
-                                                                        0xFF2563EB)),
+                                                            child: Container(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          6,
+                                                                      vertical:
+                                                                          2),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: isDark
+                                                                    ? const Color(
+                                                                        0xFF334155)
+                                                                    : const Color(
+                                                                        0xFFEFF6FF),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            4),
+                                                                border: Border.all(
+                                                                    color: const Color(
+                                                                            0xFF3B82F6)
+                                                                        .withValues(
+                                                                            alpha:
+                                                                                0.4),
+                                                                    width: 0.8),
                                                               ),
-                                                              const SizedBox(
-                                                                  width: 2),
-                                                              const Icon(
-                                                                  Icons
-                                                                      .keyboard_arrow_down_rounded,
-                                                                  size: 12,
-                                                                  color: Color(
-                                                                      0xFF2563EB)),
-                                                            ],
+                                                              child: Row(
+                                                                mainAxisSize:
+                                                                    MainAxisSize
+                                                                        .min,
+                                                                children: [
+                                                                  Flexible(
+                                                                    child: Text(
+                                                                      item.selectedUnitName ??
+                                                                          item.product
+                                                                              .unit,
+                                                                      maxLines:
+                                                                          1,
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      style:
+                                                                          const TextStyle(
+                                                                        fontSize:
+                                                                            10,
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        color: Color(
+                                                                            0xFF2563EB),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(
+                                                                      width: 2),
+                                                                  const Icon(
+                                                                      Icons
+                                                                          .keyboard_arrow_down_rounded,
+                                                                      size: 12,
+                                                                      color: Color(
+                                                                          0xFF2563EB)),
+                                                                ],
+                                                              ),
+                                                            ),
                                                           ),
                                                         ),
                                                       ),
