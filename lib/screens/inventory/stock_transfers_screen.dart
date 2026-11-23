@@ -1240,11 +1240,52 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
               ],
             ),
             content: SizedBox(
-              width: 440,
+              width: 460,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 3-Stage Workflow Progress Stepper
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildWorkflowStep(
+                          '1. Request',
+                          Icons.inventory_2_outlined,
+                          selectedStatus == 'pending' ||
+                              selectedStatus == 'in_transit' ||
+                              selectedStatus == 'completed',
+                          selectedStatus == 'pending',
+                        ),
+                        const Icon(Icons.arrow_forward_rounded,
+                            size: 14, color: Color(0xFF94A3B8)),
+                        _buildWorkflowStep(
+                          '2. In-Transit',
+                          Icons.local_shipping_outlined,
+                          selectedStatus == 'in_transit' ||
+                              selectedStatus == 'completed',
+                          selectedStatus == 'in_transit',
+                        ),
+                        const Icon(Icons.arrow_forward_rounded,
+                            size: 14, color: Color(0xFF94A3B8)),
+                        _buildWorkflowStep(
+                          '3. Received',
+                          Icons.task_alt_rounded,
+                          selectedStatus == 'completed',
+                          selectedStatus == 'completed',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   const Text('Select New Status:',
                       style:
                           TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
@@ -1667,6 +1708,40 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                           Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
+                                              if (t.status == 'pending' &&
+                                                  t.id != null)
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons
+                                                          .local_shipping_rounded,
+                                                      size: 20,
+                                                      color: Color(0xFF3B82F6)),
+                                                  tooltip:
+                                                      'Approve & Dispatch Stock (Move to In-Transit)',
+                                                  onPressed: () async {
+                                                    final db =
+                                                        await DatabaseService
+                                                            .initialize();
+                                                    await db
+                                                        .updateStockTransferStatus(
+                                                            t.id!,
+                                                            'in_transit');
+                                                    _loadData();
+                                                    if (context.mounted) {
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                              'Transfer ${t.refNo} dispatched! Stock deducted from ${t.fromLocationName} and moved In-Transit.'),
+                                                          backgroundColor:
+                                                              const Color(
+                                                                  0xFF3B82F6),
+                                                        ),
+                                                      );
+                                                    }
+                                                  },
+                                                ),
                                               if (t.status == 'in_transit' &&
                                                   t.id != null)
                                                 IconButton(
@@ -1853,6 +1928,31 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildWorkflowStep(
+      String label, IconData icon, bool isPassed, bool isActive) {
+    final color = isActive
+        ? const Color(0xFF4F46E5)
+        : isPassed
+            ? const Color(0xFF10B981)
+            : const Color(0xFF94A3B8);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight:
+                isActive || isPassed ? FontWeight.bold : FontWeight.normal,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }

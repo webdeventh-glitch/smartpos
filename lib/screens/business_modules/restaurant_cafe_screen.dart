@@ -431,6 +431,30 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                               ? const Color(0xFF94A3B8)
                                               : const Color(0xFF64748B)),
                                     ),
+                                    if (t['modifiers'] != null &&
+                                        (t['modifiers'] as String)
+                                            .isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF97316)
+                                              .withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          'Notes: ${t['modifiers']}',
+                                          style: const TextStyle(
+                                              fontSize: 9.5,
+                                              color: Color(0xFFEA580C),
+                                              fontWeight: FontWeight.bold),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ] else ...[
                                     Text(
                                       'Table is ready for new guests',
@@ -618,7 +642,47 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                                   style:
                                                       TextStyle(fontSize: 11)),
                                             ),
-                                            const SizedBox(width: 8),
+                                            const SizedBox(width: 6),
+                                            OutlinedButton(
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor:
+                                                    const Color(0xFFF97316),
+                                                side: const BorderSide(
+                                                    color: Color(0xFFF97316)),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 6),
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                              ),
+                                              onPressed: () =>
+                                                  _showTableModifiersDialog(t),
+                                              child: const Text('Modifiers',
+                                                  style:
+                                                      TextStyle(fontSize: 11)),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            OutlinedButton(
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor:
+                                                    const Color(0xFF10B981),
+                                                side: const BorderSide(
+                                                    color: Color(0xFF10B981)),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 6),
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                              ),
+                                              onPressed: () =>
+                                                  _showSplitBillDialog(t),
+                                              child: const Text('Split Bill',
+                                                  style:
+                                                      TextStyle(fontSize: 11)),
+                                            ),
+                                            const SizedBox(width: 6),
                                             ElevatedButton(
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor:
@@ -1058,6 +1122,399 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
         text,
         style:
             TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: color),
+      ),
+    );
+  }
+
+  Future<void> _showSplitBillDialog(Map<String, dynamic> t) async {
+    final currency = widget.settings.currencySymbol;
+    final total =
+        ((t['order_total'] ?? t['orderTotal'] ?? 0.0) as num).toDouble();
+    if (total <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No active bill to split on this table.')),
+      );
+      return;
+    }
+
+    int splitWays = (t['guests'] as int?) ?? 2;
+    if (splitWays < 2) splitWays = 2;
+
+    double customSplitPart = total / splitWays;
+    final customCtrl =
+        TextEditingController(text: customSplitPart.toStringAsFixed(2));
+    String splitMode = 'equal'; // 'equal' or 'custom'
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final partAmount = splitMode == 'equal'
+              ? (total / splitWays)
+              : (double.tryParse(customCtrl.text.trim()) ??
+                  (total / splitWays));
+          final remainingAmount = (total - partAmount).clamp(0.0, total);
+
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: Row(
+              children: [
+                const Icon(Icons.call_split_rounded,
+                    color: Color(0xFFF97316), size: 22),
+                const SizedBox(width: 8),
+                Text('Split Bill • ${t['name']}',
+                    style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16)),
+              ],
+            ),
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF97316).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color:
+                              const Color(0xFFF97316).withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total Table Bill:',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 13)),
+                        Text('$currency ${total.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                                color: Color(0xFFF97316))),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Split Equally'),
+                          selected: splitMode == 'equal',
+                          selectedColor: const Color(0xFFF97316),
+                          labelStyle: TextStyle(
+                              color: splitMode == 'equal' ? Colors.white : null,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12),
+                          onSelected: (val) {
+                            if (val) setDlgState(() => splitMode = 'equal');
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Custom Diner Share'),
+                          selected: splitMode == 'custom',
+                          selectedColor: const Color(0xFFF97316),
+                          labelStyle: TextStyle(
+                              color:
+                                  splitMode == 'custom' ? Colors.white : null,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12),
+                          onSelected: (val) {
+                            if (val) setDlgState(() => splitMode = 'custom');
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  if (splitMode == 'equal') ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Number of Diners:',
+                            style: TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600)),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline,
+                                  color: Colors.red),
+                              onPressed: splitWays > 2
+                                  ? () => setDlgState(() => splitWays--)
+                                  : null,
+                            ),
+                            Text('$splitWays',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16)),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline,
+                                  color: Colors.green),
+                              onPressed: splitWays < 20
+                                  ? () => setDlgState(() => splitWays++)
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 16),
+                    Text(
+                      'Each Diner Pays: $currency ${partAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF10B981)),
+                    ),
+                  ] else ...[
+                    TextField(
+                      controller: customCtrl,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: 'Enter Amount for This Diner ($currency)',
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onChanged: (_) => setDlgState(() {}),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Remaining Balance: $currency ${remainingAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.payment_rounded, size: 16),
+                label: Text(
+                    'Pay Share ($currency ${partAmount.toStringAsFixed(2)})'),
+                onPressed: () async {
+                  final db = await DatabaseService.initialize();
+                  final inv = await db.generateNextInvoiceNo();
+                  final nowStr = DateTime.now().toString().substring(0, 19);
+                  await db.createSale(
+                    sale: Sale(
+                      invoiceNo: inv,
+                      customerName: 'Split Bill • ${t['name']}',
+                      subtotal: partAmount,
+                      totalAmount: partAmount,
+                      paidAmount: partAmount,
+                      paymentMethod: 'cash',
+                      paymentStatus: 'paid',
+                      saleStatus: 'final',
+                      note:
+                          'Table Bill Split (${splitMode == "equal" ? "$splitWays-way split" : "Custom diner share"})',
+                      createdAt: nowStr,
+                    ),
+                    items: [
+                      CartItem(
+                        product: Product(
+                          name: 'Table ${t['name']} - Split Share',
+                          sku: 'TBL-SPLIT-${t['id'] ?? 0}',
+                          barcode: 'TBL-SPLIT',
+                          purchasePrice: 0,
+                          sellingPrice: partAmount,
+                          stockQuantity: 1,
+                        ),
+                        quantity: 1,
+                        unitPrice: partAmount,
+                      ),
+                    ],
+                  );
+
+                  final remaining = total - partAmount;
+                  final id = t['id'] as int?;
+                  if (id != null) {
+                    if (remaining <= 0.01) {
+                      await db.updateRestaurantTable(id, {
+                        'status': 'vacant',
+                        'order_total': 0.0,
+                        'kot_time': null,
+                      });
+                    } else {
+                      await db.updateRestaurantTable(id, {
+                        'order_total': remaining,
+                      });
+                    }
+                  }
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  await _loadData();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(remaining <= 0.01
+                            ? 'Table ${t['name']} fully paid and cleared!'
+                            : 'Paid $currency ${partAmount.toStringAsFixed(2)}. Remaining balance: $currency ${remaining.toStringAsFixed(2)}'),
+                        backgroundColor: const Color(0xFF10B981),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _showTableModifiersDialog(Map<String, dynamic> t) async {
+    final noteCtrl =
+        TextEditingController(text: (t['modifiers'] ?? '').toString());
+    final List<String> availableModifiers = [
+      'Mild Spice',
+      'Medium Spicy',
+      'Extra Hot / Spicy',
+      'Well Done',
+      'Crispy',
+      'Extra Cheese (+50)',
+      'Extra Sauce / Mayo',
+      'No Onion / Garlic',
+      'Gluten Free',
+      'Sugar Free',
+      'Takeaway Pack',
+      'Fast Service (Child)',
+    ];
+
+    final currentMods = (t['modifiers'] ?? '')
+        .toString()
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: Row(
+              children: [
+                const Icon(Icons.ramen_dining_rounded,
+                    color: Color(0xFFF97316), size: 22),
+                const SizedBox(width: 8),
+                Text('Kitchen Modifiers • ${t['name']}',
+                    style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16)),
+              ],
+            ),
+            content: SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select Food & Cooking Instructions for Kitchen:',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey)),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: availableModifiers.map((mod) {
+                      final isSel = currentMods.contains(mod);
+                      return FilterChip(
+                        label: Text(mod,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: isSel ? Colors.white : null)),
+                        selected: isSel,
+                        selectedColor: const Color(0xFFF97316),
+                        onSelected: (val) {
+                          setDlgState(() {
+                            if (val) {
+                              currentMods.add(mod);
+                            } else {
+                              currentMods.remove(mod);
+                            }
+                            noteCtrl.text = currentMods.join(', ');
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: noteCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Special Chef Note / Allergen Instructions',
+                      hintText: 'e.g. Serve drinks first, less salt in soup',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel')),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF97316),
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.kitchen_rounded, size: 16),
+                label: const Text('Save & Send to Kitchen'),
+                onPressed: () async {
+                  final id = t['id'] as int?;
+                  final text = noteCtrl.text.trim();
+                  if (id != null) {
+                    final db = await DatabaseService.initialize();
+                    await db.updateRestaurantTable(id, {'modifiers': text});
+                  } else {
+                    t['modifiers'] = text;
+                  }
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  await _loadData();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content:
+                            Text('Kitchen modifiers updated for ${t['name']}!'),
+                        backgroundColor: const Color(0xFFF97316),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }

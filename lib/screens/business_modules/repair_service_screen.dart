@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
@@ -68,159 +69,273 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
     final faultCtrl = TextEditingController();
     final costCtrl = TextEditingController();
     final advCtrl = TextEditingController();
+    final lockCtrl = TextEditingController();
+
+    bool powerOn = true;
+    bool screenOk = true;
+    bool scratches = false;
+    bool cameraOk = true;
+    bool audioOk = true;
+    bool simRemoved = true;
+    bool liquidDamage = false;
 
     showDialog(
       context: context,
       builder: (ctx) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          title: Text(
-            'New Repair Job Sheet',
-            style: TextStyle(
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: SizedBox(
-              width: 480,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: custCtrl,
-                    style: TextStyle(
-                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                    decoration: InputDecoration(
-                      labelText: 'Customer Name & Mobile No.*',
-                      labelStyle: TextStyle(
-                          color: isDark
-                              ? const Color(0xFF94A3B8)
-                              : const Color(0xFF64748B)),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: deviceCtrl,
-                    style: TextStyle(
-                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                    decoration: InputDecoration(
-                      labelText:
-                          'Device Model / Item (e.g. iPhone 15, HP Laptop)*',
-                      labelStyle: TextStyle(
-                          color: isDark
-                              ? const Color(0xFF94A3B8)
-                              : const Color(0xFF64748B)),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: imeiCtrl,
-                    style: TextStyle(
-                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                    decoration: InputDecoration(
-                      labelText: 'IMEI / Serial Number / Barcode',
-                      labelStyle: TextStyle(
-                          color: isDark
-                              ? const Color(0xFF94A3B8)
-                              : const Color(0xFF64748B)),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: faultCtrl,
-                    maxLines: 2,
-                    style: TextStyle(
-                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                    decoration: InputDecoration(
-                      labelText: 'Reported Fault / Problem Description*',
-                      labelStyle: TextStyle(
-                          color: isDark
-                              ? const Color(0xFF94A3B8)
-                              : const Color(0xFF64748B)),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              title: Text(
+                'New Repair Job Sheet',
+                style: TextStyle(
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: SizedBox(
+                  width: 500,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: costCtrl,
-                          keyboardType: TextInputType.number,
-                          style: TextStyle(
+                      TextField(
+                        controller: custCtrl,
+                        style: TextStyle(
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          labelText: 'Customer Name & Mobile No.*',
+                          labelStyle: TextStyle(
                               color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF0F172A)),
-                          decoration: InputDecoration(
-                            labelText: 'Estimated Cost',
-                            labelStyle: TextStyle(
-                                color: isDark
-                                    ? const Color(0xFF94A3B8)
-                                    : const Color(0xFF64748B)),
-                          ),
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: advCtrl,
-                          keyboardType: TextInputType.number,
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: deviceCtrl,
+                        style: TextStyle(
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          labelText:
+                              'Device Model / Item (e.g. iPhone 15, HP Laptop)*',
+                          labelStyle: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: imeiCtrl,
+                        style: TextStyle(
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          labelText: 'IMEI / Serial Number / Barcode',
+                          labelStyle: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: faultCtrl,
+                        maxLines: 2,
+                        style: TextStyle(
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          labelText: 'Reported Fault / Problem Description*',
+                          labelStyle: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: costCtrl,
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A)),
+                              decoration: InputDecoration(
+                                labelText: 'Estimated Cost',
+                                labelStyle: TextStyle(
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: advCtrl,
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A)),
+                              decoration: InputDecoration(
+                                labelText: 'Advance Received',
+                                labelStyle: TextStyle(
+                                    color: isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      const Divider(),
+                      const SizedBox(height: 6),
+                      Text('Device Physical Intake Checklist',
                           style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
                               color: isDark
                                   ? Colors.white
-                                  : const Color(0xFF0F172A)),
-                          decoration: InputDecoration(
-                            labelText: 'Advance Received',
-                            labelStyle: TextStyle(
-                                color: isDark
-                                    ? const Color(0xFF94A3B8)
-                                    : const Color(0xFF64748B)),
+                                  : const Color(0xFF0F172A))),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          FilterChip(
+                            label: const Text('Power ON / Booting',
+                                style: TextStyle(fontSize: 10.5)),
+                            selected: powerOn,
+                            onSelected: (v) => setModalState(() => powerOn = v),
                           ),
+                          FilterChip(
+                            label: const Text('Display / Touch Intact',
+                                style: TextStyle(fontSize: 10.5)),
+                            selected: screenOk,
+                            onSelected: (v) =>
+                                setModalState(() => screenOk = v),
+                          ),
+                          FilterChip(
+                            label: const Text('Body Scratches / Dents',
+                                style: TextStyle(fontSize: 10.5)),
+                            selected: scratches,
+                            onSelected: (v) =>
+                                setModalState(() => scratches = v),
+                          ),
+                          FilterChip(
+                            label: const Text('Camera OK',
+                                style: TextStyle(fontSize: 10.5)),
+                            selected: cameraOk,
+                            onSelected: (v) =>
+                                setModalState(() => cameraOk = v),
+                          ),
+                          FilterChip(
+                            label: const Text('Audio / Mic OK',
+                                style: TextStyle(fontSize: 10.5)),
+                            selected: audioOk,
+                            onSelected: (v) => setModalState(() => audioOk = v),
+                          ),
+                          FilterChip(
+                            label: const Text('SIM / SD Removed',
+                                style: TextStyle(fontSize: 10.5)),
+                            selected: simRemoved,
+                            onSelected: (v) =>
+                                setModalState(() => simRemoved = v),
+                          ),
+                          FilterChip(
+                            label: const Text('Water / Liquid Damage',
+                                style: TextStyle(fontSize: 10.5)),
+                            selected: liquidDamage,
+                            onSelected: (v) =>
+                                setModalState(() => liquidDamage = v),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: lockCtrl,
+                        style: TextStyle(
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          labelText:
+                              'Device PIN / Pattern / Password (Optional)',
+                          hintText: 'e.g. 1234 or L-Shape pattern',
+                          isDense: true,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel',
-                  style: TextStyle(
-                      color: isDark
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF64748B))),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEAB308),
-                  foregroundColor: Colors.black),
-              onPressed: () async {
-                if (custCtrl.text.trim().isNotEmpty &&
-                    deviceCtrl.text.trim().isNotEmpty) {
-                  final db = await DatabaseService.initialize();
-                  await db.addRepairJob({
-                    'job_no': 'JOB-${9021 + _jobSheets.length}',
-                    'customer': custCtrl.text.trim(),
-                    'device': deviceCtrl.text.trim(),
-                    'imei': imeiCtrl.text.trim(),
-                    'fault': faultCtrl.text.trim(),
-                    'technician': 'Senior Technician',
-                    'est_cost': double.tryParse(costCtrl.text.trim()) ?? 0.0,
-                    'advance': double.tryParse(advCtrl.text.trim()) ?? 0.0,
-                    'status': 'Diagnosing',
-                    'date': DateTime.now().toString().substring(0, 10),
-                  });
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  _loadJobs();
-                }
-              },
-              child: const Text('Create Job Sheet'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text('Cancel',
+                      style: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B))),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEAB308),
+                      foregroundColor: Colors.black),
+                  onPressed: () async {
+                    if (custCtrl.text.trim().isNotEmpty &&
+                        deviceCtrl.text.trim().isNotEmpty) {
+                      final db = await DatabaseService.initialize();
+                      final checklistData = {
+                        'power_on': powerOn,
+                        'screen_ok': screenOk,
+                        'scratches': scratches,
+                        'camera_ok': cameraOk,
+                        'audio_ok': audioOk,
+                        'sim_removed': simRemoved,
+                        'liquid_damage': liquidDamage,
+                        'lock_code': lockCtrl.text.trim(),
+                      };
+                      await db.addRepairJob({
+                        'job_no': 'JOB-${9021 + _jobSheets.length}',
+                        'customer': custCtrl.text.trim(),
+                        'device': deviceCtrl.text.trim(),
+                        'imei': imeiCtrl.text.trim(),
+                        'fault': faultCtrl.text.trim(),
+                        'technician': 'Senior Technician',
+                        'est_cost':
+                            double.tryParse(costCtrl.text.trim()) ?? 0.0,
+                        'advance': double.tryParse(advCtrl.text.trim()) ?? 0.0,
+                        'status': 'Diagnosing',
+                        'date': DateTime.now().toString().substring(0, 10),
+                        'checklist': jsonEncode(checklistData),
+                      });
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      _loadJobs();
+                    }
+                  },
+                  child: const Text('Create Job Sheet'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -462,6 +577,27 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                         ? const Color(0xFFCBD5E1)
                                         : const Color(0xFF334155)),
                               ),
+                              if (job['used_parts'] != null &&
+                                  (job['used_parts'] as String).isNotEmpty &&
+                                  (job['used_parts'] as String) != '[]') ...[
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981)
+                                        .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Parts Used: ${_formatPartsSummary(job['used_parts'])}',
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF047857),
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 12),
                               const Divider(height: 1),
                               const SizedBox(height: 12),
@@ -501,6 +637,22 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                   ),
                                   Row(
                                     children: [
+                                      OutlinedButton.icon(
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor:
+                                              const Color(0xFFF97316),
+                                          side: const BorderSide(
+                                              color: Color(0xFFF97316)),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        onPressed: () =>
+                                            _showSparePartsDialog(job),
+                                        icon: const Icon(Icons.build_rounded,
+                                            size: 14),
+                                        label: const Text('Spare Parts',
+                                            style: TextStyle(fontSize: 11)),
+                                      ),
+                                      const SizedBox(width: 6),
                                       OutlinedButton.icon(
                                         style: OutlinedButton.styleFrom(
                                             visualDensity:
@@ -678,10 +830,9 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
       </div>
 
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 16px;">
-        <div style="font-weight: bold; font-size: 13px; color: #334155; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Intake Inspection & Condition Checklist</div>
+        <div style="font-weight: bold; font-size: 13px; color: #334155; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Device Physical Checklist & Intake Inspection</div>
         <div style="font-size: 12px; color: #334155; line-height: 1.8;">
-          <strong>Accessories Received:</strong> [ &#10003; ] Device Body &nbsp;&nbsp; [ &nbsp; ] Charger / Adapter &nbsp;&nbsp; [ &nbsp; ] SIM / Memory Card &nbsp;&nbsp; [ &nbsp; ] Box / Bag<br>
-          <strong>Physical Condition:</strong> [ &#10003; ] Normal Scratch & Wear &nbsp;&nbsp; [ &nbsp; ] Screen Crack &nbsp;&nbsp; [ &nbsp; ] Dent / Bent Frame &nbsp;&nbsp; [ &nbsp; ] Water / Liquid Signs
+          ${_buildChecklistHtml(job['checklist']?.toString())}
         </div>
       </div>
 
@@ -726,5 +877,244 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
       </table>
     </div>
     ''';
+  }
+
+  String _formatPartsSummary(dynamic usedPartsRaw) {
+    try {
+      if (usedPartsRaw == null) return '';
+      final parts = usedPartsRaw is List
+          ? usedPartsRaw
+          : jsonDecode(usedPartsRaw.toString()) as List<dynamic>;
+      return parts.map((p) => '${p['quantity']}x ${p['name']}').join(', ');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _buildChecklistHtml(String? checklistJson) {
+    if (checklistJson == null || checklistJson.isEmpty) {
+      return '<strong>Physical Condition:</strong> [ &#10003; ] Normal Wear &nbsp;&nbsp; [ &#10003; ] Power Booting';
+    }
+    try {
+      final map = jsonDecode(checklistJson) as Map<String, dynamic>;
+      final items = <String>[];
+      items.add(
+          'Power: ${map['power_on'] == true ? '[ &#10003; ] ON' : '[ &#10007; ] NO POWER'}');
+      items.add(
+          'Screen: ${map['screen_ok'] == true ? '[ &#10003; ] OK' : '[ &#10007; ] CRACKED/DEFECTIVE'}');
+      items.add(
+          'Body: ${map['scratches'] == true ? '[ &#9888; ] Scratches Noted' : '[ &#10003; ] Clean'}');
+      items.add(
+          'Camera: ${map['camera_ok'] == true ? '[ &#10003; ] OK' : '[ &#10007; ] Defective'}');
+      items.add(
+          'Audio: ${map['audio_ok'] == true ? '[ &#10003; ] OK' : '[ &#10007; ] Fault'}');
+      items.add(
+          'SIM/SD: ${map['sim_removed'] == true ? 'Removed' : 'Left with Device'}');
+      if (map['liquid_damage'] == true) {
+        items.add('[ &#9888; ] LIQUID DAMAGE SUSPECTED');
+      }
+      final lock = (map['lock_code'] ?? '').toString();
+      if (lock.isNotEmpty) items.add('Lock/PIN: $lock');
+
+      return items.join('&nbsp;&nbsp;|&nbsp;&nbsp;');
+    } catch (_) {
+      return 'Standard physical inspection completed.';
+    }
+  }
+
+  Future<void> _showSparePartsDialog(Map<String, dynamic> job) async {
+    final db = await DatabaseService.initialize();
+    final allProducts = await db.getProducts();
+    Product? selectedProduct =
+        allProducts.isNotEmpty ? allProducts.first : null;
+    final qtyCtrl = TextEditingController(text: '1');
+    final currency = widget.settings.currencySymbol;
+
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final currentPartsStr = (job['used_parts'] ?? '').toString();
+          List<dynamic> currentParts = [];
+          try {
+            if (currentPartsStr.isNotEmpty && currentPartsStr != '[]') {
+              currentParts = jsonDecode(currentPartsStr) as List<dynamic>;
+            }
+          } catch (_) {}
+
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: Row(
+              children: [
+                const Icon(Icons.build_circle_rounded,
+                    color: Color(0xFFF97316), size: 22),
+                const SizedBox(width: 8),
+                Text('Spare Parts & Stock • ${job['job_no'] ?? job['device']}',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            isDark ? Colors.white : const Color(0xFF0F172A))),
+              ],
+            ),
+            content: SizedBox(
+              width: 500,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                      'Select replacement spare part from inventory to deduct stock:',
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<Product>(
+                    initialValue: selectedProduct,
+                    decoration: InputDecoration(
+                      labelText:
+                          'Select Spare Part (Screen, Battery, IC, Cable)',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      isDense: true,
+                    ),
+                    items: allProducts
+                        .map((p) => DropdownMenuItem(
+                            value: p,
+                            child: Text(
+                                '${p.name} (Stock: ${p.stockQuantity.toInt()} • $currency${p.sellingPrice.toStringAsFixed(2)})',
+                                style: const TextStyle(fontSize: 13))))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) setDlgState(() => selectedProduct = val);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: qtyCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Quantity to Deduct',
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                        ),
+                        icon: const Icon(Icons.add_shopping_cart, size: 16),
+                        label: const Text('Deduct & Attach'),
+                        onPressed: selectedProduct == null
+                            ? null
+                            : () async {
+                                final qty =
+                                    double.tryParse(qtyCtrl.text.trim()) ?? 1.0;
+                                if (qty <= 0) return;
+
+                                // Atomically deduct stock from SQLite
+                                await db.db.rawUpdate(
+                                  'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?',
+                                  [qty, selectedProduct!.id],
+                                );
+
+                                final partCost =
+                                    selectedProduct!.sellingPrice * qty;
+                                final newEntry = {
+                                  'product_id': selectedProduct!.id,
+                                  'name': selectedProduct!.name,
+                                  'quantity': qty,
+                                  'cost': partCost,
+                                };
+
+                                currentParts.add(newEntry);
+                                final currentCost = (job['est_cost'] is num)
+                                    ? (job['est_cost'] as num).toDouble()
+                                    : (job['estCost'] is num)
+                                        ? (job['estCost'] as num).toDouble()
+                                        : 0.0;
+                                final updatedCost = currentCost + partCost;
+
+                                final id = job['id'] as int?;
+                                if (id != null) {
+                                  await db.updateRepairJob(id, {
+                                    'used_parts': jsonEncode(currentParts),
+                                    'est_cost': updatedCost,
+                                  });
+                                }
+                                job['used_parts'] = jsonEncode(currentParts);
+                                job['est_cost'] = updatedCost;
+
+                                setDlgState(() {});
+                                await _loadJobs();
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        'Deducted ${qty.toInt()}x ${selectedProduct!.name} from inventory! Attached to repair sheet.'),
+                                    backgroundColor: const Color(0xFF10B981),
+                                  ),
+                                );
+                              },
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Text('Parts Attached to Job:',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A))),
+                  const SizedBox(height: 8),
+                  if (currentParts.isEmpty)
+                    const Text('No spare parts attached yet. Labor only.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey))
+                  else
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 140),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: currentParts.length,
+                        itemBuilder: (ctx, i) {
+                          final p = currentParts[i] as Map<String, dynamic>;
+                          return ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.check_circle,
+                                color: Color(0xFF10B981), size: 18),
+                            title: Text('${p['quantity']}x ${p['name']}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 13)),
+                            trailing: Text('$currency ${p['cost']}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF10B981))),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close')),
+            ],
+          );
+        },
+      ),
+    );
   }
 }

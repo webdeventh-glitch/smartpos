@@ -3606,6 +3606,37 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
 
     final expDays = _getDaysUntilExpiry(product.expiryDate);
+    if (widget.settings.isPharmacy && expDays != null && expDays < 0) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.block_rounded,
+                color: Color(0xFFDC2626), size: 48),
+            title: const Text('DISPENSING HARD STOP',
+                style: TextStyle(
+                    color: Color(0xFFDC2626), fontWeight: FontWeight.w900)),
+            content: Text(
+              'Cannot dispense ${product.name}.\n\n'
+              'Expiry Date: ${product.expiryDate} ($expDays days expired).\n\n'
+              'Under Pharmacy Regulations & Patient Safety Law, dispensing expired medicine is strictly prohibited. Please quarantine this inventory immediately.',
+              style: const TextStyle(fontSize: 13.5),
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Acknowledge & Block'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
     if (expDays != null && expDays <= 60) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -3780,6 +3811,37 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     }
 
     final expDays = _getDaysUntilExpiry(product.expiryDate);
+    if (widget.settings.isPharmacy && expDays != null && expDays < 0) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.block_rounded,
+                color: Color(0xFFDC2626), size: 48),
+            title: const Text('DISPENSING HARD STOP',
+                style: TextStyle(
+                    color: Color(0xFFDC2626), fontWeight: FontWeight.w900)),
+            content: Text(
+              'Cannot dispense ${product.name}.\n\n'
+              'Expiry Date: ${product.expiryDate} ($expDays days expired).\n\n'
+              'Under Pharmacy Regulations & Patient Safety Law, dispensing expired medicine is strictly prohibited. Please quarantine this inventory immediately.',
+              style: const TextStyle(fontSize: 13.5),
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Acknowledge & Block'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
     if (expDays != null && expDays <= 60) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -4041,6 +4103,40 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             backgroundColor: Colors.orange),
       );
       return;
+    }
+
+    if (widget.settings.isPharmacy) {
+      final expiredItems = _cart.where((it) {
+        final days = _getDaysUntilExpiry(it.expiryDate);
+        return days != null && days < 0;
+      }).toList();
+      if (expiredItems.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.block_rounded,
+                color: Color(0xFFDC2626), size: 48),
+            title: const Text('DISPENSING HARD STOP: Expired Drugs in Cart',
+                style: TextStyle(
+                    color: Color(0xFFDC2626), fontWeight: FontWeight.bold)),
+            content: Text(
+              'Checkout is blocked because the following drug(s) have expired:\n\n'
+              '${expiredItems.map((e) => '• ${e.displayName} (Exp: ${e.expiryDate})').join('\n')}\n\n'
+              'Please remove expired items from the cart to proceed with checkout.',
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Understood'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
     }
 
     final db = await _dbFuture;
@@ -4321,6 +4417,40 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         ),
       );
       return;
+    }
+
+    if (widget.settings.isPharmacy) {
+      final expiredItems = _cart.where((it) {
+        final days = _getDaysUntilExpiry(it.expiryDate);
+        return days != null && days < 0;
+      }).toList();
+      if (expiredItems.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.block_rounded,
+                color: Color(0xFFDC2626), size: 48),
+            title: const Text('DISPENSING HARD STOP: Expired Drugs in Cart',
+                style: TextStyle(
+                    color: Color(0xFFDC2626), fontWeight: FontWeight.bold)),
+            content: Text(
+              'Quick checkout is blocked because the following drug(s) have expired:\n\n'
+              '${expiredItems.map((e) => '• ${e.displayName} (Exp: ${e.expiryDate})').join('\n')}\n\n'
+              'Please remove expired items from the cart.',
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Understood'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
     }
 
     _processCheckout(
