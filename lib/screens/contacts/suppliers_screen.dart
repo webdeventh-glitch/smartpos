@@ -318,17 +318,37 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                           borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () async {
-                      if (nameCtrl.text.trim().isEmpty) return;
+                      final name = nameCtrl.text.trim();
+                      if (name.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Supplier name is required.'),
+                            backgroundColor: Color(0xFFEA580C),
+                          ),
+                        );
+                        return;
+                      }
                       final db = await DatabaseService.initialize();
                       await db.addContact(Contact(
                         type: 'supplier',
-                        name: nameCtrl.text.trim(),
+                        name: name,
                         businessName: bizCtrl.text.trim(),
                         phone: phoneCtrl.text.trim(),
                         email: emailCtrl.text.trim(),
                         address: addrCtrl.text.trim(),
                       ));
-                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx);
+                      }
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                Text('Supplier "$name" added successfully!'),
+                            backgroundColor: const Color(0xFF059669),
+                          ),
+                        );
+                      }
                       _load();
                     },
                     child: const Text('Save Supplier',

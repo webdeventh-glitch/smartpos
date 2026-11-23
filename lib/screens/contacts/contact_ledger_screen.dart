@@ -226,6 +226,269 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
     );
   }
 
+  Future<void> _openLinkWalkInBillModal() async {
+    final contact = _updatedContact ?? widget.contact;
+    if (contact.id == null) return;
+
+    final db = await DatabaseService.initialize();
+    final allSales = await db.getSales(limit: 200);
+    final walkInSales = allSales.where((s) {
+      final name = s.customerName.toLowerCase();
+      return s.customerId == null ||
+          s.customerId == 1 ||
+          name.contains('walk-in') ||
+          name.contains('walk in') ||
+          name.contains('walkin');
+    }).toList();
+
+    if (!mounted) return;
+    if (walkInSales.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No unassigned walk-in sales found to link.'),
+          backgroundColor: Color(0xFF64748B),
+        ),
+      );
+      return;
+    }
+
+    Sale? selectedSale = walkInSales.first;
+    String searchQuery = '';
+    final searchCtrl = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final filtered = walkInSales.where((s) {
+              final q = searchQuery.toLowerCase();
+              return s.invoiceNo.toLowerCase().contains(q) ||
+                  s.customerName.toLowerCase().contains(q) ||
+                  s.totalAmount.toString().contains(q);
+            }).toList();
+
+            final currency = widget.settings.currencySymbol;
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.link_rounded,
+                        color: Color(0xFF0D9488), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Link Walk-in Bill to this Khata',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Transfer past counter bill to ${contact.name}\'s ledger',
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 520,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: searchCtrl,
+                      decoration: InputDecoration(
+                        hintText:
+                            'Search by Invoice # or Customer name on bill...',
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 12),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onChanged: (val) {
+                        setDialogState(() => searchQuery = val.trim());
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('Select Walk-in Bill:',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey)),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 240,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: filtered.isEmpty
+                          ? const Center(
+                              child: Text('No matching walk-in bills found.',
+                                  style: TextStyle(
+                                      color: Colors.grey, fontSize: 12)))
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (c, idx) {
+                                final s = filtered[idx];
+                                final isSel = selectedSale?.id == s.id;
+                                return ListTile(
+                                  dense: true,
+                                  selected: isSel,
+                                  selectedTileColor: const Color(0xFF0D9488)
+                                      .withValues(alpha: 0.12),
+                                  title: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Invoice #${s.invoiceNo}',
+                                        style: TextStyle(
+                                            fontWeight: isSel
+                                                ? FontWeight.bold
+                                                : FontWeight.w600,
+                                            fontSize: 13),
+                                      ),
+                                      Text(
+                                        '$currency${s.totalAmount.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                  subtitle: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Name on Bill: ${s.customerName} • ${s.createdAt.split("T").first}',
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                      if (s.dueAmount > 0)
+                                        Text(
+                                          'Due: $currency${s.dueAmount.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFFEF4444),
+                                              fontWeight: FontWeight.bold),
+                                        )
+                                      else
+                                        const Text(
+                                          'Paid',
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF059669),
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                    ],
+                                  ),
+                                  trailing: isSel
+                                      ? const Icon(Icons.check_circle_rounded,
+                                          color: Color(0xFF0D9488), size: 18)
+                                      : null,
+                                  onTap: () {
+                                    setDialogState(() => selectedSale = s);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                    if (selectedSale != null &&
+                        selectedSale!.dueAmount > 0) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFF59E0B)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.info_outline,
+                                color: Color(0xFFB45309), size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Note: Bill #${selectedSale!.invoiceNo} has an unpaid balance of $currency${selectedSale!.dueAmount.toStringAsFixed(2)} which will be added to ${contact.name}\'s Khata closing balance.',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF92400E),
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.link_rounded, size: 16),
+                  label: const Text('Confirm & Link Bill'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D9488),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: selectedSale == null
+                      ? null
+                      : () => Navigator.pop(dialogCtx, true),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed == true && selectedSale != null && selectedSale!.id != null) {
+      await db.transferSaleToCustomer(
+        saleId: selectedSale!.id!,
+        contact: contact,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Successfully linked invoice #${selectedSale!.invoiceNo} to ${contact.name}\'s Khata!'),
+            backgroundColor: const Color(0xFF0D9488),
+          ),
+        );
+        _loadLedger();
+        widget.onPaymentRecorded?.call();
+      }
+    }
+  }
+
   Future<void> _openQuickPaymentModal() async {
     final contact = _updatedContact ?? widget.contact;
     await RecordContactPaymentDialog.show(
@@ -576,6 +839,27 @@ class _ContactLedgerScreenState extends State<ContactLedgerScreen> {
                       fontWeight: FontWeight.bold, fontSize: 12),
                 ),
                 onPressed: _printOfficialLedger,
+              ),
+            ),
+          if (isCustomer)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF0D9488),
+                  side: const BorderSide(color: Color(0xFF0D9488)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth < 1000 ? 8 : 12),
+                ),
+                icon: const Icon(Icons.link_rounded, size: 16),
+                label: Text(
+                  screenWidth < 900 ? 'Link Bill' : 'Link Walk-in Bill',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                onPressed: _openLinkWalkInBillModal,
               ),
             ),
           // Receive Payment / Pay Supplier (Responsive)

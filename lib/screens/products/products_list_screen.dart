@@ -499,6 +499,35 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     );
   }
 
+  Future<void> _printDemandList() async {
+    final db = await DatabaseService.initialize();
+    final lowStockList = await db.getLowStockProducts();
+    if (!mounted) return;
+    if (lowStockList.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'All inventory is optimal! Zero products are currently low or out of stock.'),
+          backgroundColor: Color(0xFF059669),
+        ),
+      );
+      return;
+    }
+    final html = PrintService.generateDemandReorderSheetHtml(
+      settings: widget.settings,
+      products: lowStockList,
+    );
+    showDialog(
+      context: context,
+      builder: (_) => UniversalPrintPreviewDialog(
+        title: 'Stock Reorder & Demand Sheet (ری آرڈر ڈیمانڈ شیٹ)',
+        htmlContent: html,
+        defaultPaperSize: 'a4',
+        settings: widget.settings,
+      ),
+    );
+  }
+
   Future<void> _delete(Product product) async {
     if (!_canDeleteProduct) {
       _denyAction('Access Denied: Missing product.delete permission.');
@@ -640,6 +669,25 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         label: const Text('Print Price List',
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: () => _printPriceList(paginatedProducts),
+                      ),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFEA580C),
+                          side: const BorderSide(color: Color(0xFFEA580C)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.assignment_turned_in_outlined,
+                            size: 18),
+                        label: Text(
+                          lowStockCount > 0
+                              ? 'Demand List ($lowStockCount)'
+                              : 'Demand List',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: _printDemandList,
                       ),
                       if (_canQuickStockIn)
                         ElevatedButton.icon(

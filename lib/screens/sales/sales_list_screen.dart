@@ -490,6 +490,22 @@ class _SalesListScreenState extends State<SalesListScreen> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+          if (s.customerName.toLowerCase().contains('walk-in') ||
+              s.customerName.toLowerCase().contains('walk in') ||
+              s.customerName.toLowerCase().contains('walkin') ||
+              s.customerId == null ||
+              s.customerId == 1)
+            OutlinedButton.icon(
+              icon: const Icon(Icons.swap_horiz_rounded,
+                  size: 16, color: Color(0xFF0D9488)),
+              label: const Text('Transfer to Khata',
+                  style: TextStyle(
+                      color: Color(0xFF0D9488), fontWeight: FontWeight.bold)),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _showTransferSaleDialog(s);
+              },
+            ),
           ElevatedButton.icon(
             icon: const Icon(Icons.print_rounded, size: 16),
             label: const Text('Print Receipt'),
@@ -604,6 +620,296 @@ class _SalesListScreenState extends State<SalesListScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showTransferSaleDialog(Sale s) async {
+    final db = await DatabaseService.initialize();
+    final allCustomers = await db.getContacts(type: 'customer');
+    final selectableCustomers = allCustomers
+        .where((c) =>
+            !c.isDefaultWalkIn &&
+            !c.name.toLowerCase().contains('walk-in') &&
+            !c.name.toLowerCase().contains('walk in') &&
+            !c.name.toLowerCase().contains('walkin'))
+        .toList();
+
+    if (!mounted) return;
+    if (selectableCustomers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'No registered khata customers found. Please add a customer first in Contacts > Customers.'),
+          backgroundColor: Color(0xFFD97706),
+        ),
+      );
+      return;
+    }
+
+    Contact? selectedCustomer = selectableCustomers.first;
+    String searchQuery = '';
+    final searchCtrl = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final filtered = selectableCustomers.where((c) {
+              final q = searchQuery.toLowerCase();
+              return c.name.toLowerCase().contains(q) ||
+                  (c.phone.isNotEmpty && c.phone.contains(q));
+            }).toList();
+
+            final currency = widget.settings.currencySymbol;
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.swap_horiz_rounded,
+                        color: Color(0xFF0D9488), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Transfer Bill to Khata Ledger',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Assign this walk-in bill & payments to a customer ledger',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 480,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFCBD5E1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Invoice #${s.invoiceNo}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13)),
+                                Text('Current on Bill: ${s.customerName}',
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                  'Total: $currency${s.totalAmount.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13)),
+                              if (s.dueAmount > 0)
+                                Text(
+                                    'Due: $currency${s.dueAmount.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFEF4444)))
+                              else
+                                const Text('Paid in Full',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF059669))),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: searchCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'Search customer name or phone...',
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 12),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onChanged: (val) {
+                        setDialogState(() => searchQuery = val.trim());
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('Select Target Customer:',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey)),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 180,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: filtered.isEmpty
+                          ? const Center(
+                              child: Text('No customers found matching search.',
+                                  style: TextStyle(
+                                      color: Colors.grey, fontSize: 12)))
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (c, idx) {
+                                final cust = filtered[idx];
+                                final isSel = selectedCustomer?.id == cust.id;
+                                return ListTile(
+                                  dense: true,
+                                  selected: isSel,
+                                  selectedTileColor: const Color(0xFF0D9488)
+                                      .withValues(alpha: 0.12),
+                                  leading: CircleAvatar(
+                                    radius: 14,
+                                    backgroundColor: isSel
+                                        ? const Color(0xFF0D9488)
+                                        : Colors.grey.shade400,
+                                    child: Text(
+                                      cust.name.isNotEmpty
+                                          ? cust.name[0].toUpperCase()
+                                          : '?',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  title: Text(cust.name,
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: isSel
+                                              ? FontWeight.bold
+                                              : FontWeight.normal)),
+                                  subtitle: Text(
+                                    'Phone: ${cust.phone.isNotEmpty ? cust.phone : 'N/A'} • Khata: $currency${cust.balance.toStringAsFixed(2)}',
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                  trailing: isSel
+                                      ? const Icon(Icons.check_circle_rounded,
+                                          color: Color(0xFF0D9488), size: 18)
+                                      : null,
+                                  onTap: () {
+                                    setDialogState(
+                                        () => selectedCustomer = cust);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                    if (s.dueAmount > 0) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFF59E0B)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.info_outline,
+                                color: Color(0xFFB45309), size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Note: Outstanding balance of $currency${s.dueAmount.toStringAsFixed(2)} will be added to ${selectedCustomer?.name}\'s ledger balance.',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF92400E),
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+                  label: const Text('Confirm Transfer'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D9488),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: selectedCustomer == null
+                      ? null
+                      : () => Navigator.pop(dialogCtx, true),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed == true && selectedCustomer != null && s.id != null) {
+      await db.transferSaleToCustomer(
+        saleId: s.id!,
+        contact: selectedCustomer!,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Successfully transferred invoice #${s.invoiceNo} to ${selectedCustomer!.name}\'s Khata ledger!'),
+            backgroundColor: const Color(0xFF0D9488),
+          ),
+        );
+        _load();
+      }
+    }
   }
 
   void _printQuotation(Sale s) async {
@@ -1663,6 +1969,10 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                       'delete') {
                                                                     _deleteSaleRecord(
                                                                         s);
+                                                                  } else if (val ==
+                                                                      'transfer_ledger') {
+                                                                    _showTransferSaleDialog(
+                                                                        s);
                                                                   }
                                                                 },
                                                                 itemBuilder:
@@ -1706,19 +2016,37 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                     if (canDel)
                                                                       const PopupMenuItem(
                                                                         value:
-                                                                            'delete',
+                                                                            'transfer_ledger',
                                                                         child:
                                                                             Row(
                                                                           children: [
-                                                                            Icon(Icons.delete_outline,
+                                                                            Icon(Icons.swap_horiz_rounded,
                                                                                 size: 16,
-                                                                                color: Color(0xFFEF4444)),
+                                                                                color: Color(0xFF0D9488)),
                                                                             SizedBox(width: 8),
-                                                                            Text('Delete',
-                                                                                style: TextStyle(color: Color(0xFFEF4444))),
+                                                                            Text('Transfer to Khata Ledger',
+                                                                                style: TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold)),
                                                                           ],
                                                                         ),
                                                                       ),
+                                                                    const PopupMenuItem(
+                                                                      value:
+                                                                          'delete',
+                                                                      child:
+                                                                          Row(
+                                                                        children: [
+                                                                          Icon(
+                                                                              Icons.delete_outline,
+                                                                              size: 16,
+                                                                              color: Color(0xFFEF4444)),
+                                                                          SizedBox(
+                                                                              width: 8),
+                                                                          Text(
+                                                                              'Delete',
+                                                                              style: TextStyle(color: Color(0xFFEF4444))),
+                                                                        ],
+                                                                      ),
+                                                                    ),
                                                                   ];
                                                                 },
                                                                 child:
@@ -1808,6 +2136,10 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                   'delete') {
                                                                 _deleteSaleRecord(
                                                                     s);
+                                                              } else if (val ==
+                                                                  'transfer_ledger') {
+                                                                _showTransferSaleDialog(
+                                                                    s);
                                                               }
                                                             },
                                                             itemBuilder: (ctx) {
@@ -1892,26 +2224,48 @@ class _SalesListScreenState extends State<SalesListScreen> {
                                                                 if (canDel)
                                                                   const PopupMenuItem(
                                                                     value:
-                                                                        'delete',
+                                                                        'transfer_ledger',
                                                                     child: Row(
                                                                       children: [
                                                                         Icon(
                                                                             Icons
-                                                                                .delete_outline,
+                                                                                .swap_horiz_rounded,
                                                                             size:
                                                                                 16,
                                                                             color:
-                                                                                Color(0xFFEF4444)),
+                                                                                Color(0xFF0D9488)),
                                                                         SizedBox(
                                                                             width:
                                                                                 8),
                                                                         Text(
-                                                                            'Delete Sale',
+                                                                            'Transfer to Khata Ledger',
                                                                             style:
-                                                                                TextStyle(color: Color(0xFFEF4444))),
+                                                                                TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold)),
                                                                       ],
                                                                     ),
                                                                   ),
+                                                                const PopupMenuItem(
+                                                                  value:
+                                                                      'delete',
+                                                                  child: Row(
+                                                                    children: [
+                                                                      Icon(
+                                                                          Icons
+                                                                              .delete_outline,
+                                                                          size:
+                                                                              16,
+                                                                          color:
+                                                                              Color(0xFFEF4444)),
+                                                                      SizedBox(
+                                                                          width:
+                                                                              8),
+                                                                      Text(
+                                                                          'Delete Sale',
+                                                                          style:
+                                                                              TextStyle(color: Color(0xFFEF4444))),
+                                                                    ],
+                                                                  ),
+                                                                ),
                                                               ];
                                                             },
                                                             child: Container(

@@ -1631,6 +1631,17 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         whereArgs: [saleId],
       );
 
+      // Reassign customer on payment transactions linked to this invoice
+      await txn.update(
+        'payment_transactions',
+        {
+          'contact_id': contact.id,
+          'contact_name': contact.name,
+        },
+        where: "transaction_type = 'sale' AND parent_id = ?",
+        whereArgs: [saleId],
+      );
+
       // If the sale has an unpaid balance, reflect it in the customer's balance
       final due = sale.dueAmount;
       if (due > 0 && contact.id != null) {

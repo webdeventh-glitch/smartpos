@@ -1,0 +1,668 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../models/business_settings.dart';
+import '../services/qulop_service.dart';
+
+/// Professional "About Developer & Software Support" modal dialog.
+/// Displays official company details for Webdeventh Software Solutions,
+/// website, mobile, email, WhatsApp direct launch, and diagnostic info.
+class AboutDeveloperDialog extends StatefulWidget {
+  final BusinessSettings? settings;
+
+  const AboutDeveloperDialog({super.key, this.settings});
+
+  static Future<void> show(BuildContext context, {BusinessSettings? settings}) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AboutDeveloperDialog(settings: settings),
+    );
+  }
+
+  @override
+  State<AboutDeveloperDialog> createState() => _AboutDeveloperDialogState();
+}
+
+class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
+  String _machineId = 'Loading...';
+  final String _licenseTier = 'Enterprise Lifetime';
+  bool _copied = false;
+
+  static const String companyName = 'Webdeventh Software Solutions';
+  static const String developerName = 'Engr. Muhammad Rafiq (Webdeventh)';
+  static const String websiteUrl = 'https://webdeventh.com';
+  static const String phoneDisplay = '+92 300 1234567';
+  static const String phoneRaw = '923001234567';
+  static const String emailAddress = 'webdeventh@gmail.com';
+  static const String appVersion = 'v1.0.0 (Release 2026.11)';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHardwareInfo();
+  }
+
+  Future<void> _loadHardwareInfo() async {
+    try {
+      final hwId = await QulopService.getHardwareId();
+      if (mounted) {
+        setState(() {
+          _machineId = hwId;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _machineId = 'DESKTOP-WIN-ACTIVE';
+        });
+      }
+    }
+  }
+
+  void _openUrl(String url) {
+    try {
+      if (Platform.isWindows) {
+        Process.run('cmd.exe', ['/c', 'start', '', url]);
+      } else if (Platform.isMacOS) {
+        Process.run('open', [url]);
+      } else {
+        Process.run('xdg-open', [url]);
+      }
+    } catch (_) {
+      Clipboard.setData(ClipboardData(text: url));
+      _showToast('Link copied to clipboard: $url');
+    }
+  }
+
+  void _openWhatsApp() {
+    final businessName = widget.settings?.businessName ?? 'Our Business';
+    final msg = Uri.encodeComponent(
+      'Hello Webdeventh Support! I am contacting you regarding Smart POS Enterprise for "$businessName" (Machine ID: $_machineId).',
+    );
+    final waUrl = 'https://wa.me/$phoneRaw?text=$msg';
+    _openUrl(waUrl);
+  }
+
+  void _openEmail() {
+    final businessName = widget.settings?.businessName ?? 'SmartPOS Client';
+    final mailto =
+        'mailto:$emailAddress?subject=Smart%20POS%20Support%20Inquiry%20-%20$businessName';
+    _openUrl(mailto);
+  }
+
+  void _copyDiagnostics() {
+    final diag = StringBuffer();
+    diag.writeln('=== SMART POS ENTERPRISE DIAGNOSTIC INFO ===');
+    diag.writeln('Software: Smart POS Enterprise $appVersion');
+    diag.writeln('Provider: $companyName');
+    diag.writeln('Machine Hardware ID: $_machineId');
+    diag.writeln('License: $_licenseTier');
+    diag.writeln(
+        'Business: ${widget.settings?.businessName ?? "Smart POS Setup"}');
+    diag.writeln('Branch: ${widget.settings?.branchName ?? "Main Branch"}');
+    diag.writeln(
+        'OS: ${Platform.operatingSystem} ${Platform.operatingSystemVersion}');
+    diag.writeln('============================================');
+
+    Clipboard.setData(ClipboardData(text: diag.toString()));
+    setState(() => _copied = true);
+    _showToast('Diagnostic details copied! You can paste them in WhatsApp.');
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  void _showToast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        duration: const Duration(seconds: 2),
+        backgroundColor: const Color(0xFF4F46E5),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final headerBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Center(
+        child: Container(
+          width: 640,
+          constraints: const BoxConstraints(maxHeight: 740),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 28,
+                offset: Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                decoration: BoxDecoration(
+                  color: headerBg,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                  border: Border(bottom: BorderSide(color: borderColor)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4F46E5).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.verified_rounded,
+                        color: Color(0xFF4F46E5),
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'About Smart POS & Developer Support',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: textPrimary,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Enterprise Multi-Industry Point of Sale & ERP Systems',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 20),
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Company Banner Card
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF312E81), Color(0xFF4F46E5)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF4F46E5)
+                                  .withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'OFFICIAL VENDOR',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                const Spacer(),
+                                const Text(
+                                  appVersion,
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              companyName,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Lead Engineer: $developerName',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Direct Contact & Connect Channels
+                      Text(
+                        'Direct Contact & Customer Support',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Contact Grid Tiles
+                      Row(
+                        children: [
+                          // WhatsApp Direct Button
+                          Expanded(
+                            child: _contactTile(
+                              icon: Icons.chat_rounded,
+                              iconColor: const Color(0xFF25D366),
+                              bgColor: const Color(0xFF25D366)
+                                  .withValues(alpha: 0.1),
+                              title: 'WhatsApp Chat',
+                              subtitle: phoneDisplay,
+                              actionLabel: 'Chat Now',
+                              onTap: _openWhatsApp,
+                              isDark: isDark,
+                              borderColor: borderColor,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Website Link
+                          Expanded(
+                            child: _contactTile(
+                              icon: Icons.language_rounded,
+                              iconColor: const Color(0xFF0284C7),
+                              bgColor: const Color(0xFF0284C7)
+                                  .withValues(alpha: 0.1),
+                              title: 'Official Website',
+                              subtitle: websiteUrl.replaceAll('https://', ''),
+                              actionLabel: 'Visit Site',
+                              onTap: () => _openUrl(websiteUrl),
+                              isDark: isDark,
+                              borderColor: borderColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      Row(
+                        children: [
+                          // Mobile Call
+                          Expanded(
+                            child: _contactTile(
+                              icon: Icons.phone_in_talk_rounded,
+                              iconColor: const Color(0xFF4F46E5),
+                              bgColor: const Color(0xFF4F46E5)
+                                  .withValues(alpha: 0.1),
+                              title: 'Helpline / Call',
+                              subtitle: phoneDisplay,
+                              actionLabel: 'Copy Phone',
+                              onTap: () {
+                                Clipboard.setData(
+                                    const ClipboardData(text: phoneDisplay));
+                                _showToast(
+                                    'Phone number copied: $phoneDisplay');
+                              },
+                              isDark: isDark,
+                              borderColor: borderColor,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Email
+                          Expanded(
+                            child: _contactTile(
+                              icon: Icons.alternate_email_rounded,
+                              iconColor: const Color(0xFFD97706),
+                              bgColor: const Color(0xFFD97706)
+                                  .withValues(alpha: 0.1),
+                              title: 'Official Email',
+                              subtitle: emailAddress,
+                              actionLabel: 'Send Email',
+                              onTap: _openEmail,
+                              isDark: isDark,
+                              borderColor: borderColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Machine & License Diagnostic Info Box
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.fingerprint_rounded,
+                                        size: 16, color: Color(0xFF4F46E5)),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Client Machine Hardware ID:',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981)
+                                        .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'ACTIVE LICENSE',
+                                    style: TextStyle(
+                                      color: Color(0xFF10B981),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            SelectableText(
+                              _machineId,
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4F46E5),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    side: BorderSide(color: borderColor),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                  icon: Icon(
+                                    _copied
+                                        ? Icons.check
+                                        : Icons.copy_all_rounded,
+                                    size: 15,
+                                    color: _copied
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFF4F46E5),
+                                  ),
+                                  label: Text(
+                                    _copied
+                                        ? 'Copied Diagnostic Info'
+                                        : 'Copy Diagnostic Info for Support',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: _copied
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFF4F46E5),
+                                    ),
+                                  ),
+                                  onPressed: _copyDiagnostics,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Supported Industries Banner
+                      Text(
+                        'Specialized Pakistan Industry Engines',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _industryBadge('☀️ Solar & Inverter Agencies'),
+                          _industryBadge('💊 Medicine & Pharmacy Distribution'),
+                          _industryBadge('🛒 Supermarkets & FMCG Groceries'),
+                          _industryBadge('🍽️ Restaurant KDS & Dining Tables'),
+                          _industryBadge('📱 Mobile & Laptop Repairs'),
+                          _industryBadge('🏗️ Manufacturing BOM & Production'),
+                          _industryBadge('🇵🇰 FBR & ZATCA Fiscal E-Invoicing'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Bottom Actions
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                decoration: BoxDecoration(
+                  color: headerBg,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                  border: Border(top: BorderSide(color: borderColor)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '© 2026 Webdeventh. All Rights Reserved.',
+                      style: TextStyle(fontSize: 11.5, color: textSecondary),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _contactTile({
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required String title,
+    required String subtitle,
+    required String actionLabel,
+    required VoidCallback onTap,
+    required bool isDark,
+    required Color borderColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: iconColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6)),
+              elevation: 0,
+            ),
+            onPressed: onTap,
+            child: Text(
+              actionLabel,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _industryBadge(String title) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF4F46E5).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: const Color(0xFF4F46E5).withValues(alpha: 0.25),
+        ),
+      ),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF4F46E5),
+        ),
+      ),
+    );
+  }
+}

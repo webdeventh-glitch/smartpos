@@ -19,6 +19,7 @@ import '../../services/ai_assistant_service.dart';
 import '../../services/number_to_words_service.dart';
 import '../../services/localization_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
+import '../../widgets/about_developer_dialog.dart';
 import 'invoice_layouts_manager.dart';
 import 'printer_management_section.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -5537,33 +5538,72 @@ class _SettingsScreenState extends State<SettingsScreen>
                         ),
                         const SizedBox(height: 20),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            color: isDark
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0)),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Row(
+                              Row(
                                 children: [
-                                  Icon(Icons.verified_user_rounded,
-                                      color: Color(0xFF059669), size: 18),
-                                  SizedBox(width: 8),
+                                  const Icon(Icons.verified_user_rounded,
+                                      color: Color(0xFF059669), size: 20),
+                                  const SizedBox(width: 8),
                                   Text(
-                                      'Software Provider: Webdeventh Software Solutions',
+                                    'Software Provider & Developer Support',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF4F46E5),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 8),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(6)),
+                                    ),
+                                    icon: const Icon(Icons.info_outline,
+                                        size: 15),
+                                    label: const Text(
+                                      'About Developer & Support',
                                       style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13)),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    onPressed: () => AboutDeveloperDialog.show(
+                                        context,
+                                        settings: widget.settings),
+                                  ),
                                 ],
                               ),
-                              Text('WhatsApp / Support: +92 300 1234567',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: primaryColor)),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Webdeventh Software Solutions (Engr. Muhammad Rafiq)\n'
+                                'Website: https://webdeventh.com  •  WhatsApp: +92 300 1234567  •  Email: webdeventh@gmail.com',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF475569),
+                                  height: 1.5,
+                                ),
+                              ),
                             ],
                           ),
                         ),

@@ -9,6 +9,7 @@ import '../services/theme_service.dart';
 import '../services/cloud_sync_service.dart';
 import 'calculator_dialog.dart';
 import 'ai_assistant_chat_dialog.dart';
+import 'about_developer_dialog.dart';
 
 class SmartAppBar extends StatefulWidget implements PreferredSizeWidget {
   final VoidCallback onOpenPos;
@@ -783,6 +784,20 @@ class _SmartAppBarState extends State<SmartAppBar> {
                         isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
                   );
                 },
+              ),
+
+              // Developer & Support Info Button
+              _squareBtn(
+                icon: const Icon(
+                  Icons.help_outline_rounded,
+                  color: Color(0xFF4F46E5),
+                  size: 18,
+                ),
+                onTap: () => AboutDeveloperDialog.show(
+                  context,
+                  settings: widget.settings,
+                ),
+                tooltip: 'About Developer & Support (Webdeventh)',
               ),
 
               // Online / Offline & Pending Sync Queue Pill (Step 7.6)

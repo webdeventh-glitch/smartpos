@@ -383,6 +383,10 @@ The setup wizard combines 4 major steps with extensive inline styling, database 
   [X] Walk-in Customer Custom Name Prompt on Bill/Invoice without requiring full customer registration.
   [X] Pakistan Local Payment Toggles & POS Action Buttons: Cash, EasyPaisa, JazzCash, Raast / Bank Transfer, Cheque, Khata/Credit (Card toggleable).
   [X] 1-Click "Transfer to Customer Ledger": reassign counter/walk-in sales to official customer khata ledger with automatic balance & audit trail sync.
+  [X] Bidirectional Walk-in Link in Khata Ledger: "Link Walk-in Bill" button inside customer ledger to import historical sales and dues seamlessly.
+  [X] Stock Demand & Reorder Requisition Sheet: Printable A4 Purchase Requisition with safety stock calculations, line budgets, and procurement signatures.
+  [X] Dedicated Webdeventh Developer & Support Portal: interactive dialog displaying Engr. Muhammad Rafiq's official credentials, website link, phone, direct WhatsApp support, hardware machine ID, and 1-click diagnostic copy.
+  [X] Enterprise Form Validations: strict input sanitization and descriptive error banners across Purchases, Expenses, Customers, Suppliers, and Inventory.
   [X] Dynamic A4 Agency Bill Metadata: dynamically resolves salesman/cashier name, party code, and address.
 ```
 

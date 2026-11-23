@@ -306,7 +306,7 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                                   ? Colors.white
                                   : const Color(0xFF0F172A)),
                           decoration: _inputDecoration(
-                            hintText: '+1 (555) 000-0000',
+                            hintText: '0300 1234567 / +92 300 1234567',
                             prefixIcon: Icons.phone_outlined,
                             isDark: isDark,
                           ),
@@ -362,6 +362,14 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                             prefixIcon: Icons.credit_card_outlined,
                             isDark: isDark,
                           ),
+                          validator: (val) {
+                            if (val != null &&
+                                val.trim().isNotEmpty &&
+                                double.tryParse(val.trim()) == null) {
+                              return 'Enter a valid number';
+                            }
+                            return null;
+                          },
                         ),
                       ],
                     ),
@@ -385,6 +393,14 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                             prefixIcon: Icons.account_balance_wallet_outlined,
                             isDark: isDark,
                           ),
+                          validator: (val) {
+                            if (val != null &&
+                                val.trim().isNotEmpty &&
+                                double.tryParse(val.trim()) == null) {
+                              return 'Enter a valid number';
+                            }
+                            return null;
+                          },
                         ),
                       ],
                     ),

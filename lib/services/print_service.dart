@@ -544,6 +544,131 @@ class PrintService {
 ''';
   }
 
+  // ================= 3B. STOCK DEMAND & REORDER SHEET =================
+  static String generateDemandReorderSheetHtml({
+    required List<Product> products,
+    required BusinessSettings settings,
+    String? categoryFilter,
+  }) {
+    final cur = settings.currencySymbol;
+    final rowsHtml = StringBuffer();
+    double totalEstimatedBudget = 0.0;
+    double totalUnitsDemanded = 0.0;
+
+    for (int i = 0; i < products.length; i++) {
+      final p = products[i];
+      final currentStock = p.stockQuantity;
+      final alertQty = p.alertQuantity > 0 ? p.alertQuantity : 5.0;
+      final double reorderDemandQty =
+          ((alertQty * 2) - currentStock).clamp(1.0, 99999.0);
+      final double estLineCost = reorderDemandQty * p.purchasePrice;
+      totalEstimatedBudget += estLineCost;
+      totalUnitsDemanded += reorderDemandQty;
+
+      final isCritical = currentStock <= 0;
+
+      rowsHtml.writeln('''
+        <tr style="background: ${i % 2 == 0 ? '#ffffff' : '#f8fafc'};">
+          <td style="text-align:center; padding: 6px 4px;">${i + 1}</td>
+          <td style="font-weight: bold; padding: 6px 8px;">
+            ${_escape(p.name)}
+            ${p.brandName.isNotEmpty ? '<br><small style="color: #64748b; font-weight: normal;">Brand: ${_escape(p.brandName)}</small>' : ''}
+          </td>
+          <td style="padding: 6px 8px; font-family: monospace;">${_escape(p.sku.isNotEmpty ? p.sku : p.barcode)}</td>
+          <td style="padding: 6px 8px; color: #475569;">${_escape(p.categoryName)}</td>
+          <td style="text-align:center; padding: 6px 4px; font-weight: bold; color: ${isCritical ? '#dc2626' : '#d97706'};">
+            ${currentStock.toStringAsFixed(0)} ${_escape(p.unit)}
+            ${isCritical ? '<br><span style="font-size: 9px; background: #fee2e2; color: #dc2626; padding: 1px 4px; border-radius: 3px;">OUT OF STOCK</span>' : ''}
+          </td>
+          <td style="text-align:center; padding: 6px 4px; color: #475569;">${alertQty.toStringAsFixed(0)}</td>
+          <td style="text-align:center; padding: 6px 4px; font-weight: 900; color: #2563eb; background: #eff6ff;">
+            ${reorderDemandQty.toStringAsFixed(0)} ${_escape(p.unit)}
+          </td>
+          <td style="text-align:right; padding: 6px 8px; font-weight: bold;">$cur${p.purchasePrice.toStringAsFixed(2)}</td>
+          <td style="text-align:right; padding: 6px 8px; font-weight: 900; color: #059669;">$cur${estLineCost.toStringAsFixed(2)}</td>
+        </tr>
+      ''');
+    }
+
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Stock Demand & Reorder Sheet - ${settings.businessName}</title>
+  <style>
+    @page { size: A4 portrait; margin: 10mm; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 11.5px; color: #1e293b; margin: 0; padding: 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th { background: #0f172a; color: #ffffff; padding: 8px 6px; text-align: left; font-size: 11px; }
+    td { border-bottom: 1px solid #e2e8f0; font-size: 11px; }
+    .text-right { text-align: right; }
+    @media print { body { margin: 0; } }
+  </style>
+  <script>
+    window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 250); });
+  </script>
+</head>
+<body>
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #0f172a; padding-bottom: 8px;">
+    <div>
+      <h2 style="margin: 0; font-size: 18px; color: #0f172a;">${_escape(settings.businessName.toUpperCase())}</h2>
+      <div style="font-size: 11.5px; color: #64748b;">${_escape(settings.branchName)} &bull; Official Inventory Reorder Demand Sheet (سٹاک ڈیمانڈ شیٹ)</div>
+    </div>
+    <div style="text-align: right; font-size: 11px;">
+      <div><strong>ITEMS TO REORDER:</strong> ${products.length}</div>
+      <div><strong>TOTAL DEMAND UNITS:</strong> ${totalUnitsDemanded.toStringAsFixed(0)}</div>
+      <div><strong>ESTIMATED BUDGET:</strong> $cur${totalEstimatedBudget.toStringAsFixed(2)}</div>
+      <div><strong>DATE:</strong> ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now())}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25px; text-align: center;">S#</th>
+        <th>Product Name & Specification</th>
+        <th style="width: 95px;">Code / SKU</th>
+        <th style="width: 85px;">Category</th>
+        <th style="width: 75px; text-align: center;">Current Stock</th>
+        <th style="width: 60px; text-align: center;">Min Alert</th>
+        <th style="width: 80px; text-align: center;">Demand Qty</th>
+        <th style="width: 80px; text-align: right;">Unit Cost</th>
+        <th style="width: 90px; text-align: right;">Est. Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      $rowsHtml
+    </tbody>
+    <tfoot>
+      <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #0f172a;">
+        <td colspan="6" style="padding: 8px 6px; text-align: right;">GRAND TOTALS (کل تخمینہ لاگت):</td>
+        <td style="text-align: center; color: #2563eb; font-weight: 900; padding: 8px 4px;">${totalUnitsDemanded.toStringAsFixed(0)} Units</td>
+        <td></td>
+        <td style="text-align: right; color: #059669; font-weight: 900; padding: 8px 6px;">$cur${totalEstimatedBudget.toStringAsFixed(2)}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div style="margin-top: 30px; display: flex; justify-content: space-between; font-size: 11px;">
+    <div>
+      <div>Prepared By (Store Manager): _______________________</div>
+      <div style="color: #64748b; font-size: 10px; margin-top: 2px;">Sign & Stamp</div>
+    </div>
+    <div style="text-align: right;">
+      <div>Approved By (Owner / Procurement): _______________________</div>
+      <div style="color: #64748b; font-size: 10px; margin-top: 2px;">Purchase Order Approval</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 25px; font-size: 9.5px; color: #888; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+    Official Purchase Requisition generated by Smart POS Enterprise.
+  </div>
+</body>
+</html>
+''';
+  }
+
   // ================= 4. DEFAULTERS / DUES RECOVERY SHEET =================
   static String generateDefaultersListHtml({
     required List<Contact> defaulters,

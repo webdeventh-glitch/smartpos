@@ -3,6 +3,7 @@ import '../models/models.dart';
 import '../navigation/app_routes.dart';
 import '../services/auth_service.dart';
 import '../services/localization_service.dart';
+import 'about_developer_dialog.dart';
 
 class SmartSidebar extends StatefulWidget {
   final AppRoute selectedRoute;
@@ -703,6 +704,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
     required String title,
     String? urduSubtitle,
     required AppRoute route,
+    VoidCallback? onTapCustom,
   }) {
     final displayTitle = _getDisplayTitle(title, urduSubtitle);
     final activeSubtitle = _getLocalizedSubtitle(title, urduSubtitle);
@@ -740,7 +742,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
               : title,
           waitDuration: const Duration(milliseconds: 350),
           child: InkWell(
-            onTap: () => widget.onSelect(route),
+            onTap: onTapCustom ?? () => widget.onSelect(route),
             borderRadius: BorderRadius.circular(8),
             child: Container(
               padding:
@@ -1296,6 +1298,13 @@ class _SmartSidebarState extends State<SmartSidebar> {
               title: 'Modular Features',
               urduSubtitle: 'ماڈیولز آن/آف',
               route: AppRoute.moduleSettings),
+          _subItem(
+            title: 'About Developer & Support',
+            urduSubtitle: 'سافٹ ویئر معلومات و رابطہ',
+            route: AppRoute.settings,
+            onTapCustom: () =>
+                AboutDeveloperDialog.show(context, settings: widget.settings),
+          ),
         ],
       ],
 
@@ -1646,23 +1655,40 @@ class _SmartSidebarState extends State<SmartSidebar> {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF334155)
-                              : const Color(0xFFE2E8F0),
+                      Tooltip(
+                        message: 'About Developer & Support (Webdeventh)',
+                        child: InkWell(
+                          onTap: () => AboutDeveloperDialog.show(context,
+                              settings: widget.settings),
                           borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'v1.0',
-                          style: TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? const Color(0xFFCBD5E1)
-                                : const Color(0xFF475569),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4F46E5)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: const Color(0xFF4F46E5)
+                                    .withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.verified,
+                                    size: 10, color: Color(0xFF4F46E5)),
+                                SizedBox(width: 3),
+                                Text(
+                                  'v1.0',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF4F46E5),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

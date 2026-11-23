@@ -6,8 +6,10 @@ import '../../services/app_logger.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
+import '../../services/print_service.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/status_pill.dart';
+import '../../widgets/universal_print_preview_dialog.dart';
 import '../pos/receipt_dialog.dart';
 import '../pos/register_details_dialog.dart';
 
@@ -1921,25 +1923,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
-              ElevatedButton.icon(
-                onPressed: () =>
-                    widget.onNavigateToRoute(AppRoute.purchasesList),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark
-                      ? const Color(0xFF4F46E5)
-                      : const Color(0xFF0F172A),
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-                icon: const Icon(Icons.add_shopping_cart, size: 14),
-                label: Text(
-                    PosLocalization.tr('Create Purchase Order',
-                        settings: widget.settings),
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold)),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_lowStock.isNotEmpty) ...[
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        final html =
+                            PrintService.generateDemandReorderSheetHtml(
+                          settings: widget.settings,
+                          products: _lowStock,
+                        );
+                        showDialog(
+                          context: context,
+                          builder: (_) => UniversalPrintPreviewDialog(
+                            title: 'Stock Reorder & Demand Sheet',
+                            htmlContent: html,
+                            defaultPaperSize: 'a4',
+                            settings: widget.settings,
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFEA580C),
+                        side: const BorderSide(color: Color(0xFFEA580C)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.print_outlined, size: 14),
+                      label: Text(
+                        PosLocalization.tr('Print Demand Sheet',
+                            settings: widget.settings),
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  ElevatedButton.icon(
+                    onPressed: () =>
+                        widget.onNavigateToRoute(AppRoute.purchasesList),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark
+                          ? const Color(0xFF4F46E5)
+                          : const Color(0xFF0F172A),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.add_shopping_cart, size: 14),
+                    label: Text(
+                        PosLocalization.tr('Create Purchase Order',
+                            settings: widget.settings),
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
             ],
           ),

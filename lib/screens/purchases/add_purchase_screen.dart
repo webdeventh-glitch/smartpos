@@ -414,6 +414,57 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
       return;
     }
 
+    final invalidQtyItem = _lineItems.cast<_PurchaseLineItem?>().firstWhere(
+          (it) => it!.quantity <= 0,
+          orElse: () => null,
+        );
+    if (invalidQtyItem != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Invalid quantity for "${invalidQtyItem.product.name}". Quantity must be greater than 0.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final invalidCostItem = _lineItems.cast<_PurchaseLineItem?>().firstWhere(
+          (it) => it!.netUnitCost < 0,
+          orElse: () => null,
+        );
+    if (invalidCostItem != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Invalid purchase cost for "${invalidCostItem.product.name}". Cost cannot be negative.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_amountPaid < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Paid amount cannot be negative.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_amountPaid > _grandTotal + 0.01) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Paid amount (${widget.settings.currencySymbol}$_amountPaid) exceeds grand total (${widget.settings.currencySymbol}$_grandTotal).'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
