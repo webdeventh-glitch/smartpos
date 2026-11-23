@@ -1,16 +1,15 @@
-import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
-import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../services/print_service.dart';
 import '../../services/thermal_printer_service.dart';
 import '../../services/number_to_words_service.dart';
 import '../../services/localization_service.dart';
+import '../../services/whatsapp_cloud_service.dart';
 
 class ReceiptDialog extends StatefulWidget {
   final Sale sale;
@@ -321,7 +320,7 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                         label: const Text('Send via WhatsApp',
                             style: TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 12)),
-                        onPressed: () {
+                        onPressed: () async {
                           var phone =
                               phoneCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
                           if (phone.startsWith('0')) {
@@ -329,25 +328,28 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                           } else if (phone.length == 10) {
                             phone = '92$phone';
                           }
-                          final encoded = Uri.encodeComponent(message);
-                          final url = 'https://wa.me/$phone?text=$encoded';
-                          try {
-                            if (Platform.isWindows) {
-                              Process.run('cmd', ['/c', 'start', '', url]);
-                            }
-                          } catch (e, st) {
-                            AppLogger.warning('ReceiptDialog',
-                                'Failed launching WhatsApp link', e, st);
-                          }
                           Clipboard.setData(ClipboardData(text: message));
                           Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('WhatsApp launched & bill copied!'),
-                              backgroundColor: Color(0xFF10B981),
-                              duration: Duration(seconds: 2),
-                            ),
+
+                          final isDelivered =
+                              await WhatsAppCloudService.sendSaleReceipt(
+                            sale: widget.sale,
+                            settings: widget.settings,
+                            customerPhone: phone,
+                            customerName: widget.sale.customerName,
                           );
+
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(isDelivered
+                                    ? 'Receipt dispatched via WhatsApp Cloud API!'
+                                    : 'WhatsApp launched & bill copied!'),
+                                backgroundColor: const Color(0xFF10B981),
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                          }
                         },
                       ),
                     ],

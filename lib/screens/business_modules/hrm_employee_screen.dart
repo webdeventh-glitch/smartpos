@@ -24,6 +24,12 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
   List<PaymentAccount> _paymentAccounts = [];
   final TextEditingController _quickScanCtrl = TextEditingController();
 
+  Map<String, dynamic>? _selectedCommissionStaff;
+  String _commissionRange = 'This Month';
+  double _commissionRate = 2.5;
+  List<Sale> _commissionSales = [];
+  bool _isLoadingCommission = false;
+
   static const List<Map<String, dynamic>> _seedStaff = [
     {
       'empId': 'EMP-01',
@@ -66,9 +72,10 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     _loadStaff();
     _loadPaymentAccounts();
+    _loadCommissionSales();
   }
 
   @override
@@ -184,6 +191,11 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
         _dailyAttendance[empId] = updated;
       });
     }
+  }
+
+  void _onQuickScanSubmitted(String val) {
+    _quickScanCtrl.text = val;
+    _quickBarcodePunch();
   }
 
   void _quickBarcodePunch() {
@@ -1031,9 +1043,24 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
             Tab(
                 icon: Icon(Icons.payments_rounded, size: 18),
                 text: 'Monthly Payroll & Salaries'),
+            Tab(
+                icon: Icon(Icons.insights_rounded, size: 18),
+                text: 'Cashier Commission & Sales'),
           ],
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF2563EB),
+                side: const BorderSide(color: Color(0xFF2563EB)),
+              ),
+              onPressed: _showQuickBarcodeClockInModal,
+              icon: const Icon(Icons.qr_code_scanner_rounded, size: 16),
+              label: const Text('Fast Clock-In'),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: ElevatedButton.icon(
@@ -1509,6 +1536,520 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     );
                   },
                 ),
+              ],
+            ),
+          ),
+
+          // Tab 3: Cashier Commission & Sales Performance
+          _buildCommissionTab(isDark, currency),
+        ],
+      ),
+    );
+  }
+
+  void _showQuickBarcodeClockInModal() {
+    final inputCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.qr_code_scanner_rounded,
+                    color: Color(0xFF2563EB), size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Text('Fast Barcode / PIN Clock-In',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Scan employee badge barcode or enter 4-digit PIN / Staff ID to instantly punch attendance:',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: inputCtrl,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: 'Badge Barcode or Staff ID',
+                    hintText: 'e.g. EMP-01 or scan barcode',
+                    prefixIcon: const Icon(Icons.badge_rounded),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onSubmitted: (val) {
+                    Navigator.pop(ctx);
+                    _onQuickScanSubmitted(val);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.check_circle_rounded, size: 16),
+              label: const Text('Punch Attendance'),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _onQuickScanSubmitted(inputCtrl.text);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _loadCommissionSales() async {
+    setState(() => _isLoadingCommission = true);
+    final db = await DatabaseService.initialize();
+    final allSales = await db.getSales(limit: 500);
+
+    final now = DateTime.now();
+    DateTime filterStart;
+    switch (_commissionRange) {
+      case 'Today':
+        filterStart = DateTime(now.year, now.month, now.day);
+        break;
+      case 'This Week':
+        filterStart = now.subtract(Duration(days: now.weekday - 1));
+        filterStart =
+            DateTime(filterStart.year, filterStart.month, filterStart.day);
+        break;
+      case 'This Month':
+        filterStart = DateTime(now.year, now.month, 1);
+        break;
+      case 'All Time':
+      default:
+        filterStart = DateTime(2000);
+        break;
+    }
+
+    final filtered = allSales.where((s) {
+      final sDate = DateTime.tryParse(s.createdAt) ?? DateTime(2000);
+      if (sDate.isBefore(filterStart)) return false;
+      if (_selectedCommissionStaff != null) {
+        final empId =
+            (_selectedCommissionStaff!['empId'] ?? '').toString().toLowerCase();
+        final empName =
+            (_selectedCommissionStaff!['name'] ?? '').toString().toLowerCase();
+        final cashier = s.cashierName.toLowerCase();
+        if (cashier.isNotEmpty &&
+            !cashier.contains(empName) &&
+            !cashier.contains(empId)) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+
+    if (mounted) {
+      setState(() {
+        _commissionSales = filtered;
+        _isLoadingCommission = false;
+      });
+    }
+  }
+
+  Future<void> _disburseCommissionModal(
+      double totalCommission, String currency) async {
+    if (totalCommission <= 0) return;
+    PaymentAccount? selectedAccount =
+        _paymentAccounts.isNotEmpty ? _paymentAccounts.first : null;
+    final staffName = _selectedCommissionStaff != null
+        ? (_selectedCommissionStaff!['name'] ?? 'All Staff')
+        : 'All Active Cashiers';
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.payments_rounded,
+                    color: Color(0xFF10B981), size: 24),
+                SizedBox(width: 10),
+                Text('Disburse Commission Payout',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Disbursing sales commission for $staffName:'),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Total Commission Payable:',
+                            style: TextStyle(
+                                fontSize: 12, color: Color(0xFF065F46))),
+                        Text('$currency${totalCommission.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF047857))),
+                        Text(
+                            'Period: $_commissionRange • Rate: $_commissionRate%'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<PaymentAccount>(
+                    initialValue: selectedAccount,
+                    decoration: const InputDecoration(
+                      labelText: 'Pay From Account',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: _paymentAccounts
+                        .map((acc) => DropdownMenuItem(
+                            value: acc,
+                            child: Text(
+                                '${acc.name} ($currency${acc.currentBalance.toStringAsFixed(0)})')))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) setDlgState(() => selectedAccount = val);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel')),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white),
+                icon: const Icon(Icons.check, size: 16),
+                label: const Text('Confirm & Post Payout'),
+                onPressed: () async {
+                  final db = await DatabaseService.initialize();
+                  await db.db.insert('expenses', {
+                    'category': 'Sales Commission',
+                    'amount': totalCommission,
+                    'ref_no':
+                        'COMM-${DateFormat('yyyyMMdd').format(DateTime.now())}',
+                    'note':
+                        'Commission payout to $staffName for $_commissionRange at $_commissionRate%',
+                    'date': DateTime.now().toIso8601String(),
+                    'payment_method': selectedAccount?.name ?? 'cash',
+                  });
+                  if (selectedAccount?.id != null) {
+                    await db.db.rawUpdate(
+                      'UPDATE payment_accounts SET current_balance = current_balance - ? WHERE id = ?',
+                      [totalCommission, selectedAccount!.id],
+                    );
+                    await _loadPaymentAccounts();
+                  }
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Commission of $currency${totalCommission.toStringAsFixed(2)} posted successfully!'),
+                        backgroundColor: const Color(0xFF10B981),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCommissionTab(bool isDark, String currency) {
+    final totalSales =
+        _commissionSales.fold<double>(0.0, (sum, s) => sum + s.totalAmount);
+    final totalOrders = _commissionSales.length;
+    final avgOrder = totalOrders > 0 ? (totalSales / totalOrders) : 0.0;
+    final commissionEarned = (totalSales * _commissionRate) / 100.0;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Filter Controls
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: DropdownButtonFormField<Map<String, dynamic>?>(
+                    initialValue: _selectedCommissionStaff,
+                    decoration: const InputDecoration(
+                      labelText: 'Select Cashier / Staff',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                          value: null, child: Text('All Cashiers & Staff')),
+                      ..._staff.map((e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(
+                              '${e['empId']} • ${e['name']} (${e['role']})'))),
+                    ],
+                    onChanged: (val) {
+                      setState(() => _selectedCommissionStaff = val);
+                      _loadCommissionSales();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _commissionRange,
+                    decoration: const InputDecoration(
+                      labelText: 'Performance Period',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: ['Today', 'This Week', 'This Month', 'All Time']
+                        .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _commissionRange = val);
+                        _loadCommissionSales();
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 14),
+                SizedBox(
+                  width: 130,
+                  child: TextFormField(
+                    initialValue: _commissionRate.toString(),
+                    decoration: const InputDecoration(
+                      labelText: 'Commission %',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      suffixText: '%',
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) {
+                      final parsed = double.tryParse(val) ?? 0.0;
+                      setState(() => _commissionRate = parsed);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 14),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                  ),
+                  icon: const Icon(Icons.payments_outlined, size: 18),
+                  label: const Text('Disburse Payout'),
+                  onPressed: commissionEarned > 0
+                      ? () =>
+                          _disburseCommissionModal(commissionEarned, currency)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 4 Metric Cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildKpiCard(
+                  'Cashier Sales Volume',
+                  '$currency${totalSales.toStringAsFixed(0)}',
+                  Icons.storefront_rounded,
+                  const Color(0xFF2563EB),
+                  isDark,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _buildKpiCard(
+                  'Completed Invoices',
+                  '$totalOrders Orders',
+                  Icons.receipt_long_rounded,
+                  const Color(0xFFF59E0B),
+                  isDark,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _buildKpiCard(
+                  'Average Basket Value',
+                  '$currency${avgOrder.toStringAsFixed(0)}',
+                  Icons.trending_up_rounded,
+                  const Color(0xFF8B5CF6),
+                  isDark,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _buildKpiCard(
+                  'Commission Earned ($_commissionRate%)',
+                  '$currency${commissionEarned.toStringAsFixed(2)}',
+                  Icons.monetization_on_rounded,
+                  const Color(0xFF10B981),
+                  isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Sales List
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                        'Eligible Sales & Transactions (${_commissionSales.length})',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A))),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, size: 20),
+                      tooltip: 'Refresh Sales',
+                      onPressed: _loadCommissionSales,
+                    ),
+                  ],
+                ),
+                const Divider(height: 20),
+                if (_isLoadingCommission)
+                  const Center(
+                      child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: CircularProgressIndicator()))
+                else if (_commissionSales.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        children: [
+                          Icon(Icons.receipt_outlined,
+                              size: 48,
+                              color: Colors.grey.withValues(alpha: 0.5)),
+                          const SizedBox(height: 12),
+                          const Text(
+                              'No sales found for the selected cashier and period.',
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: const [
+                        DataColumn(label: Text('Invoice #')),
+                        DataColumn(label: Text('Date & Time')),
+                        DataColumn(label: Text('Cashier / Counter')),
+                        DataColumn(label: Text('Payment')),
+                        DataColumn(label: Text('Sale Total')),
+                        DataColumn(label: Text('Commission')),
+                      ],
+                      rows: _commissionSales.take(50).map((sale) {
+                        final comm =
+                            (sale.totalAmount * _commissionRate) / 100.0;
+                        return DataRow(
+                          cells: [
+                            DataCell(Text(sale.invoiceNo,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold))),
+                            DataCell(Text(sale.createdAt.length >= 16
+                                ? sale.createdAt.substring(0, 16)
+                                : sale.createdAt)),
+                            DataCell(Text(sale.cashierName.isNotEmpty
+                                ? sale.cashierName
+                                : 'POS Operator')),
+                            DataCell(Text(sale.paymentMethod.toUpperCase())),
+                            DataCell(Text(
+                                '$currency${sale.totalAmount.toStringAsFixed(2)}')),
+                            DataCell(Text(
+                                '+$currency${comm.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF10B981)))),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
               ],
             ),
           ),

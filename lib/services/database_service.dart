@@ -647,6 +647,20 @@ class DatabaseService {
       );
   Future<int> deleteModuleRecord(int id) =>
       industryModulesRepo.deleteModuleRecord(id);
+
+  Future<int> addNarcoticPrescription(Map<String, dynamic> data) async {
+    return await db.insert('narcotic_prescriptions', data);
+  }
+
+  Future<List<Map<String, dynamic>>> getNarcoticPrescriptions(
+      {int limit = 100}) async {
+    return await db.query(
+      'narcotic_prescriptions',
+      orderBy: 'id DESC',
+      limit: limit,
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getRegisterReport({
     DateTime? startDate,
     DateTime? endDate,

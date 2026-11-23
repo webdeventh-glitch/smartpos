@@ -101,6 +101,12 @@ class BusinessSettings {
   final bool autoFocusBarcodeSearch;
   final bool confirmBeforeCancelSale;
   final bool enableCounterTokenQueue;
+  final String fiscalComplianceMode; // 'none', 'zatca', 'fbr'
+  final String fbrPosId;
+  final String zatcaVatNumber;
+  final String whatsappCloudToken;
+  final String whatsappPhoneNumberId;
+  final bool autoSendWhatsAppReceipt;
 
   BusinessSettings({
     this.id = 1,
@@ -200,6 +206,12 @@ class BusinessSettings {
     this.autoFocusBarcodeSearch = true,
     this.confirmBeforeCancelSale = true,
     this.enableCounterTokenQueue = true,
+    this.fiscalComplianceMode = 'none',
+    this.fbrPosId = '',
+    this.zatcaVatNumber = '',
+    this.whatsappCloudToken = '',
+    this.whatsappPhoneNumberId = '',
+    this.autoSendWhatsAppReceipt = false,
   });
 
   String get effectiveLoginBanner {
@@ -672,6 +684,12 @@ class BusinessSettings {
     bool? autoFocusBarcodeSearch,
     bool? confirmBeforeCancelSale,
     bool? enableCounterTokenQueue,
+    String? fiscalComplianceMode,
+    String? fbrPosId,
+    String? zatcaVatNumber,
+    String? whatsappCloudToken,
+    String? whatsappPhoneNumberId,
+    bool? autoSendWhatsAppReceipt,
   }) {
     return BusinessSettings(
       id: id ?? this.id,
@@ -785,6 +803,14 @@ class BusinessSettings {
           confirmBeforeCancelSale ?? this.confirmBeforeCancelSale,
       enableCounterTokenQueue:
           enableCounterTokenQueue ?? this.enableCounterTokenQueue,
+      fiscalComplianceMode: fiscalComplianceMode ?? this.fiscalComplianceMode,
+      fbrPosId: fbrPosId ?? this.fbrPosId,
+      zatcaVatNumber: zatcaVatNumber ?? this.zatcaVatNumber,
+      whatsappCloudToken: whatsappCloudToken ?? this.whatsappCloudToken,
+      whatsappPhoneNumberId:
+          whatsappPhoneNumberId ?? this.whatsappPhoneNumberId,
+      autoSendWhatsAppReceipt:
+          autoSendWhatsAppReceipt ?? this.autoSendWhatsAppReceipt,
     );
   }
 
@@ -886,6 +912,12 @@ class BusinessSettings {
         'auto_focus_barcode_search': autoFocusBarcodeSearch ? 1 : 0,
         'confirm_before_cancel_sale': confirmBeforeCancelSale ? 1 : 0,
         'enable_counter_token_queue': enableCounterTokenQueue ? 1 : 0,
+        'fiscal_compliance_mode': fiscalComplianceMode,
+        'fbr_pos_id': fbrPosId,
+        'zatca_vat_number': zatcaVatNumber,
+        'whatsapp_cloud_token': whatsappCloudToken,
+        'whatsapp_phone_number_id': whatsappPhoneNumberId,
+        'auto_send_whatsapp_receipt': autoSendWhatsAppReceipt ? 1 : 0,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
@@ -1005,6 +1037,14 @@ class BusinessSettings {
             modelAsBool(map['confirm_before_cancel_sale'], true),
         enableCounterTokenQueue:
             modelAsBool(map['enable_counter_token_queue'], true),
+        fiscalComplianceMode:
+            modelAsString(map['fiscal_compliance_mode'], 'none'),
+        fbrPosId: modelAsString(map['fbr_pos_id']),
+        zatcaVatNumber: modelAsString(map['zatca_vat_number']),
+        whatsappCloudToken: modelAsString(map['whatsapp_cloud_token']),
+        whatsappPhoneNumberId: modelAsString(map['whatsapp_phone_number_id']),
+        autoSendWhatsAppReceipt:
+            modelAsBool(map['auto_send_whatsapp_receipt'], false),
       );
 }
 

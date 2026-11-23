@@ -5,6 +5,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../models/models.dart';
 import 'app_logger.dart';
+import 'fiscal_einvoice_service.dart';
 import 'number_to_words_service.dart';
 
 /// Generates vector PDF documents for Sales, Quotations, Purchases, and Reports,
@@ -254,13 +255,17 @@ class PdfExportService {
 
     final doc = pw.Document();
 
+    final compHeader =
+        FiscalEInvoiceService.getComplianceReceiptHeader(settings);
     final headingText = sale.isQuotation
         ? 'QUOTATION / ESTIMATE'
-        : _safeText(
-            activeLayout.invoiceHeading.isNotEmpty
-                ? activeLayout.invoiceHeading
-                : 'TAX INVOICE',
-          );
+        : (compHeader != null
+            ? _safeText(compHeader)
+            : _safeText(
+                activeLayout.invoiceHeading.isNotEmpty
+                    ? activeLayout.invoiceHeading
+                    : 'TAX INVOICE',
+              ));
 
     pw.Widget buildHeader() {
       return pw.Column(
@@ -580,8 +585,10 @@ class PdfExportService {
                       pw.SizedBox(height: 8),
                       pw.BarcodeWidget(
                         barcode: pw.Barcode.qrCode(),
-                        data:
-                            'INV:${sale.invoiceNo}|TOTAL:${sale.totalAmount.toStringAsFixed(2)}',
+                        data: FiscalEInvoiceService.getQrPayloadForSale(
+                          sale: sale,
+                          settings: settings,
+                        ),
                         width: isThermalRoll ? 48 : 58,
                         height: isThermalRoll ? 48 : 58,
                       ),

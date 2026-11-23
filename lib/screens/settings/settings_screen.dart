@@ -57,6 +57,13 @@ class _SettingsScreenState extends State<SettingsScreen>
   late TextEditingController _currencyPrecisionCtrl;
   late TextEditingController _quantityPrecisionCtrl;
 
+  String _fiscalComplianceMode = 'none';
+  late TextEditingController _fbrPosIdCtrl;
+  late TextEditingController _zatcaVatCtrl;
+  late TextEditingController _waCloudTokenCtrl;
+  late TextEditingController _waPhoneIdCtrl;
+  bool _autoSendWhatsAppReceipt = false;
+
   String _businessType = 'universal';
   String _currencyPlacement = 'before';
   String _timeZone = 'Asia/Karachi';
@@ -218,6 +225,12 @@ class _SettingsScreenState extends State<SettingsScreen>
     _allowOverselling = s.allowOverselling;
     _autoPrintReceipt = s.autoPrintReceipt;
     _autoPrintKot = s.autoPrintKot;
+    _fiscalComplianceMode = s.fiscalComplianceMode;
+    _fbrPosIdCtrl = TextEditingController(text: s.fbrPosId);
+    _zatcaVatCtrl = TextEditingController(text: s.zatcaVatNumber);
+    _waCloudTokenCtrl = TextEditingController(text: s.whatsappCloudToken);
+    _waPhoneIdCtrl = TextEditingController(text: s.whatsappPhoneNumberId);
+    _autoSendWhatsAppReceipt = s.autoSendWhatsAppReceipt;
 
     _primaryDbType = s.primaryDbType.isNotEmpty ? s.primaryDbType : 'mysql';
     _dbHostCtrl = TextEditingController(
@@ -447,6 +460,10 @@ class _SettingsScreenState extends State<SettingsScreen>
     _encPassphraseCtrl.dispose();
     _backupIntervalHoursCtrl.dispose();
     _backupRetentionCtrl.dispose();
+    _fbrPosIdCtrl.dispose();
+    _zatcaVatCtrl.dispose();
+    _waCloudTokenCtrl.dispose();
+    _waPhoneIdCtrl.dispose();
     super.dispose();
   }
 
@@ -1289,6 +1306,12 @@ class _SettingsScreenState extends State<SettingsScreen>
         allowOverselling: _allowOverselling,
         autoPrintReceipt: _autoPrintReceipt,
         autoPrintKot: _autoPrintKot,
+        fiscalComplianceMode: _fiscalComplianceMode,
+        fbrPosId: _fbrPosIdCtrl.text.trim(),
+        zatcaVatNumber: _zatcaVatCtrl.text.trim(),
+        whatsappCloudToken: _waCloudTokenCtrl.text.trim(),
+        whatsappPhoneNumberId: _waPhoneIdCtrl.text.trim(),
+        autoSendWhatsAppReceipt: _autoSendWhatsAppReceipt,
       );
 
       ThemeService.setTouchFriendly(_touchFriendlyMode);
@@ -4691,6 +4714,181 @@ class _SettingsScreenState extends State<SettingsScreen>
                     ],
                   ),
                   const SizedBox(height: 16),
+
+                  // ================= FISCAL E-INVOICING & WHATSAPP CLOUD =================
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0284C7)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.account_balance_rounded,
+                                  color: Color(0xFF0284C7), size: 20),
+                            ),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                'Fiscal E-Invoicing Compliance (Saudi ZATCA / Pakistan FBR)',
+                                style: TextStyle(
+                                    fontSize: 15, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0284C7),
+                                foregroundColor: Colors.white,
+                              ),
+                              icon: const Icon(Icons.save_rounded, size: 16),
+                              label: const Text('Save Fiscal Settings'),
+                              onPressed: _saveGeneralSettings,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: DropdownButtonFormField<String>(
+                                initialValue: _fiscalComplianceMode,
+                                decoration: const InputDecoration(
+                                  labelText: 'Fiscal Compliance Mode',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: 'none',
+                                      child: Text(
+                                          'Standard POS (No Fiscal Authority QR)')),
+                                  DropdownMenuItem(
+                                      value: 'zatca',
+                                      child: Text(
+                                          'Saudi Arabia — ZATCA Fatoorah (Phase 1 & 2 TLV)')),
+                                  DropdownMenuItem(
+                                      value: 'fbr',
+                                      child: Text(
+                                          'Pakistan — FBR Digital Invoicing (USIN & QR)')),
+                                ],
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() => _fiscalComplianceMode = val);
+                                  }
+                                },
+                              ),
+                            ),
+                            if (_fiscalComplianceMode == 'fbr') ...[
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextField(
+                                  controller: _fbrPosIdCtrl,
+                                  decoration: const InputDecoration(
+                                    labelText: 'FBR Registered POS ID',
+                                    hintText: 'e.g. 100001',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (_fiscalComplianceMode == 'zatca') ...[
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextField(
+                                  controller: _zatcaVatCtrl,
+                                  decoration: const InputDecoration(
+                                    labelText: 'ZATCA VAT Reg # (15 digits)',
+                                    hintText: '300000000000003',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        const Divider(height: 1),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.cloud_upload_rounded,
+                                  color: Color(0xFF10B981), size: 20),
+                            ),
+                            const SizedBox(width: 10),
+                            const Text(
+                              'Meta WhatsApp Cloud API (Automated Background Receipts)',
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _waPhoneIdCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'WhatsApp Phone Number ID',
+                                  hintText: 'e.g. 104829103859182',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: _waCloudTokenCtrl,
+                                obscureText: true,
+                                decoration: const InputDecoration(
+                                  labelText: 'Meta Graph Access Token (Bearer)',
+                                  hintText: 'EAAG...',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Checkbox(
+                              value: _autoSendWhatsAppReceipt,
+                              onChanged: (v) => setState(
+                                  () => _autoSendWhatsAppReceipt = v ?? false),
+                            ),
+                            const Text('Auto-Send Receipt',
+                                style: TextStyle(fontSize: 12.5)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
                   Expanded(
                     child: _isLoading
                         ? const Center(child: CircularProgressIndicator())
@@ -8246,6 +8444,12 @@ class _SettingsScreenState extends State<SettingsScreen>
         allowOverselling: _allowOverselling,
         autoPrintReceipt: _autoPrintReceipt,
         autoPrintKot: _autoPrintKot,
+        fiscalComplianceMode: _fiscalComplianceMode,
+        fbrPosId: _fbrPosIdCtrl.text.trim(),
+        zatcaVatNumber: _zatcaVatCtrl.text.trim(),
+        whatsappCloudToken: _waCloudTokenCtrl.text.trim(),
+        whatsappPhoneNumberId: _waPhoneIdCtrl.text.trim(),
+        autoSendWhatsAppReceipt: _autoSendWhatsAppReceipt,
       );
 
       ThemeService.setTouchFriendly(_touchFriendlyMode);

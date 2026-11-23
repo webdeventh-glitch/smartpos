@@ -13,6 +13,7 @@ import '../../services/keyboard_shortcuts_service.dart';
 import '../../services/lan_realtime_service.dart';
 import '../../services/local_api_service.dart';
 import '../../services/theme_service.dart';
+import '../../widgets/universal_print_preview_dialog.dart';
 import 'quick_customer_dialog.dart';
 import 'customer_search_dialog.dart';
 import '../expenses/add_expense_dialog.dart';
@@ -3170,6 +3171,441 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   int? _getDaysUntilExpiry(String? expiryDate) =>
       calculateDaysUntilExpiry(expiryDate);
 
+  bool _isControlledDrug(dynamic item) {
+    final name = (item is CartItem
+            ? item.product.name
+            : (item is Product ? item.name : ''))
+        .toLowerCase();
+    final cat = (item is CartItem
+            ? item.product.categoryName
+            : (item is Product ? item.categoryName : ''))
+        .toLowerCase();
+    return cat.contains('narcotic') ||
+        cat.contains('controlled') ||
+        cat.contains('sedative') ||
+        cat.contains('psychotropic') ||
+        name.contains('alprazolam') ||
+        name.contains('diazepam') ||
+        name.contains('morphine') ||
+        name.contains('tramadol') ||
+        name.contains('lorazepam') ||
+        name.contains('clonazepam') ||
+        name.contains('xanax') ||
+        name.contains('lexotanil') ||
+        name.contains('codeine');
+  }
+
+  Future<Map<String, dynamic>?> _showNarcoticPrescriptionDialog(
+      List<CartItem> controlledItems) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final docNameCtrl = TextEditingController();
+    final docLicCtrl = TextEditingController();
+    final clinicCtrl = TextEditingController();
+    final patientNameCtrl = TextEditingController(
+      text: !_isCurrentCustomerWalkIn ? (_selectedCustomer?.name ?? '') : '',
+    );
+    final patientCnicCtrl = TextEditingController();
+    final patientPhoneCtrl = TextEditingController(
+      text: !_isCurrentCustomerWalkIn ? (_selectedCustomer?.phone ?? '') : '',
+    );
+    final prescDateCtrl = TextEditingController(
+      text: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    );
+
+    return await showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDC2626).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.security_rounded,
+                  color: Color(0xFFDC2626), size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Prescription Required (Controlled Drug)',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFDC2626)),
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDC2626).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Under DRAP & Pharmacy Narcotic Control Rules, recording prescribing physician & patient identification is mandatory for dispensing the following controlled items:',
+                        style:
+                            TextStyle(fontSize: 12, color: Color(0xFF991B1B)),
+                      ),
+                      const SizedBox(height: 6),
+                      ...controlledItems.map((c) => Text(
+                          '• ${c.quantity.toInt()}x ${c.displayName}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: docNameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Prescribing Doctor Name *',
+                          hintText: 'e.g. Dr. Aamir Khan',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: docLicCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'PMDC / Medical Reg #',
+                          hintText: 'e.g. PMDC-48291',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: clinicCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Clinic / Hospital Name',
+                    hintText: 'e.g. Shifa Hospital / City Clinic',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const Divider(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: patientNameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Patient Full Name *',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: patientCnicCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Patient CNIC / National ID',
+                          hintText: 'e.g. 37405-1234567-1',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: patientPhoneCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Patient Contact Phone',
+                          hintText: 'e.g. +92 300 1234567',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: prescDateCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Prescription Date',
+                          hintText: 'YYYY-MM-DD',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Cancel Sale'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.verified_user_rounded, size: 16),
+            label: const Text('Authorize & Dispense'),
+            onPressed: () {
+              if (docNameCtrl.text.trim().isEmpty ||
+                  patientNameCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Doctor Name and Patient Name are required!'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(ctx, {
+                'doctor_name': docNameCtrl.text.trim(),
+                'doctor_license_no': docLicCtrl.text.trim(),
+                'clinic_hospital': clinicCtrl.text.trim(),
+                'patient_name': patientNameCtrl.text.trim(),
+                'patient_cnic': patientCnicCtrl.text.trim(),
+                'patient_phone': patientPhoneCtrl.text.trim(),
+                'prescription_date': prescDateCtrl.text.trim(),
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showNarcoticRegisterDialog() async {
+    final db = await DatabaseService.initialize();
+    final records = await db.getNarcoticPrescriptions(limit: 200);
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        String filter = '';
+        return StatefulBuilder(
+          builder: (ctx, setDlgState) {
+            final displayed = records.where((r) {
+              if (filter.isEmpty) return true;
+              final q = filter.toLowerCase();
+              return (r['patient_name'] ?? '')
+                      .toString()
+                      .toLowerCase()
+                      .contains(q) ||
+                  (r['doctor_name'] ?? '')
+                      .toString()
+                      .toLowerCase()
+                      .contains(q) ||
+                  (r['product_name'] ?? '')
+                      .toString()
+                      .toLowerCase()
+                      .contains(q) ||
+                  (r['invoice_no'] ?? '').toString().toLowerCase().contains(q);
+            }).toList();
+
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDC2626).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.menu_book_rounded,
+                        color: Color(0xFFDC2626), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Narcotic & Controlled Drug Register',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(
+                            'Official Drug Inspection & Dispensation Audit Trail (${displayed.length} records)',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2563EB),
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.print_rounded, size: 16),
+                    label: const Text('Export / Print Report'),
+                    onPressed: displayed.isEmpty
+                        ? null
+                        : () {
+                            final html = StringBuffer();
+                            html.writeln(
+                                '<h2>Narcotic & Controlled Substances Dispensation Register</h2>');
+                            html.writeln(
+                                '<p>Pharmacy: ${widget.settings.businessName} &bull; Drug License: ${widget.settings.drugLicenseNo}</p>');
+                            html.writeln(
+                                '<table border="1" cellspacing="0" cellpadding="6" width="100%">');
+                            html.writeln(
+                                '<tr><th>Date</th><th>Invoice #</th><th>Medicine / Qty</th><th>Patient & CNIC</th><th>Prescribing Doctor</th><th>Hospital / Clinic</th></tr>');
+                            for (final r in displayed) {
+                              html.writeln('<tr>'
+                                  '<td>${(r['dispensed_at'] ?? '').toString().substring(0, 10)}</td>'
+                                  '<td>${r['invoice_no']}</td>'
+                                  '<td><strong>${r['product_name']}</strong> (${r['quantity']})</td>'
+                                  '<td>${r['patient_name']} &bull; ${r['patient_cnic']}</td>'
+                                  '<td>${r['doctor_name']} (${r['doctor_license_no']})</td>'
+                                  '<td>${r['clinic_hospital']}</td>'
+                                  '</tr>');
+                            }
+                            html.writeln('</table>');
+                            showDialog(
+                              context: context,
+                              builder: (_) => UniversalPrintPreviewDialog(
+                                title: 'Narcotic Register Audit Report',
+                                htmlContent: html.toString(),
+                                defaultPaperSize: 'a4',
+                                settings: widget.settings,
+                              ),
+                            );
+                          },
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 900,
+                height: 500,
+                child: Column(
+                  children: [
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText:
+                            'Search by Patient, Doctor, Medicine or Invoice #',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        isDense: true,
+                      ),
+                      onChanged: (val) => setDlgState(() => filter = val),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: displayed.isEmpty
+                          ? const Center(
+                              child: Text(
+                                  'No controlled drug dispensations recorded yet.',
+                                  style: TextStyle(color: Colors.grey)))
+                          : SingleChildScrollView(
+                              scrollDirection: Axis.vertical,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: DataTable(
+                                  columns: const [
+                                    DataColumn(label: Text('Date & Time')),
+                                    DataColumn(label: Text('Invoice #')),
+                                    DataColumn(label: Text('Drug / Qty')),
+                                    DataColumn(
+                                        label: Text('Patient Name & CNIC')),
+                                    DataColumn(
+                                        label: Text('Doctor Name & Reg #')),
+                                    DataColumn(
+                                        label: Text('Clinic / Hospital')),
+                                  ],
+                                  rows: displayed.map((r) {
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(Text((r['dispensed_at'] ?? '')
+                                                    .toString()
+                                                    .length >=
+                                                16
+                                            ? (r['dispensed_at'] ?? '')
+                                                .toString()
+                                                .substring(0, 16)
+                                            : (r['dispensed_at'] ?? '')
+                                                .toString())),
+                                        DataCell(Text(r['invoice_no'] ?? '',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold))),
+                                        DataCell(Text(
+                                            '${r['product_name']} (${r['quantity']})',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFFDC2626)))),
+                                        DataCell(Text(
+                                            '${r['patient_name']}\n${r['patient_cnic'] ?? ''}',
+                                            style:
+                                                const TextStyle(fontSize: 12))),
+                                        DataCell(Text(
+                                            '${r['doctor_name']}\n${r['doctor_license_no'] ?? ''}',
+                                            style:
+                                                const TextStyle(fontSize: 12))),
+                                        DataCell(Text(
+                                            r['clinic_hospital'] ?? '',
+                                            style:
+                                                const TextStyle(fontSize: 12))),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<ProductVariation?> _showVariationSelectorDialog(
     Product product,
     List<ProductVariation> variations,
@@ -4139,6 +4575,20 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       }
     }
 
+    Map<String, dynamic>? narcoticPrescriptionData;
+    if (widget.settings.isPharmacy) {
+      final controlled = _cart.where((it) => _isControlledDrug(it)).toList();
+      if (controlled.isNotEmpty) {
+        if (!mounted) return;
+        final presc = await _showNarcoticPrescriptionDialog(controlled);
+        if (presc == null) {
+          // Cashier aborted entering doctor/prescription data
+          return;
+        }
+        narcoticPrescriptionData = presc;
+      }
+    }
+
     final db = await _dbFuture;
 
     // Ensure Cash Register is open before finalizing sale
@@ -4321,6 +4771,28 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         pointsEarned: earnedPoints.round(),
         enforceStock: !widget.settings.allowOverselling,
       );
+    }
+
+    if (narcoticPrescriptionData != null) {
+      for (final item in _cart.where((it) => _isControlledDrug(it))) {
+        await db.addNarcoticPrescription({
+          'sale_id': completedSale.id,
+          'invoice_no': completedSale.invoiceNo,
+          'product_id': item.product.id,
+          'product_name': item.product.name,
+          'quantity': item.quantity,
+          'patient_name': narcoticPrescriptionData['patient_name'],
+          'patient_cnic': narcoticPrescriptionData['patient_cnic'] ?? '',
+          'patient_phone': narcoticPrescriptionData['patient_phone'] ?? '',
+          'doctor_name': narcoticPrescriptionData['doctor_name'],
+          'doctor_license_no':
+              narcoticPrescriptionData['doctor_license_no'] ?? '',
+          'clinic_hospital': narcoticPrescriptionData['clinic_hospital'] ?? '',
+          'prescription_date': narcoticPrescriptionData['prescription_date'] ??
+              DateTime.now().toIso8601String().substring(0, 10),
+          'dispensed_at': DateTime.now().toIso8601String(),
+        });
+      }
     }
 
     if (mounted) {
@@ -6251,6 +6723,24 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                             style: TextStyle(
                                 fontSize: 11, fontWeight: FontWeight.bold)),
                         onPressed: _openKotDialog,
+                      ),
+                    ],
+
+                    if (widget.settings.isPharmacy) ...[
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC2626),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                        ),
+                        icon: const Icon(Icons.medical_services_rounded,
+                            size: 14),
+                        label: const Text('Narcotic Register',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold)),
+                        onPressed: _showNarcoticRegisterDialog,
                       ),
                     ],
 

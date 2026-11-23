@@ -6,6 +6,7 @@ import 'package:ffi/ffi.dart';
 import '../models/models.dart';
 import 'app_logger.dart';
 import 'database_service.dart';
+import 'fiscal_einvoice_service.dart';
 
 // ===================== WIN32 WINSPOOL.DRV FFI BINDINGS =====================
 
@@ -344,11 +345,14 @@ class ThermalPrinterService {
 
     bytes.addAll(generator.hr(ch: '=', len: chars));
 
+    final complianceHeader =
+        FiscalEInvoiceService.getComplianceReceiptHeader(settings);
     final heading = sale.isQuotation
         ? 'QUOTATION / ESTIMATE'
-        : (activeLayout.invoiceHeading.isNotEmpty
-            ? activeLayout.invoiceHeading
-            : 'SALES RECEIPT');
+        : (complianceHeader ??
+            (activeLayout.invoiceHeading.isNotEmpty
+                ? activeLayout.invoiceHeading
+                : 'SALES RECEIPT'));
     bytes.addAll(
       generator.text(
         _asciiSafe(heading),
@@ -528,9 +532,13 @@ class ThermalPrinterService {
     if (activeLayout.showQrCode) {
       try {
         bytes.addAll(generator.feed(1));
+        final qrPayload = FiscalEInvoiceService.getQrPayloadForSale(
+          sale: sale,
+          settings: settings,
+        );
         bytes.addAll(
           generator.qrcode(
-            'INV:${sale.invoiceNo}|TOTAL:${sale.totalAmount.toStringAsFixed(2)}|DATE:${sale.createdAt}',
+            qrPayload,
             size: is58 ? QRSize.size3 : QRSize.size4,
           ),
         );
@@ -538,6 +546,17 @@ class ThermalPrinterService {
         AppLogger.warning(
             'ThermalPrinterService', 'Skipped ESC/POS QR code', e, st);
       }
+    }
+
+    final complianceFooters = FiscalEInvoiceService.getComplianceReceiptFooter(
+        sale: sale, settings: settings);
+    for (final line in complianceFooters) {
+      bytes.addAll(
+        generator.text(
+          _asciiSafe(line),
+          styles: const PosStyles(align: PosAlign.center, bold: true),
+        ),
+      );
     }
 
     if (activeLayout.termsText.trim().isNotEmpty) {

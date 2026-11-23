@@ -430,6 +430,42 @@ class DatabaseSchema {
     await _addColumnIfMissing(
         db, 'business_settings', 'last_auto_backup_at', "TEXT DEFAULT ''");
 
+    // Phase 5: Fiscal Compliance, WhatsApp Cloud & Narcotic Prescription Register
+    await _addColumnIfMissing(db, 'business_settings', 'fiscal_compliance_mode',
+        "TEXT DEFAULT 'none'");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'fbr_pos_id', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'zatca_vat_number', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'whatsapp_cloud_token', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(
+        db, 'business_settings', 'whatsapp_phone_number_id', "TEXT DEFAULT ''");
+    await _addColumnIfMissing(db, 'business_settings',
+        'auto_send_whatsapp_receipt', 'INTEGER DEFAULT 0');
+
+    // Narcotic / Controlled substance prescription audit register table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS narcotic_prescriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sale_id INTEGER,
+        invoice_no TEXT NOT NULL,
+        product_id INTEGER,
+        product_name TEXT NOT NULL,
+        quantity REAL DEFAULT 1.0,
+        patient_name TEXT NOT NULL,
+        patient_cnic TEXT DEFAULT '',
+        patient_phone TEXT DEFAULT '',
+        doctor_name TEXT NOT NULL,
+        doctor_license_no TEXT DEFAULT '',
+        clinic_hospital TEXT DEFAULT '',
+        prescription_date TEXT DEFAULT '',
+        dispensed_at TEXT NOT NULL
+      )
+    ''');
+    await _ensureIndex(
+        db, 'idx_narcotic_invoice', 'narcotic_prescriptions', 'invoice_no');
+
     // Phase 6 Indexes
     await _ensureIndex(db, 'idx_sales_order_status', 'sales',
         'sale_status, order_status, id DESC');
