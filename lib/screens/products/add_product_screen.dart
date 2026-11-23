@@ -1058,6 +1058,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
         }
         return false;
       }
+      if (purchase > 0 && selling < purchase) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.red,
+              content: Text(widget.settings.activePrimaryLanguage == 'ur'
+                  ? 'فروخت قیمت (${widget.settings.currencySymbol}$selling) خرید قیمت (${widget.settings.currencySymbol}$purchase) سے کم نہیں ہو سکتی (نقصان سے بچاؤ)'
+                  : 'Loss Guard: Selling price (${widget.settings.currencySymbol}$selling) cannot be lower than purchase cost (${widget.settings.currencySymbol}$purchase)!'),
+            ),
+          );
+        }
+        return false;
+      }
     }
 
     String expRaw = _expiryCtrl.text.trim().replaceAll('/', '-');
@@ -1098,6 +1111,26 @@ class _AddProductScreenState extends State<AddProductScreen> {
         );
       }
       return false;
+    }
+
+    if (_productType == 'variable') {
+      final lossVariation = _variations.cast<ProductVariation?>().firstWhere(
+            (v) => v!.purchasePrice > 0 && v.sellingPrice < v.purchasePrice,
+            orElse: () => null,
+          );
+      if (lossVariation != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.red,
+              content: Text(
+                'Loss Guard: Variation "${lossVariation.name}" selling price (${widget.settings.currencySymbol}${lossVariation.sellingPrice}) cannot be lower than purchase cost (${widget.settings.currencySymbol}${lossVariation.purchasePrice})!',
+              ),
+            ),
+          );
+        }
+        return false;
+      }
     }
 
     setState(() => _isSaving = true);

@@ -371,10 +371,16 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
         [payment.amount, payment.contactId],
       );
 
-      // If customer paid due in cash, update active register total cash
+      // If customer paid due in cash, update active register total cash; if supplier paid in cash, deduct till cash
       if (payment.paymentType == 'receive' && payment.paymentMethod == 'cash') {
         await txn.rawUpdate(
           'UPDATE cash_registers SET total_sales_cash = total_sales_cash + ? WHERE status = \'open\'',
+          [payment.amount],
+        );
+      } else if (payment.paymentType == 'pay' &&
+          payment.paymentMethod == 'cash') {
+        await txn.rawUpdate(
+          'UPDATE cash_registers SET total_sales_cash = total_sales_cash - ? WHERE status = \'open\'',
           [payment.amount],
         );
       }

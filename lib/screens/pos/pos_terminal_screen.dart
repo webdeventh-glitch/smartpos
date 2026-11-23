@@ -1210,6 +1210,29 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     }
                   }
 
+                  final totalCartCost = _cart.fold(
+                    0.0,
+                    (sum, it) =>
+                        sum +
+                        it.product.purchasePrice *
+                            (it.unitMultiplier > 0 ? it.unitMultiplier : 1.0) *
+                            it.quantity,
+                  );
+                  final netOrderTotal = _subtotal - calcDiscAmt;
+                  if (totalCartCost > 0 &&
+                      netOrderTotal < totalCartCost - 0.01) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Loss Guard Blocked: Total invoice after discount ($currency${netOrderTotal.toStringAsFixed(2)}) cannot be lower than total cost ($currency${totalCartCost.toStringAsFixed(2)})!',
+                        ),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
+                    return;
+                  }
+
                   ref
                       .read(cartProvider.notifier)
                       .setOrderDiscount(tempType, parsed);
@@ -2842,6 +2865,31 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                       );
                       return;
                     }
+                  }
+
+                  double effectiveDiscAmt = 0.0;
+                  if (lineDiscType == 'percentage') {
+                    effectiveDiscAmt = (newPrice * (newDisc / 100.0));
+                  } else {
+                    effectiveDiscAmt =
+                        item.quantity > 0 ? (newDisc / item.quantity) : newDisc;
+                  }
+                  final netSellingPerUnit = newPrice - effectiveDiscAmt;
+                  final minCostPrice = item.product.purchasePrice *
+                      (item.unitMultiplier > 0 ? item.unitMultiplier : 1.0);
+
+                  if (minCostPrice > 0 &&
+                      netSellingPerUnit < minCostPrice - 0.01) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Loss Guard Blocked: Net selling price ($currency${netSellingPerUnit.toStringAsFixed(2)}) cannot be lower than purchase cost ($currency${minCostPrice.toStringAsFixed(2)}) to prevent business loss!',
+                        ),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
+                    return;
                   }
 
                   ref.read(cartProvider.notifier).updateLineItem(

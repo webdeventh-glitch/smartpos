@@ -90,6 +90,19 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
       final db = await DatabaseService.initialize();
       final cost = double.tryParse(_costCtrl.text.trim()) ?? 0.0;
       final selling = double.tryParse(_sellingCtrl.text.trim()) ?? cost;
+      if (cost > 0 && selling < cost) {
+        setState(() => _isSaving = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Loss Guard: Selling price cannot be lower than purchase cost!'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
       final sku = _skuCtrl.text.trim().isNotEmpty
           ? _skuCtrl.text.trim()
           : 'SKU-${DateTime.now().millisecondsSinceEpoch % 100000}';

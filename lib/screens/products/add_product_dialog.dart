@@ -187,6 +187,26 @@ class _AddProductDialogState extends State<AddProductDialog> {
       );
       return;
     }
+
+    final purchaseVal =
+        double.tryParse(_purchasePriceController.text.trim()) ?? 0.0;
+    final sellingVal =
+        double.tryParse(_sellingPriceController.text.trim()) ?? 0.0;
+    final curSymbol = _settings?.currencySymbol ?? 'Rs';
+    if (purchaseVal > 0 && sellingVal < purchaseVal) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            'Loss Guard: Selling price ($curSymbol$sellingVal) cannot be lower than purchase cost ($curSymbol$purchaseVal)!',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {

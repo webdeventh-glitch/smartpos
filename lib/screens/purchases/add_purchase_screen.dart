@@ -444,6 +444,23 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
       return;
     }
 
+    final belowCostItem = _lineItems.cast<_PurchaseLineItem?>().firstWhere(
+          (it) => it!.sellingPrice > 0 && it.sellingPrice < it.netUnitCost,
+          orElse: () => null,
+        );
+    if (belowCostItem != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Loss Guard Warning: "${belowCostItem.product.name}" selling price (${widget.settings.currencySymbol}${belowCostItem.sellingPrice.toStringAsFixed(2)}) is less than purchase cost (${widget.settings.currencySymbol}${belowCostItem.netUnitCost.toStringAsFixed(2)})! Please increase selling price to avoid losses.',
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     if (_amountPaid < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
