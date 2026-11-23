@@ -84,6 +84,13 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
       return;
     }
 
+    double? custPrevBal;
+    if (fullSale.customerId != null) {
+      final cust = await db.getContactById(fullSale.customerId!);
+      custPrevBal = cust?.balance;
+    }
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -92,6 +99,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
         settings: widget.settings,
         tenderedAmount: fullSale.paidAmount,
         changeReturn: 0.0,
+        customerPreviousBalance: custPrevBal,
       ),
     );
   }

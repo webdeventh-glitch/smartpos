@@ -1180,10 +1180,8 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         ),
         const SizedBox(height: 8),
 
-        // Customer Khata Ledger Box for Regular Account Customers
-        if (!widget.sale.customerName.toLowerCase().contains('walk-in') &&
-            !widget.sale.customerName.toLowerCase().contains('walk in') &&
-            !widget.sale.customerName.toLowerCase().contains('walkin')) ...[
+        // Customer Khata Ledger Box for Regular Account Customers vs Walk-in Counter Sale Box
+        if (widget.sale.customerId != null) ...[
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
@@ -1213,6 +1211,37 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                       settings: widget.settings),
                   '$currency${((widget.customerPreviousBalance ?? 0.0) + widget.sale.totalAmount - widget.sale.paidAmount).toStringAsFixed(2)}',
                   isBoldRed: true,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ] else ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              border: Border.all(color: Colors.black, width: 1.0),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _ledgerItem(
+                  'BILL AMOUNT',
+                  '$currency${widget.sale.totalAmount.toStringAsFixed(2)}',
+                ),
+                _ledgerItem(
+                  'PAID (${widget.sale.paymentMethod.toUpperCase()})',
+                  '$currency${widget.sale.paidAmount.toStringAsFixed(2)}',
+                ),
+                _ledgerItem(
+                  'BALANCE DUE',
+                  '$currency${widget.sale.dueAmount.toStringAsFixed(2)}',
+                  isBoldRed: widget.sale.dueAmount > 0,
+                ),
+                _ledgerItem(
+                  'ACCOUNT TYPE',
+                  'Counter Walk-in Sale',
                 ),
               ],
             ),
@@ -1290,9 +1319,11 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '1. Goods once sold can be exchanged within 7 days upon presentation of original bill.\n'
-                  '2. Altered, damaged, or clearance sale items are non-refundable.\n'
-                  '3. Thank you for choosing ${widget.settings.businessName}!',
+                  widget.settings.receiptReturnPolicy.isNotEmpty
+                      ? widget.settings.receiptReturnPolicy
+                      : '1. Goods once sold can be exchanged within 7 days upon presentation of original bill.\n'
+                          '2. Altered, damaged, or clearance sale items are non-refundable.\n'
+                          '3. Thank you for choosing ${widget.settings.businessName}!',
                   style: const TextStyle(
                       fontSize: 9, color: Color(0xFF475569), height: 1.3),
                 ),

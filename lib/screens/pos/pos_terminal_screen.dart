@@ -5385,6 +5385,17 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       }
     }
 
+    if (_isCurrentCustomerWalkIn &&
+        widget.settings.promptWalkinCustomerName &&
+        _customWalkInNameCtrl.text.trim().isEmpty) {
+      _showPromptWalkInNameDialog(onApplied: () {
+        if (_customWalkInNameCtrl.text.trim().isNotEmpty) {
+          _quickCashCheckout();
+        }
+      });
+      return;
+    }
+
     _processCheckout(
       paymentMethod: 'cash',
       paidAmount: _grandTotal,
@@ -6255,7 +6266,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     _customWalkInNameCtrl.clear();
   }
 
-  void _showPromptWalkInNameDialog() {
+  void _showPromptWalkInNameDialog({VoidCallback? onApplied}) {
     final textCtrl = TextEditingController(text: _customWalkInNameCtrl.text);
     showDialog(
       context: context,
@@ -6293,6 +6304,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   _customWalkInNameCtrl.text = textCtrl.text.trim();
                 });
                 Navigator.pop(ctx);
+                onApplied?.call();
               },
             ),
           ],
@@ -6322,6 +6334,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                 _customWalkInNameCtrl.text = textCtrl.text.trim();
               });
               Navigator.pop(ctx);
+              onApplied?.call();
             },
             child: const Text('Apply'),
           ),

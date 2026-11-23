@@ -384,6 +384,16 @@ class _PaymentModalState extends State<PaymentModal> {
         }
       }
 
+      if (widget.isWalkIn &&
+          widget.settings?.promptWalkinCustomerName == true &&
+          _walkInNameCtrl.text.trim().isEmpty) {
+        setState(() {
+          _validationError =
+              'Customer Name Required: Please enter the Customer Name on Bill for this walk-in invoice.';
+        });
+        return;
+      }
+
       final splitTenders = <Map<String, dynamic>>[];
       if (_splitCash > 0) {
         splitTenders.add({'method': 'cash', 'amount': _splitCash});
@@ -414,6 +424,15 @@ class _PaymentModalState extends State<PaymentModal> {
 
     // Standard mode validation
     if (widget.isWalkIn) {
+      if (widget.settings?.promptWalkinCustomerName == true &&
+          _walkInNameCtrl.text.trim().isEmpty) {
+        setState(() {
+          _validationError =
+              'Customer Name Required: Please enter the Customer Name on Bill for this walk-in invoice.';
+        });
+        return;
+      }
+
       if (_selectedMethod == 'credit') {
         setState(() {
           _validationError =
