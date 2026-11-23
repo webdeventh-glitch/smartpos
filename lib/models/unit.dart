@@ -1,4 +1,4 @@
-/// Unit representation in Smart POS (with sub-unit multipliers)
+/// Unit representation in Smart POS (with sub-unit multipliers and categories)
 class Unit {
   final int? id;
   final String actualName;
@@ -6,6 +6,7 @@ class Unit {
   final bool allowDecimal;
   final int? baseUnitId;
   final double baseUnitMultiplier;
+  final String category; // 'count', 'weight', 'volume', 'length', 'time'
 
   Unit({
     this.id,
@@ -14,6 +15,7 @@ class Unit {
     this.allowDecimal = false,
     this.baseUnitId,
     this.baseUnitMultiplier = 1.0,
+    this.category = 'count',
   });
 
   Map<String, dynamic> toMap() => {
@@ -23,6 +25,7 @@ class Unit {
         'allow_decimal': allowDecimal ? 1 : 0,
         'base_unit_id': baseUnitId,
         'base_unit_multiplier': baseUnitMultiplier,
+        'category': category,
       };
 
   factory Unit.fromMap(Map<String, dynamic> map) => Unit(
@@ -33,5 +36,6 @@ class Unit {
         baseUnitId: map['base_unit_id'] as int?,
         baseUnitMultiplier:
             (map['base_unit_multiplier'] as num?)?.toDouble() ?? 1.0,
+        category: map['category'] as String? ?? 'count',
       );
 }

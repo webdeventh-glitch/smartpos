@@ -174,6 +174,347 @@ class DatabaseSchema {
         'pakistan_distribution_payment_methods_and_pos_print_settings',
       );
     }
+    if (fromVersion < 13 && toVersion >= 13) {
+      await _applyV13UnitCategoriesAndProductSubUnits(db);
+      await _recordMigration(
+        db,
+        13,
+        'unit_categories_and_product_sub_units',
+      );
+    }
+  }
+
+  static Future<void> _applyV13UnitCategoriesAndProductSubUnits(
+      Database db) async {
+    await _addColumnIfMissing(db, 'units', 'category', "TEXT DEFAULT 'count'");
+    await _addColumnIfMissing(db, 'products', 'sub_unit_ids', 'TEXT');
+    await _addColumnIfMissing(db, 'products', 'secondary_unit', 'TEXT');
+    await seedFiveUnitCategories(db);
+  }
+
+  static Future<void> seedFiveUnitCategories(Database db) async {
+    Future<int> ensureUnit({
+      required String actualName,
+      required String shortName,
+      required String category,
+      bool allowDecimal = false,
+      int? baseUnitId,
+      double multiplier = 1.0,
+    }) async {
+      final rows = await db.query(
+        'units',
+        where: 'LOWER(actual_name) = ? OR LOWER(short_name) = ?',
+        whereArgs: [actualName.toLowerCase(), shortName.toLowerCase()],
+        limit: 1,
+      );
+      if (rows.isNotEmpty) {
+        final id = rows.first['id'] as int;
+        await db.update(
+          'units',
+          {
+            'category': category,
+            if (baseUnitId != null) 'base_unit_id': baseUnitId,
+            if (multiplier != 1.0) 'base_unit_multiplier': multiplier,
+          },
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        return id;
+      } else {
+        return await db.insert('units', {
+          'actual_name': actualName,
+          'short_name': shortName,
+          'category': category,
+          'allow_decimal': allowDecimal ? 1 : 0,
+          if (baseUnitId != null) 'base_unit_id': baseUnitId,
+          'base_unit_multiplier': multiplier,
+        });
+      }
+    }
+
+    // 1. Count (Ginti) - Pieces, Unit, Dozen, Box, Pack, Strip, Carton, Pair
+    final pieceId = await ensureUnit(
+        actualName: 'Pieces',
+        shortName: 'Pc',
+        category: 'count',
+        allowDecimal: false);
+    await ensureUnit(
+        actualName: 'Unit',
+        shortName: 'Unit',
+        category: 'count',
+        allowDecimal: false);
+    await ensureUnit(
+        actualName: 'Dozen (12 Pcs)',
+        shortName: 'Dzn',
+        category: 'count',
+        allowDecimal: false,
+        baseUnitId: pieceId,
+        multiplier: 12.0);
+    await ensureUnit(
+        actualName: 'Half Dozen (6 Pcs)',
+        shortName: 'Half Dzn',
+        category: 'count',
+        allowDecimal: false,
+        baseUnitId: pieceId,
+        multiplier: 6.0);
+    await ensureUnit(
+        actualName: 'Box (12 Pcs)',
+        shortName: 'Box',
+        category: 'count',
+        allowDecimal: false,
+        baseUnitId: pieceId,
+        multiplier: 12.0);
+    await ensureUnit(
+        actualName: 'Box (24 Pcs)',
+        shortName: 'Box 24',
+        category: 'count',
+        allowDecimal: false,
+        baseUnitId: pieceId,
+        multiplier: 24.0);
+    await ensureUnit(
+        actualName: 'Pack (10 Pcs)',
+        shortName: 'Pack',
+        category: 'count',
+        allowDecimal: false,
+        baseUnitId: pieceId,
+        multiplier: 10.0);
+    await ensureUnit(
+        actualName: 'Strip (10 Tablets)',
+        shortName: 'Strip',
+        category: 'count',
+        allowDecimal: false,
+        baseUnitId: pieceId,
+        multiplier: 10.0);
+    await ensureUnit(
+        actualName: 'Master Carton (72 Pcs)',
+        shortName: 'Ctn',
+        category: 'count',
+        allowDecimal: false,
+        baseUnitId: pieceId,
+        multiplier: 72.0);
+    await ensureUnit(
+        actualName: 'Pair (2 Pcs)',
+        shortName: 'Pair',
+        category: 'count',
+        allowDecimal: false,
+        baseUnitId: pieceId,
+        multiplier: 2.0);
+
+    // 2. Weight (Wazan) - Kilograms, Grams, Pao, Aadha Kg, 3 Pao, Dhari, Mann, Bori
+    final kgId = await ensureUnit(
+        actualName: 'Kilograms',
+        shortName: 'Kg',
+        category: 'weight',
+        allowDecimal: true);
+    await ensureUnit(
+        actualName: 'Grams',
+        shortName: 'Gm',
+        category: 'weight',
+        allowDecimal: true,
+        baseUnitId: kgId,
+        multiplier: 0.001);
+    await ensureUnit(
+        actualName: 'Pao (250 Grams)',
+        shortName: 'Pao',
+        category: 'weight',
+        allowDecimal: true,
+        baseUnitId: kgId,
+        multiplier: 0.25);
+    await ensureUnit(
+        actualName: 'Aadha Kg (500 Grams)',
+        shortName: '0.5Kg',
+        category: 'weight',
+        allowDecimal: true,
+        baseUnitId: kgId,
+        multiplier: 0.5);
+    await ensureUnit(
+        actualName: '3 Pao (750 Grams)',
+        shortName: '3 Pao',
+        category: 'weight',
+        allowDecimal: true,
+        baseUnitId: kgId,
+        multiplier: 0.75);
+    await ensureUnit(
+        actualName: 'Dhari (5 Kg)',
+        shortName: 'Dhari',
+        category: 'weight',
+        allowDecimal: true,
+        baseUnitId: kgId,
+        multiplier: 5.0);
+    await ensureUnit(
+        actualName: 'Mann (40 Kg)',
+        shortName: 'Mann',
+        category: 'weight',
+        allowDecimal: true,
+        baseUnitId: kgId,
+        multiplier: 40.0);
+    await ensureUnit(
+        actualName: 'Bori / Bag (50 Kg)',
+        shortName: 'Bori',
+        category: 'weight',
+        allowDecimal: true,
+        baseUnitId: kgId,
+        multiplier: 50.0);
+
+    // 3. Volume (Liquid) - Liters, Milliliters, Bottle, Can, Carton
+    final ltrId = await ensureUnit(
+        actualName: 'Liters',
+        shortName: 'Ltr',
+        category: 'volume',
+        allowDecimal: true);
+    await ensureUnit(
+        actualName: 'Milliliters',
+        shortName: 'Ml',
+        category: 'volume',
+        allowDecimal: true,
+        baseUnitId: ltrId,
+        multiplier: 0.001);
+    await ensureUnit(
+        actualName: 'Bottle (250 ML)',
+        shortName: '250ml',
+        category: 'volume',
+        allowDecimal: true,
+        baseUnitId: ltrId,
+        multiplier: 0.25);
+    await ensureUnit(
+        actualName: 'Bottle (500 ML)',
+        shortName: '0.5L',
+        category: 'volume',
+        allowDecimal: true,
+        baseUnitId: ltrId,
+        multiplier: 0.5);
+    await ensureUnit(
+        actualName: 'Bottle (1.5 Liters)',
+        shortName: '1.5L',
+        category: 'volume',
+        allowDecimal: true,
+        baseUnitId: ltrId,
+        multiplier: 1.5);
+    await ensureUnit(
+        actualName: 'Can (5 Liters)',
+        shortName: '5L Can',
+        category: 'volume',
+        allowDecimal: true,
+        baseUnitId: ltrId,
+        multiplier: 5.0);
+    await ensureUnit(
+        actualName: 'Tin / Carton (16 Liters)',
+        shortName: '16L Tin',
+        category: 'volume',
+        allowDecimal: true,
+        baseUnitId: ltrId,
+        multiplier: 16.0);
+
+    // 4. Length / Area - Meters, Feet, Inches, Yard, Coil, Roll, Bundle, Fabric Pieces, Sq Ft
+    final mtrId = await ensureUnit(
+        actualName: 'Meters',
+        shortName: 'Mtr',
+        category: 'length',
+        allowDecimal: true);
+    await ensureUnit(
+        actualName: 'Feet / Foot',
+        shortName: 'Ft',
+        category: 'length',
+        allowDecimal: true);
+    await ensureUnit(
+        actualName: 'Inches',
+        shortName: 'In',
+        category: 'length',
+        allowDecimal: true);
+    await ensureUnit(
+        actualName: 'Gaz / Yard (0.914 Mtr)',
+        shortName: 'Gaz',
+        category: 'length',
+        allowDecimal: true,
+        baseUnitId: mtrId,
+        multiplier: 0.9144);
+    await ensureUnit(
+        actualName: 'Coil (90 Mtr)',
+        shortName: 'Coil',
+        category: 'length',
+        allowDecimal: true,
+        baseUnitId: mtrId,
+        multiplier: 90.0);
+    await ensureUnit(
+        actualName: 'Roll (100 Mtr)',
+        shortName: 'Roll',
+        category: 'length',
+        allowDecimal: true,
+        baseUnitId: mtrId,
+        multiplier: 100.0);
+    await ensureUnit(
+        actualName: 'Bundle (50 Mtr)',
+        shortName: 'Bundle',
+        category: 'length',
+        allowDecimal: true,
+        baseUnitId: mtrId,
+        multiplier: 50.0);
+    await ensureUnit(
+        actualName: 'Shalwar Piece (2.25 Mtr)',
+        shortName: '2.25m',
+        category: 'length',
+        allowDecimal: true,
+        baseUnitId: mtrId,
+        multiplier: 2.25);
+    await ensureUnit(
+        actualName: 'Suit Piece (2.5 Mtr)',
+        shortName: '2.5m',
+        category: 'length',
+        allowDecimal: true,
+        baseUnitId: mtrId,
+        multiplier: 2.5);
+    await ensureUnit(
+        actualName: 'Full Suit (4 Mtr)',
+        shortName: '4m',
+        category: 'length',
+        allowDecimal: true,
+        baseUnitId: mtrId,
+        multiplier: 4.0);
+    await ensureUnit(
+        actualName: 'Thaan (20 Mtr)',
+        shortName: 'Thaan',
+        category: 'length',
+        allowDecimal: true,
+        baseUnitId: mtrId,
+        multiplier: 20.0);
+    await ensureUnit(
+        actualName: 'Square Feet (Sq Ft)',
+        shortName: 'Sq Ft',
+        category: 'length',
+        allowDecimal: true);
+
+    // 5. Time / Services - Hours, Minutes, Half Hour, Day, Session
+    final hrId = await ensureUnit(
+        actualName: 'Hours',
+        shortName: 'Hr',
+        category: 'time',
+        allowDecimal: true);
+    await ensureUnit(
+        actualName: 'Minutes',
+        shortName: 'Min',
+        category: 'time',
+        allowDecimal: false,
+        baseUnitId: hrId,
+        multiplier: 0.01667);
+    await ensureUnit(
+        actualName: 'Half Hour (30 Mins)',
+        shortName: '30 Min',
+        category: 'time',
+        allowDecimal: false,
+        baseUnitId: hrId,
+        multiplier: 0.5);
+    await ensureUnit(
+        actualName: 'Day (Full Day Rental)',
+        shortName: 'Day',
+        category: 'time',
+        allowDecimal: false,
+        baseUnitId: hrId,
+        multiplier: 24.0);
+    await ensureUnit(
+        actualName: 'Session (Service / Slot)',
+        shortName: 'Session',
+        category: 'time',
+        allowDecimal: false);
   }
 
   static Future<void> _applyV12PakistanDistributionAndPosSettings(

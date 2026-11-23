@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/database_schema.dart';
 import '../../widgets/data_table_pagination_bar.dart';
 
 class UnitsScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class UnitsScreen extends StatefulWidget {
 class _UnitsScreenState extends State<UnitsScreen> {
   List<Unit> _units = [];
   String _search = '';
+  String _selectedCategory = 'all';
   bool _loading = true;
   int _currentPage = 1;
   int _pageSize = 10;
@@ -28,7 +30,12 @@ class _UnitsScreenState extends State<UnitsScreen> {
 
   Future<void> _load() async {
     final db = await DatabaseService.initialize();
-    final uList = await db.getUnits();
+    var uList = await db.getUnits();
+    // Auto-seed full 5-category catalog if only initial legacy units exist
+    if (uList.length <= 4) {
+      await DatabaseSchema.seedFiveUnitCategories(db.db);
+      uList = await db.getUnits();
+    }
     if (mounted) {
       setState(() {
         _units = uList;
@@ -48,6 +55,8 @@ class _UnitsScreenState extends State<UnitsScreen> {
             : '1');
     bool allowDecimal = toEdit?.allowDecimal ?? false;
     int? selectedBaseUnit = toEdit?.baseUnitId;
+    String selectedCategory = toEdit?.category ??
+        (_selectedCategory != 'all' ? _selectedCategory : 'count');
 
     showDialog(
       context: context,
@@ -62,7 +71,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
                     isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
+            constraints: const BoxConstraints(maxWidth: 520),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -94,15 +103,63 @@ class _UnitsScreenState extends State<UnitsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _fieldLabel(
-                      'Unit Name * (e.g. Pieces, Kilograms, Box)', isDark),
+                  _fieldLabel('Category / پیمائش کی قسم *', isDark),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedCategory,
+                    dropdownColor:
+                        isDark ? const Color(0xFF1E293B) : Colors.white,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    decoration: _inputDeco('Select Category', isDark),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'count',
+                        child: Text(
+                            '1. Count (گنتی - Pieces, Dozen, Box, Strips)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'weight',
+                        child:
+                            Text('2. Weight (وزن - Kg, Gram, Pao, Mann, Bori)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'volume',
+                        child:
+                            Text('3. Volume (مائع - Liter, ML, Bottle, Can)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'length',
+                        child: Text(
+                            '4. Length / Area (لمبائی و رقبہ - Meter, Ft, Coil, Sq Ft)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'time',
+                        child: Text(
+                            '5. Time / Services (وقت و سروسز - Hour, Min, Session)'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDlgState(() {
+                          selectedCategory = val;
+                          selectedBaseUnit = null;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  _fieldLabel('Unit Name * (e.g. Pieces, Kilograms, Box, Coil)',
+                      isDark),
                   const SizedBox(height: 6),
                   TextField(
                     controller: nameCtrl,
                     style: TextStyle(
                         fontSize: 13,
                         color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                    decoration: _inputDeco('e.g. Pieces', isDark),
+                    decoration:
+                        _inputDeco('e.g. Pieces / Coil (90 Mtr)', isDark),
                   ),
                   const SizedBox(height: 14),
                   Row(
@@ -111,7 +168,8 @@ class _UnitsScreenState extends State<UnitsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _fieldLabel('Short Name * (e.g. Pc, Kg)', isDark),
+                            _fieldLabel(
+                                'Short Name * (e.g. Pc, Kg, Coil)', isDark),
                             const SizedBox(height: 6),
                             TextField(
                               controller: shortCtrl,
@@ -202,7 +260,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'e.g. If this unit is "Box" and base unit is "Pieces", set multiplier to 12.0',
+                          'e.g. If unit is "Coil (90 Mtr)" and base unit is "Meters", set multiplier to 90.0',
                           style: TextStyle(
                               fontSize: 11,
                               color: isDark
@@ -235,10 +293,14 @@ class _UnitsScreenState extends State<UnitsScreen> {
                                                 : const Color(0xFF0F172A))),
                                   ),
                                   ..._units
-                                      .where((u) => u.id != toEdit?.id)
+                                      .where((u) =>
+                                          u.id != toEdit?.id &&
+                                          (u.category == selectedCategory ||
+                                              u.baseUnitId == null))
                                       .map((u) => DropdownMenuItem<int?>(
                                           value: u.id,
-                                          child: Text(u.actualName,
+                                          child: Text(
+                                              '${u.actualName} (${u.shortName})',
                                               style: TextStyle(
                                                   color: isDark
                                                       ? Colors.white
@@ -316,6 +378,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
                               allowDecimal: allowDecimal,
                               baseUnitId: selectedBaseUnit,
                               baseUnitMultiplier: mult,
+                              category: selectedCategory,
                             ));
                           } else {
                             await db.updateUnit(Unit(
@@ -325,6 +388,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
                               allowDecimal: allowDecimal,
                               baseUnitId: selectedBaseUnit,
                               baseUnitMultiplier: mult,
+                              category: selectedCategory,
                             ));
                           }
 
@@ -412,13 +476,99 @@ class _UnitsScreenState extends State<UnitsScreen> {
     );
   }
 
+  Widget _buildCategoryBadge(String category, bool isDark) {
+    Color bg;
+    Color border;
+    Color text;
+    String label;
+    IconData icon;
+
+    switch (category.toLowerCase()) {
+      case 'weight':
+        bg = isDark
+            ? const Color(0xFF064E3B).withValues(alpha: 0.4)
+            : const Color(0xFFECFDF5);
+        border = isDark ? const Color(0xFF047857) : const Color(0xFFA7F3D0);
+        text = isDark ? const Color(0xFF34D399) : const Color(0xFF059669);
+        label = 'Weight (وزن)';
+        icon = Icons.scale_rounded;
+        break;
+      case 'volume':
+        bg = isDark
+            ? const Color(0xFF1E3A8A).withValues(alpha: 0.4)
+            : const Color(0xFFEFF6FF);
+        border = isDark ? const Color(0xFF1D4ED8) : const Color(0xFFBFDBFE);
+        text = isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB);
+        label = 'Volume (مائع)';
+        icon = Icons.water_drop_rounded;
+        break;
+      case 'length':
+        bg = isDark
+            ? const Color(0xFF78350F).withValues(alpha: 0.4)
+            : const Color(0xFFFFFBEB);
+        border = isDark ? const Color(0xFFB45309) : const Color(0xFFFDE68A);
+        text = isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
+        label = 'Length / Area';
+        icon = Icons.straighten_rounded;
+        break;
+      case 'time':
+        bg = isDark
+            ? const Color(0xFF134E4A).withValues(alpha: 0.4)
+            : const Color(0xFFF0FDFA);
+        border = isDark ? const Color(0xFF0F766E) : const Color(0xFF99F6E4);
+        text = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488);
+        label = 'Services (وقت)';
+        icon = Icons.schedule_rounded;
+        break;
+      case 'count':
+      default:
+        bg = isDark
+            ? const Color(0xFF4C1D95).withValues(alpha: 0.4)
+            : const Color(0xFFFAF5FF);
+        border = isDark ? const Color(0xFF6D28D9) : const Color(0xFFDDD6FE);
+        text = isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED);
+        label = 'Count (گنتی)';
+        icon = Icons.tag_rounded;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: text),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: text,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final filtered = _units.where((u) {
+      if (_selectedCategory != 'all' &&
+          u.category.toLowerCase() != _selectedCategory.toLowerCase()) {
+        return false;
+      }
       if (_search.isEmpty) return true;
       return u.actualName.toLowerCase().contains(_search) ||
-          u.shortName.toLowerCase().contains(_search);
+          u.shortName.toLowerCase().contains(_search) ||
+          u.category.toLowerCase().contains(_search);
     }).toList();
 
     final totalFiltered = filtered.length;
@@ -429,6 +579,45 @@ class _UnitsScreenState extends State<UnitsScreen> {
     final paginatedUnits = (startIndex < totalFiltered)
         ? filtered.sublist(startIndex, endIndex)
         : <Unit>[];
+
+    final categoryTabs = [
+      {
+        'key': 'all',
+        'label': 'All Units',
+        'urdu': 'تمام',
+        'icon': Icons.tune_rounded
+      },
+      {
+        'key': 'count',
+        'label': '1. Count',
+        'urdu': 'گنتی',
+        'icon': Icons.tag_rounded
+      },
+      {
+        'key': 'weight',
+        'label': '2. Weight',
+        'urdu': 'وزن',
+        'icon': Icons.scale_rounded
+      },
+      {
+        'key': 'volume',
+        'label': '3. Volume',
+        'urdu': 'مائع',
+        'icon': Icons.water_drop_rounded
+      },
+      {
+        'key': 'length',
+        'label': '4. Length / Area',
+        'urdu': 'لمبائی/رقبہ',
+        'icon': Icons.straighten_rounded
+      },
+      {
+        'key': 'time',
+        'label': '5. Time / Services',
+        'urdu': 'وقت/سروسز',
+        'icon': Icons.schedule_rounded
+      },
+    ];
 
     return Scaffold(
       backgroundColor:
@@ -447,7 +636,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Units of Measure',
+                        'Units of Measure (پیمائشی یونٹس)',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -458,7 +647,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Define measurement units (Pieces, Kg, Boxes, Liters) and decimal allowances.',
+                        'Define measurement units (Count, Weight, Volume, Length/Area, Time/Services) with multipliers & decimal allowances.',
                         style: TextStyle(
                           fontSize: 13,
                           color: isDark
@@ -488,7 +677,119 @@ class _UnitsScreenState extends State<UnitsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // Category Filter Tabs Bar
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: categoryTabs.map((tab) {
+                  final key = tab['key'] as String;
+                  final isSelected = _selectedCategory == key;
+                  final count = key == 'all'
+                      ? _units.length
+                      : _units
+                          .where((u) => u.category.toLowerCase() == key)
+                          .length;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () {
+                        setState(() {
+                          _selectedCategory = key;
+                          _currentPage = 1;
+                        });
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF4F46E5)
+                              : (isDark
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFF4F46E5)
+                                : (isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFCBD5E1)),
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(0xFF4F46E5)
+                                        .withValues(alpha: 0.3),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              tab['icon'] as IconData,
+                              size: 14,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B)),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${tab['label']} (${tab['urdu']})',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1E293B)),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Colors.white.withValues(alpha: 0.25)
+                                    : (isDark
+                                        ? const Color(0xFF334155)
+                                        : const Color(0xFFF1F5F9)),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '$count',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF475569)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
 
             // Search Bar
             Container(
@@ -514,7 +815,8 @@ class _UnitsScreenState extends State<UnitsScreen> {
                         _currentPage = 1;
                       }),
                       decoration: InputDecoration(
-                        hintText: 'Search measurement units...',
+                        hintText:
+                            'Search measurement units by name or short code...',
                         hintStyle: TextStyle(
                             fontSize: 13,
                             color: isDark
@@ -651,18 +953,19 @@ class _UnitsScreenState extends State<UnitsScreen> {
                           const BorderRadius.vertical(top: Radius.circular(12)),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                          final minWidth = max(constraints.maxWidth, 720.0);
+                          final minWidth = max(constraints.maxWidth, 780.0);
                           return SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: ConstrainedBox(
                               constraints: BoxConstraints(minWidth: minWidth),
                               child: Table(
                                 columnWidths: const {
-                                  0: FlexColumnWidth(2.5),
-                                  1: FlexColumnWidth(1.8),
-                                  2: FlexColumnWidth(1.8),
-                                  3: FlexColumnWidth(2.2),
-                                  4: FlexColumnWidth(1.5),
+                                  0: FlexColumnWidth(2.3),
+                                  1: FlexColumnWidth(1.2),
+                                  2: FlexColumnWidth(1.6),
+                                  3: FlexColumnWidth(1.4),
+                                  4: FlexColumnWidth(1.7),
+                                  5: FlexColumnWidth(1.2),
                                 },
                                 children: [
                                   TableRow(
@@ -673,6 +976,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
                                     children: [
                                       _th('Unit Name', isDark: isDark),
                                       _th('Short Name', isDark: isDark),
+                                      _th('Category (قسم)', isDark: isDark),
                                       _th('Allow Decimals', isDark: isDark),
                                       _th('Multiplier / Base', isDark: isDark),
                                       _th('Actions',
@@ -723,14 +1027,17 @@ class _UnitsScreenState extends State<UnitsScreen> {
                                                 ),
                                               ),
                                               const SizedBox(width: 10),
-                                              Text(
-                                                u.actualName,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 13,
-                                                  color: isDark
-                                                      ? Colors.white
-                                                      : const Color(0xFF0F172A),
+                                              Expanded(
+                                                child: Text(
+                                                  u.actualName,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 13,
+                                                    color: isDark
+                                                        ? Colors.white
+                                                        : const Color(
+                                                            0xFF0F172A),
+                                                  ),
                                                 ),
                                               ),
                                             ],
@@ -747,6 +1054,15 @@ class _UnitsScreenState extends State<UnitsScreen> {
                                                   ? const Color(0xFFCBD5E1)
                                                   : const Color(0xFF334155),
                                             ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 14),
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: _buildCategoryBadge(
+                                                u.category, isDark),
                                           ),
                                         ),
                                         Padding(

@@ -29,6 +29,10 @@ class Product {
   final int? taxGroupId;
   final bool isFeatured;
   final String? rackLocation;
+  final String?
+      subUnitIds; // Comma-separated unit IDs allowed for this product (Ultimate POS style)
+  final String?
+      secondaryUnit; // Optional custom sub-unit name (e.g. Coil, Roll, Strip, Pallet)
 
   Product({
     this.id,
@@ -58,6 +62,8 @@ class Product {
     this.taxGroupId,
     this.isFeatured = false,
     this.rackLocation,
+    this.subUnitIds,
+    this.secondaryUnit,
   });
 
   bool get isVariable => type == 'variable';
@@ -99,6 +105,8 @@ class Product {
         'tax_group_id': taxGroupId,
         'is_featured': isFeatured ? 1 : 0,
         if (rackLocation != null) 'rack_location': rackLocation,
+        if (subUnitIds != null) 'sub_unit_ids': subUnitIds,
+        if (secondaryUnit != null) 'secondary_unit': secondaryUnit,
       };
 
   factory Product.fromMap(Map<String, dynamic> map,
@@ -131,6 +139,8 @@ class Product {
         taxGroupId: map['tax_group_id'] as int?,
         isFeatured: (map['is_featured'] as int? ?? 0) == 1,
         rackLocation: map['rack_location'] as String?,
+        subUnitIds: map['sub_unit_ids'] as String?,
+        secondaryUnit: map['secondary_unit'] as String?,
       );
 
   Product copyWith({
@@ -162,6 +172,8 @@ class Product {
     int? taxGroupId,
     bool? isFeatured,
     String? rackLocation,
+    String? subUnitIds,
+    String? secondaryUnit,
   }) =>
       Product(
         id: id ?? this.id,
@@ -191,5 +203,7 @@ class Product {
         taxGroupId: taxGroupId ?? this.taxGroupId,
         isFeatured: isFeatured ?? this.isFeatured,
         rackLocation: rackLocation ?? this.rackLocation,
+        subUnitIds: subUnitIds ?? this.subUnitIds,
+        secondaryUnit: secondaryUnit ?? this.secondaryUnit,
       );
 }

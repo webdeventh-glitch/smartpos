@@ -60,7 +60,18 @@ class ProductRepository extends BaseRepository {
       shortName: baseShort,
       allowDecimal: matchedBase?.allowDecimal ?? true,
       baseUnitMultiplier: 1.0,
+      category: matchedBase?.category ?? 'count',
     ));
+
+    // Check if product has specifically allowed sub-units (Ultimate POS sub_unit_ids style)
+    final allowedSubUnitIds =
+        (product.subUnitIds != null && product.subUnitIds!.trim().isNotEmpty)
+            ? product.subUnitIds!
+                .split(',')
+                .map((s) => int.tryParse(s.trim()))
+                .whereType<int>()
+                .toSet()
+            : null;
 
     // 2. Add units that reference this base unit in DB
     if (matchedBase != null && matchedBase.id != null) {
@@ -68,8 +79,29 @@ class ProductRepository extends BaseRepository {
         if (u.baseUnitId == matchedBase.id &&
             !results.any((r) =>
                 r.actualName.toLowerCase() == u.actualName.toLowerCase())) {
-          results.add(u);
+          if (allowedSubUnitIds == null ||
+              (u.id != null && allowedSubUnitIds.contains(u.id))) {
+            results.add(u);
+          }
         }
+      }
+    }
+
+    // 2b. If product has custom secondary unit / pack size defined on the product itself
+    if (product.secondaryUnit != null &&
+        product.secondaryUnit!.trim().isNotEmpty &&
+        product.packSize > 1) {
+      final customName =
+          '${product.secondaryUnit!.trim()} (${product.packSize.toInt()} $baseShort)';
+      if (!results
+          .any((r) => r.actualName.toLowerCase() == customName.toLowerCase())) {
+        results.add(Unit(
+          actualName: customName,
+          shortName: product.secondaryUnit!.trim(),
+          allowDecimal: false,
+          baseUnitMultiplier: product.packSize,
+          category: matchedBase?.category ?? 'count',
+        ));
       }
     }
 
@@ -292,7 +324,39 @@ class ProductRepository extends BaseRepository {
             actualName: 'Carton (72 Pcs)',
             shortName: 'Ctn',
             allowDecimal: false,
-            baseUnitMultiplier: 72.0));
+            baseUnitMultiplier: 72.0,
+            category: 'count'));
+      } else if (rawUnit.contains('hour') ||
+          rawUnit == 'hr' ||
+          rawUnit.contains('ghanta')) {
+        results.add(Unit(
+            actualName: 'Half Hour (30 Min)',
+            shortName: '30 Min',
+            allowDecimal: false,
+            baseUnitMultiplier: 0.5,
+            category: 'time'));
+        results.add(Unit(
+            actualName: 'Full Day (24 Hrs)',
+            shortName: 'Day',
+            allowDecimal: false,
+            baseUnitMultiplier: 24.0,
+            category: 'time'));
+      } else if (rawUnit.contains('min') || rawUnit.contains('minute')) {
+        results.add(Unit(
+            actualName: 'Hour (60 Mins)',
+            shortName: 'Hr',
+            allowDecimal: false,
+            baseUnitMultiplier: 60.0,
+            category: 'time'));
+      } else if (rawUnit.contains('foot') ||
+          rawUnit.contains('feet') ||
+          rawUnit == 'ft') {
+        results.add(Unit(
+            actualName: 'Yard / Gaz (3 Ft)',
+            shortName: 'Gaz',
+            allowDecimal: true,
+            baseUnitMultiplier: 3.0,
+            category: 'length'));
       }
     }
 

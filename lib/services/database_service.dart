@@ -18,7 +18,7 @@ class DatabaseService {
   final String? dbFilePath;
   DatabaseService(this.db, {this.dbFilePath});
 
-  static const int currentSchemaVersion = 12;
+  static const int currentSchemaVersion = 13;
   static DatabaseService? _instance;
   static DatabaseService? get instanceOrNull => _instance;
   static DatabaseService get instance =>
