@@ -83,7 +83,7 @@ exit
 Set-Content -Path $LauncherPath -Value $LauncherContent -Encoding ASCII
 
 # 4. Create Standalone Portable Zip
-$ZipPath = Join-Path $DistDir "SmartPOS_Portable_v1.0.zip"
+$ZipPath = Join-Path $DistDir "SmartPOS_Portable_v1.1.zip"
 Write-Host "[2/3] Creating Portable Distribution Zip: $ZipPath..." -ForegroundColor Yellow
 if (Test-Path $ZipPath) {
     Remove-Item $ZipPath -Force
@@ -96,11 +96,11 @@ Write-Host "       Portable ZIP ready! ($ZipSizeMB MB)" -ForegroundColor Green
 Write-Host "[3/3] Looking for Inno Setup Compiler (ISCC.exe)..." -ForegroundColor Yellow
 $IsccPaths = @(
     "ISCC.exe",
+    "${env:LOCALAPPDATA}\Programs\Inno Setup 6\ISCC.exe",
     "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
     "${env:ProgramFiles}\Inno Setup 6\ISCC.exe",
     "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
-    "C:\Program Files\Inno Setup 6\ISCC.exe",
-    "${env:LOCALAPPDATA}\Programs\Inno Setup 6\ISCC.exe"
+    "C:\Program Files\Inno Setup 6\ISCC.exe"
 )
 
 $IsccExe = $null
@@ -118,11 +118,22 @@ foreach ($path in $IsccPaths) {
 
 if ($IsccExe) {
     Write-Host "       Found Inno Setup at: $IsccExe" -ForegroundColor Cyan
-    Write-Host "       Compiling Windows Installer (SmartPOS_Setup_v1.0.exe)..." -ForegroundColor Yellow
-    & $IsccExe $IssFile
-    $SetupExe = Join-Path $DistDir "SmartPOS_Setup_v1.0.exe"
-    if (Test-Path $SetupExe) {
-        $SetupSizeMB = [math]::Round((Get-Item $SetupExe).Length / 1MB, 2)
+    Write-Host "       Compiling Windows Installer (SmartPOS_Enterprise_Setup_v1.1.exe)..." -ForegroundColor Yellow
+    $TempOut = "$env:TEMP\smartpos_installer"
+    if (-not (Test-Path $TempOut)) {
+        New-Item -ItemType Directory -Path $TempOut -Force | Out-Null
+    }
+    & $IsccExe "/O$TempOut" $IssFile
+    $TempSetupExe = Join-Path $TempOut "SmartPOS_Enterprise_Setup_v1.1.exe"
+    $InstallerOutputDir = Join-Path $ProjectRoot "installer_output"
+    if (-not (Test-Path $InstallerOutputDir)) {
+        New-Item -ItemType Directory -Path $InstallerOutputDir -Force | Out-Null
+    }
+    if (Test-Path $TempSetupExe) {
+        $DestSetup = Join-Path $InstallerOutputDir "SmartPOS_Enterprise_Setup_v1.1.exe"
+        Copy-Item $TempSetupExe $DestSetup -Force
+        Copy-Item $TempSetupExe (Join-Path $DistDir "SmartPOS_Enterprise_Setup_v1.1.exe") -Force
+        $SetupSizeMB = [math]::Round((Get-Item $DestSetup).Length / 1MB, 2)
         Write-Host "       Installer successfully generated! ($SetupSizeMB MB)" -ForegroundColor Green
     }
 } else {
