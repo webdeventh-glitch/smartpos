@@ -18,7 +18,7 @@ class DatabaseService {
   final String? dbFilePath;
   DatabaseService(this.db, {this.dbFilePath});
 
-  static const int currentSchemaVersion = 11;
+  static const int currentSchemaVersion = 12;
   static DatabaseService? _instance;
   static DatabaseService? get instanceOrNull => _instance;
   static DatabaseService get instance =>
@@ -441,6 +441,11 @@ class DatabaseService {
           refNo: refNo,
           note: note,
           createdBy: createdBy);
+  Future<void> transferSaleToCustomer({
+    required int saleId,
+    required Contact contact,
+  }) =>
+      salesRepo.transferSaleToCustomer(saleId: saleId, contact: contact);
   Future<void> settlePurchasePayment({
     required int purchaseId,
     required double amountPaid,

@@ -166,6 +166,34 @@ class DatabaseSchema {
         'contact_opening_balance_and_sales_indexes',
       );
     }
+    if (fromVersion < 12 && toVersion >= 12) {
+      await _applyV12PakistanDistributionAndPosSettings(db);
+      await _recordMigration(
+        db,
+        12,
+        'pakistan_distribution_payment_methods_and_pos_print_settings',
+      );
+    }
+  }
+
+  static Future<void> _applyV12PakistanDistributionAndPosSettings(
+      Database db) async {
+    await _addColumnIfMissing(db, 'business_settings',
+        'pos_default_print_format', "TEXT DEFAULT 'thermal'");
+    await _addColumnIfMissing(db, 'business_settings',
+        'prompt_walkin_customer_name', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'enable_card_payment', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'enable_easypaisa', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'enable_jazzcash', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'enable_bank_transfer', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'enable_credit_sale', 'INTEGER DEFAULT 1');
+    await _addColumnIfMissing(
+        db, 'business_settings', 'enable_cheque_payment', 'INTEGER DEFAULT 1');
   }
 
   static Future<void> _applyV11ContactOpeningBalanceAndIndexes(
@@ -2047,6 +2075,7 @@ class DatabaseSchema {
         'session_timeout_minutes', 'INTEGER DEFAULT 480');
     await db.execute(
         "UPDATE business_settings SET sync_branch_id = 1 WHERE sync_branch_id IS NULL OR sync_branch_id = ''");
+    await _applyV12PakistanDistributionAndPosSettings(db);
 
     await _addColumnIfMissing(db, 'sales', 'sale_type', "TEXT DEFAULT 'final'");
     await _addColumnIfMissing(db, 'sales', 'project_name', 'TEXT');
@@ -2662,7 +2691,21 @@ class DatabaseSchema {
         compact_pos_product_list INTEGER DEFAULT 1,
         auto_focus_barcode_search INTEGER DEFAULT 1,
         confirm_before_cancel_sale INTEGER DEFAULT 1,
-        enable_counter_token_queue INTEGER DEFAULT 1
+        enable_counter_token_queue INTEGER DEFAULT 1,
+        fiscal_compliance_mode TEXT DEFAULT 'none',
+        fbr_pos_id TEXT DEFAULT '',
+        zatca_vat_number TEXT DEFAULT '',
+        whatsapp_cloud_token TEXT DEFAULT '',
+        whatsapp_phone_number_id TEXT DEFAULT '',
+        auto_send_whatsapp_receipt INTEGER DEFAULT 0,
+        pos_default_print_format TEXT DEFAULT 'thermal',
+        prompt_walkin_customer_name INTEGER DEFAULT 0,
+        enable_card_payment INTEGER DEFAULT 0,
+        enable_easypaisa INTEGER DEFAULT 1,
+        enable_jazzcash INTEGER DEFAULT 1,
+        enable_bank_transfer INTEGER DEFAULT 1,
+        enable_credit_sale INTEGER DEFAULT 1,
+        enable_cheque_payment INTEGER DEFAULT 1
       )
     ''');
 

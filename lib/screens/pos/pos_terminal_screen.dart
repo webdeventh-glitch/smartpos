@@ -130,6 +130,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
   static const int _posPageSize = 50;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final TextEditingController _customWalkInNameCtrl = TextEditingController();
   final ScrollController _catalogScrollController = ScrollController();
   List<Category> _categories = [];
   List<Brand> _brands = [];
@@ -224,6 +225,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     _catalogScrollController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _customWalkInNameCtrl.dispose();
     super.dispose();
   }
 
@@ -5096,10 +5098,15 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
         ? double.parse(((finalBillTotal * commPct) / 100.0).toStringAsFixed(2))
         : 0.0;
 
+    final effectiveCustomerName = (_isCurrentCustomerWalkIn &&
+            _customWalkInNameCtrl.text.trim().isNotEmpty)
+        ? _customWalkInNameCtrl.text.trim()
+        : (_selectedCustomer?.name ?? 'Walk-in Customer');
+
     final sale = Sale(
       invoiceNo: invoiceNo,
       customerId: _selectedCustomer?.id,
-      customerName: _selectedCustomer?.name ?? 'Walk-in Customer',
+      customerName: effectiveCustomerName,
       locationId: _selectedLocationId,
       subtotal: _subtotal,
       discount: totalDiscount,
@@ -5274,22 +5281,24 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       } else {
         final prevBalance = _selectedCustomer?.balance ?? 0.0;
         if (saleStatus == 'final' && widget.settings.autoPrintReceipt) {
-          // Dispatch background ESC/POS receipt print when configured.
-          ThermalPrinterService.printSaleReceipt(
-            sale: completedSale,
-            settings: widget.settings,
-            tenderedAmount: tendered,
-            changeReturn: changeReturn,
-            customerPreviousBalance: prevBalance,
-          ).catchError((Object err, StackTrace st) {
-            AppLogger.warning(
-              'PosTerminalScreen',
-              'Auto-print ESC/POS failed for ${completedSale.invoiceNo}',
-              err,
-              st,
-            );
-            return false;
-          });
+          if (widget.settings.posDefaultPrintFormat == 'thermal') {
+            // Dispatch background ESC/POS receipt print when configured.
+            ThermalPrinterService.printSaleReceipt(
+              sale: completedSale,
+              settings: widget.settings,
+              tenderedAmount: tendered,
+              changeReturn: changeReturn,
+              customerPreviousBalance: prevBalance,
+            ).catchError((Object err, StackTrace st) {
+              AppLogger.warning(
+                'PosTerminalScreen',
+                'Auto-print ESC/POS failed for ${completedSale.invoiceNo}',
+                err,
+                st,
+              );
+              return false;
+            });
+          }
         }
         if (completedSale.id != null) {
           _syncCustomerDisplay(
@@ -5299,6 +5308,7 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
             change: (saleStatus == 'quotation') ? 0.0 : changeReturn,
           );
         }
+        _customWalkInNameCtrl.clear();
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -5720,10 +5730,16 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
           widget.settings.exchangeRatesJson,
           widget.settings.currencyCode,
         ),
+        settings: widget.settings,
+        customWalkInName: _customWalkInNameCtrl.text.trim(),
       ),
     );
 
     if (result != null) {
+      if (result['customWalkInName'] != null) {
+        _customWalkInNameCtrl.text =
+            (result['customWalkInName'] as String).trim();
+      }
       final splitTenders = (result['splitTenders'] as List<dynamic>?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
@@ -6236,6 +6252,82 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
     if (walkIn != null) {
       _selectCustomer(walkIn);
     }
+    _customWalkInNameCtrl.clear();
+  }
+
+  void _showPromptWalkInNameDialog() {
+    final textCtrl = TextEditingController(text: _customWalkInNameCtrl.text);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.badge_outlined, color: Color(0xFF4F46E5)),
+            SizedBox(width: 8),
+            Text(
+              'Customer Name on Bill / Invoice',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter customer name to print on receipt/bill without registering a permanent khata account.',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Customer Name on Bill',
+                hintText: 'e.g. Haji Aslam, Ahmed Solar, etc.',
+                prefixIcon: Icon(Icons.person),
+                border: OutlineInputBorder(),
+              ),
+              onSubmitted: (_) {
+                setState(() {
+                  _customWalkInNameCtrl.text = textCtrl.text.trim();
+                });
+                Navigator.pop(ctx);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          if (_customWalkInNameCtrl.text.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _customWalkInNameCtrl.clear();
+                });
+                Navigator.pop(ctx);
+              },
+              child: const Text('Clear', style: TextStyle(color: Colors.red)),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4F46E5),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              setState(() {
+                _customWalkInNameCtrl.text = textCtrl.text.trim();
+              });
+              Navigator.pop(ctx);
+            },
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
   }
 
   VoidCallback _callbackForShortcutAction(String actionId) {
@@ -7853,14 +7945,32 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                               width: 8),
                                                           Expanded(
                                                             child: Text(
-                                                              PosLocalization
-                                                                  .tr(
-                                                                _selectedCustomer
-                                                                        ?.name ??
-                                                                    'General Walk-in Shopper',
-                                                                settings: widget
-                                                                    .settings,
-                                                              ),
+                                                              (_selectedCustomer ==
+                                                                              null ||
+                                                                          _selectedCustomer!
+                                                                              .name
+                                                                              .toLowerCase()
+                                                                              .contains(
+                                                                                  'walk-in') ||
+                                                                          _selectedCustomer!
+                                                                              .name
+                                                                              .toLowerCase()
+                                                                              .contains(
+                                                                                  'walk in')) &&
+                                                                      _customWalkInNameCtrl
+                                                                          .text
+                                                                          .trim()
+                                                                          .isNotEmpty
+                                                                  ? 'Walk-in: ${_customWalkInNameCtrl.text.trim()}'
+                                                                  : PosLocalization
+                                                                      .tr(
+                                                                      _selectedCustomer
+                                                                              ?.name ??
+                                                                          'General Walk-in Shopper',
+                                                                      settings:
+                                                                          widget
+                                                                              .settings,
+                                                                    ),
                                                               style: TextStyle(
                                                                   fontSize: 13,
                                                                   fontWeight:
@@ -8039,6 +8149,127 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                               size: 13,
                                                               color: Color(
                                                                   0xFFDC2626)),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                if (widget.settings
+                                                        .promptWalkinCustomerName &&
+                                                    (_selectedCustomer ==
+                                                            null ||
+                                                        _selectedCustomer!.name
+                                                            .toLowerCase()
+                                                            .contains(
+                                                                'walk-in') ||
+                                                        _selectedCustomer!.name
+                                                            .toLowerCase()
+                                                            .contains(
+                                                                'walk in')))
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            right: 6),
+                                                    child: Tooltip(
+                                                      message: _customWalkInNameCtrl
+                                                              .text
+                                                              .trim()
+                                                              .isEmpty
+                                                          ? 'Add Customer Name to Bill'
+                                                          : 'Change Customer Name on Bill (${_customWalkInNameCtrl.text.trim()})',
+                                                      child: InkWell(
+                                                        onTap:
+                                                            _showPromptWalkInNameDialog,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(6),
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal: 6,
+                                                                  vertical: 4),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: _customWalkInNameCtrl
+                                                                    .text
+                                                                    .trim()
+                                                                    .isNotEmpty
+                                                                ? const Color(
+                                                                        0xFF10B981)
+                                                                    .withValues(
+                                                                        alpha:
+                                                                            0.15)
+                                                                : (isDark
+                                                                    ? const Color(
+                                                                        0xFF334155)
+                                                                    : const Color(
+                                                                        0xFFE2E8F0)),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        6),
+                                                            border: Border.all(
+                                                              color: _customWalkInNameCtrl
+                                                                      .text
+                                                                      .trim()
+                                                                      .isNotEmpty
+                                                                  ? const Color(
+                                                                      0xFF10B981)
+                                                                  : borderColor,
+                                                            ),
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              Icon(
+                                                                _customWalkInNameCtrl
+                                                                        .text
+                                                                        .trim()
+                                                                        .isNotEmpty
+                                                                    ? Icons
+                                                                        .badge
+                                                                    : Icons
+                                                                        .badge_outlined,
+                                                                size: 13,
+                                                                color: _customWalkInNameCtrl
+                                                                        .text
+                                                                        .trim()
+                                                                        .isNotEmpty
+                                                                    ? const Color(
+                                                                        0xFF10B981)
+                                                                    : textSecondary,
+                                                              ),
+                                                              const SizedBox(
+                                                                  width: 4),
+                                                              Text(
+                                                                _customWalkInNameCtrl
+                                                                        .text
+                                                                        .trim()
+                                                                        .isNotEmpty
+                                                                    ? _customWalkInNameCtrl
+                                                                        .text
+                                                                        .trim()
+                                                                    : '+ Bill Name',
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize:
+                                                                      10.5,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: _customWalkInNameCtrl
+                                                                          .text
+                                                                          .trim()
+                                                                          .isNotEmpty
+                                                                      ? const Color(
+                                                                          0xFF10B981)
+                                                                      : textSecondary,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
                                                         ),
                                                       ),
                                                     ),

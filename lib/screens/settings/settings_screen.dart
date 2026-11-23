@@ -82,6 +82,14 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _allowOverselling = false;
   bool _autoPrintReceipt = false;
   bool _autoPrintKot = false;
+  String _posDefaultPrintFormat = 'thermal';
+  bool _promptWalkinCustomerName = false;
+  bool _enableCardPayment = false;
+  bool _enableEasyPaisa = true;
+  bool _enableJazzCash = true;
+  bool _enableBankTransfer = true;
+  bool _enableCreditSale = true;
+  bool _enableChequePayment = true;
   final TextEditingController _encPassphraseCtrl = TextEditingController();
   bool _isUpdatingEncryptionKey = false;
 
@@ -225,6 +233,14 @@ class _SettingsScreenState extends State<SettingsScreen>
     _allowOverselling = s.allowOverselling;
     _autoPrintReceipt = s.autoPrintReceipt;
     _autoPrintKot = s.autoPrintKot;
+    _posDefaultPrintFormat = s.posDefaultPrintFormat;
+    _promptWalkinCustomerName = s.promptWalkinCustomerName;
+    _enableCardPayment = s.enableCardPayment;
+    _enableEasyPaisa = s.enableEasyPaisa;
+    _enableJazzCash = s.enableJazzCash;
+    _enableBankTransfer = s.enableBankTransfer;
+    _enableCreditSale = s.enableCreditSale;
+    _enableChequePayment = s.enableChequePayment;
     _fiscalComplianceMode = s.fiscalComplianceMode;
     _fbrPosIdCtrl = TextEditingController(text: s.fbrPosId);
     _zatcaVatCtrl = TextEditingController(text: s.zatcaVatNumber);
@@ -384,6 +400,14 @@ class _SettingsScreenState extends State<SettingsScreen>
       _allowOverselling = s.allowOverselling;
       _autoPrintReceipt = s.autoPrintReceipt;
       _autoPrintKot = s.autoPrintKot;
+      _posDefaultPrintFormat = s.posDefaultPrintFormat;
+      _promptWalkinCustomerName = s.promptWalkinCustomerName;
+      _enableCardPayment = s.enableCardPayment;
+      _enableEasyPaisa = s.enableEasyPaisa;
+      _enableJazzCash = s.enableJazzCash;
+      _enableBankTransfer = s.enableBankTransfer;
+      _enableCreditSale = s.enableCreditSale;
+      _enableChequePayment = s.enableChequePayment;
 
       _initLicenseInfo();
       _loadDbStats();
@@ -1244,75 +1268,96 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
+  BusinessSettings _buildFullSettingsSnapshot() {
+    return widget.settings.copyWith(
+      businessName: _bizNameCtrl.text.trim(),
+      branchName: _branchCtrl.text.trim(),
+      currencySymbol: _currencySymCtrl.text.trim(),
+      currencyCode: _currencyCodeCtrl.text.trim(),
+      defaultTaxRate: double.tryParse(_taxCtrl.text.trim()) ?? 5.0,
+      phone: _phoneCtrl.text.trim(),
+      email: _emailCtrl.text.trim(),
+      address: _addressCtrl.text.trim(),
+      receiptFooter: _footerCtrl.text.trim(),
+      purchaseKey: _purchaseKeyCtrl.text.trim(),
+      businessType: _businessType,
+      drugLicenseNo: _drugLicenseCtrl.text.trim(),
+      dlWarrantor: _dlWarrantorCtrl.text.trim(),
+      timeZone: _timeZone,
+      currencyPlacement: _currencyPlacement,
+      financialYearStartMonth: _financialYearStartMonth,
+      stockAccountingMethod: _stockAccountingMethod,
+      transactionEditDays:
+          int.tryParse(_transactionEditDaysCtrl.text.trim()) ?? 30,
+      dateFormat: _dateFormat,
+      timeFormat: _timeFormat,
+      currencyPrecision: int.tryParse(_currencyPrecisionCtrl.text.trim()) ?? 2,
+      quantityPrecision: int.tryParse(_quantityPrecisionCtrl.text.trim()) ?? 2,
+      defaultProfitPercent:
+          double.tryParse(_defaultProfitPercentCtrl.text.trim()) ?? 25.0,
+      startDate: _startDateCtrl.text.trim(),
+      logoPath: _logoPath ?? '',
+      isConfigured: true,
+      multiCurrencyEnabled: _multiCurrencyEnabled,
+      exchangeRatesJson: CurrencyRateService.encodeRatesJson(_ratesList),
+      lastRatesSync: _lastRatesSync,
+      receiptPaperSize: _receiptPaperSize,
+      receiptHeaderTagline: _receiptTaglineCtrl.text.trim(),
+      receiptHeaderNote: _receiptNoteCtrl.text.trim(),
+      receiptReturnPolicy: _receiptReturnPolicyCtrl.text.trim(),
+      invoicePrintCopies: _invoicePrintCopies,
+      showLogoOnReceipt: _showLogoOnReceipt,
+      showBarcodeOnReceipt: _showBarcodeOnReceipt,
+      showQrOnReceipt: _showQrOnReceipt,
+      showCustomerBalanceOnReceipt: _showCustomerBalanceOnReceipt,
+      showTaxBreakdownOnReceipt: _showTaxBreakdownOnReceipt,
+      showCashierNameOnReceipt: _showCashierNameOnReceipt,
+      invoiceLayoutDesign: _invoiceLayoutDesign,
+      showBatchOnInvoice: _showBatchOnInvoice,
+      showExpiryOnInvoice: _showExpiryOnInvoice,
+      showBrandOnInvoice: _showBrandOnInvoice,
+      showSkuOnInvoice: _showSkuOnInvoice,
+      showWarrantyOnInvoice: _showWarrantyOnInvoice,
+      showTotalInWords: _showTotalInWords,
+      primaryLanguage: _primaryLanguage,
+      totalInWordsLanguage: _totalInWordsLanguage,
+      enableSecondaryLanguage:
+          _primaryLanguage == 'en' ? _enableSecondaryLanguage : false,
+      secondaryLanguage: _secondaryLanguage,
+      invoiceHeading: _invoiceHeadingCtrl.text.trim(),
+      sessionTimeoutMinutes: _sessionTimeoutMinutes,
+      touchFriendlyMode: _touchFriendlyMode,
+      showPosProductPanel: _showPosProductPanel,
+      compactPosProductList: _compactPosProductList,
+      autoFocusBarcodeSearch: _autoFocusBarcodeSearch,
+      confirmBeforeCancelSale: _confirmBeforeCancelSale,
+      enableCounterTokenQueue: _enableCounterTokenQueue,
+      allowOverselling: _allowOverselling,
+      autoPrintReceipt: _autoPrintReceipt,
+      autoPrintKot: _autoPrintKot,
+      fiscalComplianceMode: _fiscalComplianceMode,
+      fbrPosId: _fbrPosIdCtrl.text.trim(),
+      zatcaVatNumber: _zatcaVatCtrl.text.trim(),
+      whatsappCloudToken: _waCloudTokenCtrl.text.trim(),
+      whatsappPhoneNumberId: _waPhoneIdCtrl.text.trim(),
+      autoSendWhatsAppReceipt: _autoSendWhatsAppReceipt,
+      posDefaultPrintFormat: _posDefaultPrintFormat,
+      promptWalkinCustomerName: _promptWalkinCustomerName,
+      enableCardPayment: _enableCardPayment,
+      enableEasyPaisa: _enableEasyPaisa,
+      enableJazzCash: _enableJazzCash,
+      enableBankTransfer: _enableBankTransfer,
+      enableCreditSale: _enableCreditSale,
+      enableChequePayment: _enableChequePayment,
+    );
+  }
+
   Future<void> _saveGeneralSettings() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
     try {
-      final updated = widget.settings.copyWith(
-        businessName: _bizNameCtrl.text.trim(),
-        branchName: _branchCtrl.text.trim(),
-        currencySymbol: _currencySymCtrl.text.trim(),
-        currencyCode: _currencyCodeCtrl.text.trim(),
-        defaultTaxRate: double.tryParse(_taxCtrl.text.trim()) ?? 5.0,
-        phone: _phoneCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
-        address: _addressCtrl.text.trim(),
-        receiptFooter: _footerCtrl.text.trim(),
-        purchaseKey: _purchaseKeyCtrl.text.trim(),
-        businessType: _businessType,
-        drugLicenseNo: _drugLicenseCtrl.text.trim(),
-        dlWarrantor: _dlWarrantorCtrl.text.trim(),
-        timeZone: _timeZone,
-        currencyPlacement: _currencyPlacement,
-        financialYearStartMonth: _financialYearStartMonth,
-        stockAccountingMethod: _stockAccountingMethod,
-        transactionEditDays:
-            int.tryParse(_transactionEditDaysCtrl.text.trim()) ?? 30,
-        dateFormat: _dateFormat,
-        timeFormat: _timeFormat,
-        currencyPrecision:
-            int.tryParse(_currencyPrecisionCtrl.text.trim()) ?? 2,
-        quantityPrecision:
-            int.tryParse(_quantityPrecisionCtrl.text.trim()) ?? 2,
-        defaultProfitPercent:
-            double.tryParse(_defaultProfitPercentCtrl.text.trim()) ?? 25.0,
-        startDate: _startDateCtrl.text.trim(),
-        logoPath: _logoPath ?? '',
-        isConfigured: true,
-        multiCurrencyEnabled: _multiCurrencyEnabled,
-        exchangeRatesJson: CurrencyRateService.encodeRatesJson(_ratesList),
-        lastRatesSync: _lastRatesSync,
-        invoiceLayoutDesign: _invoiceLayoutDesign,
-        showBatchOnInvoice: _showBatchOnInvoice,
-        showExpiryOnInvoice: _showExpiryOnInvoice,
-        showBrandOnInvoice: _showBrandOnInvoice,
-        showSkuOnInvoice: _showSkuOnInvoice,
-        showWarrantyOnInvoice: _showWarrantyOnInvoice,
-        showTotalInWords: _showTotalInWords,
-        primaryLanguage: _primaryLanguage,
-        totalInWordsLanguage: _totalInWordsLanguage,
-        enableSecondaryLanguage:
-            _primaryLanguage == 'en' ? _enableSecondaryLanguage : false,
-        secondaryLanguage: _secondaryLanguage,
-        invoiceHeading: _invoiceHeadingCtrl.text.trim(),
-        sessionTimeoutMinutes: _sessionTimeoutMinutes,
-        touchFriendlyMode: _touchFriendlyMode,
-        showPosProductPanel: _showPosProductPanel,
-        compactPosProductList: _compactPosProductList,
-        autoFocusBarcodeSearch: _autoFocusBarcodeSearch,
-        confirmBeforeCancelSale: _confirmBeforeCancelSale,
-        enableCounterTokenQueue: _enableCounterTokenQueue,
-        allowOverselling: _allowOverselling,
-        autoPrintReceipt: _autoPrintReceipt,
-        autoPrintKot: _autoPrintKot,
-        fiscalComplianceMode: _fiscalComplianceMode,
-        fbrPosId: _fbrPosIdCtrl.text.trim(),
-        zatcaVatNumber: _zatcaVatCtrl.text.trim(),
-        whatsappCloudToken: _waCloudTokenCtrl.text.trim(),
-        whatsappPhoneNumberId: _waPhoneIdCtrl.text.trim(),
-        autoSendWhatsAppReceipt: _autoSendWhatsAppReceipt,
-      );
+      final updated = _buildFullSettingsSnapshot();
 
       ThemeService.setTouchFriendly(_touchFriendlyMode);
       AuthService.configureSessionTimeout(_sessionTimeoutMinutes);
@@ -8409,48 +8454,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   Future<void> _saveReceiptSettings({bool showSnackbar = true}) async {
     setState(() => _isSavingReceiptSettings = true);
     try {
-      final updated = widget.settings.copyWith(
-        receiptPaperSize: _receiptPaperSize,
-        receiptHeaderTagline: _receiptTaglineCtrl.text.trim(),
-        receiptHeaderNote: _receiptNoteCtrl.text.trim(),
-        receiptReturnPolicy: _receiptReturnPolicyCtrl.text.trim(),
-        invoicePrintCopies: _invoicePrintCopies,
-        showLogoOnReceipt: _showLogoOnReceipt,
-        showBarcodeOnReceipt: _showBarcodeOnReceipt,
-        showQrOnReceipt: _showQrOnReceipt,
-        showCustomerBalanceOnReceipt: _showCustomerBalanceOnReceipt,
-        showTaxBreakdownOnReceipt: _showTaxBreakdownOnReceipt,
-        showCashierNameOnReceipt: _showCashierNameOnReceipt,
-        invoiceLayoutDesign: _invoiceLayoutDesign,
-        showBatchOnInvoice: _showBatchOnInvoice,
-        showExpiryOnInvoice: _showExpiryOnInvoice,
-        showBrandOnInvoice: _showBrandOnInvoice,
-        showSkuOnInvoice: _showSkuOnInvoice,
-        showWarrantyOnInvoice: _showWarrantyOnInvoice,
-        showTotalInWords: _showTotalInWords,
-        primaryLanguage: _primaryLanguage,
-        totalInWordsLanguage: _totalInWordsLanguage,
-        enableSecondaryLanguage:
-            _primaryLanguage == 'en' ? _enableSecondaryLanguage : false,
-        secondaryLanguage: _secondaryLanguage,
-        invoiceHeading: _invoiceHeadingCtrl.text.trim(),
-        sessionTimeoutMinutes: _sessionTimeoutMinutes,
-        touchFriendlyMode: _touchFriendlyMode,
-        showPosProductPanel: _showPosProductPanel,
-        compactPosProductList: _compactPosProductList,
-        autoFocusBarcodeSearch: _autoFocusBarcodeSearch,
-        confirmBeforeCancelSale: _confirmBeforeCancelSale,
-        enableCounterTokenQueue: _enableCounterTokenQueue,
-        allowOverselling: _allowOverselling,
-        autoPrintReceipt: _autoPrintReceipt,
-        autoPrintKot: _autoPrintKot,
-        fiscalComplianceMode: _fiscalComplianceMode,
-        fbrPosId: _fbrPosIdCtrl.text.trim(),
-        zatcaVatNumber: _zatcaVatCtrl.text.trim(),
-        whatsappCloudToken: _waCloudTokenCtrl.text.trim(),
-        whatsappPhoneNumberId: _waPhoneIdCtrl.text.trim(),
-        autoSendWhatsAppReceipt: _autoSendWhatsAppReceipt,
-      );
+      final updated = _buildFullSettingsSnapshot();
 
       ThemeService.setTouchFriendly(_touchFriendlyMode);
       AuthService.configureSessionTimeout(_sessionTimeoutMinutes);
@@ -10358,7 +10362,8 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   Future<void> _applyPosToggle(
       BusinessSettings Function(BusinessSettings) updater) async {
-    final updated = updater(widget.settings);
+    final current = _buildFullSettingsSnapshot();
+    final updated = updater(current);
     try {
       final db = await DatabaseService.initialize();
       await db.updateBusinessSettings(updated);
@@ -10532,6 +10537,307 @@ class _SettingsScreenState extends State<SettingsScreen>
               setState(() => _autoPrintKot = val);
               _applyPosToggle((s) => s.copyWith(autoPrintKot: val));
             },
+          ),
+          _posToggleRow(
+            isDark: isDark,
+            icon: Icons.person_pin_outlined,
+            title:
+                'Prompt / Allow Customer Name on Walk-in Sales (واک اِن بل پر گاہک کا نام)',
+            subtitle:
+                'Allows typing customer name on cash walk-in bills without registering an account. Prints on invoice and enables 1-click transfer to customer ledger later.',
+            value: _promptWalkinCustomerName,
+            onChanged: (val) {
+              setState(() => _promptWalkinCustomerName = val);
+              _applyPosToggle((s) => s.copyWith(promptWalkinCustomerName: val));
+            },
+          ),
+          const SizedBox(height: 12),
+          // POS Default Print Format Selector
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.print_outlined,
+                        size: 18, color: Color(0xFF0284C7)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Default POS Print Format (ڈیفالٹ پرنٹ فارمیٹ)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Grocery/Kiryana stores use Thermal receipts. Solar agencies and Medicine distribution agencies use Standard A4/A5 Bills. (Reports always print A4).',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          setState(() => _posDefaultPrintFormat = 'thermal');
+                          _applyPosToggle((s) =>
+                              s.copyWith(posDefaultPrintFormat: 'thermal'));
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: _posDefaultPrintFormat == 'thermal'
+                                ? const Color(0xFF0284C7)
+                                    .withValues(alpha: 0.15)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _posDefaultPrintFormat == 'thermal'
+                                  ? const Color(0xFF0284C7)
+                                  : (isDark
+                                      ? const Color(0xFF475569)
+                                      : const Color(0xFFCBD5E1)),
+                              width:
+                                  _posDefaultPrintFormat == 'thermal' ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.receipt_long,
+                                size: 16,
+                                color: _posDefaultPrintFormat == 'thermal'
+                                    ? const Color(0xFF0284C7)
+                                    : (isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B)),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Thermal Receipt (80mm/58mm)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight:
+                                      _posDefaultPrintFormat == 'thermal'
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                  color: _posDefaultPrintFormat == 'thermal'
+                                      ? (isDark
+                                          ? Colors.white
+                                          : const Color(0xFF0284C7))
+                                      : (isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF475569)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          setState(() => _posDefaultPrintFormat = 'a4');
+                          _applyPosToggle(
+                              (s) => s.copyWith(posDefaultPrintFormat: 'a4'));
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: _posDefaultPrintFormat == 'a4'
+                                ? const Color(0xFF10B981)
+                                    .withValues(alpha: 0.15)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _posDefaultPrintFormat == 'a4'
+                                  ? const Color(0xFF10B981)
+                                  : (isDark
+                                      ? const Color(0xFF475569)
+                                      : const Color(0xFFCBD5E1)),
+                              width: _posDefaultPrintFormat == 'a4' ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.description,
+                                size: 16,
+                                color: _posDefaultPrintFormat == 'a4'
+                                    ? const Color(0xFF10B981)
+                                    : (isDark
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF64748B)),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Standard Tax Invoice (A4/A5 Bill)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: _posDefaultPrintFormat == 'a4'
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: _posDefaultPrintFormat == 'a4'
+                                      ? (isDark
+                                          ? Colors.white
+                                          : const Color(0xFF047857))
+                                      : (isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF475569)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          // Pakistan Payment Methods Toggles Card
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.account_balance_wallet_rounded,
+                        size: 18, color: Color(0xFF10B981)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Pakistan POS Payment Methods (کاؤنٹر پیمنٹ کے طریقے)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Toggle which payment tender buttons appear at POS checkout. Cash is always available. Disable card if not using card swipe machines.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _posToggleRow(
+                  isDark: isDark,
+                  icon: Icons.credit_card_outlined,
+                  title: 'Debit / Credit Card Payment [F8] (کارڈ پیمنٹ)',
+                  subtitle:
+                      'Show Card checkout button (rarely used in local PK retail; off by default).',
+                  value: _enableCardPayment,
+                  onChanged: (val) {
+                    setState(() => _enableCardPayment = val);
+                    _applyPosToggle((s) => s.copyWith(enableCardPayment: val));
+                  },
+                ),
+                _posToggleRow(
+                  isDark: isDark,
+                  icon: Icons.phone_android_rounded,
+                  title: 'EasyPaisa Mobile Account (ایزی پیسہ)',
+                  subtitle:
+                      'Enable EasyPaisa tender button and QR in Payment Modal.',
+                  value: _enableEasyPaisa,
+                  onChanged: (val) {
+                    setState(() => _enableEasyPaisa = val);
+                    _applyPosToggle((s) => s.copyWith(enableEasyPaisa: val));
+                  },
+                ),
+                _posToggleRow(
+                  isDark: isDark,
+                  icon: Icons.account_balance_wallet_outlined,
+                  title: 'JazzCash Mobile Account (جاز کیش)',
+                  subtitle:
+                      'Enable JazzCash tender button and QR in Payment Modal.',
+                  value: _enableJazzCash,
+                  onChanged: (val) {
+                    setState(() => _enableJazzCash = val);
+                    _applyPosToggle((s) => s.copyWith(enableJazzCash: val));
+                  },
+                ),
+                _posToggleRow(
+                  isDark: isDark,
+                  icon: Icons.account_balance_outlined,
+                  title:
+                      'Direct Bank Transfer / IBFT / Raast (بینک اکاؤنٹ / راست)',
+                  subtitle:
+                      'Enable direct bank account & Raast payment tender option.',
+                  value: _enableBankTransfer,
+                  onChanged: (val) {
+                    setState(() => _enableBankTransfer = val);
+                    _applyPosToggle((s) => s.copyWith(enableBankTransfer: val));
+                  },
+                ),
+                _posToggleRow(
+                  isDark: isDark,
+                  icon: Icons.article_outlined,
+                  title: 'Cheque Payment Clearing (چیک پیمنٹ)',
+                  subtitle:
+                      'Enable Cheque payment with cheque number and clearing date.',
+                  value: _enableChequePayment,
+                  onChanged: (val) {
+                    setState(() => _enableChequePayment = val);
+                    _applyPosToggle(
+                        (s) => s.copyWith(enableChequePayment: val));
+                  },
+                ),
+                _posToggleRow(
+                  isDark: isDark,
+                  icon: Icons.menu_book_rounded,
+                  title: 'Credit / Khata / Udhaar Sale [F6] (ادھار کھاتہ)',
+                  subtitle: 'Enable due/credit sale for registered customers.',
+                  value: _enableCreditSale,
+                  onChanged: (val) {
+                    setState(() => _enableCreditSale = val);
+                    _applyPosToggle((s) => s.copyWith(enableCreditSale: val));
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),

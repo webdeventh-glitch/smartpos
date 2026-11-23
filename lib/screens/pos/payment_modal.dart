@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../models/business_settings.dart';
 import '../../services/auth_service.dart';
 import '../../services/currency_rate_service.dart';
 import '../../services/localization_service.dart';
@@ -14,6 +15,8 @@ class PaymentModal extends StatefulWidget {
   final String currencyCode;
   final bool multiCurrencyEnabled;
   final List<CurrencyRate> availableRates;
+  final BusinessSettings? settings;
+  final String? customWalkInName;
 
   const PaymentModal({
     super.key,
@@ -27,6 +30,8 @@ class PaymentModal extends StatefulWidget {
     this.currencyCode = 'PKR',
     this.multiCurrencyEnabled = false,
     this.availableRates = const [],
+    this.settings,
+    this.customWalkInName,
   });
 
   @override
@@ -36,6 +41,7 @@ class PaymentModal extends StatefulWidget {
 class _PaymentModalState extends State<PaymentModal> {
   late TextEditingController _tenderedController;
   final TextEditingController _noteController = TextEditingController();
+  late TextEditingController _walkInNameCtrl;
 
   // Multi-Currency Tender State
   CurrencyRate? _selectedRate;
@@ -54,7 +60,7 @@ class _PaymentModalState extends State<PaymentModal> {
 
   bool _isSplitMode = false;
   String _selectedMethod =
-      'cash'; // 'cash', 'card', 'bank_transfer', 'cheque', 'credit'
+      'cash'; // 'cash', 'card', 'bank_transfer', 'easypaisa', 'jazzcash', 'cheque', 'credit'
   String? _validationError;
   bool _isSupervisorApproved = false;
 
@@ -69,6 +75,8 @@ class _PaymentModalState extends State<PaymentModal> {
   @override
   void initState() {
     super.initState();
+    _walkInNameCtrl =
+        TextEditingController(text: widget.customWalkInName ?? '');
     _tenderedController = TextEditingController(
       text: widget.grandTotal.toStringAsFixed(2),
     );
@@ -79,6 +87,7 @@ class _PaymentModalState extends State<PaymentModal> {
 
   @override
   void dispose() {
+    _walkInNameCtrl.dispose();
     _tenderedController.dispose();
     _foreignTenderedCtrl.dispose();
     _noteController.dispose();
@@ -397,6 +406,7 @@ class _PaymentModalState extends State<PaymentModal> {
         'supervisorApproved': _isSupervisorApproved,
         'redeemedLoyaltyPoints': _redeemLoyalty ? _loyaltyDiscount : 0.0,
         'loyaltyDiscount': _redeemLoyalty ? _loyaltyDiscount : 0.0,
+        'customWalkInName': _walkInNameCtrl.text.trim(),
         'note': _noteController.text.trim(),
       });
       return;
@@ -488,6 +498,7 @@ class _PaymentModalState extends State<PaymentModal> {
       'chequeDueDate': _selectedMethod == 'cheque'
           ? _chequeDueDateController.text.trim()
           : '',
+      'customWalkInName': _walkInNameCtrl.text.trim(),
       'note': isForeign
           ? 'Foreign Currency Tender: $tenderCode (${_selectedRate!.symbol}$foreignTenderedVal @ ${rate.toStringAsFixed(2)} = ${widget.currencySymbol}${_tendered.toStringAsFixed(2)}). Change: ${widget.currencySymbol}${_changeReturn.toStringAsFixed(2)} (${_selectedRate!.symbol}${foreignChangeVal.toStringAsFixed(2)})'
           : _noteController.text.trim(),
@@ -498,78 +509,54 @@ class _PaymentModalState extends State<PaymentModal> {
     final isSelected = _selectedMethod == id;
     final isCreditDisabled = id == 'credit' && widget.isWalkIn;
 
-    return Expanded(
-      child: Tooltip(
-        message:
-            isCreditDisabled ? 'Credit disabled for Walk-in customers' : '',
-        child: InkWell(
-          onTap: isCreditDisabled
-              ? () {
-                  setState(() {
-                    _validationError =
-                        'Credit/Due sales are strictly reserved for registered account holders.';
-                  });
-                }
-              : () => setState(() {
-                    _selectedMethod = id;
-                    _validationError = null;
-                  }),
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
+    return Tooltip(
+      message: isCreditDisabled ? 'Credit disabled for Walk-in customers' : '',
+      child: InkWell(
+        onTap: isCreditDisabled
+            ? () {
+                setState(() {
+                  _validationError =
+                      'Credit/Due sales are strictly reserved for registered account holders.';
+                });
+              }
+            : () => setState(() {
+                  _selectedMethod = id;
+                  _validationError = null;
+                }),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 92,
+          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isCreditDisabled
+                ? (isDark
+                    ? const Color(0xFF1E293B).withValues(alpha: 0.5)
+                    : const Color(0xFFF1F5F9))
+                : (isSelected
+                    ? const Color(0xFF4F46E5)
+                    : (isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC))),
+            border: Border.all(
               color: isCreditDisabled
-                  ? (isDark
-                      ? const Color(0xFF1E293B).withValues(alpha: 0.5)
-                      : const Color(0xFFF1F5F9))
+                  ? (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))
                   : (isSelected
                       ? const Color(0xFF4F46E5)
                       : (isDark
-                          ? const Color(0xFF0F172A)
-                          : const Color(0xFFF8FAFC))),
-              border: Border.all(
-                color: isCreditDisabled
-                    ? (isDark
-                        ? const Color(0xFF334155)
-                        : const Color(0xFFCBD5E1))
-                    : (isSelected
-                        ? const Color(0xFF4F46E5)
-                        : (isDark
-                            ? const Color(0xFF334155)
-                            : const Color(0xFFE2E8F0))),
-                width: 1.5,
-              ),
-              borderRadius: BorderRadius.circular(10),
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0))),
+              width: 1.5,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Stack(
-                  alignment: Alignment.topRight,
-                  children: [
-                    Icon(
-                      icon,
-                      color: isCreditDisabled
-                          ? (isDark
-                              ? const Color(0xFF64748B)
-                              : const Color(0xFF94A3B8))
-                          : (isSelected
-                              ? Colors.white
-                              : (isDark
-                                  ? const Color(0xFF94A3B8)
-                                  : const Color(0xFF475569))),
-                      size: 22,
-                    ),
-                    if (isCreditDisabled)
-                      const Icon(Icons.lock, size: 12, color: Colors.amber),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Icon(
+                    icon,
                     color: isCreditDisabled
                         ? (isDark
                             ? const Color(0xFF64748B)
@@ -577,16 +564,86 @@ class _PaymentModalState extends State<PaymentModal> {
                         : (isSelected
                             ? Colors.white
                             : (isDark
-                                ? const Color(0xFFCBD5E1)
-                                : const Color(0xFF1E293B))),
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF475569))),
+                    size: 20,
                   ),
+                  if (isCreditDisabled)
+                    const Icon(Icons.lock, size: 12, color: Colors.amber),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                  color: isCreditDisabled
+                      ? (isDark
+                          ? const Color(0xFF64748B)
+                          : const Color(0xFF94A3B8))
+                      : (isSelected
+                          ? Colors.white
+                          : (isDark
+                              ? const Color(0xFFCBD5E1)
+                              : const Color(0xFF1E293B))),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  List<Widget> _buildPaymentMethodTiles(bool isDark) {
+    final s = widget.settings;
+    final enableCard = s?.enableCardPayment ?? false;
+    final enableEasyPaisa = s?.enableEasyPaisa ?? true;
+    final enableJazzCash = s?.enableJazzCash ?? true;
+    final enableBank = s?.enableBankTransfer ?? true;
+    final enableCheque = s?.enableChequePayment ?? true;
+    final enableCredit = s?.enableCreditSale ?? true;
+
+    final tiles = <Widget>[];
+
+    // Cash is always enabled
+    tiles.add(_methodTile('cash', 'Cash', Icons.payments_outlined, isDark));
+
+    if (enableEasyPaisa) {
+      tiles.add(_methodTile(
+          'easypaisa', 'EasyPaisa', Icons.phone_android_rounded, isDark));
+    }
+
+    if (enableJazzCash) {
+      tiles.add(_methodTile('jazzcash', 'JazzCash',
+          Icons.account_balance_wallet_rounded, isDark));
+    }
+
+    if (enableBank) {
+      tiles.add(_methodTile(
+          'bank_transfer', 'Bank', Icons.account_balance_outlined, isDark));
+    }
+
+    if (enableCard) {
+      tiles
+          .add(_methodTile('card', 'Card', Icons.credit_card_outlined, isDark));
+    }
+
+    if (enableCheque) {
+      tiles
+          .add(_methodTile('cheque', 'Cheque', Icons.article_outlined, isDark));
+    }
+
+    if (!widget.isWalkIn && enableCredit) {
+      tiles.add(_methodTile(
+          'credit', 'Due/Credit', Icons.pending_actions_outlined, isDark));
+    }
+
+    return tiles;
   }
 
   Widget _quickCashBtn(String text, VoidCallback onTap, bool isDark) {
@@ -721,6 +778,63 @@ class _PaymentModalState extends State<PaymentModal> {
                   color: isDark
                       ? const Color(0xFF334155)
                       : const Color(0xFFE2E8F0)),
+
+              if (widget.isWalkIn &&
+                  (widget.settings?.promptWalkinCustomerName ?? false)) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFCBD5E1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.person_pin_outlined,
+                          size: 20, color: Color(0xFF4F46E5)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _walkInNameCtrl,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color:
+                                isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            border: InputBorder.none,
+                            labelText:
+                                'Customer Name on Bill / Invoice (واک اِن گاہک کا نام)',
+                            labelStyle: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B),
+                            ),
+                            hintText: 'e.g. Tariq Solar / 0300-1234567',
+                            hintStyle: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark
+                                  ? const Color(0xFF64748B)
+                                  : const Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               // Amount Payable Display Box
               Container(
@@ -1127,25 +1241,10 @@ class _PaymentModalState extends State<PaymentModal> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _methodTile(
-                        'cash', 'Cash', Icons.payments_outlined, isDark),
-                    const SizedBox(width: 8),
-                    _methodTile(
-                        'card', 'Card', Icons.credit_card_outlined, isDark),
-                    const SizedBox(width: 8),
-                    _methodTile('bank_transfer', 'Bank',
-                        Icons.account_balance_outlined, isDark),
-                    const SizedBox(width: 8),
-                    _methodTile(
-                        'cheque', 'Cheque', Icons.article_outlined, isDark),
-                    if (!widget.isWalkIn) ...[
-                      const SizedBox(width: 8),
-                      _methodTile('credit', 'Due/Credit',
-                          Icons.pending_actions_outlined, isDark),
-                    ],
-                  ],
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _buildPaymentMethodTiles(isDark),
                 ),
                 const SizedBox(height: 16),
                 if (_selectedMethod != 'credit') ...[
@@ -1810,6 +1909,67 @@ class _PaymentModalState extends State<PaymentModal> {
                                 style: TextStyle(fontSize: 11)),
                           ),
                         ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              if (!_isSplitMode &&
+                  (_selectedMethod == 'easypaisa' ||
+                      _selectedMethod == 'jazzcash' ||
+                      _selectedMethod == 'bank_transfer')) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: (_selectedMethod == 'easypaisa'
+                            ? const Color(0xFF10B981)
+                            : (_selectedMethod == 'jazzcash'
+                                ? const Color(0xFFF59E0B)
+                                : const Color(0xFF0284C7)))
+                        .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: (_selectedMethod == 'easypaisa'
+                              ? const Color(0xFF10B981)
+                              : (_selectedMethod == 'jazzcash'
+                                  ? const Color(0xFFF59E0B)
+                                  : const Color(0xFF0284C7)))
+                          .withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _selectedMethod == 'easypaisa'
+                            ? Icons.phone_android_rounded
+                            : (_selectedMethod == 'jazzcash'
+                                ? Icons.account_balance_wallet_rounded
+                                : Icons.account_balance_outlined),
+                        size: 18,
+                        color: _selectedMethod == 'easypaisa'
+                            ? const Color(0xFF10B981)
+                            : (_selectedMethod == 'jazzcash'
+                                ? const Color(0xFFD97706)
+                                : const Color(0xFF0284C7)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _selectedMethod == 'easypaisa'
+                              ? 'EasyPaisa Wallet: Ask customer to send ${widget.currencySymbol}${payableTotal.toStringAsFixed(2)} to store EasyPaisa account. Note down the Txn ID in payment notes.'
+                              : (_selectedMethod == 'jazzcash'
+                                  ? 'JazzCash Wallet: Ask customer to send ${widget.currencySymbol}${payableTotal.toStringAsFixed(2)} to store JazzCash account. Note down the Txn ID in payment notes.'
+                                  : 'Direct Bank Transfer / Raast: Verify IBFT / Raast payment. Note down reference in payment notes.'),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: isDark
+                                ? Colors.white70
+                                : const Color(0xFF334155),
+                          ),
+                        ),
                       ),
                     ],
                   ),

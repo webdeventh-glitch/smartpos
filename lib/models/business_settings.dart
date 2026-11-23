@@ -107,6 +107,14 @@ class BusinessSettings {
   final String whatsappCloudToken;
   final String whatsappPhoneNumberId;
   final bool autoSendWhatsAppReceipt;
+  final String posDefaultPrintFormat; // 'thermal', 'a4'
+  final bool promptWalkinCustomerName;
+  final bool enableCardPayment;
+  final bool enableEasyPaisa;
+  final bool enableJazzCash;
+  final bool enableBankTransfer;
+  final bool enableCreditSale;
+  final bool enableChequePayment;
 
   BusinessSettings({
     this.id = 1,
@@ -212,6 +220,14 @@ class BusinessSettings {
     this.whatsappCloudToken = '',
     this.whatsappPhoneNumberId = '',
     this.autoSendWhatsAppReceipt = false,
+    this.posDefaultPrintFormat = 'thermal',
+    this.promptWalkinCustomerName = false,
+    this.enableCardPayment = false,
+    this.enableEasyPaisa = true,
+    this.enableJazzCash = true,
+    this.enableBankTransfer = true,
+    this.enableCreditSale = true,
+    this.enableChequePayment = true,
   });
 
   String get effectiveLoginBanner {
@@ -690,6 +706,14 @@ class BusinessSettings {
     String? whatsappCloudToken,
     String? whatsappPhoneNumberId,
     bool? autoSendWhatsAppReceipt,
+    String? posDefaultPrintFormat,
+    bool? promptWalkinCustomerName,
+    bool? enableCardPayment,
+    bool? enableEasyPaisa,
+    bool? enableJazzCash,
+    bool? enableBankTransfer,
+    bool? enableCreditSale,
+    bool? enableChequePayment,
   }) {
     return BusinessSettings(
       id: id ?? this.id,
@@ -811,6 +835,16 @@ class BusinessSettings {
           whatsappPhoneNumberId ?? this.whatsappPhoneNumberId,
       autoSendWhatsAppReceipt:
           autoSendWhatsAppReceipt ?? this.autoSendWhatsAppReceipt,
+      posDefaultPrintFormat:
+          posDefaultPrintFormat ?? this.posDefaultPrintFormat,
+      promptWalkinCustomerName:
+          promptWalkinCustomerName ?? this.promptWalkinCustomerName,
+      enableCardPayment: enableCardPayment ?? this.enableCardPayment,
+      enableEasyPaisa: enableEasyPaisa ?? this.enableEasyPaisa,
+      enableJazzCash: enableJazzCash ?? this.enableJazzCash,
+      enableBankTransfer: enableBankTransfer ?? this.enableBankTransfer,
+      enableCreditSale: enableCreditSale ?? this.enableCreditSale,
+      enableChequePayment: enableChequePayment ?? this.enableChequePayment,
     );
   }
 
@@ -918,6 +952,14 @@ class BusinessSettings {
         'whatsapp_cloud_token': whatsappCloudToken,
         'whatsapp_phone_number_id': whatsappPhoneNumberId,
         'auto_send_whatsapp_receipt': autoSendWhatsAppReceipt ? 1 : 0,
+        'pos_default_print_format': posDefaultPrintFormat,
+        'prompt_walkin_customer_name': promptWalkinCustomerName ? 1 : 0,
+        'enable_card_payment': enableCardPayment ? 1 : 0,
+        'enable_easypaisa': enableEasyPaisa ? 1 : 0,
+        'enable_jazzcash': enableJazzCash ? 1 : 0,
+        'enable_bank_transfer': enableBankTransfer ? 1 : 0,
+        'enable_credit_sale': enableCreditSale ? 1 : 0,
+        'enable_cheque_payment': enableChequePayment ? 1 : 0,
       };
 
   factory BusinessSettings.fromMap(Map<String, dynamic> map) =>
@@ -1045,6 +1087,16 @@ class BusinessSettings {
         whatsappPhoneNumberId: modelAsString(map['whatsapp_phone_number_id']),
         autoSendWhatsAppReceipt:
             modelAsBool(map['auto_send_whatsapp_receipt'], false),
+        posDefaultPrintFormat:
+            modelAsString(map['pos_default_print_format'], 'thermal'),
+        promptWalkinCustomerName:
+            modelAsBool(map['prompt_walkin_customer_name'], false),
+        enableCardPayment: modelAsBool(map['enable_card_payment'], false),
+        enableEasyPaisa: modelAsBool(map['enable_easypaisa'], true),
+        enableJazzCash: modelAsBool(map['enable_jazzcash'], true),
+        enableBankTransfer: modelAsBool(map['enable_bank_transfer'], true),
+        enableCreditSale: modelAsBool(map['enable_credit_sale'], true),
+        enableChequePayment: modelAsBool(map['enable_cheque_payment'], true),
       );
 }
 

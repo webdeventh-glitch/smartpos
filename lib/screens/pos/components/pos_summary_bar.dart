@@ -431,25 +431,27 @@ class PosSummaryBar extends StatelessWidget {
                           onPressed: onSendToCashCounterToken,
                         ),
                       ],
-                      const SizedBox(width: 6),
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF8B5CF6)),
-                          foregroundColor: const Color(0xFF8B5CF6),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6)),
+                      if (settings.enableCreditSale) ...[
+                        const SizedBox(width: 6),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF8B5CF6)),
+                            foregroundColor: const Color(0xFF8B5CF6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6)),
+                          ),
+                          icon: const Icon(Icons.menu_book_rounded, size: 14),
+                          label: Text(
+                            PosLocalization.tr('Credit / Khata [F6]',
+                                settings: settings),
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: onQuickCredit,
                         ),
-                        icon: const Icon(Icons.menu_book_rounded, size: 14),
-                        label: Text(
-                          PosLocalization.tr('Credit / Khata [F6]',
-                              settings: settings),
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                        onPressed: onQuickCredit,
-                      ),
+                      ],
                       if (onRecentTransactions != null) ...[
                         const SizedBox(width: 6),
                         OutlinedButton.icon(
@@ -488,29 +490,31 @@ class PosSummaryBar extends StatelessWidget {
                 // Primary Checkout Buttons (Card, Multiple Pay [F7], Cash [F2])
                 Row(
                   children: [
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4F46E5),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          elevation: 2,
+                    if (settings.enableCardPayment) ...[
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F46E5),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            elevation: 2,
+                          ),
+                          icon: const Icon(Icons.credit_card, size: 18),
+                          label: Text(
+                            PosLocalization.tr('Card [F8]', settings: settings),
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w900),
+                          ),
+                          onPressed: onQuickCard,
                         ),
-                        icon: const Icon(Icons.credit_card, size: 18),
-                        label: Text(
-                          PosLocalization.tr('Card [F8]', settings: settings),
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w900),
-                        ),
-                        onPressed: onQuickCard,
                       ),
-                    ),
-                    const SizedBox(width: 8),
+                      const SizedBox(width: 8),
+                    ],
                     Expanded(
-                      flex: 3,
+                      flex: settings.enableCardPayment ? 3 : 4,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0D9488),
@@ -532,7 +536,7 @@ class PosSummaryBar extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      flex: 4,
+                      flex: settings.enableCardPayment ? 4 : 5,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF16A34A),

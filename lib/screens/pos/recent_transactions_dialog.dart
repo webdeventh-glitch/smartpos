@@ -127,6 +127,180 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
     );
   }
 
+  Future<void> _transferSaleToLedger(Sale sale) async {
+    final db = await DatabaseService.initialize();
+    final contacts = await db.getContacts(type: 'customer');
+    if (!mounted) return;
+
+    Contact? selectedContact;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final bg = isDark ? const Color(0xFF1E293B) : Colors.white;
+            final textCol = isDark ? Colors.white : const Color(0xFF0F172A);
+
+            return AlertDialog(
+              backgroundColor: bg,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.account_balance_wallet_outlined,
+                        color: Color(0xFF0D9488), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Transfer Invoice to Customer Ledger',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: textCol),
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 480,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Assign invoice ${sale.invoiceNo} (Total: ${widget.settings.currencySymbol}${sale.totalAmount.toStringAsFixed(2)}) to an existing customer account/khata ledger. Outstanding balance (${widget.settings.currencySymbol}${sale.dueAmount.toStringAsFixed(2)}) will be linked directly to their customer balance.',
+                      style: TextStyle(
+                          fontSize: 13,
+                          height: 1.4,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF475569)),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Select Target Customer Account:',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: textCol),
+                    ),
+                    const SizedBox(height: 8),
+                    Autocomplete<Contact>(
+                      displayStringForOption: (c) =>
+                          '${c.name} (${c.phone.isNotEmpty ? c.phone : "No Phone"})',
+                      optionsBuilder: (textEditingValue) {
+                        if (textEditingValue.text.isEmpty) {
+                          return contacts;
+                        }
+                        return contacts.where((c) =>
+                            c.name.toLowerCase().contains(
+                                textEditingValue.text.toLowerCase()) ||
+                            c.phone.contains(textEditingValue.text));
+                      },
+                      onSelected: (c) {
+                        setDialogState(() {
+                          selectedContact = c;
+                        });
+                      },
+                      fieldViewBuilder:
+                          (context, controller, focusNode, onFieldSubmitted) {
+                        return TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          autofocus: true,
+                          style: TextStyle(color: textCol, fontSize: 13),
+                          decoration: InputDecoration(
+                            hintText: 'Type customer name or phone...',
+                            prefixIcon:
+                                const Icon(Icons.person_search, size: 20),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                          ),
+                        );
+                      },
+                    ),
+                    if (selectedContact != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFF0D9488).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: const Color(0xFF0D9488)
+                                  .withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle_outline,
+                                color: Color(0xFF0D9488), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Will transfer to: ${selectedContact!.name} (Current Balance: ${widget.settings.currencySymbol}${selectedContact!.balance.toStringAsFixed(2)})',
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF0D9488)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D9488),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: selectedContact == null
+                      ? null
+                      : () => Navigator.pop(dialogCtx, true),
+                  child: const Text('Confirm Transfer'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed == true && selectedContact != null && sale.id != null) {
+      await db.transferSaleToCustomer(
+          saleId: sale.id!, contact: selectedContact!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Successfully transferred invoice ${sale.invoiceNo} to ${selectedContact!.name}\'s ledger!',
+            ),
+            backgroundColor: const Color(0xFF0D9488),
+          ),
+        );
+        _loadRecentSales();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -597,6 +771,37 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                             ),
                                             onPressed: () =>
                                                 _initiateReturn(sale),
+                                          ),
+                                          const SizedBox(width: 8),
+
+                                          // Transfer to Ledger Button
+                                          OutlinedButton.icon(
+                                            style: OutlinedButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 8),
+                                              side: BorderSide(
+                                                  color: const Color(0xFF0D9488)
+                                                      .withValues(alpha: 0.5)),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
+                                            ),
+                                            icon: const Icon(
+                                                Icons
+                                                    .account_balance_wallet_outlined,
+                                                size: 15,
+                                                color: Color(0xFF0D9488)),
+                                            label: const Text(
+                                              'To Ledger',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF0D9488)),
+                                            ),
+                                            onPressed: () =>
+                                                _transferSaleToLedger(sale),
                                           ),
                                         ],
                                       ],

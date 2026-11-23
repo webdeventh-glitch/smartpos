@@ -48,6 +48,10 @@ abstract class ISalesRepository {
     String note = '',
     String createdBy = 'Cashier',
   });
+  Future<void> transferSaleToCustomer({
+    required int saleId,
+    required Contact contact,
+  });
   Future<int> parkSale(ParkedSale parked);
   Future<List<ParkedSale>> getParkedSales();
   Future<int> deleteParkedSale(int id);
@@ -1600,6 +1604,39 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
         await txn.rawUpdate(
           'UPDATE cash_registers SET total_sales_other = total_sales_other + ? WHERE status = \'open\'',
           [amountPaid],
+        );
+      }
+    });
+  }
+
+  @override
+  Future<void> transferSaleToCustomer({
+    required int saleId,
+    required Contact contact,
+  }) async {
+    await db.transaction((txn) async {
+      final saleRows = await txn.query('sales',
+          where: 'id = ?', whereArgs: [saleId], limit: 1);
+      if (saleRows.isEmpty) throw Exception('Sale #$saleId not found');
+      final sale = Sale.fromMap(saleRows.first);
+
+      // Reassign customer on the sale invoice
+      await txn.update(
+        'sales',
+        {
+          'customer_id': contact.id,
+          'customer_name': contact.name,
+        },
+        where: 'id = ?',
+        whereArgs: [saleId],
+      );
+
+      // If the sale has an unpaid balance, reflect it in the customer's balance
+      final due = sale.dueAmount;
+      if (due > 0 && contact.id != null) {
+        await txn.rawUpdate(
+          'UPDATE contacts SET balance = COALESCE(balance, 0) + ? WHERE id = ?',
+          [due, contact.id],
         );
       }
     });

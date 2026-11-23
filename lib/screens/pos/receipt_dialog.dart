@@ -42,8 +42,13 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
         name.contains('walk in') ||
         name == 'cash customer' ||
         name.contains('walkin');
-    // Retail counter walk-in defaults to 80mm POS slip; Registered account holder defaults to A4 Agency invoice
-    _paperSize = isWalkIn ? '80mm POS' : 'A4 Agency';
+    // If settings explicitly specify default POS format as 'a4', use 'A4 Agency' even for counter sales (essential for Solar & Medicine distributors)
+    if (widget.settings.posDefaultPrintFormat == 'a4') {
+      _paperSize = 'A4 Agency';
+    } else {
+      // Retail counter walk-in defaults to 80mm POS slip; Registered account holder defaults to A4 Agency invoice
+      _paperSize = isWalkIn ? '80mm POS' : 'A4 Agency';
+    }
   }
 
   String _numberToWords(double amount) {
@@ -1004,10 +1009,16 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                   children: [
                     _a4MetaField('INVOICE NO:', widget.sale.invoiceNo),
                     _a4MetaField(
-                        'PARTY CODE:', '${widget.sale.customerId ?? 2033}'),
+                        'PARTY CODE:',
+                        widget.sale.customerId != null
+                            ? '${widget.sale.customerId}'
+                            : 'WALK-IN'),
                     _a4MetaField('PARTY NAME:', widget.sale.customerName),
                     _a4MetaField(
-                        'ADDRESS:', widget.settings.address.split(',').first),
+                        'ADDRESS:',
+                        widget.sale.customerId != null
+                            ? 'Registered Client'
+                            : 'Counter Sale / Walk-in'),
                   ],
                 ),
               ),
@@ -1020,8 +1031,15 @@ class _ReceiptDialogState extends State<ReceiptDialog> {
                   children: [
                     _a4MetaField(
                         'DATE:', widget.sale.createdAt.split(' ').first),
-                    _a4MetaField('S/MAN.CODE:', '02'),
-                    _a4MetaField('NAME:', 'NASIR MENGAL'),
+                    _a4MetaField('S/MAN.CODE:', '01'),
+                    _a4MetaField(
+                        'NAME:',
+                        (widget.sale.userName != null &&
+                                widget.sale.userName!.trim().isNotEmpty)
+                            ? widget.sale.userName!
+                            : (widget.sale.cashierName.trim().isNotEmpty
+                                ? widget.sale.cashierName
+                                : 'Cashier')),
                     _a4MetaField(
                         'TIME:',
                         widget.sale.createdAt.contains(' ')
