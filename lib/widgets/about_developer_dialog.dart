@@ -35,7 +35,8 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
   static const String phoneDisplay = '+92 300 1234567';
   static const String phoneRaw = '923001234567';
   static const String emailAddress = 'webdeventh@gmail.com';
-  static const String appVersion = 'v1.0.0 (Release 2026.11)';
+  static const String appVersion =
+      'v1.1.0 (Release 2026.11.23 - Phase 8 Enterprise)';
 
   @override
   void initState() {

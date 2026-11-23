@@ -202,7 +202,7 @@ Please provide an executive summary and business advisory for the store owner in
 User Question: "$question"
 
 Software Context:
-- App: Smart POS Retail & Systems v1.0
+- App: Smart POS Retail & Systems v1.1.0 (Enterprise Edition)
 - Business: ${settings.businessName}
 - Shortcuts:
   * F1: Open POS Terminal / Barcode Scanner Focus

@@ -1680,7 +1680,7 @@ class _SmartSidebarState extends State<SmartSidebar> {
                                     size: 10, color: Color(0xFF4F46E5)),
                                 SizedBox(width: 3),
                                 Text(
-                                  'v1.0',
+                                  'v1.1',
                                   style: TextStyle(
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.bold,
