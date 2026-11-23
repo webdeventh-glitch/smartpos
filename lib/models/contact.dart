@@ -8,6 +8,8 @@ class Contact {
   final String email;
   final String address;
   final double balance; // Receivable for customer, Payable for supplier
+  final double openingBalance; // Initial starting ledger balance
+  final String? openingBalanceDate; // Date when opening balance was recorded
   final double creditLimit;
   final double loyaltyPoints;
   final int? customerGroupId;
@@ -24,6 +26,8 @@ class Contact {
     this.email = '',
     this.address = '',
     this.balance = 0.0,
+    this.openingBalance = 0.0,
+    this.openingBalanceDate,
     this.creditLimit = 1000.0,
     this.loyaltyPoints = 0.0,
     this.customerGroupId,
@@ -44,6 +48,8 @@ class Contact {
         'email': email,
         'address': address,
         'balance': balance,
+        'opening_balance': openingBalance,
+        'opening_balance_date': openingBalanceDate,
         'credit_limit': creditLimit,
         'loyalty_points': loyaltyPoints,
         'customer_group_id': customerGroupId,
@@ -60,6 +66,8 @@ class Contact {
         email: map['email'] as String? ?? '',
         address: map['address'] as String? ?? '',
         balance: (map['balance'] as num?)?.toDouble() ?? 0.0,
+        openingBalance: (map['opening_balance'] as num?)?.toDouble() ?? 0.0,
+        openingBalanceDate: map['opening_balance_date'] as String?,
         creditLimit: (map['credit_limit'] as num?)?.toDouble() ?? 1000.0,
         loyaltyPoints: (map['loyalty_points'] as num?)?.toDouble() ?? 0.0,
         customerGroupId: map['customer_group_id'] as int?,

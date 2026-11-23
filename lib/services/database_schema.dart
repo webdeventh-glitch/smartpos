@@ -158,6 +158,24 @@ class DatabaseSchema {
         'pos_terminal_toggles_and_lan_token_queue',
       );
     }
+    if (fromVersion < 11 && toVersion >= 11) {
+      await _applyV11ContactOpeningBalanceAndIndexes(db);
+      await _recordMigration(
+        db,
+        11,
+        'contact_opening_balance_and_sales_indexes',
+      );
+    }
+  }
+
+  static Future<void> _applyV11ContactOpeningBalanceAndIndexes(
+      Database db) async {
+    await _addColumnIfMissing(
+        db, 'contacts', 'opening_balance', 'REAL DEFAULT 0.0');
+    await _addColumnIfMissing(db, 'contacts', 'opening_balance_date', 'TEXT');
+    await _ensureIndex(
+        db, 'idx_sales_created_at_desc', 'sales', 'created_at DESC');
+    await _ensureIndex(db, 'idx_contacts_type_name', 'contacts', 'type, name');
   }
 
   static Future<void> _applyV10PosTerminalAndLanToggles(Database db) async {
@@ -2675,6 +2693,8 @@ class DatabaseSchema {
         email TEXT,
         address TEXT,
         balance REAL DEFAULT 0.0,
+        opening_balance REAL DEFAULT 0.0,
+        opening_balance_date TEXT,
         credit_limit REAL DEFAULT 1000.0,
         loyalty_points REAL DEFAULT 0.0,
         customer_group_id INTEGER,

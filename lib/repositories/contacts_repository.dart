@@ -195,8 +195,20 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
 
   @override
   Future<int> addContact(Contact contact) async {
-    final id = await db.insert('contacts', contact.toMap());
-    final cMap = contact.toMap()..['id'] = id;
+    final effectiveBalance =
+        (contact.balance == 0.0 && contact.openingBalance != 0.0)
+            ? contact.openingBalance
+            : contact.balance;
+    final map = contact.toMap()
+      ..['balance'] = effectiveBalance
+      ..['opening_balance'] = contact.openingBalance
+      ..['opening_balance_date'] = contact.openingBalanceDate ??
+          (contact.openingBalance != 0.0
+              ? DateTime.now().toIso8601String()
+              : null);
+
+    final id = await db.insert('contacts', map);
+    final cMap = Map<String, dynamic>.from(map)..['id'] = id;
     await dbService.queueSyncItem(
       entityType: 'contact',
       entityId: id.toString(),
@@ -211,6 +223,7 @@ class ContactsRepository extends BaseRepository implements IContactsRepository {
         'name': contact.name,
         'type': contact.type,
         'phone': contact.phone,
+        'opening_balance': contact.openingBalance,
         if (contact.customerGroupId != null)
           'customer_group_id': contact.customerGroupId,
       },

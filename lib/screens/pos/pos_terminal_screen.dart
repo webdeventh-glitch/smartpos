@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
@@ -33,6 +31,8 @@ import '../../services/thermal_printer_service.dart';
 import '../../services/localization_service.dart';
 import '../../widgets/product_thumbnail.dart';
 import '../returns/sales_return_dialog.dart';
+import 'components/pos_hotkey_manager.dart';
+import 'components/pos_summary_bar.dart';
 
 class PosTerminalScreen extends ConsumerStatefulWidget {
   final BusinessSettings settings;
@@ -5148,56 +5148,24 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
       FocusManager.instance.primaryFocus?.context?.widget is EditableText;
 
   Map<ShortcutActivator, VoidCallback> _buildDynamicShortcuts() {
-    final map = <ShortcutActivator, VoidCallback>{
-      const SingleActivator(LogicalKeyboardKey.keyB, control: true):
-          _toggleProductPanelVisibility,
-      const SingleActivator(LogicalKeyboardKey.f11): _openCustomProductDialog,
-      const SingleActivator(LogicalKeyboardKey.f12): _toggleWholesaleMode,
-      const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () =>
-          ref.read(cartProvider.notifier).undo(),
-      const SingleActivator(LogicalKeyboardKey.keyY, control: true): () =>
-          ref.read(cartProvider.notifier).redo(),
-      const SingleActivator(LogicalKeyboardKey.numpadAdd): () {
-        if (_cart.isNotEmpty && !_isEditingText) {
-          _tryIncrementCartItem(_cart.length - 1);
-        }
-      },
-      const SingleActivator(LogicalKeyboardKey.equal): () {
-        if (_cart.isNotEmpty && !_isEditingText) {
-          _tryIncrementCartItem(_cart.length - 1);
-        }
-      },
-      const SingleActivator(LogicalKeyboardKey.numpadSubtract): () {
-        if (_cart.isNotEmpty && !_isEditingText) {
-          ref.read(cartProvider.notifier).decrementQuantity(_cart.length - 1);
-        }
-      },
-      const SingleActivator(LogicalKeyboardKey.minus): () {
-        if (_cart.isNotEmpty && !_isEditingText) {
-          ref.read(cartProvider.notifier).decrementQuantity(_cart.length - 1);
-        }
-      },
-      const SingleActivator(LogicalKeyboardKey.delete): () {
-        if (_cart.isNotEmpty && !_isEditingText) {
-          ref.read(cartProvider.notifier).removeAt(_cart.length - 1);
-        }
-      },
-      const SingleActivator(LogicalKeyboardKey.escape): () {
-        _searchFocusNode.requestFocus();
-      },
-      const SingleActivator(LogicalKeyboardKey.slash, shift: true):
-          _showShortcutsDialog,
-    };
-
-    for (final spec in KeyboardShortcutsService.actions) {
-      if (spec.isGlobalOrForm) continue;
-      final assignedKey = _shortcutBindings[spec.id] ?? spec.defaultKeyLabel;
-      final logicalKey = KeyboardShortcutsService.parseFunctionKey(assignedKey);
-      if (logicalKey != null) {
-        map[SingleActivator(logicalKey)] = _callbackForShortcutAction(spec.id);
-      }
-    }
-    return map;
+    return PosHotkeyManager.buildShortcuts(
+      onToggleProductPanel: _toggleProductPanelVisibility,
+      onOpenCustomProductDialog: _openCustomProductDialog,
+      onToggleWholesaleMode: _toggleWholesaleMode,
+      onUndo: () => ref.read(cartProvider.notifier).undo(),
+      onRedo: () => ref.read(cartProvider.notifier).redo(),
+      onIncrementLastItem: () => _tryIncrementCartItem(_cart.length - 1),
+      onDecrementLastItem: () =>
+          ref.read(cartProvider.notifier).decrementQuantity(_cart.length - 1),
+      onRemoveLastItem: () =>
+          ref.read(cartProvider.notifier).removeAt(_cart.length - 1),
+      onEscape: () => _searchFocusNode.requestFocus(),
+      onShowShortcuts: _showShortcutsDialog,
+      isCartNotEmpty: _cart.isNotEmpty,
+      isEditingText: _isEditingText,
+      shortcutBindings: _shortcutBindings,
+      callbackForAction: _callbackForShortcutAction,
+    );
   }
 
   void _openCustomerFacingDisplay() {
@@ -8178,510 +8146,39 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                               ),
 
                               // ================= CART BOTTOM SUMMARY BAR =================
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: isSmallScreen ? 10 : 16,
-                                    vertical: isSmallScreen ? 6 : 12),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF0F172A)
-                                      : const Color(0xFFF0FDF4),
-                                  border: Border(
-                                      top: BorderSide(
-                                          color: isDark
-                                              ? const Color(0xFF1E3A2F)
-                                              : const Color(0xFFBBF7D0))),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          children: [
-                                            _summaryBlock(
-                                                PosLocalization.tr('ITEMS',
-                                                    settings: widget.settings),
-                                                _totalQuantity
-                                                    .toStringAsFixed(2),
-                                                isDark: isDark,
-                                                isSmall: isSmallScreen),
-                                            SizedBox(
-                                                width: isSmallScreen ? 8 : 14),
-                                            _summaryBlock(
-                                                PosLocalization.tr('SUBTOTAL',
-                                                    settings: widget.settings),
-                                                '$currency ${_subtotal.toStringAsFixed(2)}',
-                                                isDark: isDark,
-                                                isSmall: isSmallScreen),
-                                            SizedBox(
-                                                width: isSmallScreen ? 8 : 14),
-                                            _summaryBlock(
-                                              PosLocalization.tr('DISCOUNT(-)',
-                                                  settings: widget.settings),
-                                              _discountValue <= 0
-                                                  ? '$currency 0.00'
-                                                  : (_discountType ==
-                                                          'percentage'
-                                                      ? '${_discountValue.toStringAsFixed(_discountValue.truncateToDouble() == _discountValue ? 0 : 2)}% ($currency ${_calculatedDiscount.toStringAsFixed(2)})'
-                                                      : '$currency ${_calculatedDiscount.toStringAsFixed(2)}'),
-                                              isEditable: true,
-                                              onEdit: _showOrderDiscountDialog,
-                                              isDark: isDark,
-                                              isSmall: isSmallScreen,
-                                            ),
-                                            SizedBox(
-                                                width: isSmallScreen ? 8 : 14),
-                                            _summaryBlock(
-                                                PosLocalization.tr(
-                                                    'ORDER TAX(+)',
-                                                    settings: widget.settings),
-                                                '$currency ${_orderTax.toStringAsFixed(2)}',
-                                                isEditable: true,
-                                                onEdit: _showOrderTaxDialog,
-                                                isDark: isDark,
-                                                isSmall: isSmallScreen),
-                                            SizedBox(
-                                                width: isSmallScreen ? 8 : 14),
-                                            _summaryBlock(
-                                                PosLocalization.tr(
-                                                    'SHIPPING(+)',
-                                                    settings: widget.settings),
-                                                '$currency ${_shippingCharge.toStringAsFixed(2)}',
-                                                isEditable: true,
-                                                onEdit: _showShippingDialog,
-                                                isDark: isDark,
-                                                isSmall: isSmallScreen),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: isSmallScreen ? 8 : 16),
-
-                                    // Big Green TOTAL PAYABLE Box with Words (Urdu & Multi-language)
-                                    InkWell(
-                                      onTap: _showWordsLanguageDialog,
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Tooltip(
-                                        message: widget.settings
-                                                .enableSecondaryLanguage
-                                            ? 'Click to change words language (${_wordsLanguage.toUpperCase()}) / زبان تبدیل کریں'
-                                            : 'Click to change words language (${_wordsLanguage.toUpperCase()})',
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal:
-                                                  isSmallScreen ? 10 : 16,
-                                              vertical: isSmallScreen ? 4 : 6),
-                                          constraints: BoxConstraints(
-                                              minWidth:
-                                                  isSmallScreen ? 130 : 160),
-                                          decoration: BoxDecoration(
-                                            color: isDark
-                                                ? const Color(0xFF064E3B)
-                                                : Colors.white,
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            border: Border.all(
-                                                color: isDark
-                                                    ? const Color(0xFF059669)
-                                                    : const Color(0xFF86EFAC)),
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.translate,
-                                                    size:
-                                                        isSmallScreen ? 10 : 11,
-                                                    color: isDark
-                                                        ? const Color(
-                                                                0xFF6EE7B7)
-                                                            .withValues(
-                                                                alpha: 0.8)
-                                                        : const Color(
-                                                                0xFF16A34A)
-                                                            .withValues(
-                                                                alpha: 0.8),
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    PosLocalization.tr(
-                                                        'TOTAL PAYABLE',
-                                                        settings:
-                                                            widget.settings),
-                                                    style: TextStyle(
-                                                      fontSize: isSmallScreen
-                                                          ? 10
-                                                          : 11,
-                                                      fontWeight:
-                                                          FontWeight.w900,
-                                                      color: isDark
-                                                          ? const Color(
-                                                              0xFF6EE7B7)
-                                                          : const Color(
-                                                              0xFF16A34A),
-                                                      letterSpacing:
-                                                          isSmallScreen
-                                                              ? 0.4
-                                                              : 0.8,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              Text(
-                                                _grandTotal.toStringAsFixed(2),
-                                                style: TextStyle(
-                                                  fontSize:
-                                                      isSmallScreen ? 20 : 26,
-                                                  fontWeight: FontWeight.w900,
-                                                  color: isDark
-                                                      ? Colors.white
-                                                      : const Color(0xFF15803D),
-                                                  height: 1.1,
-                                                ),
-                                              ),
-                                              if (_grandTotal > 0)
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          top: 2),
-                                                  child: ConstrainedBox(
-                                                    constraints: BoxConstraints(
-                                                        maxWidth: isSmallScreen
-                                                            ? 180
-                                                            : 240),
-                                                    child: Text(
-                                                      NumberToWordsService
-                                                          .convert(
-                                                        _grandTotal,
-                                                        language:
-                                                            _wordsLanguage,
-                                                        currencySymbol: widget
-                                                            .settings
-                                                            .currencySymbol,
-                                                        currencyCode: widget
-                                                            .settings
-                                                            .currencyCode,
-                                                      ),
-                                                      textDirection:
-                                                          NumberToWordsService
-                                                                  .isRtl(
-                                                                      _wordsLanguage)
-                                                              ? ui.TextDirection
-                                                                  .rtl
-                                                              : ui.TextDirection
-                                                                  .ltr,
-                                                      textAlign:
-                                                          TextAlign.right,
-                                                      maxLines: 2,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: TextStyle(
-                                                        fontSize: isSmallScreen
-                                                            ? 9.5
-                                                            : 11,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        height: 1.2,
-                                                        color: isDark
-                                                            ? const Color(
-                                                                0xFFA7F3D0)
-                                                            : const Color(
-                                                                0xFF166534),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              // ================= BOTTOM ACTIONS ROW =================
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: isSmallScreen ? 4 : 8),
-                                decoration: BoxDecoration(
-                                  color: cardBg,
-                                  border: Border(
-                                      top: BorderSide(color: borderColor)),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // 1. Secondary Quick Action Tools
-                                    SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
-                                        children: [
-                                          // [ Cancel ]
-                                          OutlinedButton.icon(
-                                            style: OutlinedButton.styleFrom(
-                                              side: const BorderSide(
-                                                  color: Color(0xFFEF4444)),
-                                              foregroundColor:
-                                                  const Color(0xFFEF4444),
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal:
-                                                      isSmallScreen ? 6 : 10,
-                                                  vertical:
-                                                      isSmallScreen ? 4 : 8),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(6)),
-                                            ),
-                                            icon: const Icon(Icons.close,
-                                                size: 14),
-                                            label: Text(
-                                                PosLocalization.tr('Cancel',
-                                                    settings: widget.settings),
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: isSmallScreen
-                                                        ? 10
-                                                        : 11)),
-                                            onPressed: _clearCart,
-                                          ),
-                                          SizedBox(
-                                              width: isSmallScreen ? 4 : 6),
-
-                                          // [ Draft ]
-                                          _bottomOutlineBtn(
-                                              icon: Icons.edit_note,
-                                              label: PosLocalization.tr('Draft',
-                                                  settings: widget.settings),
-                                              onTap: _saveDraft,
-                                              isDark: isDark,
-                                              isSmall: isSmallScreen),
-
-                                          // [ Quotation ]
-                                          _bottomOutlineBtn(
-                                              icon: Icons.assignment_outlined,
-                                              label: PosLocalization.tr(
-                                                  'Quotation',
-                                                  settings: widget.settings),
-                                              onTap: _saveQuotation,
-                                              isDark: isDark,
-                                              isSmall: isSmallScreen),
-
-                                          // [ Suspend ]
-                                          Tooltip(
-                                            message: 'Suspend / Hold Sale [F4]',
-                                            child: _bottomOutlineBtn(
-                                                icon: Icons.pause,
-                                                label: PosLocalization.tr(
-                                                    'Suspend',
-                                                    settings: widget.settings),
-                                                color: const Color(0xFFD97706),
-                                                onTap: _suspendSale,
-                                                isDark: isDark,
-                                                isSmall: isSmallScreen),
-                                          ),
-
-                                          if (widget
-                                              .settings.enableCounterTokenQueue)
-                                            Tooltip(
-                                              message:
-                                                  'Send bill token to Main Payment Counter queue',
-                                              child: _bottomOutlineBtn(
-                                                  icon: Icons
-                                                      .confirmation_number_outlined,
-                                                  label: PosLocalization.tr(
-                                                      'Send Token',
-                                                      settings:
-                                                          widget.settings),
-                                                  color:
-                                                      const Color(0xFF0D9488),
-                                                  onTap:
-                                                      _sendToCashCounterToken,
-                                                  isDark: isDark,
-                                                  isSmall: isSmallScreen),
-                                            ),
-
-                                          // [ Credit Sale ]
-                                          _bottomOutlineBtn(
-                                              icon: Icons.check,
-                                              label: PosLocalization.tr(
-                                                  'Credit Sale',
-                                                  settings: widget.settings),
-                                              onTap: _quickCreditCheckout,
-                                              isDark: isDark,
-                                              isSmall: isSmallScreen),
-
-                                          // [ Recent Sales F9 ]
-                                          OutlinedButton.icon(
-                                            style: OutlinedButton.styleFrom(
-                                              side: BorderSide(
-                                                  color: isDark
-                                                      ? const Color(0xFF4338CA)
-                                                      : const Color(
-                                                          0xFFC7D2FE)),
-                                              backgroundColor: isDark
-                                                  ? const Color(0xFF312E81)
-                                                      .withValues(alpha: 0.3)
-                                                  : const Color(0xFFEEF2FF),
-                                              foregroundColor: isDark
-                                                  ? const Color(0xFFA5B4FC)
-                                                  : const Color(0xFF4F46E5),
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal:
-                                                      isSmallScreen ? 6 : 10,
-                                                  vertical:
-                                                      isSmallScreen ? 4 : 8),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(6)),
-                                            ),
-                                            icon: const Icon(
-                                                Icons.access_time_rounded,
-                                                size: 14),
-                                            label: Text(
-                                                PosLocalization.tr(
-                                                    'Recent Sales [F9]',
-                                                    settings: widget.settings),
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: isSmallScreen
-                                                        ? 10
-                                                        : 11)),
-                                            onPressed:
-                                                _openRecentTransactionsModal,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(height: isSmallScreen ? 4 : 8),
-
-                                    // 2. Primary Checkout Buttons (Card, Multiple Pay [F7], Cash [F2])
-                                    // Always fully visible across the entire bottom without any horizontal scroll
-                                    Row(
-                                      children: [
-                                        // [ Card ]
-                                        OutlinedButton.icon(
-                                          style: OutlinedButton.styleFrom(
-                                            side: const BorderSide(
-                                                color: Color(0xFFEC4899)),
-                                            foregroundColor:
-                                                const Color(0xFFEC4899),
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal:
-                                                    isSmallScreen ? 8 : 14,
-                                                vertical:
-                                                    isSmallScreen ? 7 : 11),
-                                            shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(6)),
-                                          ),
-                                          icon: const Icon(Icons.credit_card,
-                                              size: 16),
-                                          label: Text(
-                                              PosLocalization.tr('Card',
-                                                  settings: widget.settings),
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize:
-                                                      isSmallScreen ? 11 : 12)),
-                                          onPressed: _quickCardCheckout,
-                                        ),
-                                        SizedBox(width: isSmallScreen ? 6 : 8),
-
-                                        // [ Multiple Pay ]
-                                        Expanded(
-                                          flex: 1,
-                                          child: Tooltip(
-                                            message:
-                                                'Multiple / Split Payment [F7]',
-                                            child: ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: isDark
-                                                    ? const Color(0xFF334155)
-                                                    : const Color(0xFF1E293B),
-                                                foregroundColor: Colors.white,
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal:
-                                                        isSmallScreen ? 6 : 10,
-                                                    vertical:
-                                                        isSmallScreen ? 7 : 12),
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            6)),
-                                              ),
-                                              icon: const Icon(
-                                                  Icons.payments_outlined,
-                                                  size: 16),
-                                              label: Text(
-                                                PosLocalization.tr(
-                                                    'Multiple Pay',
-                                                    settings: widget.settings),
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.w800,
-                                                    fontSize: isSmallScreen
-                                                        ? 11
-                                                        : 12.5),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              onPressed:
-                                                  _handleMultiplePayClick,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(width: isSmallScreen ? 6 : 8),
-
-                                        // [ Cash ]
-                                        Expanded(
-                                          flex: 1,
-                                          child: Tooltip(
-                                            message: 'Quick Cash Checkout [F2]',
-                                            child: ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    const Color(0xFF10B981),
-                                                foregroundColor: Colors.white,
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal:
-                                                        isSmallScreen ? 8 : 12,
-                                                    vertical:
-                                                        isSmallScreen ? 7 : 12),
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            6)),
-                                              ),
-                                              icon: const Icon(Icons.money,
-                                                  size: 16),
-                                              label: Text(
-                                                PosLocalization.tr('Cash',
-                                                    settings: widget.settings),
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.w900,
-                                                    fontSize: isSmallScreen
-                                                        ? 11.5
-                                                        : 13.5),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              onPressed: _quickCashCheckout,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                              PosSummaryBar(
+                                settings: widget.settings,
+                                totalQuantity: _totalQuantity,
+                                subtotal: _subtotal,
+                                calculatedDiscount: _calculatedDiscount,
+                                discountValue: _discountValue,
+                                discountType: _discountType,
+                                orderTax: _orderTax,
+                                shippingCharge: _shippingCharge,
+                                grandTotal: _grandTotal,
+                                wordsLanguage: _wordsLanguage,
+                                isSmallScreen: isSmallScreen,
+                                isDark: isDark,
+                                cardBg: cardBg,
+                                borderColor: borderColor,
+                                textPrimary: textPrimary,
+                                textSecondary: textSecondary,
+                                onEditDiscount: _showOrderDiscountDialog,
+                                onEditTax: _showOrderTaxDialog,
+                                onEditShipping: _showShippingDialog,
+                                onWordsLanguageTap: _showWordsLanguageDialog,
+                                onCancel: _clearCart,
+                                onSaveDraft: _saveDraft,
+                                onParkSale: _suspendSale,
+                                onDraftQuote: _saveQuotation,
+                                onSendToCashCounterToken:
+                                    _sendToCashCounterToken,
+                                onQuickCredit: _quickCreditCheckout,
+                                onRecentTransactions:
+                                    _openRecentTransactionsModal,
+                                onQuickCard: _quickCardCheckout,
+                                onMultiplePay: _handleMultiplePayClick,
+                                onQuickCash: _quickCashCheckout,
                               ),
                             ],
                           ),
@@ -9872,91 +9369,6 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
               fontWeight: FontWeight.w600),
         ),
       ],
-    );
-  }
-
-  Widget _summaryBlock(String label, String value,
-      {bool isEditable = false,
-      VoidCallback? onEdit,
-      bool isDark = false,
-      bool isSmall = false}) {
-    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary =
-        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(label,
-                style: TextStyle(
-                    fontSize: isSmall ? 8.5 : 10,
-                    fontWeight: FontWeight.bold,
-                    color: textSecondary)),
-            if (isEditable) ...[
-              const SizedBox(width: 3),
-              Icon(Icons.edit,
-                  size: isSmall ? 8.5 : 10, color: const Color(0xFF4F46E5)),
-            ],
-          ],
-        ),
-        SizedBox(height: isSmall ? 1 : 2),
-        Text(value,
-            style: TextStyle(
-                fontSize: isSmall ? 11 : 13,
-                fontWeight: FontWeight.bold,
-                color: textPrimary)),
-      ],
-    );
-
-    if (isEditable && onEdit != null) {
-      return InkWell(
-        onTap: onEdit,
-        borderRadius: BorderRadius.circular(4),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-              horizontal: isSmall ? 2 : 4, vertical: isSmall ? 1 : 2),
-          child: content,
-        ),
-      );
-    }
-    return content;
-  }
-
-  Widget _bottomOutlineBtn({
-    required IconData icon,
-    required String label,
-    Color? color,
-    VoidCallback? onTap,
-    bool isDark = false,
-    bool isSmall = false,
-    EdgeInsetsGeometry? padding,
-  }) {
-    final borderColor =
-        isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
-    final textPrimary = isDark ? Colors.white : const Color(0xFF1E293B);
-    final iconColor =
-        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-
-    return Padding(
-      padding: EdgeInsets.only(right: isSmall ? 4 : 6),
-      child: OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: borderColor),
-          foregroundColor: color ?? textPrimary,
-          padding: padding ??
-              EdgeInsets.symmetric(
-                  horizontal: isSmall ? 6 : 10, vertical: isSmall ? 4 : 8),
-          visualDensity: VisualDensity.compact,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        ),
-        icon: Icon(icon, size: isSmall ? 12 : 14, color: color ?? iconColor),
-        label: Text(label,
-            style: TextStyle(
-                fontWeight: FontWeight.bold, fontSize: isSmall ? 10 : 11)),
-        onPressed: onTap,
-      ),
     );
   }
 

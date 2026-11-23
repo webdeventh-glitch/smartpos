@@ -24,6 +24,7 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
   final _creditLimitController = TextEditingController(text: '1000.00');
+  final _openingBalanceController = TextEditingController(text: '0.00');
   List<CustomerGroup> _groups = [];
   int? _selectedGroupId;
   bool _isSaving = false;
@@ -38,6 +39,9 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
       _emailController.text = edit.email;
       _addressController.text = edit.address;
       _creditLimitController.text = edit.creditLimit.toStringAsFixed(2);
+      if (edit.openingBalance != 0.0) {
+        _openingBalanceController.text = edit.openingBalance.toStringAsFixed(2);
+      }
       _selectedGroupId = edit.customerGroupId;
     }
     _loadGroups();
@@ -69,6 +73,8 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
           .firstOrNull;
       final existing = widget.customerToEdit;
 
+      final openingBal =
+          double.tryParse(_openingBalanceController.text.trim()) ?? 0.0;
       final contact = Contact(
         id: existing?.id,
         type: existing?.type ?? 'customer',
@@ -77,7 +83,10 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
         address: _addressController.text.trim(),
-        balance: existing?.balance ?? 0.0,
+        balance: existing != null ? existing.balance : openingBal,
+        openingBalance: existing?.openingBalance ?? openingBal,
+        openingBalanceDate: existing?.openingBalanceDate ??
+            (openingBal != 0.0 ? DateTime.now().toIso8601String() : null),
         creditLimit:
             double.tryParse(_creditLimitController.text.trim()) ?? 1000.0,
         loyaltyPoints: existing?.loyaltyPoints ?? 0.0,
@@ -101,6 +110,8 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
         email: contact.email,
         address: contact.address,
         balance: contact.balance,
+        openingBalance: contact.openingBalance,
+        openingBalanceDate: contact.openingBalanceDate,
         creditLimit: contact.creditLimit,
         loyaltyPoints: contact.loyaltyPoints,
         customerGroupId: contact.customerGroupId,
@@ -131,6 +142,7 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
     _emailController.dispose();
     _addressController.dispose();
     _creditLimitController.dispose();
+    _openingBalanceController.dispose();
     super.dispose();
   }
 
@@ -277,7 +289,7 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
               ),
               const SizedBox(height: 14),
 
-              // Phone & Credit Limit
+              // Phone & Email
               Row(
                 children: [
                   Expanded(
@@ -307,6 +319,35 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _fieldLabel('Email Address', isDark),
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
+                          decoration: _inputDecoration(
+                            hintText: 'customer@example.com',
+                            prefixIcon: Icons.email_outlined,
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Credit Limit & Opening Balance (Khata)
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         _fieldLabel('Credit Limit', isDark),
                         TextFormField(
                           controller: _creditLimitController,
@@ -325,23 +366,30 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _fieldLabel('Opening Balance (Khata)', isDark),
+                        TextFormField(
+                          controller: _openingBalanceController,
+                          keyboardType: TextInputType.number,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
+                          decoration: _inputDecoration(
+                            hintText: '0.00',
+                            prefixIcon: Icons.account_balance_wallet_outlined,
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-              ),
-              const SizedBox(height: 14),
-
-              // Email
-              _fieldLabel('Email Address', isDark),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                decoration: _inputDecoration(
-                  hintText: 'customer@example.com',
-                  prefixIcon: Icons.email_outlined,
-                  isDark: isDark,
-                ),
               ),
               const SizedBox(height: 14),
 

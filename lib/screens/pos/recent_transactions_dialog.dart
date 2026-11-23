@@ -39,7 +39,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
   Future<void> _loadRecentSales() async {
     setState(() => _loading = true);
     final db = await DatabaseService.initialize();
-    final sales = await db.getSales();
+    final sales = await db.getSales(limit: 50);
     if (mounted) {
       setState(() {
         _allSales = sales;

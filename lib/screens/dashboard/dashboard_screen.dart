@@ -124,7 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         endDate: range.end,
       );
       final lowStock = await db.getLowStockProducts();
-      final sales = await db.getSales();
+      final sales = await db.getRecentSales(limit: 6);
       final pendingSo = await db.getPendingSalesOrdersSummary(limit: 4);
       final pendingPo = await db.getPendingPurchaseOrdersSummary(limit: 4);
 
@@ -135,7 +135,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _paymentBreakdown = paymentBreakdown;
           _topProducts = topProducts;
           _lowStock = lowStock;
-          _recentSales = sales.take(6).toList();
+          _recentSales = sales;
           _pendingSalesOrders = pendingSo;
           _pendingPurchaseOrders = pendingPo;
           _loading = false;

@@ -16,7 +16,9 @@ abstract class ISalesRepository {
     int pointsEarned = 0,
     bool enforceStock = false,
   });
-  Future<List<Sale>> getSales({String? status, String? search});
+  Future<List<Sale>> getSales(
+      {String? status, String? search, int? limit, int? offset});
+  Future<List<Sale>> getRecentSales({int limit = 10});
   Future<PagedResult<Sale>> getSalesPaged({
     String? status,
     String? search,
@@ -1025,7 +1027,8 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
   }
 
   @override
-  Future<List<Sale>> getSales({String? status, String? search}) async {
+  Future<List<Sale>> getSales(
+      {String? status, String? search, int? limit, int? offset}) async {
     String? where;
     List<dynamic>? whereArgs;
 
@@ -1046,9 +1049,20 @@ class SalesRepository extends BaseRepository implements ISalesRepository {
       }
     }
 
-    final rows = await db.query('sales',
-        where: where, whereArgs: whereArgs, orderBy: 'id DESC');
+    final rows = await db.query(
+      'sales',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'id DESC',
+      limit: limit,
+      offset: offset,
+    );
     return rows.map((e) => Sale.fromMap(e)).toList();
+  }
+
+  @override
+  Future<List<Sale>> getRecentSales({int limit = 10}) async {
+    return getSales(limit: limit);
   }
 
   @override

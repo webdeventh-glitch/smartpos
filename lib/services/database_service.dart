@@ -18,7 +18,7 @@ class DatabaseService {
   final String? dbFilePath;
   DatabaseService(this.db, {this.dbFilePath});
 
-  static const int currentSchemaVersion = 10;
+  static const int currentSchemaVersion = 11;
   static DatabaseService? _instance;
   static DatabaseService? get instanceOrNull => _instance;
   static DatabaseService get instance =>
@@ -123,6 +123,17 @@ class DatabaseService {
               fromVersion: oldVersion, toVersion: newVersion);
         },
         onOpen: (db) async {
+          // Configure SQLite WAL mode & autocheckpoint to prevent giant -wal growth during long shifts
+          try {
+            await db.rawQuery('PRAGMA journal_mode = WAL;');
+            await db.rawQuery('PRAGMA wal_autocheckpoint = 1000;');
+            await db.rawQuery('PRAGMA synchronous = NORMAL;');
+            await db.rawQuery('PRAGMA busy_timeout = 5000;');
+          } catch (e, st) {
+            AppLogger.warning('DatabaseService',
+                'Failed to configure WAL autocheckpoint pragma', e, st);
+          }
+
           final ver = await db.getVersion();
           if (ver < currentSchemaVersion) {
             await BackupUpdateService.instance.createPreMigrationBackupIfNeeded(
@@ -403,8 +414,12 @@ class DatabaseService {
         pointsEarned: pointsEarned,
       );
   Future<void> deleteSale(int saleId) => salesRepo.deleteSale(saleId);
-  Future<List<Sale>> getSales({String? status, String? search}) =>
-      salesRepo.getSales(status: status, search: search);
+  Future<List<Sale>> getSales(
+          {String? status, String? search, int? limit, int? offset}) =>
+      salesRepo.getSales(
+          status: status, search: search, limit: limit, offset: offset);
+  Future<List<Sale>> getRecentSales({int limit = 10}) =>
+      salesRepo.getRecentSales(limit: limit);
   Future<List<SaleItem>> getSaleItems(int saleId) =>
       salesRepo.getSaleItems(saleId);
   Future<Sale?> getSaleByInvoiceNo(String invoiceNo) =>
