@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/business_settings.dart';
 import '../services/qulop_service.dart';
+import 'system_logs_dialog.dart';
 
 /// Professional "About Developer & Software Support" modal dialog.
 /// Displays official company details for Webdeventh Software Solutions,
@@ -458,6 +459,32 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    side: BorderSide(color: borderColor),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.bug_report_rounded,
+                                    size: 15,
+                                    color: Color(0xFFEF4444),
+                                  ),
+                                  label: const Text(
+                                    'View Error Logs (ایرر لاگز)',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFEF4444),
+                                    ),
+                                  ),
+                                  onPressed: () =>
+                                      SystemLogsDialog.show(context),
+                                ),
+                                const SizedBox(width: 8),
                                 OutlinedButton.icon(
                                   style: OutlinedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(

@@ -20,6 +20,7 @@ import '../../services/number_to_words_service.dart';
 import '../../services/localization_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../../widgets/about_developer_dialog.dart';
+import '../../widgets/system_logs_dialog.dart';
 import 'invoice_layouts_manager.dart';
 import 'printer_management_section.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -7242,6 +7243,25 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                           const Spacer(),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFEF4444),
+                              side: const BorderSide(color: Color(0xFFEF4444)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6)),
+                            ),
+                            icon:
+                                const Icon(Icons.bug_report_rounded, size: 14),
+                            label: const Text(
+                              'View Error Logs (ایرر لاگز دیکھیں)',
+                              style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                            onPressed: () => SystemLogsDialog.show(context),
+                          ),
+                          const SizedBox(width: 8),
                           IconButton(
                             icon: const Icon(Icons.refresh, size: 18),
                             tooltip: 'Refresh Backups',
