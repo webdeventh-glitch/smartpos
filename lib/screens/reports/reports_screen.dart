@@ -91,6 +91,12 @@ class _ReportsScreenState extends State<ReportsScreen>
     } else if (filter == 'month') {
       _startDate = DateTime(now.year, now.month, 1);
       _endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+    } else if (filter == 'quarter') {
+      final currentQuarter = ((now.month - 1) ~/ 3);
+      final startMonth = currentQuarter * 3 + 1;
+      _startDate = DateTime(now.year, startMonth, 1);
+      final endMonth = startMonth + 2;
+      _endDate = DateTime(now.year, endMonth + 1, 0, 23, 59, 59);
     } else if (filter == 'year') {
       _startDate = DateTime(now.year, 1, 1);
       _endDate = DateTime(now.year, 12, 31, 23, 59, 59);
@@ -212,6 +218,10 @@ class _ReportsScreenState extends State<ReportsScreen>
     if (_dateFilter == 'week') return 'Last 7 Days';
     if (_dateFilter == 'month') {
       return 'This Month (${DateFormat('MMMM yyyy').format(DateTime.now())})';
+    }
+    if (_dateFilter == 'quarter') {
+      final qNum = ((DateTime.now().month - 1) ~/ 3) + 1;
+      return 'Quarter Q$qNum (${DateFormat('MMM').format(_startDate!)} - ${DateFormat('MMM yyyy').format(_endDate!)})';
     }
     if (_dateFilter == 'year') {
       return 'This Financial Year (${DateTime.now().year})';
@@ -775,18 +785,23 @@ class _ReportsScreenState extends State<ReportsScreen>
                         color: isDark ? Colors.white : const Color(0xFF334155)),
                   ),
                   const SizedBox(width: 6),
-                  _filterBtn('today', 'Today'),
+                  _filterBtn('today', 'Today / آج'),
                   const SizedBox(width: 6),
-                  _filterBtn('yesterday', 'Yesterday'),
+                  _filterBtn('yesterday', 'Yesterday / کل'),
                   const SizedBox(width: 6),
-                  _filterBtn('week', 'Last 7 Days'),
+                  _filterBtn('week', '7 Days / ہفتہ وار'),
                   const SizedBox(width: 6),
-                  _filterBtn('month', 'This Month'),
+                  _filterBtn('month', 'Month / ماہانہ'),
                   const SizedBox(width: 6),
-                  _filterBtn('year', 'This Year'),
+                  _filterBtn('quarter', 'Quarterly / سہ ماہی'),
                   const SizedBox(width: 6),
-                  _filterBtn('custom',
-                      _dateFilter == 'custom' ? _formatPeriod() : 'Custom Date',
+                  _filterBtn('year', 'Yearly / سالانہ'),
+                  const SizedBox(width: 6),
+                  _filterBtn(
+                      'custom',
+                      _dateFilter == 'custom'
+                          ? _formatPeriod()
+                          : 'Custom / کسٹم',
                       isCustom: true),
                   const Spacer(),
                   Container(

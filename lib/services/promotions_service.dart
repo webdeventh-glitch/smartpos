@@ -34,22 +34,22 @@ class PromotionsService {
 
   PromotionsService._();
 
-  // 1. Happy Hour State
-  bool isHappyHourEnabled = true;
+  // 1. Happy Hour State (Disabled by default - store owner must explicitly enable)
+  bool isHappyHourEnabled = false;
   String happyHourName = 'Evening Happy Hour';
   int happyHourStartHour = 16; // 4:00 PM
   int happyHourEndHour = 20; // 8:00 PM
   double happyHourDiscountPercent = 15.0; // 15% discount
 
-  // 2. Buy X Get Y (BOGO) State
-  bool isBogoEnabled = true;
+  // 2. Buy X Get Y (BOGO) State (Disabled by default)
+  bool isBogoEnabled = false;
   String bogoRuleName = 'Buy 2 Get 1 Free';
   int bogoBuyQty = 2;
   int bogoGetQty = 1;
   double bogoDiscountOnFree = 100.0; // 100% free
 
-  // 3. Tiered Volume Pricing State
-  bool isTieredPricingEnabled = true;
+  // 3. Tiered Volume Pricing State (Disabled by default)
+  bool isTieredPricingEnabled = false;
   List<VolumePricingTier> volumeTiers = [
     const VolumePricingTier(minQty: 1, maxQty: 5, discountPercent: 0.0),
     const VolumePricingTier(minQty: 6, maxQty: 10, discountPercent: 10.0),
@@ -67,21 +67,22 @@ class PromotionsService {
           await db.getModuleRecords('promotions', recordType: 'config');
       if (records.isNotEmpty) {
         final cfg = records.first;
-        isHappyHourEnabled = cfg['isHappyHourEnabled'] as bool? ?? true;
+        isHappyHourEnabled = cfg['isHappyHourEnabled'] as bool? ?? false;
         happyHourName = cfg['happyHourName'] as String? ?? 'Evening Happy Hour';
         happyHourStartHour = (cfg['happyHourStartHour'] as num?)?.toInt() ?? 16;
         happyHourEndHour = (cfg['happyHourEndHour'] as num?)?.toInt() ?? 20;
         happyHourDiscountPercent =
             (cfg['happyHourDiscountPercent'] as num?)?.toDouble() ?? 15.0;
 
-        isBogoEnabled = cfg['isBogoEnabled'] as bool? ?? true;
+        isBogoEnabled = cfg['isBogoEnabled'] as bool? ?? false;
         bogoRuleName = cfg['bogoRuleName'] as String? ?? 'Buy 2 Get 1 Free';
         bogoBuyQty = (cfg['bogoBuyQty'] as num?)?.toInt() ?? 2;
         bogoGetQty = (cfg['bogoGetQty'] as num?)?.toInt() ?? 1;
         bogoDiscountOnFree =
             (cfg['bogoDiscountOnFree'] as num?)?.toDouble() ?? 100.0;
 
-        isTieredPricingEnabled = cfg['isTieredPricingEnabled'] as bool? ?? true;
+        isTieredPricingEnabled =
+            cfg['isTieredPricingEnabled'] as bool? ?? false;
         if (cfg['volumeTiers'] is List) {
           volumeTiers = (cfg['volumeTiers'] as List)
               .map((e) => VolumePricingTier.fromMap(

@@ -115,7 +115,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
         : 0.0;
 
     final user = AuthService.currentUser;
-    final canViewCost = user?.hasPermission('report.view_cost_price') ?? true;
+    // Purchase price and cost margins are strictly confidential to the Super Admin (Owner)
+    final canViewCost = user != null && user.isSuperAdmin;
     final locationName = widget.settings.businessName.isNotEmpty
         ? widget.settings.businessName
         : 'Main Branch HQ';

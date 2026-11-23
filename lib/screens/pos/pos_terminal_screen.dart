@@ -1221,10 +1221,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                   final netOrderTotal = _subtotal - calcDiscAmt;
                   if (totalCartCost > 0 &&
                       netOrderTotal < totalCartCost - 0.01) {
+                    final isSuper = currentUser?.isSuperAdmin == true;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Loss Guard Blocked: Total invoice after discount ($currency${netOrderTotal.toStringAsFixed(2)}) cannot be lower than total cost ($currency${totalCartCost.toStringAsFixed(2)})!',
+                          isSuper
+                              ? 'Loss Guard Blocked: Total invoice after discount ($currency${netOrderTotal.toStringAsFixed(2)}) cannot be lower than total cost ($currency${totalCartCost.toStringAsFixed(2)})!'
+                              : 'Loss Guard Blocked: Total invoice after discount cannot be lower than total cost price! (نقصان سے بچاؤ: کل بل خریداری قیمت سے کم نہیں ہو سکتا)',
                         ),
                         backgroundColor: Colors.red,
                         duration: const Duration(seconds: 4),
@@ -2880,10 +2883,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
                   if (minCostPrice > 0 &&
                       netSellingPerUnit < minCostPrice - 0.01) {
+                    final isSuper = currentUser?.isSuperAdmin == true;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Loss Guard Blocked: Net selling price ($currency${netSellingPerUnit.toStringAsFixed(2)}) cannot be lower than purchase cost ($currency${minCostPrice.toStringAsFixed(2)}) to prevent business loss!',
+                          isSuper
+                              ? 'Loss Guard Blocked: Net selling price ($currency${netSellingPerUnit.toStringAsFixed(2)}) cannot be lower than purchase cost ($currency${minCostPrice.toStringAsFixed(2)}) to prevent business loss!'
+                              : 'Loss Guard Blocked: Net selling price cannot be lower than purchase cost price! (نقصان سے بچاؤ: فروخت کی قیمت لاگت سے کم نہیں ہو سکتی)',
                         ),
                         backgroundColor: Colors.red,
                         duration: const Duration(seconds: 4),
@@ -4257,78 +4263,95 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
 
     final promo = PromotionsService.instance;
 
-    // 1. Check Happy Hour auto-application if cart discount not manually overridden
-    if (promo.isHappyHourActive() && cart.discountValue == 0) {
+    // 1. Check Happy Hour auto-application ONLY if enabled by owner and cart discount not manually set
+    if (promo.isHappyHourEnabled &&
+        promo.isHappyHourActive() &&
+        cart.discountValue == 0) {
       ref
           .read(cartProvider.notifier)
           .setOrderDiscount('percentage', promo.happyHourDiscountPercent);
     }
 
-    // 2. Check Tiered Volume Pricing (bulk discounts)
-    final volDiscount = promo.getVolumeDiscountPercent(item.quantity);
-    if (volDiscount > 0) {
-      ref
-          .read(cartProvider.notifier)
-          .setItemDiscount(idx, 'percentage', volDiscount);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.stacked_line_chart_rounded,
-                    color: Colors.white, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '🎉 Bulk Volume Discount: ${volDiscount.toInt()}% OFF applied for ${item.quantity.toInt()}x ${product.name}!',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+    // 2. Check Tiered Volume Pricing (bulk discounts) ONLY if enabled
+    if (promo.isTieredPricingEnabled) {
+      final volDiscount = promo.getVolumeDiscountPercent(item.quantity);
+      if (volDiscount > 0) {
+        ref
+            .read(cartProvider.notifier)
+            .setItemDiscount(idx, 'percentage', volDiscount);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.stacked_line_chart_rounded,
+                      color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '🎉 Bulk Volume Discount: ${volDiscount.toInt()}% OFF applied for ${item.quantity.toInt()}x ${product.name}!',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              backgroundColor: const Color(0xFF6366F1),
+              duration: const Duration(seconds: 2),
             ),
-            backgroundColor: const Color(0xFF6366F1),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+          );
+        }
+        return;
       }
-      return;
     }
 
-    // 3. Check BOGO (Buy X Get Y)
-    final freeUnits = promo.calculateBogoFreeUnits(item.quantity);
-    if (freeUnits > 0) {
-      final bogoSavings =
-          promo.calculateBogoSavings(item.unitPrice, item.quantity);
-      final effDiscountPercent =
-          (bogoSavings / (item.quantity * item.unitPrice)) * 100.0;
-      ref
-          .read(cartProvider.notifier)
-          .setItemDiscount(idx, 'percentage', effDiscountPercent);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.card_giftcard_rounded,
-                    color: Colors.white, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '🎁 ${promo.bogoRuleName}: $freeUnits free item(s) discounted on ${product.name}!',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+    // 3. Check BOGO (Buy X Get Y) ONLY if enabled
+    if (promo.isBogoEnabled) {
+      final freeUnits = promo.calculateBogoFreeUnits(item.quantity);
+      if (freeUnits > 0) {
+        final bogoSavings =
+            promo.calculateBogoSavings(item.unitPrice, item.quantity);
+        final effDiscountPercent =
+            (bogoSavings / (item.quantity * item.unitPrice)) * 100.0;
+        ref
+            .read(cartProvider.notifier)
+            .setItemDiscount(idx, 'percentage', effDiscountPercent);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.card_giftcard_rounded,
+                      color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '🎁 ${promo.bogoRuleName}: $freeUnits free item(s) discounted on ${product.name}!',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              backgroundColor: const Color(0xFF10B981),
+              duration: const Duration(seconds: 2),
             ),
-            backgroundColor: const Color(0xFF10B981),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+          );
+        }
       }
     }
   }
 
   void _showPromotionsDialog() {
+    final currentUser = AuthService.currentUser;
+    if (currentUser != null && !currentUser.isSuperAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Access Denied: Only Super Admin / Owner can configure promotional discount rules.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final promo = PromotionsService.instance;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

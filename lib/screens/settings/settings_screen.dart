@@ -785,14 +785,14 @@ class _SettingsScreenState extends State<SettingsScreen>
         return '6. Pharmacy / Medical Store';
       case 'restaurant':
       case 'cafe':
-        return '️ 7. Restaurant / Cafe';
+        return 'ï¸ 7. Restaurant / Cafe';
       case 'repair':
       case 'service':
         return '8. Repairing Shop / Service Center';
       case 'hotel':
         return '9. Hotel Management';
       case 'gym':
-        return '️ 10. Gym / Fitness Center';
+        return 'ï¸ 10. Gym / Fitness Center';
       case 'manufacturing':
         return '11. Manufacturing / Production';
       case 'woocommerce':
@@ -843,345 +843,33 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   void _openSwitchBusinessProfileDialog() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final searchCtrl = TextEditingController();
-    String query = '';
-    bool seedStarterData = true;
-
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) {
-          final filtered = allSupportedIndustries.where((ind) {
-            if (query.isEmpty) return true;
-            final q = query.toLowerCase();
-            return ind.title.toLowerCase().contains(q) ||
-                ind.category.toLowerCase().contains(q) ||
-                ind.features.toLowerCase().contains(q) ||
-                ind.key.toLowerCase().contains(q);
-          }).toList();
-
-          return Dialog(
-            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 850, maxHeight: 680),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4F46E5)
-                                    .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.storefront_rounded,
-                                  color: Color(0xFF4F46E5), size: 22),
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Switch Business Domain Profile',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF0F172A),
-                                  ),
-                                ),
-                                Text(
-                                  PosLocalization.tr(
-                                    'Adapt software units, categories & POS to your trade',
-                                    primaryOverride: _primaryLanguage,
-                                    secondaryOverride: _secondaryLanguage,
-                                    enableSecondaryOverride:
-                                        _enableSecondaryLanguage,
-                                  ),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: isDark
-                                        ? const Color(0xFF94A3B8)
-                                        : const Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.close,
-                              color: isDark
-                                  ? const Color(0xFF94A3B8)
-                                  : const Color(0xFF64748B)),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Search & Options
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: searchCtrl,
-                            onChanged: (val) =>
-                                setDlgState(() => query = val.trim()),
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF0F172A)),
-                            decoration: InputDecoration(
-                              hintText:
-                                  'Search business (e.g. Doodh, Tyre, Mandi, Hardware, Kapra, Gosht, Oil, Tiles)...',
-                              hintStyle: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark
-                                      ? const Color(0xFF64748B)
-                                      : const Color(0xFF94A3B8)),
-                              prefixIcon: const Icon(Icons.search, size: 20),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 10),
-                              isDense: true,
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: seedStarterData,
-                              activeColor: const Color(0xFF4F46E5),
-                              onChanged: (val) => setDlgState(
-                                  () => seedStarterData = val ?? true),
-                            ),
-                            Text(
-                              'Seed starter units & categories',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? const Color(0xFFE2E8F0)
-                                    : const Color(0xFF334155),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Grid of businesses
-                    Expanded(
-                      child: filtered.isEmpty
-                          ? Center(
-                              child: Text(
-                                'No matching business found.',
-                                style: TextStyle(
-                                    color: isDark
-                                        ? const Color(0xFF94A3B8)
-                                        : const Color(0xFF64748B)),
-                              ),
-                            )
-                          : GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisExtent: 110,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                              ),
-                              itemCount: filtered.length,
-                              itemBuilder: (itemCtx, idx) {
-                                final ind = filtered[idx];
-                                final isSelected =
-                                    _businessType.toLowerCase() ==
-                                        ind.key.toLowerCase();
-
-                                return InkWell(
-                                  onTap: () async {
-                                    Navigator.pop(ctx);
-                                    setState(() {
-                                      _businessType = ind.key;
-                                      // Suggest precision
-                                      if (ind.key == 'dairy_milk' ||
-                                          ind.key == 'meat_butchery' ||
-                                          ind.key == 'fabrics_textile' ||
-                                          ind.key == 'fruit_wholesale' ||
-                                          ind.key == 'lubricants_oil' ||
-                                          ind.key == 'universal' ||
-                                          ind.key == 'custom_other') {
-                                        _quantityPrecisionCtrl.text = '2';
-                                      } else if (ind.key == 'clothing' ||
-                                          ind.key == 'tyres_battery' ||
-                                          ind.key == 'auto_parts') {
-                                        _quantityPrecisionCtrl.text = '0';
-                                      }
-                                    });
-
-                                    // Save to DB and seed
-                                    final db =
-                                        await DatabaseService.initialize();
-                                    final updated = widget.settings.copyWith(
-                                      businessType: ind.key,
-                                      enabledModules: BusinessSettings
-                                              .defaultModulesForBusinessType(
-                                                  ind.key)
-                                          .join(','),
-                                      quantityPrecision: int.tryParse(
-                                              _quantityPrecisionCtrl.text
-                                                  .trim()) ??
-                                          2,
-                                      isConfigured: true,
-                                    );
-                                    await db.updateBusinessSettings(
-                                      updated,
-                                      allowBusinessTypeChange: true,
-                                    );
-
-                                    if (seedStarterData) {
-                                      await db.seedInitialDataForBusinessType(
-                                          businessType: ind.key);
-                                    }
-
-                                    widget.onSettingsUpdated(updated);
-
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                              'Switched to ${ind.title} successfully! Units and catalog updated.'),
-                                          backgroundColor:
-                                              const Color(0xFF10B981),
-                                          duration: const Duration(seconds: 4),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? const Color(0xFF4F46E5)
-                                              .withValues(alpha: 0.1)
-                                          : (isDark
-                                              ? const Color(0xFF0F172A)
-                                              : const Color(0xFFF8FAFC)),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? const Color(0xFF4F46E5)
-                                            : (isDark
-                                                ? const Color(0xFF334155)
-                                                : const Color(0xFFE2E8F0)),
-                                        width: isSelected ? 2 : 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: BoxDecoration(
-                                            color: ind.color
-                                                .withValues(alpha: 0.15),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: Center(
-                                            child: FaIcon(ind.icon,
-                                                color: ind.color, size: 20),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      ind.title,
-                                                      style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 12.5,
-                                                        color: isDark
-                                                            ? Colors.white
-                                                            : const Color(
-                                                                0xFF0F172A),
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  if (isSelected)
-                                                    const Icon(
-                                                        Icons.check_circle,
-                                                        size: 16,
-                                                        color:
-                                                            Color(0xFF4F46E5)),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                ind.category,
-                                                style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: ind.color),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                ind.features,
-                                                style: TextStyle(
-                                                  fontSize: 9.5,
-                                                  color: isDark
-                                                      ? const Color(0xFF94A3B8)
-                                                      : const Color(0xFF64748B),
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                ),
-              ),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.lock_rounded, color: Color(0xFFD97706)),
+            SizedBox(width: 8),
+            Text('Business Model Locked / Ø¨Ø²Ù†Ø³ Ù¹Ø§Ø¦Ù¾ Ù„Ø§Ú© ÛÛ’'),
+          ],
+        ),
+        content: Text(
+          'Your active business model is "${_getBusinessTypeName(_businessType)}".\n\n'
+          'To ensure accounting accuracy and prevent corruption of unit conversion formulas, stock deductions, and customer/supplier khata ledgers, the business model is permanently locked upon initial installation.\n\n'
+          'Ø³Ø§ÙÙ¹ ÙˆÛŒØ¦Ø± Ø§Ù†Ø³Ù¹Ø§Ù„ÛŒØ´Ù† Ú©Û’ ÙˆÙ‚Øª Ù…Ù†ØªØ®Ø¨ Ú©ÛŒØ§ Ú¯ÛŒØ§ Ø¨Ø²Ù†Ø³ Ù…Ø§ÚˆÙ„ Ù…Ø³ØªÙ‚Ù„ Ø·ÙˆØ± Ù¾Ø± Ù„Ø§Ú© Ú©Ø± Ø¯ÛŒØ§ Ø¬Ø§ØªØ§ ÛÛ’ ØªØ§Ú©Û ÛŒÙˆÙ†Ù¹ Ú©Ù†ÙˆØ±Ú˜Ù†ØŒ Ø§Ø³Ù¹Ø§Ú© Ø§ÙˆØ± Ú©Ú¾Ø§ØªÛ Ø¬Ø§Øª Ú©Û’ Ø­Ø³Ø§Ø¨Ø§Øª Ù…ÛŒÚº Ú©ÙˆØ¦ÛŒ Ú¯Ú‘Ø¨Ú‘ Ù†Û ÛÙˆÛ”',
+          style: const TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4F46E5),
+              foregroundColor: Colors.white,
             ),
-          );
-        },
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Understood / Ù¹Ú¾ÛŒÚ© ÛÛ’'),
+          ),
+        ],
       ),
     );
   }
@@ -2713,6 +2401,72 @@ class _SettingsScreenState extends State<SettingsScreen>
     final primaryColor =
         isDark ? const Color(0xFF818CF8) : const Color(0xFF0038B8);
 
+    final currentUser = AuthService.currentUser;
+    if (currentUser != null && !currentUser.isSuperAdmin) {
+      return Scaffold(
+        backgroundColor:
+            isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          title: Text(
+              PosLocalization.tr('System Settings', settings: widget.settings)),
+          elevation: 0,
+        ),
+        body: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 480),
+            padding: const EdgeInsets.all(28),
+            margin: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.lock_rounded,
+                      size: 48, color: Colors.red),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Access Denied / Ø±Ø³Ø§Ø¦ÛŒ Ù…Ù…Ù†ÙˆØ¹ ÛÛ’',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Only the Super Admin (Owner) has authorization to view or modify business settings and system configurations.\n\nØµØ±Ù Ø³Ù¾Ø± Ø§ÛŒÚˆÙ…Ù† Ú©Ùˆ Ø³Ø³Ù¹Ù… Ú©ÛŒ ØªØ±ØªÛŒØ¨Ø§Øª Ø¯ÛŒÚ©Ú¾Ù†Û’ Ø§ÙˆØ± ØªØ¨Ø¯ÛŒÙ„ Ú©Ø±Ù†Û’ Ú©ÛŒ Ø§Ø¬Ø§Ø²Øª ÛÛ’Û”',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.keyS, control: true): () {
@@ -2843,7 +2597,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                       child: Text(
                                         currentMode == ThemeMode.dark
                                             ? 'Dark Mode Active'
-                                            : '️ Light Mode Active',
+                                            : 'ï¸ Light Mode Active',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
@@ -3397,9 +3151,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   const SizedBox(width: 10),
                                   ElevatedButton.icon(
                                     onPressed: _openSwitchBusinessProfileDialog,
-                                    icon: const Icon(Icons.swap_horiz_rounded,
-                                        size: 16),
-                                    label: const Text('Change Business'),
+                                    icon: const Icon(Icons.lock_rounded,
+                                        size: 14),
+                                    label: const Text('Locked Profile'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF4F46E5),
                                       foregroundColor: Colors.white,
@@ -3656,7 +3410,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                             ),
                                           ),
                                           Text(
-                                            'Symbol: ${_currencySymCtrl.text.isNotEmpty ? _currencySymCtrl.text : "Rs"}  •  Click to search and change currency',
+                                            'Symbol: ${_currencySymCtrl.text.isNotEmpty ? _currencySymCtrl.text : "Rs"}  â€¢  Click to search and change currency',
                                             style: TextStyle(
                                               fontSize: 11,
                                               color: isDark
@@ -3805,7 +3559,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                       FontAwesomeIcons.sterlingSign,
                                       size: 11,
                                       color: Color(0xFF7C3AED)),
-                                  label: const Text('British Pound (£ / GBP)',
+                                  label: const Text('British Pound (Â£ / GBP)',
                                       style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold)),
@@ -3821,7 +3575,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                           : Colors.transparent),
                                   onPressed: () {
                                     setState(() {
-                                      _currencySymCtrl.text = '£';
+                                      _currencySymCtrl.text = 'Â£';
                                       _currencyCodeCtrl.text = 'GBP';
                                       _selectedCurrencyInfo =
                                           RegionalDataService.findCurrency(
@@ -3836,7 +3590,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                       FontAwesomeIcons.euroSign,
                                       size: 11,
                                       color: Color(0xFF0D9488)),
-                                  label: const Text('Euro (€ / EUR)',
+                                  label: const Text('Euro (â‚¬ / EUR)',
                                       style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold)),
@@ -3852,7 +3606,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                           : Colors.transparent),
                                   onPressed: () {
                                     setState(() {
-                                      _currencySymCtrl.text = '€';
+                                      _currencySymCtrl.text = 'â‚¬';
                                       _currencyCodeCtrl.text = 'EUR';
                                       _selectedCurrencyInfo =
                                           RegionalDataService.findCurrency(
@@ -3946,7 +3700,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                                     BorderRadius.circular(4),
                                               ),
                                               child: const Text(
-                                                  'FREE API • 0 COST',
+                                                  'FREE API â€¢ 0 COST',
                                                   style: TextStyle(
                                                       fontSize: 9,
                                                       fontWeight:
@@ -4630,14 +4384,14 @@ class _SettingsScreenState extends State<SettingsScreen>
                                                   loc.country,
                                                 if (loc.zipCode.isNotEmpty)
                                                   'Zip: ${loc.zipCode}',
-                                              ].join(' • '),
+                                              ].join(' â€¢ '),
                                               style: const TextStyle(
                                                   fontSize: 12,
                                                   color: Color(0xFF64748B)),
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              'Phone: ${loc.mobile.isNotEmpty ? loc.mobile : "N/A"} • Email: ${loc.email.isNotEmpty ? loc.email : "N/A"}',
+                                              'Phone: ${loc.mobile.isNotEmpty ? loc.mobile : "N/A"} â€¢ Email: ${loc.email.isNotEmpty ? loc.email : "N/A"}',
                                               style: const TextStyle(
                                                   fontSize: 11,
                                                   color: Color(0xFF94A3B8)),
@@ -4827,11 +4581,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   DropdownMenuItem(
                                       value: 'zatca',
                                       child: Text(
-                                          'Saudi Arabia — ZATCA Fatoorah (Phase 1 & 2 TLV)')),
+                                          'Saudi Arabia â€” ZATCA Fatoorah (Phase 1 & 2 TLV)')),
                                   DropdownMenuItem(
                                       value: 'fbr',
                                       child: Text(
-                                          'Pakistan — FBR Digital Invoicing (USIN & QR)')),
+                                          'Pakistan â€” FBR Digital Invoicing (USIN & QR)')),
                                 ],
                                 onChanged: (val) {
                                   if (val != null) {
@@ -5107,7 +4861,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                           ],
                                         ),
                                         subtitle: Text(
-                                          'Sub-taxes: ${componentsLabel.isEmpty ? "None" : componentsLabel} • Effective: ${eff.toStringAsFixed(2)}%',
+                                          'Sub-taxes: ${componentsLabel.isEmpty ? "None" : componentsLabel} â€¢ Effective: ${eff.toStringAsFixed(2)}%',
                                           style: const TextStyle(fontSize: 12),
                                         ),
                                         trailing: Row(
@@ -5260,7 +5014,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14)),
                                 subtitle: Text(
-                                    'Preview: ${sc.previewExample} • Start: ${sc.startNumber} • Total Invoices: ${sc.invoiceCount}'),
+                                    'Preview: ${sc.previewExample} â€¢ Start: ${sc.startNumber} â€¢ Total Invoices: ${sc.invoiceCount}'),
                                 trailing: sc.isDefault
                                     ? Container(
                                         padding: const EdgeInsets.symmetric(
@@ -5595,7 +5349,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                               const SizedBox(height: 10),
                               Text(
                                 'Webdeventh Software Solutions (Engr. Muhammad Rafiq)\n'
-                                'Website: https://webdeventh.com  •  WhatsApp: +92 300 1234567  •  Email: webdeventh@gmail.com',
+                                'Website: https://webdeventh.com  â€¢  WhatsApp: +92 300 1234567  â€¢  Email: webdeventh@gmail.com',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: isDark
@@ -5789,7 +5543,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                                 style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13)),
-                                            Text('Port 3306 • Central Server',
+                                            Text('Port 3306 â€¢ Central Server',
                                                 style: TextStyle(
                                                     fontSize: 11,
                                                     color:
@@ -5849,7 +5603,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13)),
                                             Text(
-                                                'Port 5432 • Enterprise Relational',
+                                                'Port 5432 â€¢ Enterprise Relational',
                                                 style: TextStyle(
                                                     fontSize: 11,
                                                     color:
@@ -5907,7 +5661,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13)),
                                             Text(
-                                                'Zero Latency • Local Device Only',
+                                                'Zero Latency â€¢ Local Device Only',
                                                 style: TextStyle(
                                                     fontSize: 11,
                                                     color:
@@ -6266,11 +6020,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                               ),
                               SizedBox(height: 6),
                               Text(
-                                '• 2,500 Realistic Medicines: Panadol, Augmentin, Arinac, Risek, Brufen, Amoxil, Flagyl, Ciproxin, Velosef, Surbex Z, etc.\n'
-                                '• Complete Batch Numbers, Expiry Dates (Active, Near Expiry <90 days, Expired for audit testing), Unit packs, Purchase & Sale Prices.\n'
-                                '• 1,500 Customer Outlets: Shaheen Chemist, Fazal Din, Clinix, Servaid, Care Pharmacy, Al-Shifa Medicose with DL & NTN numbers.\n'
-                                '• 100 Distributors: Getz Pharma, GSK, Abbott, Searle, Sami, Hilton, Bosch, Sanofi, Ferozsons, Highnoon, etc.\n'
-                                '• 15 Salesmen Accounts: salesmen 1 to 15 with login permissions and auto-assigned territories.',
+                                'â€¢ 2,500 Realistic Medicines: Panadol, Augmentin, Arinac, Risek, Brufen, Amoxil, Flagyl, Ciproxin, Velosef, Surbex Z, etc.\n'
+                                'â€¢ Complete Batch Numbers, Expiry Dates (Active, Near Expiry <90 days, Expired for audit testing), Unit packs, Purchase & Sale Prices.\n'
+                                'â€¢ 1,500 Customer Outlets: Shaheen Chemist, Fazal Din, Clinix, Servaid, Care Pharmacy, Al-Shifa Medicose with DL & NTN numbers.\n'
+                                'â€¢ 100 Distributors: Getz Pharma, GSK, Abbott, Searle, Sami, Hilton, Bosch, Sanofi, Ferozsons, Highnoon, etc.\n'
+                                'â€¢ 15 Salesmen Accounts: salesmen 1 to 15 with login permissions and auto-assigned territories.',
                                 style: TextStyle(fontSize: 12, height: 1.5),
                               ),
                             ],
@@ -6888,7 +6642,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   ),
                                 ),
                                 child: Text(
-                                  serverRunning ? '● LIVE ACTIVE' : '○ STOPPED',
+                                  serverRunning
+                                      ? 'â— LIVE ACTIVE'
+                                      : 'â—‹ STOPPED',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
@@ -7558,7 +7314,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         subtitle: Text(
-                                          'Size: ${_formatFileSize(stat.size)} • Date: ${_formatFileDate(stat.modified)}',
+                                          'Size: ${_formatFileSize(stat.size)} â€¢ Date: ${_formatFileDate(stat.modified)}',
                                           style: const TextStyle(
                                               fontSize: 10, color: Colors.grey),
                                         ),
@@ -9478,7 +9234,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               color: Colors.black),
         ),
         Text(
-          '$heading • WHOLESALE & DISTRIBUTION',
+          '$heading â€¢ WHOLESALE & DISTRIBUTION',
           textAlign: TextAlign.center,
           style: const TextStyle(
               fontFamily: 'monospace',
@@ -9487,7 +9243,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               color: Color(0xFF334155)),
         ),
         Text(
-          '$address • $phone',
+          '$address â€¢ $phone',
           textAlign: TextAlign.center,
           style: const TextStyle(
               fontFamily: 'monospace', fontSize: 8, color: Colors.black54),
@@ -9690,7 +9446,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         ],
         const SizedBox(height: 6),
         const Text(
-          'نوٹ: مال وصول کرتے وقت ایکسپائری اور ڈبہ چیک کرلیں۔',
+          'Ù†ÙˆÙ¹: Ù…Ø§Ù„ ÙˆØµÙˆÙ„ Ú©Ø±ØªÛ’ ÙˆÙ‚Øª Ø§ÛŒÚ©Ø³Ù¾Ø§Ø¦Ø±ÛŒ Ø§ÙˆØ± ÚˆØ¨Û Ú†ÛŒÚ© Ú©Ø±Ù„ÛŒÚºÛ”',
           textAlign: TextAlign.right,
           style: TextStyle(
               fontSize: 8, color: Colors.red, fontWeight: FontWeight.bold),
@@ -10131,7 +9887,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14)),
-                                    Text('100% Free • Recommended • Fast',
+                                    Text('100% Free â€¢ Recommended â€¢ Fast',
                                         style: TextStyle(
                                             fontSize: 11, color: Colors.grey)),
                                   ],
@@ -10181,7 +9937,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14)),
-                                    Text('High Intelligence • Paid Key',
+                                    Text('High Intelligence â€¢ Paid Key',
                                         style: TextStyle(
                                             fontSize: 11, color: Colors.grey)),
                                   ],
@@ -10235,10 +9991,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                             DropdownMenuItem(
                                 value: 'roman_urdu',
                                 child: Text(
-                                    'Roman Urdu (اردو/English - Recommended)')),
+                                    'Roman Urdu (Ø§Ø±Ø¯Ùˆ/English - Recommended)')),
                             DropdownMenuItem(
                                 value: 'urdu',
-                                child: Text('Urdu (اردو رسم الخط)')),
+                                child: Text('Urdu (Ø§Ø±Ø¯Ùˆ Ø±Ø³Ù… Ø§Ù„Ø®Ø·)')),
                             DropdownMenuItem(
                                 value: 'english',
                                 child: Text(
@@ -10582,7 +10338,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             isDark: isDark,
             icon: Icons.person_pin_outlined,
             title:
-                'Prompt / Allow Customer Name on Walk-in Sales (واک اِن بل پر گاہک کا نام)',
+                'Prompt / Allow Customer Name on Walk-in Sales (ÙˆØ§Ú© Ø§ÙÙ† Ø¨Ù„ Ù¾Ø± Ú¯Ø§ÛÚ© Ú©Ø§ Ù†Ø§Ù…)',
             subtitle:
                 'Allows typing customer name on cash walk-in bills without registering an account. Prints on invoice and enables 1-click transfer to customer ledger later.',
             value: _promptWalkinCustomerName,
@@ -10612,7 +10368,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         size: 18, color: Color(0xFF0284C7)),
                     const SizedBox(width: 8),
                     Text(
-                      'Default POS Print Format (ڈیفالٹ پرنٹ فارمیٹ)',
+                      'Default POS Print Format (ÚˆÛŒÙØ§Ù„Ù¹ Ù¾Ø±Ù†Ù¹ ÙØ§Ø±Ù…ÛŒÙ¹)',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -10783,7 +10539,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         size: 18, color: Color(0xFF10B981)),
                     const SizedBox(width: 8),
                     Text(
-                      'Pakistan POS Payment Methods (کاؤنٹر پیمنٹ کے طریقے)',
+                      'Pakistan POS Payment Methods (Ú©Ø§Ø¤Ù†Ù¹Ø± Ù¾ÛŒÙ…Ù†Ù¹ Ú©Û’ Ø·Ø±ÛŒÙ‚Û’)',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -10806,7 +10562,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.credit_card_outlined,
-                  title: 'Debit / Credit Card Payment [F8] (کارڈ پیمنٹ)',
+                  title:
+                      'Debit / Credit Card Payment [F8] (Ú©Ø§Ø±Úˆ Ù¾ÛŒÙ…Ù†Ù¹)',
                   subtitle:
                       'Show Card checkout button (rarely used in local PK retail; off by default).',
                   value: _enableCardPayment,
@@ -10818,7 +10575,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.phone_android_rounded,
-                  title: 'EasyPaisa Mobile Account (ایزی پیسہ)',
+                  title: 'EasyPaisa Mobile Account (Ø§ÛŒØ²ÛŒ Ù¾ÛŒØ³Û)',
                   subtitle:
                       'Enable EasyPaisa tender button and QR in Payment Modal.',
                   value: _enableEasyPaisa,
@@ -10830,7 +10587,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.account_balance_wallet_outlined,
-                  title: 'JazzCash Mobile Account (جاز کیش)',
+                  title: 'JazzCash Mobile Account (Ø¬Ø§Ø² Ú©ÛŒØ´)',
                   subtitle:
                       'Enable JazzCash tender button and QR in Payment Modal.',
                   value: _enableJazzCash,
@@ -10843,7 +10600,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                   isDark: isDark,
                   icon: Icons.account_balance_outlined,
                   title:
-                      'Direct Bank Transfer / IBFT / Raast (بینک اکاؤنٹ / راست)',
+                      'Direct Bank Transfer / IBFT / Raast (Ø¨ÛŒÙ†Ú© Ø§Ú©Ø§Ø¤Ù†Ù¹ / Ø±Ø§Ø³Øª)',
                   subtitle:
                       'Enable direct bank account & Raast payment tender option.',
                   value: _enableBankTransfer,
@@ -10855,7 +10612,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.article_outlined,
-                  title: 'Cheque Payment Clearing (چیک پیمنٹ)',
+                  title: 'Cheque Payment Clearing (Ú†ÛŒÚ© Ù¾ÛŒÙ…Ù†Ù¹)',
                   subtitle:
                       'Enable Cheque payment with cheque number and clearing date.',
                   value: _enableChequePayment,
@@ -10868,7 +10625,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.menu_book_rounded,
-                  title: 'Credit / Khata / Udhaar Sale [F6] (ادھار کھاتہ)',
+                  title:
+                      'Credit / Khata / Udhaar Sale [F6] (Ø§Ø¯Ú¾Ø§Ø± Ú©Ú¾Ø§ØªÛ)',
                   subtitle: 'Enable due/credit sale for registered customers.',
                   value: _enableCreditSale,
                   onChanged: (val) {

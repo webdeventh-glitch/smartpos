@@ -36,7 +36,7 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
   static const String phoneRaw = '923001234567';
   static const String emailAddress = 'webdeventh@gmail.com';
   static const String appVersion =
-      'v1.1.0 (Release 2026.11.23 - Phase 8 Enterprise)';
+      'v1.1.1 (Release 2026.11.23 - Enterprise Stable)';
 
   @override
   void initState() {

@@ -807,7 +807,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
         can('supplier.manage') ||
         can('contact.khata_payment');
     final canManageUsers = can('user.manage') || can('role.manage');
-    final canSettings = can('settings.manage');
+    // Settings are strictly visible and manageable by Super Admin (Owner)
+    final canSettings = user?.isSuperAdmin == true;
 
     // Check if parent sections are active
     final isProductsActive = const [
