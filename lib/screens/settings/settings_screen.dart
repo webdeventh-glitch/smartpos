@@ -1602,6 +1602,71 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.settings_ethernet_rounded,
+                      size: 16, color: Color(0xFF4F46E5)),
+                  const SizedBox(width: 8),
+                  const Text('Port: ',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  SizedBox(
+                    width: 85,
+                    height: 32,
+                    child: TextFormField(
+                      key: ValueKey('port_$_embeddedServerPort'),
+                      initialValue: _embeddedServerPort.toString(),
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 6),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                      ),
+                      onChanged: (val) {
+                        final p = int.tryParse(val.trim());
+                        if (p != null && p > 0) {
+                          setState(() => _embeddedServerPort = p);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      side: const BorderSide(color: Color(0xFF10B981)),
+                      foregroundColor: const Color(0xFF059669),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
+                    ),
+                    icon: const Icon(Icons.search_rounded, size: 14),
+                    label: const Text(
+                      'Auto-Find Free Port (فری پورٹ ڈھونڈیں)',
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final freePort =
+                          await EmbeddedDatabaseService.findAvailablePort(
+                              startPort: 3307);
+                      setState(() => _embeddedServerPort = freePort);
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Free available port detected: $freePort (No Laragon/XAMPP conflict!)'),
+                          backgroundColor: const Color(0xFF10B981),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [

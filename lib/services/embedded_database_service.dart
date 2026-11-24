@@ -107,6 +107,16 @@ class EmbeddedDatabaseService {
     }
   }
 
+  /// Scans for an available, unblocked network port (e.g. checks 3307, 3308, 3309, etc.)
+  static Future<int> findAvailablePort({int startPort = 3307}) async {
+    for (int port = startPort; port < startPort + 50; port++) {
+      if (!await isPortOpen(port)) {
+        return port;
+      }
+    }
+    return startPort;
+  }
+
   /// Generates a tailored my.ini configuration file for the embedded server
   static File _ensureConfigFile(String engineExe, int port, Directory dataDir) {
     final parentDir = dataDir.parent;
