@@ -10,6 +10,7 @@ import 'services/qulop_service.dart';
 import 'services/cloud_sync_service.dart';
 import 'services/lan_realtime_service.dart';
 import 'services/local_api_service.dart';
+import 'services/embedded_database_service.dart';
 import 'services/mysql_service.dart';
 import 'screens/auth/force_password_change_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -109,6 +110,23 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
 
     ThemeService.setTouchFriendly(settings.touchFriendlyMode);
     AuthService.configureSessionTimeout(settings.sessionTimeoutMinutes);
+
+    // Auto-start embedded database engine if enabled or if localhost on embedded port
+    if (settings.isConfigured && settings.isMySql) {
+      final port =
+          settings.dbPort > 0 ? settings.dbPort : settings.embeddedServerPort;
+      final isLocalhost =
+          settings.dbHost == 'localhost' || settings.dbHost == '127.0.0.1';
+      if ((settings.autoStartEmbeddedServer || isLocalhost) &&
+          !await EmbeddedDatabaseService.isPortOpen(port)) {
+        final engine = EmbeddedDatabaseService.findEngineExecutable();
+        if (engine != null) {
+          AppLogger.info('Bootstrap',
+              'Detected database engine ($engine). Auto-starting on port $port...');
+          await EmbeddedDatabaseService.startServer(port: port);
+        }
+      }
+    }
 
     // Primary Database Sync:
     // If configured and MySQL is selected, connect and sync seamlessly without ever wiping local business data

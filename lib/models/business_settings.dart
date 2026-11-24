@@ -55,6 +55,8 @@ class BusinessSettings {
   final String dbUser;
   final String dbPassword;
   final String primaryDbType; // 'mysql', 'postgresql', 'sqlite'
+  final bool autoStartEmbeddedServer;
+  final int embeddedServerPort;
   final String industryPresets;
   final String receiptPaperSize; // '80mm', '58mm', 'a4'
   final String receiptHeaderTagline;
@@ -162,6 +164,8 @@ class BusinessSettings {
     this.serverHost = '127.0.0.1',
     this.serverPort = 8080,
     this.primaryDbType = 'mysql',
+    this.autoStartEmbeddedServer = false,
+    this.embeddedServerPort = 3307,
     this.dbHost = 'localhost',
     this.dbPort = 3306,
     this.dbName = 'smartpos',
@@ -655,6 +659,8 @@ class BusinessSettings {
     String? dbPassword,
     String? industryPresets,
     String? primaryDbType,
+    bool? autoStartEmbeddedServer,
+    int? embeddedServerPort,
     String? receiptPaperSize,
     String? receiptHeaderTagline,
     String? receiptHeaderNote,
@@ -764,6 +770,9 @@ class BusinessSettings {
       serverHost: serverHost ?? this.serverHost,
       serverPort: serverPort ?? this.serverPort,
       primaryDbType: primaryDbType ?? this.primaryDbType,
+      autoStartEmbeddedServer:
+          autoStartEmbeddedServer ?? this.autoStartEmbeddedServer,
+      embeddedServerPort: embeddedServerPort ?? this.embeddedServerPort,
       dbHost: dbHost ?? this.dbHost,
       dbPort: dbPort ?? this.dbPort,
       dbName: dbName ?? this.dbName,
@@ -894,6 +903,8 @@ class BusinessSettings {
         'server_host': serverHost,
         'server_port': serverPort,
         'primary_db_type': primaryDbType,
+        'auto_start_embedded_server': autoStartEmbeddedServer ? 1 : 0,
+        'embedded_server_port': embeddedServerPort,
         'db_host': dbHost,
         'db_port': dbPort,
         'db_name': dbName,
@@ -1013,6 +1024,9 @@ class BusinessSettings {
         serverHost: modelAsString(map['server_host'], '127.0.0.1'),
         serverPort: modelAsInt(map['server_port'], 8080),
         primaryDbType: modelAsString(map['primary_db_type'], 'mysql'),
+        autoStartEmbeddedServer:
+            modelAsBool(map['auto_start_embedded_server'], false),
+        embeddedServerPort: modelAsInt(map['embedded_server_port'], 3307),
         dbHost: modelAsString(map['db_host'], 'localhost'),
         dbPort: modelAsInt(map['db_port'], 3306),
         dbName: modelAsString(map['db_name'], 'smartpos'),

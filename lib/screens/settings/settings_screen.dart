@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/auth_service.dart';
@@ -18,6 +19,7 @@ import '../../services/print_service.dart';
 import '../../services/ai_assistant_service.dart';
 import '../../services/number_to_words_service.dart';
 import '../../services/localization_service.dart';
+import '../../services/embedded_database_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../../widgets/about_developer_dialog.dart';
 import '../../widgets/system_logs_dialog.dart';
@@ -106,6 +108,10 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _isTestingDbConnection = false;
   String? _dbConnectionResult;
   bool? _dbConnectionSuccess;
+  bool _autoStartEmbeddedServer = false;
+  int _embeddedServerPort = 3307;
+  bool _isTogglingEmbedded = false;
+  List<String> _lanIps = [];
 
   // Purge & Seeding Engine State
   bool _isPurging = false;
@@ -264,6 +270,19 @@ class _SettingsScreenState extends State<SettingsScreen>
           : (_primaryDbType == 'postgresql' ? 'postgres' : 'root'),
     );
     _dbPassCtrl = TextEditingController(text: s.dbPassword);
+
+    _autoStartEmbeddedServer = s.autoStartEmbeddedServer;
+    _embeddedServerPort =
+        s.embeddedServerPort > 0 ? s.embeddedServerPort : 3307;
+    EmbeddedDatabaseService.isPortOpen(_embeddedServerPort).then((open) {
+      if (mounted) {
+        EmbeddedDatabaseService.isRunning.value = open;
+      }
+    });
+    EmbeddedDatabaseService.getLocalLanIpAddresses().then((ips) {
+      if (mounted) setState(() => _lanIps = ips);
+    });
+    EmbeddedDatabaseService.findEngineExecutable();
 
     _receiptPaperSize =
         s.receiptPaperSize.isNotEmpty ? s.receiptPaperSize : '80mm';
@@ -1297,6 +1316,8 @@ class _SettingsScreenState extends State<SettingsScreen>
   Future<void> _saveDatabaseEngineSettings() async {
     final updated = widget.settings.copyWith(
       primaryDbType: _primaryDbType,
+      autoStartEmbeddedServer: _autoStartEmbeddedServer,
+      embeddedServerPort: _embeddedServerPort,
       dbHost: _dbHostCtrl.text.trim().isNotEmpty
           ? _dbHostCtrl.text.trim()
           : '127.0.0.1',
@@ -1344,6 +1365,269 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
       );
     }
+  }
+
+  Widget _buildEmbeddedServerCard(bool isDark) {
+    final borderColor =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final hasEngine = EmbeddedDatabaseService.findEngineExecutable() != null;
+    final enginePath = EmbeddedDatabaseService.detectedEngine.value;
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: EmbeddedDatabaseService.isRunning,
+      builder: (context, isRunning, _) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isRunning
+                ? const Color(0xFF059669)
+                    .withValues(alpha: isDark ? 0.15 : 0.06)
+                : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isRunning
+                  ? const Color(0xFF10B981)
+                  : (hasEngine
+                      ? const Color(0xFF3B82F6).withValues(alpha: 0.5)
+                      : borderColor),
+              width: isRunning ? 1.5 : 1.0,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isRunning
+                          ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                          : const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      isRunning ? Icons.dns_rounded : Icons.storage_rounded,
+                      color: isRunning
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFF3B82F6),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'Embedded Portable Database Server (بلٹ ان سرور)',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isRunning
+                                    ? const Color(0xFF10B981)
+                                    : Colors.grey.shade600,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                isRunning
+                                    ? 'RUNNING : $_embeddedServerPort'
+                                    : 'STOPPED',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          hasEngine
+                              ? 'Detected Engine: ${p.basename(p.dirname(p.dirname(enginePath ?? '')))} (${p.basename(enginePath ?? '')})'
+                              : 'No portable engine found in engine/ folder. (SQLite is active)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (_isTogglingEmbedded)
+                    const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  else if (isRunning)
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEF4444),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                      ),
+                      icon: const Icon(Icons.stop_circle_rounded, size: 16),
+                      label: const Text('Stop Server (بند کریں)',
+                          style: TextStyle(fontSize: 11.5)),
+                      onPressed: () async {
+                        setState(() => _isTogglingEmbedded = true);
+                        await EmbeddedDatabaseService.stopServer(
+                            port: _embeddedServerPort);
+                        if (mounted) {
+                          setState(() => _isTogglingEmbedded = false);
+                        }
+                      },
+                    )
+                  else
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                      ),
+                      icon:
+                          const Icon(Icons.play_circle_fill_rounded, size: 16),
+                      label: const Text('Start Server (اسٹارٹ کریں)',
+                          style: TextStyle(fontSize: 11.5)),
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        setState(() => _isTogglingEmbedded = true);
+                        final ok = await EmbeddedDatabaseService.startServer(
+                            port: _embeddedServerPort);
+                        if (mounted) {
+                          setState(() => _isTogglingEmbedded = false);
+                          if (!ok) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Could not start embedded server: ${EmbeddedDatabaseService.statusText.value}'),
+                                backgroundColor: Colors.red.shade700,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Zero-Configuration Embedded MySQL: Laragon یا XAMPP انسٹال کیے بغیر سافٹ ویئر اپنا ڈیٹا بیس خود چلاتا ہے۔',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: isDark
+                                ? Colors.white70
+                                : const Color(0xFF334155),
+                          ),
+                        ),
+                        if (_lanIps.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          SelectableText(
+                            '📡 Other LAN Counters Connection: ${_lanIps.map((ip) => '$ip:$_embeddedServerPort').join('  •  ')}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF4F46E5),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF4F46E5),
+                      side: const BorderSide(color: Color(0xFF4F46E5)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
+                    ),
+                    icon: const Icon(Icons.flash_on_rounded, size: 14),
+                    label: const Text(
+                      'Use in Form (سیٹنگز میں لگائیں)',
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _primaryDbType = 'mysql';
+                        _dbHostCtrl.text = '127.0.0.1';
+                        _dbPortCtrl.text = _embeddedServerPort.toString();
+                        _dbNameCtrl.text = 'smartpos';
+                        _dbUserCtrl.text = 'root';
+                        _dbPassCtrl.text = '';
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Embedded Database configuration applied to form!'),
+                          backgroundColor: Color(0xFF4F46E5),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Checkbox(
+                    value: _autoStartEmbeddedServer,
+                    activeColor: const Color(0xFF4F46E5),
+                    onChanged: (val) {
+                      setState(() {
+                        _autoStartEmbeddedServer = val ?? false;
+                      });
+                    },
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Auto-start embedded database engine when SmartPOS launches (اسمارٹ پی او ایس شروع ہوتے ہی بیک گراؤنڈ میں سرور چلائیں)',
+                      style: TextStyle(
+                          fontSize: 11.5, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _factoryResetForNewBusiness() async {
@@ -5680,6 +5964,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                             ),
                           ],
                         ),
+                        const SizedBox(height: 18),
+
+                        // Embedded Portable Database Server Controller Card
+                        _buildEmbeddedServerCard(isDark),
                         const SizedBox(height: 18),
 
                         // Host / Port / User / Pass Form for MySQL / PostgreSQL

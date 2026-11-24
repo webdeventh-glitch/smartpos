@@ -182,6 +182,21 @@ class DatabaseSchema {
         'unit_categories_and_product_sub_units',
       );
     }
+    if (fromVersion < 14 && toVersion >= 14) {
+      await _applyV14EmbeddedDatabaseSettings(db);
+      await _recordMigration(
+        db,
+        14,
+        'embedded_database_server_settings',
+      );
+    }
+  }
+
+  static Future<void> _applyV14EmbeddedDatabaseSettings(Database db) async {
+    await _addColumnIfMissing(db, 'business_settings',
+        'auto_start_embedded_server', 'INTEGER DEFAULT 0');
+    await _addColumnIfMissing(db, 'business_settings', 'embedded_server_port',
+        'INTEGER DEFAULT 3307');
   }
 
   static Future<void> _applyV13UnitCategoriesAndProductSubUnits(
@@ -2982,6 +2997,8 @@ class DatabaseSchema {
         server_host TEXT DEFAULT '127.0.0.1',
         server_port INTEGER DEFAULT 8080,
         primary_db_type TEXT DEFAULT 'mysql',
+        auto_start_embedded_server INTEGER DEFAULT 0,
+        embedded_server_port INTEGER DEFAULT 3307,
         db_host TEXT DEFAULT 'localhost',
         db_port INTEGER DEFAULT 3306,
         db_name TEXT DEFAULT 'smartpos',
