@@ -64,6 +64,15 @@ if ((Test-Path $PickerCs) -and (Test-Path $CscExe)) {
     }
 }
 
+# Bundle Microsoft Visual C++ Runtime DLLs (App-Local Deployment for 100% portable zero-dependency setup)
+$VcDlls = @("msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+foreach ($dll in $VcDlls) {
+    $sysPath = "C:\Windows\System32\$dll"
+    if (Test-Path $sysPath) {
+        Copy-Item $sysPath (Join-Path $ReleaseDir $dll) -Force
+    }
+}
+
 Write-Host "[1/3] Windows Release binary ready in build/windows/x64/runner/Release" -ForegroundColor Green
 
 # 2. Prepare Dist directory
