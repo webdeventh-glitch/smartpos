@@ -8,7 +8,7 @@ abstract class IInventoryRepository {
   Future<Product?> getProductByCode(String code);
   Future<int> addProduct(Product product);
   Future<int> updateProduct(Product product);
-  Future<int> deleteProduct(int id);
+  Future<int> deleteProduct(int id, {bool force = false});
   Future<List<Category>> getCategories();
   Future<List<Brand>> getBrands();
   Future<List<ProductSerialBatch>> getProductSerialsBatches(int productId);
@@ -46,7 +46,8 @@ class InventoryRepository extends BaseRepository
       dbService.productRepo.updateProduct(product);
 
   @override
-  Future<int> deleteProduct(int id) => dbService.productRepo.deleteProduct(id);
+  Future<int> deleteProduct(int id, {bool force = false}) =>
+      dbService.productRepo.deleteProduct(id, force: force);
 
   @override
   Future<List<Category>> getCategories() =>

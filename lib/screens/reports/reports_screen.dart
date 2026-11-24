@@ -772,54 +772,59 @@ class _ReportsScreenState extends State<ReportsScreen>
                         ? const Color(0xFF334155)
                         : const Color(0xFFE2E8F0)),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_month_rounded,
-                      size: 18, color: Color(0xFF4F46E5)),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Period: ',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : const Color(0xFF334155)),
-                  ),
-                  const SizedBox(width: 6),
-                  _filterBtn('today', 'Today / آج'),
-                  const SizedBox(width: 6),
-                  _filterBtn('yesterday', 'Yesterday / کل'),
-                  const SizedBox(width: 6),
-                  _filterBtn('week', '7 Days / ہفتہ وار'),
-                  const SizedBox(width: 6),
-                  _filterBtn('month', 'Month / ماہانہ'),
-                  const SizedBox(width: 6),
-                  _filterBtn('quarter', 'Quarterly / سہ ماہی'),
-                  const SizedBox(width: 6),
-                  _filterBtn('year', 'Yearly / سالانہ'),
-                  const SizedBox(width: 6),
-                  _filterBtn(
-                      'custom',
-                      _dateFilter == 'custom'
-                          ? _formatPeriod()
-                          : 'Custom / کسٹم',
-                      isCustom: true),
-                  const Spacer(),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _formatPeriod(),
-                      style: const TextStyle(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_month_rounded,
+                        size: 18, color: Color(0xFF4F46E5)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Period: ',
+                      style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF4F46E5)),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF334155)),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    _filterBtn('today', 'Today / آج'),
+                    const SizedBox(width: 6),
+                    _filterBtn('yesterday', 'Yesterday / کل'),
+                    const SizedBox(width: 6),
+                    _filterBtn('week', '7 Days / ہفتہ وار'),
+                    const SizedBox(width: 6),
+                    _filterBtn('month', 'Month / ماہانہ'),
+                    const SizedBox(width: 6),
+                    _filterBtn('quarter', 'Quarterly / سہ ماہی'),
+                    const SizedBox(width: 6),
+                    _filterBtn('year', 'Yearly / سالانہ'),
+                    const SizedBox(width: 6),
+                    _filterBtn(
+                        'custom',
+                        _dateFilter == 'custom'
+                            ? _formatPeriod()
+                            : 'Custom / کسٹم',
+                        isCustom: true),
+                    const SizedBox(width: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _formatPeriod(),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4F46E5),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 18),

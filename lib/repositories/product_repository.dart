@@ -863,7 +863,48 @@ class ProductRepository extends BaseRepository {
     return res;
   }
 
-  Future<int> deleteProduct(int id) async {
+  /// Checks whether a product has any linked commercial transactions (sales or purchases)
+  Future<Map<String, dynamic>> checkProductTransactionUsage(
+      int productId) async {
+    int salesCount = 0;
+    int purchasesCount = 0;
+
+    try {
+      final sRows = await db.rawQuery(
+        'SELECT COUNT(*) as cnt FROM sale_items WHERE product_id = ?',
+        [productId],
+      );
+      if (sRows.isNotEmpty) {
+        salesCount = (sRows.first['cnt'] as num?)?.toInt() ?? 0;
+      }
+    } catch (_) {}
+
+    try {
+      final pRows = await db.rawQuery(
+        'SELECT COUNT(*) as cnt FROM purchase_items WHERE product_id = ?',
+        [productId],
+      );
+      if (pRows.isNotEmpty) {
+        purchasesCount = (pRows.first['cnt'] as num?)?.toInt() ?? 0;
+      }
+    } catch (_) {}
+
+    return {
+      'hasTransactions': (salesCount + purchasesCount) > 0,
+      'salesCount': salesCount,
+      'purchasesCount': purchasesCount,
+    };
+  }
+
+  Future<int> deleteProduct(int id, {bool force = false}) async {
+    if (!force) {
+      final usage = await checkProductTransactionUsage(id);
+      if (usage['hasTransactions'] == true) {
+        throw StateError(
+            'Cannot delete product ID $id because it has linked transactions (${usage['salesCount']} sales, ${usage['purchasesCount']} purchases).');
+      }
+    }
+
     final oldRows =
         await db.query('products', where: 'id = ?', whereArgs: [id], limit: 1);
     final res = await db.delete('products', where: 'id = ?', whereArgs: [id]);

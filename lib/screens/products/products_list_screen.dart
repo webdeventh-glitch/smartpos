@@ -533,12 +533,104 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       _denyAction('Access Denied: Missing product.delete permission.');
       return;
     }
+    if (product.id == null) return;
+    final db = await DatabaseService.initialize();
+    final usage = await db.checkProductTransactionUsage(product.id!);
+
+    if (usage['hasTransactions'] == true) {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded,
+                  color: Color(0xFFDC2626), size: 28),
+              SizedBox(width: 10),
+              Text(
+                'Cannot Delete Product',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This product "${product.name}" cannot be deleted because it has linked transactions:',
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFCA5A5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '• Linked Sales: ${usage['salesCount']} invoice(s)',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF991B1B),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '• Linked Purchases: ${usage['purchasesCount']} purchase record(s)',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF991B1B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'اکاؤنٹنگ قوانین کے مطابق جس پروڈکٹ کی سیل یا پرچیز ہو چکی ہو اسے ڈیلیٹ نہیں کیا جا سکتا، ورنہ پرانی انوائسز اور نفع و نقصان کی رپورٹس خراب ہو جائیں گی۔\n\nاگر آپ مزید فروخت نہیں کرنا چاہتے تو اس کا اسٹاک 0 کر دیں یا نام میں (Inactive) لکھ دیں۔',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF475569),
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4F46E5),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK (سمجھ گیا)'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Product?'),
         content: Text(
-            'Are you sure you want to permanently delete "${product.name}"?'),
+            'Are you sure you want to permanently delete "${product.name}"?\n\n(This product has 0 transactions and can be safely removed.)'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -555,9 +647,16 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     );
 
     if (confirm == true && product.id != null) {
-      final db = await DatabaseService.initialize();
       await db.deleteProduct(product.id!);
       _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Product "${product.name}" deleted successfully.'),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
     }
   }
 

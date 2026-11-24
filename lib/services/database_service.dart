@@ -293,7 +293,10 @@ class DatabaseService {
   Future<Product?> getProductById(int id) => productRepo.getProductById(id);
   Future<int> updateProduct(Product product) =>
       productRepo.updateProduct(product);
-  Future<int> deleteProduct(int id) => productRepo.deleteProduct(id);
+  Future<Map<String, dynamic>> checkProductTransactionUsage(int productId) =>
+      productRepo.checkProductTransactionUsage(productId);
+  Future<int> deleteProduct(int id, {bool force = false}) =>
+      productRepo.deleteProduct(id, force: force);
 
   /// Applies a real-time remote stock delta (e.g. from Primary LAN server or another counter).
   /// Updates local product stock (and variations/locations if provided) atomically.
