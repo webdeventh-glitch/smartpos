@@ -9,6 +9,7 @@ import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../widgets/product_thumbnail.dart';
+import '../../widgets/searchable_unit_picker.dart';
 
 class AddProductScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -65,13 +66,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   List<ProductVariation> _variations = [];
 
   String _selectedUnit = 'Pieces (Pc)';
-  final List<String> _units = [
-    'Pieces (Pc)',
-    'Box',
-    'Kilogram (Kg)',
-    'Liter (Ltr)',
-    'Pack'
-  ];
+  final List<String> _units = [];
   List<Unit> _dbUnits = [];
 
   List<Category> _categories = [];
@@ -159,11 +154,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
         _taxRates = tRates;
         _taxGroups = tGroups;
         _variationTemplates = varTemplates;
+        _units.clear();
+        final seenKeys = <String>{};
         for (final u in unList) {
-          final label = u.shortName.isNotEmpty && u.shortName != u.actualName
+          final label = u.shortName.isNotEmpty &&
+                  u.shortName.toLowerCase() != u.actualName.toLowerCase()
               ? '${u.actualName} (${u.shortName})'
               : u.actualName;
-          if (!_units.contains(label)) {
+          final key = u.shortName.isNotEmpty
+              ? u.shortName.toLowerCase()
+              : u.actualName.toLowerCase();
+          if (!seenKeys.contains(key) && !_units.contains(label)) {
+            seenKeys.add(key);
             _units.add(label);
           }
         }
@@ -184,8 +186,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _productType = p.type;
           _isFeatured = p.isFeatured;
           _selectedUnit = p.unit;
-          if (!_units.contains(_selectedUnit)) {
-            _units.add(_selectedUnit);
+          if (_units.isNotEmpty && !_units.contains(_selectedUnit)) {
+            final matched = _units.firstWhere(
+              (it) => it.toLowerCase().contains(_selectedUnit.toLowerCase()),
+              orElse: () => _selectedUnit,
+            );
+            _selectedUnit = matched;
           }
           final existingImg = p.resolvedImagePath;
           if (existingImg != null && File(existingImg).existsSync()) {
@@ -220,12 +226,38 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _selectedTaxGroupId = p.taxGroupId;
           _variations = List.from(loadedVars);
         } else {
+          if (_units.isNotEmpty && !_units.contains(_selectedUnit)) {
+            final defaultMatch = _units.firstWhere(
+              (it) =>
+                  it.toLowerCase().contains('piece') ||
+                  it.toLowerCase().contains('pc'),
+              orElse: () => _units.first,
+            );
+            _selectedUnit = defaultMatch;
+          }
           if (cats.isNotEmpty) _selectedCategory = cats.first;
           if (brs.isNotEmpty) _selectedBrand = brs.first;
           if (wars.isNotEmpty) _selectedWarranty = wars.first;
           _autoGenerateSku();
         }
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _openSearchUnitDialog() async {
+    final picked = await UnitSearchDialog.show(
+      context,
+      units: _dbUnits,
+      currentUnit: _selectedUnit,
+      onAddNewUnit: _showQuickAddUnitDialog,
+    );
+    if (picked != null && picked.isNotEmpty) {
+      setState(() {
+        _selectedUnit = picked;
+        if (!_units.contains(picked)) {
+          _units.add(picked);
+        }
       });
     }
   }
@@ -1359,6 +1391,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
 
     final currency = widget.settings.currencySymbol;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -1641,24 +1674,54 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     Row(
                                       children: [
                                         Expanded(
-                                          child:
-                                              DropdownButtonFormField<String>(
-                                            initialValue: _selectedUnit,
-                                            decoration:
-                                                _inputDecor('Please Select'),
-                                            items: _units
-                                                .map((u) => DropdownMenuItem(
-                                                    value: u,
-                                                    child: Text(u,
-                                                        style: const TextStyle(
-                                                            fontSize: 13))))
-                                                .toList(),
-                                            onChanged: (val) {
-                                              if (val != null) {
-                                                setState(
-                                                    () => _selectedUnit = val);
-                                              }
-                                            },
+                                          child: InkWell(
+                                            onTap: _openSearchUnitDialog,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            child: InputDecorator(
+                                              decoration:
+                                                  _inputDecor('Select Unit')
+                                                      .copyWith(
+                                                prefixIcon: const Icon(
+                                                    Icons.straighten_rounded,
+                                                    size: 18),
+                                                suffixIcon: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(Icons.search,
+                                                        size: 17,
+                                                        color: isDark
+                                                            ? const Color(
+                                                                0xFF818CF8)
+                                                            : const Color(
+                                                                0xFF4F46E5)),
+                                                    const SizedBox(width: 4),
+                                                    const Icon(
+                                                        Icons
+                                                            .arrow_drop_down_rounded,
+                                                        size: 22),
+                                                    const SizedBox(width: 6),
+                                                  ],
+                                                ),
+                                              ),
+                                              child: Text(
+                                                _selectedUnit.isNotEmpty
+                                                    ? _selectedUnit
+                                                    : 'Select Unit (اکائی تلاش کریں)',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: _selectedUnit
+                                                          .isNotEmpty
+                                                      ? (isDark
+                                                          ? Colors.white
+                                                          : const Color(
+                                                              0xFF0F172A))
+                                                      : const Color(0xFF94A3B8),
+                                                ),
+                                              ),
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -1760,21 +1823,46 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildFieldLabel('Unit', isRequired: true),
-                                  DropdownButtonFormField<String>(
-                                    initialValue: _selectedUnit,
-                                    decoration: _inputDecor('Please Select'),
-                                    items: _units
-                                        .map((u) => DropdownMenuItem(
-                                            value: u,
-                                            child: Text(u,
-                                                style: const TextStyle(
-                                                    fontSize: 13))))
-                                        .toList(),
-                                    onChanged: (val) {
-                                      if (val != null) {
-                                        setState(() => _selectedUnit = val);
-                                      }
-                                    },
+                                  InkWell(
+                                    onTap: _openSearchUnitDialog,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: InputDecorator(
+                                      decoration:
+                                          _inputDecor('Select Unit').copyWith(
+                                        prefixIcon: const Icon(
+                                            Icons.straighten_rounded,
+                                            size: 18),
+                                        suffixIcon: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.search,
+                                                size: 17,
+                                                color: isDark
+                                                    ? const Color(0xFF818CF8)
+                                                    : const Color(0xFF4F46E5)),
+                                            const SizedBox(width: 4),
+                                            const Icon(
+                                                Icons.arrow_drop_down_rounded,
+                                                size: 22),
+                                            const SizedBox(width: 6),
+                                          ],
+                                        ),
+                                      ),
+                                      child: Text(
+                                        _selectedUnit.isNotEmpty
+                                            ? _selectedUnit
+                                            : 'Select Unit (اکائی تلاش کریں)',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: _selectedUnit.isNotEmpty
+                                              ? (isDark
+                                                  ? Colors.white
+                                                  : const Color(0xFF0F172A))
+                                              : const Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),

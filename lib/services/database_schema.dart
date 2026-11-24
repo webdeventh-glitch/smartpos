@@ -530,6 +530,58 @@ class DatabaseSchema {
         shortName: 'Session',
         category: 'time',
         allowDecimal: false);
+
+    await deduplicateUnits(db);
+  }
+
+  /// Removes redundant or duplicate units from database table, preserving canonical base units
+  static Future<void> deduplicateUnits(Database db) async {
+    final rows = await db.query('units', orderBy: 'id ASC');
+    final seen = <String, int>{};
+    final toDelete = <int>[];
+
+    for (final r in rows) {
+      final id = r['id'] as int;
+      final actual = (r['actual_name'] as String? ?? '').trim().toLowerCase();
+      final short = (r['short_name'] as String? ?? '').trim().toLowerCase();
+
+      String key = short;
+      if (key == 'kg' || actual == 'kilogram' || actual == 'kilograms') {
+        key = 'kg';
+      } else if (key == 'pc' ||
+          key == 'pcs' ||
+          actual == 'piece' ||
+          actual == 'pieces') {
+        key = 'pc';
+      } else if (key == 'ltr' ||
+          key == 'l' ||
+          actual == 'liter' ||
+          actual == 'liters') {
+        key = 'ltr';
+      } else if (key == 'm' || actual == 'meter' || actual == 'meters') {
+        key = 'm';
+      } else if (key == 'hr' || actual == 'hour' || actual == 'hours') {
+        key = 'hr';
+      } else if (key == 'gm' ||
+          key == 'g' ||
+          actual == 'gram' ||
+          actual == 'grams') {
+        key = 'gm';
+      } else if (key.isEmpty) {
+        key = actual;
+      }
+
+      final compositeKey = '${r['category'] ?? ''}_$key';
+      if (seen.containsKey(compositeKey)) {
+        toDelete.add(id);
+      } else {
+        seen[compositeKey] = id;
+      }
+    }
+
+    for (final delId in toDelete) {
+      await db.delete('units', where: 'id = ?', whereArgs: [delId]);
+    }
   }
 
   static Future<void> _applyV12PakistanDistributionAndPosSettings(
