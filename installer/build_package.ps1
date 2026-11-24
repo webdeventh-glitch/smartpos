@@ -73,6 +73,16 @@ foreach ($dll in $VcDlls) {
     }
 }
 
+# Ensure Embedded Database Engine is prepared in Release/engine/mysql
+$EmbeddedEngineDir = Join-Path $ReleaseDir "engine\mysql"
+if (-not (Test-Path (Join-Path $EmbeddedEngineDir "bin\mysqld.exe"))) {
+    $SetupEmbeddedScript = Join-Path $PSScriptRoot "setup_embedded_db.ps1"
+    if (Test-Path $SetupEmbeddedScript) {
+        Write-Host "       Invoking Embedded Database Setup Script..." -ForegroundColor Cyan
+        & powershell -ExecutionPolicy Bypass -File $SetupEmbeddedScript
+    }
+}
+
 Write-Host "[1/3] Windows Release binary ready in build/windows/x64/runner/Release" -ForegroundColor Green
 
 # 2. Prepare Dist directory

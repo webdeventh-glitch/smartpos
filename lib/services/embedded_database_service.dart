@@ -259,6 +259,7 @@ sql_mode=NO_ENGINE_SUBSTITUTION
             'Embedded database server successfully started and accepting connections on port $port');
         _startHealthCheck(port);
         await _ensureDatabaseExists(port: port);
+        allowWindowsFirewall(port: port);
         return true;
       } else {
         isRunning.value = false;
@@ -374,5 +375,35 @@ sql_mode=NO_ENGINE_SUBSTITUTION
       }
     } catch (_) {}
     return ips;
+  }
+
+  /// Configures Windows Defender Firewall to allow incoming local LAN connections
+  static Future<bool> allowWindowsFirewall({int port = 3307}) async {
+    if (!Platform.isWindows) return true;
+    try {
+      final res = await Process.run(
+        'netsh',
+        [
+          'advfirewall',
+          'firewall',
+          'add',
+          'rule',
+          'name=Smart POS Enterprise (Port $port)',
+          'dir=in',
+          'action=allow',
+          'protocol=TCP',
+          'localport=$port',
+          'profile=any',
+        ],
+        runInShell: true,
+      );
+      AppLogger.info('EmbeddedDatabase',
+          'Windows Defender Firewall rule added for port $port (exitCode ${res.exitCode})');
+      return res.exitCode == 0;
+    } catch (e, st) {
+      AppLogger.warning('EmbeddedDatabase',
+          'Could not run netsh for Windows Firewall: $e', e, st);
+      return false;
+    }
   }
 }

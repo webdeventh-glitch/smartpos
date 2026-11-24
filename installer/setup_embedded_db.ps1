@@ -52,6 +52,22 @@ if ((Test-Path $LaragonMysqlDir) -and (-not $ForceDownload)) {
         }
     }
 
+    # Copy all required support DLLs (libcrypto, libssl, protobuf, sasl, etc.)
+    $AllDlls = Get-ChildItem -Path (Join-Path $LaragonMysqlDir "bin") -Filter "*.dll"
+    foreach ($dll in $AllDlls) {
+        Copy-Item $dll.FullName (Join-Path $BinDest $dll.Name) -Force
+        Write-Host "       Copied DLL: $($dll.Name)" -ForegroundColor Gray
+    }
+
+    # Copy VC++ Runtime DLLs directly into bin for standalone bare-metal execution
+    $VcDlls = @("msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+    foreach ($dll in $VcDlls) {
+        $sysDll = "C:\Windows\System32\$dll"
+        if (Test-Path $sysDll) {
+            Copy-Item $sysDll (Join-Path $BinDest $dll) -Force
+        }
+    }
+
     # Copy share / errmsg if present
     $ShareSrc = Join-Path $LaragonMysqlDir "share"
     if (Test-Path $ShareSrc) {

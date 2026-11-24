@@ -1665,6 +1665,40 @@ class _SettingsScreenState extends State<SettingsScreen>
                       );
                     },
                   ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      side: const BorderSide(color: Color(0xFF6366F1)),
+                      foregroundColor: const Color(0xFF4F46E5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
+                    ),
+                    icon: const Icon(Icons.security_rounded, size: 14),
+                    label: const Text(
+                      'Allow Firewall (فائر وال الاؤ کریں)',
+                      style:
+                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final ok =
+                          await EmbeddedDatabaseService.allowWindowsFirewall(
+                              port: _embeddedServerPort);
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(ok
+                              ? 'Port $_embeddedServerPort successfully opened in Windows Firewall for LAN access!'
+                              : 'Firewall rule command executed for port $_embeddedServerPort.'),
+                          backgroundColor: ok
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF4F46E5),
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
               const SizedBox(height: 8),

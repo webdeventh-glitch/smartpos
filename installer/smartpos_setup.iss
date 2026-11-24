@@ -52,7 +52,11 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppExeName}"
 
 [Run]
+Filename: "netsh.exe"; Parameters: "advfirewall firewall add rule name=""Smart POS LAN Access"" dir=in action=allow protocol=TCP localport=3307,8080 profile=any"; Flags: runhidden; StatusMsg: "Configuring Windows Firewall for local network multi-counter access..."
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+Filename: "netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Smart POS LAN Access"""; Flags: runhidden; RunOnceId: "DelFirewallRule"
 
 [Code]
 procedure CurStepChanged(CurStep: TSetupStep);
