@@ -589,8 +589,9 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                           value: 12, child: Text('1 Year (12 Mos) - Standard')),
                     ],
                     onChanged: (val) {
-                      if (val != null)
+                      if (val != null) {
                         setDlgState(() => selectedWarranty = val);
+                      }
                     },
                   ),
                   const SizedBox(height: 16),
