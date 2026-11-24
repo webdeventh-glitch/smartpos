@@ -193,7 +193,46 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
           }
 
           // Automatically record into product_serials_batches table for stock tracking & expiry alerts
-          if (batchNo != null && batchNo.isNotEmpty) {
+          final serialsList = (item['serials'] as List?)?.cast<String>() ?? [];
+          final startSerial = item['start_serial'] as String? ?? '';
+          final endSerial = item['end_serial'] as String? ?? '';
+          final warrantyMonths =
+              (item['warranty_months'] as num?)?.toInt() ?? 0;
+
+          if (serialsList.isNotEmpty) {
+            final prodRow = await txn.query('products',
+                where: 'id = ?', whereArgs: [productId], limit: 1);
+            final prodName = prodRow.isNotEmpty
+                ? (prodRow.first['name'] as String? ?? 'Product')
+                : (item['product_name'] ?? 'Product');
+            final prodSku = prodRow.isNotEmpty
+                ? (prodRow.first['sku'] as String? ?? '')
+                : (item['sku'] ?? '');
+
+            for (final sn in serialsList) {
+              final cleanSn = sn.trim();
+              if (cleanSn.isEmpty) continue;
+              await txn.insert('product_serials_batches', {
+                'product_id': productId,
+                'product_name': prodName,
+                'sku': prodSku,
+                'serial_number_1': cleanSn,
+                'batch_number': batchNo ?? '',
+                'manufacturing_date': mfgDate ?? '',
+                'expiry_date': expDate ?? '',
+                'warranty_months': warrantyMonths,
+                'status': isReceived ? 'in_stock' : purchase.status,
+                'purchase_id': purchaseId,
+                'location_id': purchase.locationId,
+                'purchase_price': unitCost ?? 0.0,
+                'selling_price': sellingPrice ?? 0.0,
+                'notes': (startSerial.isNotEmpty && endSerial.isNotEmpty)
+                    ? 'Lot: $batchNo ($startSerial - $endSerial)'
+                    : 'Recorded via Purchase ${purchase.refNo}',
+                'created_at': DateTime.now().toIso8601String(),
+              });
+            }
+          } else if (batchNo != null && batchNo.isNotEmpty) {
             final prodRow = await txn.query('products',
                 where: 'id = ?', whereArgs: [productId], limit: 1);
             final prodName = prodRow.isNotEmpty
@@ -210,13 +249,15 @@ class PurchaseRepository extends BaseRepository implements IPurchaseRepository {
               'batch_number': batchNo,
               'manufacturing_date': mfgDate ?? '',
               'expiry_date': expDate ?? '',
-              'warranty_months': 0,
+              'warranty_months': warrantyMonths,
               'status': isReceived ? 'in_stock' : purchase.status,
               'purchase_id': purchaseId,
               'location_id': purchase.locationId,
               'purchase_price': unitCost ?? 0.0,
               'selling_price': sellingPrice ?? 0.0,
-              'notes': 'Recorded via Purchase ${purchase.refNo}',
+              'notes': (startSerial.isNotEmpty && endSerial.isNotEmpty)
+                  ? 'Lot Range: $startSerial - $endSerial'
+                  : 'Recorded via Purchase ${purchase.refNo}',
               'created_at': DateTime.now().toIso8601String(),
             });
           }

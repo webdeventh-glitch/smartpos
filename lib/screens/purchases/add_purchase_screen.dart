@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../utils/serial_helper.dart';
 import 'product_search_dialog.dart';
 import 'quick_add_supplier_dialog.dart';
 import 'quick_add_product_dialog.dart';
@@ -35,6 +36,10 @@ class _PurchaseLineItem {
   String batchNumber;
   String mfgDate;
   String expDate;
+  List<String> serials = [];
+  String startSerial = '';
+  String endSerial = '';
+  int warrantyMonths = 144;
 
   final TextEditingController qtyCtrl;
   final TextEditingController costBeforeDiscCtrl;
@@ -394,6 +399,292 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     }
   }
 
+  void _openLotSerialRangeDialog(_PurchaseLineItem it) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lotCtrl = TextEditingController(
+      text: it.batchCtrl.text.isNotEmpty
+          ? it.batchCtrl.text
+          : 'PLT-${DateTime.now().year}-01',
+    );
+    final startCtrl = TextEditingController(
+      text: it.startSerial.isNotEmpty ? it.startSerial : 'CS-550-00101',
+    );
+    final countCtrl = TextEditingController(
+      text: it.quantity > 0 ? it.quantity.toInt().toString() : '36',
+    );
+    final endCtrl = TextEditingController(
+      text: it.endSerial.isNotEmpty
+          ? it.endSerial
+          : SerialHelper.calculateEndSerial(
+              startCtrl.text, int.tryParse(countCtrl.text) ?? 36),
+    );
+    int selectedWarranty = it.warrantyMonths > 0 ? it.warrantyMonths : 144;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          final count = int.tryParse(countCtrl.text.trim()) ?? 0;
+          final previewSerials =
+              SerialHelper.generateRange(startCtrl.text.trim(), count);
+
+          return Dialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Container(
+              width: 520,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFF4F46E5).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.solar_power_rounded,
+                            color: Color(0xFF4F46E5), size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Solar Pallet & Serial Range Tracker',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 16),
+                            ),
+                            Text(
+                              '${it.product.name} (پیلیٹ و سیریل نمبرز کی لاٹ اندراج)',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 20),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: lotCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Pallet / Lot No. (پیلیٹ / لاٹ نمبر) *',
+                            hintText: 'e.g. PLT-LONG-550-A1',
+                            prefixIcon:
+                                Icon(Icons.inventory_2_outlined, size: 18),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 130,
+                        child: TextField(
+                          controller: countCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Panels Qty *',
+                            hintText: '36',
+                            prefixIcon: Icon(Icons.numbers_rounded, size: 18),
+                            isDense: true,
+                          ),
+                          onChanged: (val) {
+                            final cnt = int.tryParse(val.trim()) ?? 0;
+                            if (cnt > 0) {
+                              endCtrl.text = SerialHelper.calculateEndSerial(
+                                  startCtrl.text.trim(), cnt);
+                            }
+                            setDlgState(() {});
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: startCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Start Serial (شروع کا سیریل نمبر) *',
+                            hintText: 'e.g. LR5-72HBD-550M-2401001',
+                            prefixIcon: Icon(Icons.barcode_reader, size: 18),
+                            isDense: true,
+                          ),
+                          onChanged: (val) {
+                            final cnt =
+                                int.tryParse(countCtrl.text.trim()) ?? 0;
+                            if (cnt > 0) {
+                              endCtrl.text = SerialHelper.calculateEndSerial(
+                                  val.trim(), cnt);
+                            }
+                            setDlgState(() {});
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: endCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'End Serial (آخری سیریل نمبر) *',
+                            hintText: 'e.g. LR5-72HBD-550M-2401036',
+                            prefixIcon:
+                                Icon(Icons.check_circle_outline, size: 18),
+                            isDense: true,
+                          ),
+                          onChanged: (val) {
+                            final cnt = SerialHelper.calculateCount(
+                                startCtrl.text.trim(), val.trim());
+                            if (cnt > 0) {
+                              countCtrl.text = cnt.toString();
+                            }
+                            setDlgState(() {});
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<int>(
+                    initialValue: selectedWarranty,
+                    decoration: const InputDecoration(
+                      labelText: 'Warranty Period (وارنٹی کی مدت)',
+                      prefixIcon: Icon(Icons.verified_user_outlined, size: 18),
+                      isDense: true,
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 144,
+                          child: Text('12 Years (144 Mos) - Product Warranty')),
+                      DropdownMenuItem(
+                          value: 300,
+                          child: Text(
+                              '25 Years (300 Mos) - Performance Warranty')),
+                      DropdownMenuItem(
+                          value: 60,
+                          child: Text('5 Years (60 Mos) - Inverter Warranty')),
+                      DropdownMenuItem(
+                          value: 120,
+                          child:
+                              Text('10 Years (120 Mos) - Inverter / Battery')),
+                      DropdownMenuItem(
+                          value: 12, child: Text('1 Year (12 Mos) - Standard')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null)
+                        setDlgState(() => selectedWarranty = val);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFCBD5E1)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Preview Generated Sequence (${previewSerials.length} Panels):',
+                          style: const TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          previewSerials.length <= 4
+                              ? previewSerials.join(', ')
+                              : '${previewSerials.take(2).join(', ')} ... ➔ ... ${previewSerials.reversed.take(2).toList().reversed.join(', ')}',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF4F46E5)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4F46E5),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                        ),
+                        icon: const Icon(Icons.check, size: 16),
+                        label: const Text('Apply Lot & Serials'),
+                        onPressed: () {
+                          final lot = lotCtrl.text.trim();
+                          final start = startCtrl.text.trim();
+                          final end = endCtrl.text.trim();
+                          final cnt = int.tryParse(countCtrl.text.trim()) ?? 0;
+                          if (lot.isEmpty || start.isEmpty || cnt <= 0) return;
+
+                          final generated =
+                              SerialHelper.generateRange(start, cnt);
+                          setState(() {
+                            it.batchCtrl.text = lot;
+                            it.batchNumber = lot;
+                            it.startSerial = start;
+                            it.endSerial = end.isNotEmpty
+                                ? end
+                                : (generated.isNotEmpty
+                                    ? generated.last
+                                    : start);
+                            it.quantity = cnt.toDouble();
+                            it.qtyCtrl.text = cnt.toString();
+                            it.serials = generated;
+                            it.warrantyMonths = selectedWarranty;
+                            _recalcPaidAmount(forceFull: true);
+                          });
+                          Navigator.pop(ctx);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   // ================= Save Purchase =================
   Future<void> _savePurchase({bool andPrint = false}) async {
     if (_selectedSupplier == null) {
@@ -508,6 +799,10 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
           'batch_number': it.batchNumber.trim(),
           'manufacturing_date': it.mfgDate,
           'expiry_date': it.expDate,
+          'serials': it.serials,
+          'start_serial': it.startSerial,
+          'end_serial': it.endSerial,
+          'warranty_months': it.warrantyMonths,
         };
       }).toList();
 
@@ -1358,23 +1653,91 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         Padding(
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 6, vertical: 6),
-                                          child: TextFormField(
-                                            controller: it.batchCtrl,
-                                            style: TextStyle(
-                                                fontSize: 12,
-                                                color: textPrimary),
-                                            decoration: inputDeco.copyWith(
-                                              hintText: 'e.g. B-9021',
-                                              hintStyle: TextStyle(
-                                                  fontSize: 11,
-                                                  color: textSecondary),
-                                              contentPadding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 8),
-                                            ),
-                                            onChanged: (val) =>
-                                                it.batchNumber = val,
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: TextFormField(
+                                                      controller: it.batchCtrl,
+                                                      style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: textPrimary),
+                                                      decoration:
+                                                          inputDeco.copyWith(
+                                                        hintText: 'e.g. PLT-01',
+                                                        hintStyle: TextStyle(
+                                                            fontSize: 11,
+                                                            color:
+                                                                textSecondary),
+                                                        contentPadding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 8),
+                                                      ),
+                                                      onChanged: (val) =>
+                                                          it.batchNumber = val,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  IconButton(
+                                                    padding: EdgeInsets.zero,
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                            minWidth: 26,
+                                                            minHeight: 26),
+                                                    tooltip:
+                                                        'Solar Pallet & Serial Range (پیلیٹ و سیریل رینج)',
+                                                    icon: const Icon(
+                                                        Icons
+                                                            .solar_power_rounded,
+                                                        size: 18,
+                                                        color:
+                                                            Color(0xFF4F46E5)),
+                                                    onPressed: () =>
+                                                        _openLotSerialRangeDialog(
+                                                            it),
+                                                  ),
+                                                ],
+                                              ),
+                                              if (it.serials.isNotEmpty)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 3),
+                                                  child: Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 5,
+                                                        vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                              0xFF10B981)
+                                                          .withValues(
+                                                              alpha: 0.15),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
+                                                    ),
+                                                    child: Text(
+                                                      '${it.startSerial}..${it.endSerial.split('-').last} (${it.serials.length})',
+                                                      style: const TextStyle(
+                                                        fontSize: 9.5,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color:
+                                                            Color(0xFF047857),
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ),
 

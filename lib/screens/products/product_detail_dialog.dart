@@ -26,6 +26,7 @@ class ProductDetailDialog extends StatefulWidget {
 
 class _ProductDetailDialogState extends State<ProductDetailDialog> {
   List<ProductVariation> _variations = [];
+  List<ProductSerialBatch> _serials = [];
   double _totalSold = 0.0;
   double _totalTransferred = 0.0;
   double _totalAdjusted = 0.0;
@@ -89,9 +90,19 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
             'ProductDetailDialog', 'Failed calculating adjusted units', e, st);
       }
 
+      // 4. Load tracked serial numbers & lots
+      List<ProductSerialBatch> serials = [];
+      try {
+        serials = await dbService.getProductSerialsBatches(widget.product.id!);
+      } catch (e, st) {
+        AppLogger.warning(
+            'ProductDetailDialog', 'Failed loading serials/batches', e, st);
+      }
+
       if (mounted) {
         setState(() {
           _variations = vars;
+          _serials = serials;
           _totalSold = sold;
           _totalTransferred = transferred;
           _totalAdjusted = adjusted;
@@ -101,6 +112,136 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
     } else {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _showLotSerialsModal(
+      BuildContext context, String lotNo, List<ProductSerialBatch> items) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inStockCount = items.where((s) => s.status == 'in_stock').length;
+    final soldCount = items.where((s) => s.status == 'sold').length;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          width: 580,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.qr_code_2_rounded,
+                        color: Color(0xFF4F46E5), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Lot / Pallet: $lotNo',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 16),
+                        ),
+                        Text(
+                          'Total ${items.length} Units • $inStockCount Available In-Stock • $soldCount Dispatched/Sold',
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 380),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (ctx, idx) {
+                    final item = items[idx];
+                    final isSold = item.status == 'sold';
+
+                    return ListTile(
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 2),
+                      leading: Icon(
+                        isSold
+                            ? Icons.check_circle_rounded
+                            : Icons.solar_power_rounded,
+                        size: 20,
+                        color: isSold
+                            ? const Color(0xFF2563EB)
+                            : const Color(0xFF10B981),
+                      ),
+                      title: Text(
+                        item.serialNumber1.isNotEmpty
+                            ? item.serialNumber1
+                            : 'Serial #${item.id}',
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Warranty: ${item.warrantyMonths} Mos • ${item.notes.isNotEmpty ? item.notes : 'Standard Lot'}',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isSold
+                              ? const Color(0xFFDBEAFE)
+                              : const Color(0xFFDCFCE7),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          isSold ? 'SOLD' : 'IN STOCK',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: isSold
+                                ? const Color(0xFF1D4ED8)
+                                : const Color(0xFF15803D),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close (بند کریں)'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -587,6 +728,187 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                         ),
                       ),
                     ),
+
+                    // Table 3: Solar Pallet / Lot & Serial Range Tracking
+                    if (_serials.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Text(
+                        'Pallet / Lot & Serial Range Tracking (سولر پینل پیلیٹ و سیریل نمبرز کی لاٹ تفصیل)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: borderColor),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(5),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(minWidth: 880),
+                              child: Builder(
+                                builder: (context) {
+                                  final lotGroups =
+                                      <String, List<ProductSerialBatch>>{};
+                                  for (final s in _serials) {
+                                    final key = s.batchNumber.isNotEmpty
+                                        ? s.batchNumber
+                                        : (s.notes.isNotEmpty
+                                            ? s.notes
+                                            : 'Lot Unassigned');
+                                    lotGroups.putIfAbsent(key, () => []).add(s);
+                                  }
+
+                                  return Table(
+                                    border: TableBorder(
+                                      horizontalInside:
+                                          BorderSide(color: borderColor),
+                                      verticalInside:
+                                          BorderSide(color: borderColor),
+                                    ),
+                                    columnWidths: const {
+                                      0: FlexColumnWidth(1.8), // Lot / Pallet
+                                      1: FlexColumnWidth(2.2), // Start Serial
+                                      2: FlexColumnWidth(2.2), // End Serial
+                                      3: FlexColumnWidth(1.2), // Total
+                                      4: FlexColumnWidth(1.4), // In Stock
+                                      5: FlexColumnWidth(1.3), // Sold
+                                      6: FlexColumnWidth(1.6), // Warranty
+                                      7: FlexColumnWidth(1.4), // Action
+                                    },
+                                    children: [
+                                      TableRow(
+                                        decoration: const BoxDecoration(
+                                            color: greenHeaderColor),
+                                        children: [
+                                          _tableHeaderCell('Pallet / Lot No.'),
+                                          _tableHeaderCell(
+                                              'Start Serial (پہلا نمبر)'),
+                                          _tableHeaderCell(
+                                              'End Serial (آخری نمبر)'),
+                                          _tableHeaderCell('Total Units'),
+                                          _tableHeaderCell('In Stock'),
+                                          _tableHeaderCell('Sold'),
+                                          _tableHeaderCell('Warranty'),
+                                          _tableHeaderCell('Actions'),
+                                        ],
+                                      ),
+                                      ...lotGroups.entries.map((entry) {
+                                        final lotNo = entry.key;
+                                        final items = entry.value;
+                                        final startSn = items.isNotEmpty
+                                            ? items.first.serialNumber1
+                                            : '-';
+                                        final endSn = items.isNotEmpty
+                                            ? items.last.serialNumber1
+                                            : '-';
+                                        final inStock = items
+                                            .where(
+                                                (s) => s.status == 'in_stock')
+                                            .length;
+                                        final sold = items
+                                            .where((s) => s.status == 'sold')
+                                            .length;
+                                        final warranty = items.isNotEmpty &&
+                                                items.first.warrantyMonths > 0
+                                            ? '${items.first.warrantyMonths} Mos'
+                                            : 'Standard';
+
+                                        return TableRow(
+                                          decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? const Color(0xFF1E293B)
+                                                  : Colors.white),
+                                          children: [
+                                            _tableBodyCell(lotNo,
+                                                isDark: isDark),
+                                            _tableBodyCell(startSn,
+                                                isDark: isDark),
+                                            _tableBodyCell(endSn,
+                                                isDark: isDark),
+                                            _tableBodyCell(
+                                                '${items.length} Panels',
+                                                isDark: isDark),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 8),
+                                              child: Text(
+                                                '$inStock Avail',
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF10B981),
+                                                    fontSize: 12),
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 8),
+                                              child: Text(
+                                                '$sold Sold',
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF2563EB),
+                                                    fontSize: 12),
+                                              ),
+                                            ),
+                                            _tableBodyCell(warranty,
+                                                isDark: isDark),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 4),
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      const Color(0xFF4F46E5),
+                                                  foregroundColor: Colors.white,
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                                  minimumSize:
+                                                      const Size(60, 28),
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4)),
+                                                ),
+                                                onPressed: () =>
+                                                    _showLotSerialsModal(
+                                                        context, lotNo, items),
+                                                child: const Text(
+                                                  'View Serials',
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
