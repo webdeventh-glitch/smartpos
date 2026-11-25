@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import 'sales_return_dialog.dart';
+import '../../services/localization_service.dart';
 
 class SalesReturnScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -84,7 +85,7 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Sales Returns & Customer Refunds',
+                        PosLocalization.tr('Sales Returns & Customer Refunds'),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -94,7 +95,8 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Manage returned medications, damaged stock restock, and customer balance adjustments',
+                        PosLocalization.tr(
+                            'Manage returned medications, damaged stock restock, and customer balance adjustments'),
                         style: TextStyle(
                             fontSize: 12,
                             color: isDark
@@ -118,8 +120,9 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.flash_on_rounded, size: 18),
-                      label: const Text('Blind Return (No Invoice)',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(
+                          PosLocalization.tr('Blind Return (No Invoice)'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () {
                         showDialog(
                           context: context,
@@ -142,8 +145,8 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.add_circle_outline, size: 18),
-                      label: const Text('Add Sales Return',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(PosLocalization.tr('Add Sales Return'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _openAddReturnDialog,
                     ),
                   ],
@@ -192,10 +195,10 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
               ),
               child: TextField(
                 onChanged: (v) => setState(() => _search = v.trim()),
-                decoration: const InputDecoration(
-                  hintText:
-                      'Search by return reference, original invoice no, or customer name...',
-                  prefixIcon: Icon(Icons.search, size: 20),
+                decoration: InputDecoration(
+                  hintText: PosLocalization.tr(
+                      'Search by return reference, original invoice no, or customer name...'),
+                  prefixIcon: const Icon(Icons.search, size: 20),
                   isDense: true,
                 ),
               ),
@@ -217,10 +220,11 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
                       padding: EdgeInsets.all(40),
                       child: Center(child: CircularProgressIndicator()))
                   : filtered.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(40),
+                      ? Padding(
+                          padding: const EdgeInsets.all(40),
                           child: Center(
-                              child: Text('No sales return records found.')),
+                              child: Text(PosLocalization.tr(
+                                  'No sales return records found.'))),
                         )
                       : Scrollbar(
                           controller: _hScrollController,
@@ -235,38 +239,42 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
                               headingRowColor: WidgetStateProperty.all(isDark
                                   ? const Color(0xFF0F172A)
                                   : const Color(0xFFF8FAFC)),
-                              columns: const [
+                              columns: [
                                 DataColumn(
-                                    label: Text('RETURN REF',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('RETURN REF'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
-                                DataColumn(
+                                const DataColumn(
                                     label: Text('DATE',
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('ORIGINAL INVOICE',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('ORIGINAL INVOICE'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('CUSTOMER',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('CUSTOMER'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('ITEMS',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('ITEMS'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('REFUND AMOUNT',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('REFUND AMOUNT'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('REFUND METHOD',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('REFUND METHOD'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('REASON',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('REASON'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                               ],
                               rows: filtered.map((r) {

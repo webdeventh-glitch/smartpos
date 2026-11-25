@@ -13,6 +13,7 @@ import '../../widgets/skeleton_loader.dart';
 import '../pos/pos_power_dialogs.dart';
 import '../products/product_detail_dialog.dart';
 import '../contacts/contact_ledger_dialog.dart';
+import '../../services/localization_service.dart';
 
 class ReportsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -1320,23 +1321,38 @@ class _ReportsScreenState extends State<ReportsScreen>
                               isDark ? Colors.white : const Color(0xFF334155)),
                     ),
                     const SizedBox(width: 6),
-                    _filterBtn('today', 'Today / آج'),
+                    _filterBtn('today',
+                        PosLocalization.tr('Today', settings: widget.settings)),
                     const SizedBox(width: 6),
-                    _filterBtn('yesterday', 'Yesterday / کل'),
+                    _filterBtn(
+                        'yesterday',
+                        PosLocalization.tr('Yesterday',
+                            settings: widget.settings)),
                     const SizedBox(width: 6),
-                    _filterBtn('week', '7 Days / ہفتہ وار'),
+                    _filterBtn(
+                        'week',
+                        PosLocalization.tr('7 Days',
+                            settings: widget.settings)),
                     const SizedBox(width: 6),
-                    _filterBtn('month', 'Month / ماہانہ'),
+                    _filterBtn('month',
+                        PosLocalization.tr('Month', settings: widget.settings)),
                     const SizedBox(width: 6),
-                    _filterBtn('quarter', 'Quarterly / سہ ماہی'),
+                    _filterBtn(
+                        'quarter',
+                        PosLocalization.tr('Quarterly',
+                            settings: widget.settings)),
                     const SizedBox(width: 6),
-                    _filterBtn('year', 'Yearly / سالانہ'),
+                    _filterBtn(
+                        'year',
+                        PosLocalization.tr('Yearly',
+                            settings: widget.settings)),
                     const SizedBox(width: 6),
                     _filterBtn(
                         'custom',
                         _dateFilter == 'custom'
                             ? _formatPeriod()
-                            : 'Custom / کسٹم',
+                            : PosLocalization.tr('Custom',
+                                settings: widget.settings),
                         isCustom: true),
                     const SizedBox(width: 16),
                     Container(

@@ -613,7 +613,7 @@ class PrintService {
   <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #0f172a; padding-bottom: 8px;">
     <div>
       <h2 style="margin: 0; font-size: 18px; color: #0f172a;">${_escape(settings.businessName.toUpperCase())}</h2>
-      <div style="font-size: 11.5px; color: #64748b;">${_escape(settings.branchName)} &bull; Official Inventory Reorder Demand Sheet (سٹاک ڈیمانڈ شیٹ)</div>
+      <div style="font-size: 11.5px; color: #64748b;">${_escape(settings.branchName)} &bull; ${_escape(PosLocalization.tr('Official Inventory Reorder Demand Sheet', settings: settings))}</div>
     </div>
     <div style="text-align: right; font-size: 11px;">
       <div><strong>ITEMS TO REORDER:</strong> ${products.length}</div>
@@ -642,7 +642,7 @@ class PrintService {
     </tbody>
     <tfoot>
       <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #0f172a;">
-        <td colspan="6" style="padding: 8px 6px; text-align: right;">GRAND TOTALS (کل تخمینہ لاگت):</td>
+        <td colspan="6" style="padding: 8px 6px; text-align: right;">${_escape(PosLocalization.tr('GRAND TOTALS', settings: settings))}:</td>
         <td style="text-align: center; color: #2563eb; font-weight: 900; padding: 8px 4px;">${totalUnitsDemanded.toStringAsFixed(0)} Units</td>
         <td></td>
         <td style="text-align: right; color: #059669; font-weight: 900; padding: 8px 6px;">$cur${totalEstimatedBudget.toStringAsFixed(2)}</td>

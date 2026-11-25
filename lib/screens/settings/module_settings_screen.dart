@@ -42,7 +42,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Business Locked: Only ${widget.settings.businessTypeDisplayName} (selected during installation) can be used.',
+            PosLocalization.trParams(
+              'Business Locked: Only {business} (selected during installation) can be used.',
+              {'business': widget.settings.businessTypeDisplayName},
+              settings: widget.settings,
+            ),
           ),
           backgroundColor: const Color(0xFFD97706),
         ),
@@ -105,7 +109,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Locked to ${widget.settings.businessTypeDisplayName}: Another business tier cannot be applied after installation.',
+            PosLocalization.trParams(
+              'Locked to {business}: Another business tier cannot be applied after installation.',
+              {'business': widget.settings.businessTypeDisplayName},
+              settings: widget.settings,
+            ),
           ),
           backgroundColor: const Color(0xFFD97706),
         ),
@@ -119,8 +127,13 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content:
-            Text('Applied SaaS Tier: ${tier.name} (${tier.pricePerMonth})'),
+        content: Text(
+          PosLocalization.trParams(
+            'Applied SaaS Tier: {name} ({price})',
+            {'name': tier.name, 'price': tier.pricePerMonth},
+            settings: widget.settings,
+          ),
+        ),
         backgroundColor: const Color(0xFF10B981),
         duration: const Duration(seconds: 2),
       ),
@@ -140,7 +153,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Locked: This module belongs to a different business type than ${widget.settings.businessTypeDisplayName}.',
+            PosLocalization.trParams(
+              'Locked: This module belongs to a different business type than {business}.',
+              {'business': widget.settings.businessTypeDisplayName},
+              settings: widget.settings,
+            ),
           ),
           backgroundColor: const Color(0xFFD97706),
         ),
@@ -169,12 +186,18 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.workspace_premium_rounded, color: Color(0xFF4F46E5)),
-              SizedBox(width: 8),
-              Text('Upgrade License Tier',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+              const Icon(Icons.workspace_premium_rounded,
+                  color: Color(0xFF4F46E5)),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                    PosLocalization.tr('Upgrade License Tier',
+                        settings: widget.settings),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 17)),
+              ),
             ],
           ),
           content: SizedBox(
@@ -185,18 +208,29 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               children: [
                 Text(
                   featureName != null
-                      ? 'The "$featureName" module is not included in your current license package. Paste an upgraded license key (e.g. Pro or Enterprise Full Featured) to unlock it immediately without losing any data.'
-                      : 'Paste an upgraded Smart POS license key to unlock additional commercial modules immediately.',
+                      ? PosLocalization.trParams(
+                          'The "{feature}" module is not included in your current license package. Paste an upgraded license key (e.g. Pro or Enterprise Full Featured) to unlock it immediately without losing any data.',
+                          {
+                            'feature': PosLocalization.tr(featureName,
+                                settings: widget.settings)
+                          },
+                          settings: widget.settings,
+                        )
+                      : PosLocalization.tr(
+                          'Paste an upgraded Smart POS license key to unlock additional commercial modules immediately.',
+                          settings: widget.settings,
+                        ),
                   style: const TextStyle(fontSize: 12.5, height: 1.45),
                 ),
                 const SizedBox(height: 14),
                 TextField(
                   controller: keyCtrl,
                   maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Upgraded License Key',
+                  decoration: InputDecoration(
+                    labelText: PosLocalization.tr('Upgraded License Key',
+                        settings: widget.settings),
                     hintText: 'QULOP-YRL-...',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                     isDense: true,
                   ),
                 ),
@@ -212,7 +246,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child:
+                  Text(PosLocalization.tr('Cancel', settings: widget.settings)),
             ),
             ElevatedButton.icon(
               onPressed: isBusy
@@ -220,8 +255,9 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                   : () async {
                       final key = QulopService.sanitizeKeyInput(keyCtrl.text);
                       if (key.isEmpty) {
-                        setDialogState(
-                            () => errText = 'Please paste a license key.');
+                        setDialogState(() => errText = PosLocalization.tr(
+                            'Please paste a license key.',
+                            settings: widget.settings));
                         return;
                       }
                       setDialogState(() {
@@ -267,14 +303,21 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                                'Upgraded to ${verified.packageTierLabel}! Modules unlocked live.'),
+                              PosLocalization.trParams(
+                                'Upgraded to {tier}! Modules unlocked live.',
+                                {'tier': verified.packageTierLabel},
+                                settings: widget.settings,
+                              ),
+                            ),
                             backgroundColor: const Color(0xFF10B981),
                           ),
                         );
                       }
                     },
               icon: const Icon(Icons.verified_rounded, size: 16),
-              label: Text(isBusy ? 'Verifying...' : 'Activate Upgrade'),
+              label: Text(PosLocalization.tr(
+                  isBusy ? 'Verifying...' : 'Activate Upgrade',
+                  settings: widget.settings)),
             ),
           ],
         ),
@@ -293,7 +336,12 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-            'Reset to standard defaults for: ${widget.settings.businessTypeDisplayName}'),
+          PosLocalization.trParams(
+            'Reset to standard defaults for: {business}',
+            {'business': widget.settings.businessTypeDisplayName},
+            settings: widget.settings,
+          ),
+        ),
         backgroundColor: const Color(0xFF4F46E5),
         duration: const Duration(seconds: 2),
       ),
@@ -339,10 +387,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
       };
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Switched to Minimalist Core POS mode'),
-        backgroundColor: Color(0xFF0D9488),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(PosLocalization.tr('Switched to Minimalist Core POS mode',
+            settings: widget.settings)),
+        backgroundColor: const Color(0xFF0D9488),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -360,16 +409,19 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Text(
-                    'Module configuration saved! Sidebar and navigation updated.'),
+                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(PosLocalization.tr(
+                      'Module configuration saved! Sidebar and navigation updated.',
+                      settings: widget.settings)),
+                ),
               ],
             ),
-            backgroundColor: Color(0xFF10B981),
+            backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -378,7 +430,9 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save module settings: $e'),
+            content: Text(PosLocalization.trParams(
+                'Failed to save module settings: {error}', {'error': '$e'},
+                settings: widget.settings)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -392,16 +446,25 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
     required String key,
     required String title,
     required String subtitle,
-    required String urduDesc,
     required IconData icon,
     required Color iconColor,
     required bool isIndustryModule,
   }) {
+    final localizedTitle =
+        PosLocalization.trPrimary(title, settings: widget.settings);
+    final localizedSubtitle =
+        PosLocalization.trPrimary(subtitle, settings: widget.settings);
+    final secondarySubtitle =
+        PosLocalization.trSecondary(subtitle, settings: widget.settings);
+
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       final match = title.toLowerCase().contains(query) ||
+          localizedTitle.toLowerCase().contains(query) ||
           subtitle.toLowerCase().contains(query) ||
-          urduDesc.toLowerCase().contains(query) ||
+          localizedSubtitle.toLowerCase().contains(query) ||
+          (secondarySubtitle != null &&
+              secondarySubtitle.toLowerCase().contains(query)) ||
           key.toLowerCase().contains(query);
       if (!match) return const SizedBox.shrink();
     }
@@ -487,10 +550,16 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                       ),
                       child: Text(
                         isLockedByBusiness
-                            ? 'BUSINESS LOCKED'
+                            ? PosLocalization.tr('BUSINESS LOCKED',
+                                settings: widget.settings)
                             : (isLockedByLicense
-                                ? 'UPGRADE LICENSE'
-                                : (isEnabled ? 'ACTIVE' : 'DISABLED')),
+                                ? PosLocalization.tr('UPGRADE LICENSE',
+                                    settings: widget.settings)
+                                : (isEnabled
+                                    ? PosLocalization.tr('ACTIVE',
+                                        settings: widget.settings)
+                                    : PosLocalization.tr('DISABLED',
+                                        settings: widget.settings))),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -508,7 +577,7 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  subtitle,
+                  localizedSubtitle,
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark
@@ -516,12 +585,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                         : const Color(0xFF64748B),
                   ),
                 ),
-                if ((widget.settings.hasEffectiveSecondaryLanguage ||
-                        widget.settings.activePrimaryLanguage == 'ur') &&
-                    urduDesc.isNotEmpty) ...[
+                if (secondarySubtitle != null &&
+                    secondarySubtitle.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
-                    urduDesc,
+                    secondarySubtitle,
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF0EA5E9),
@@ -538,8 +606,9 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               onPressed: () => _showUpgradeLicenseDialog(featureName: title),
               icon: const Icon(Icons.lock_open_rounded,
                   size: 14, color: Color(0xFFD97706)),
-              label: const Text('Upgrade',
-                  style: TextStyle(
+              label: Text(
+                  PosLocalization.tr('Upgrade', settings: widget.settings),
+                  style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFFD97706))),
@@ -603,7 +672,7 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                 Row(
                   children: [
                     Text(
-                      title,
+                      PosLocalization.tr(title, settings: widget.settings),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -623,7 +692,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        isSelected ? 'PRESET ACTIVE' : 'INACTIVE',
+                        isSelected
+                            ? PosLocalization.tr('PRESET ACTIVE',
+                                settings: widget.settings)
+                            : PosLocalization.tr('INACTIVE',
+                                settings: widget.settings),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -639,7 +712,7 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  subtitle,
+                  PosLocalization.tr(subtitle, settings: widget.settings),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -650,7 +723,7 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  features,
+                  PosLocalization.tr(features, settings: widget.settings),
                   style: TextStyle(
                     fontSize: 11,
                     color: isDark
@@ -703,9 +776,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                     children: [
                       Row(
                         children: [
-                          const Text(
-                            'Modular Engine & Feature Toggles',
-                            style: TextStyle(
+                          Text(
+                            PosLocalization.tr(
+                                'Modular Engine & Feature Toggles',
+                                settings: widget.settings),
+                            style: const TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 10),
@@ -717,7 +792,9 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              widget.settings.businessTypeDisplayName,
+                              PosLocalization.tr(
+                                  widget.settings.businessTypeDisplayName,
+                                  settings: widget.settings),
                               style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -797,8 +874,10 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                                 const Color(0xFF10B981).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text('1-Tap Apply',
-                              style: TextStyle(
+                          child: Text(
+                              PosLocalization.tr('1-Tap Apply',
+                                  settings: widget.settings),
+                              style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF10B981))),
@@ -914,7 +993,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                       ),
                       const Spacer(),
                       Text(
-                        '${_activeModules.length} Modules Active',
+                        PosLocalization.trParams(
+                          '{count} Modules Active',
+                          {'count': '${_activeModules.length}'},
+                          settings: widget.settings,
+                        ),
                         style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -929,8 +1012,11 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                     children: [
                       OutlinedButton.icon(
                         icon: const Icon(Icons.restart_alt_rounded, size: 16),
-                        label: Text(
-                            'Reset to ${widget.settings.businessTypeDisplayName} Defaults'),
+                        label: Text(PosLocalization.trParams(
+                          'Reset to {business} Defaults',
+                          {'business': widget.settings.businessTypeDisplayName},
+                          settings: widget.settings,
+                        )),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF4F46E5),
                           side: const BorderSide(color: Color(0xFF4F46E5)),
@@ -960,7 +1046,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                       ElevatedButton.icon(
                         icon: const Icon(Icons.workspace_premium_rounded,
                             size: 16),
-                        label: const Text('Upgrade License Key'),
+                        label: Text(PosLocalization.tr('Upgrade License Key',
+                            settings: widget.settings)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFD97706),
                           foregroundColor: Colors.white,
@@ -1016,13 +1103,16 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                   const Icon(Icons.verified_rounded,
                       color: Color(0xFF4F46E5), size: 20),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Smart POS Industry Presets (بنیادی تجارتی شعبہ جات)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Text(
+                    PosLocalization.tr('Smart POS Industry Presets',
+                        settings: widget.settings),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Auto-enables domain workflows',
+                    PosLocalization.tr('Auto-enables domain workflows',
+                        settings: widget.settings),
                     style: TextStyle(
                         fontSize: 12,
                         color: isDark
@@ -1098,16 +1188,28 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                 const SizedBox(width: 8),
                 Text(
                   widget.settings.isConfigured
-                      ? '${widget.settings.businessTypeDisplayName} & Add-On Modules'
-                      : 'Specialized Industry Modules (شعبہ جاتی ماڈیولز)',
+                      ? PosLocalization.trParams(
+                          '{business} & Add-On Modules',
+                          {
+                            'business': PosLocalization.tr(
+                                widget.settings.businessTypeDisplayName,
+                                settings: widget.settings)
+                          },
+                          settings: widget.settings,
+                        )
+                      : PosLocalization.tr('Specialized Industry Modules',
+                          settings: widget.settings),
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   widget.settings.isConfigured
-                      ? 'Modules for your installed business'
-                      : 'Turn off if not in this industry',
+                      ? PosLocalization.tr(
+                          'Modules for your installed business',
+                          settings: widget.settings)
+                      : PosLocalization.tr('Turn off if not in this industry',
+                          settings: widget.settings),
                   style: TextStyle(
                       fontSize: 12,
                       color: isDark
@@ -1123,7 +1225,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Restaurant & Cafe',
               subtitle:
                   'Table floor plan, guest seating status, and live Kitchen Order Ticket (KOT) queue.',
-              urduDesc: 'ڈائن اِن ٹیبل مینیجمنٹ اور لائیو کچن آرڈر ٹکٹ (KOT)',
               icon: Icons.restaurant_rounded,
               iconColor: const Color(0xFFF59E0B),
               isIndustryModule: true,
@@ -1133,8 +1234,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Repair Shop & Service Center',
               subtitle:
                   'Device Job Sheets with IMEI/Serial, defect diagnostics, technician assignment & estimate billing.',
-              urduDesc:
-                  'موبائل، لیپ ٹاپ اور الیکٹرانکس کی جاب کارڈ اور ٹیکنیشن ورک فلو',
               icon: Icons.build_circle_rounded,
               iconColor: const Color(0xFF3B82F6),
               isIndustryModule: true,
@@ -1144,8 +1243,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Hotel Management',
               subtitle:
                   'Rooms & suites grid, guest check-in/out with CNIC, room service bills and stay billing.',
-              urduDesc:
-                  'کمروں کا کرایہ، گیسٹ چیک اِن / چیک آؤٹ اور روم سروس کھاتہ',
               icon: Icons.hotel_rounded,
               iconColor: const Color(0xFF8B5CF6),
               isIndustryModule: true,
@@ -1155,7 +1252,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Gym & Fitness Center',
               subtitle:
                   'Member registry, subscription packages (Monthly/Annual), daily attendance & expiry renewal.',
-              urduDesc: 'جم ممبرشپ، فیس ایکسپائری الرٹس اور یومیہ حاضری لاگ',
               icon: Icons.fitness_center_rounded,
               iconColor: const Color(0xFFEC4899),
               isIndustryModule: true,
@@ -1165,8 +1261,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Manufacturing & BOM',
               subtitle:
                   'Bill of Materials (BOM) recipes, raw material consumption, work orders and batch costing.',
-              urduDesc:
-                  'خام مال کی کھپت سے تیار شدہ پروڈکٹ کا حساب اور پیداواری لاگت',
               icon: Icons.precision_manufacturing_rounded,
               iconColor: const Color(0xFF10B981),
               isIndustryModule: true,
@@ -1176,8 +1270,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Online Store / WooCommerce',
               subtitle:
                   'WooCommerce REST API sync, automatic product catalog push and online order fetch.',
-              urduDesc:
-                  'ورڈپریس / ووکامرس ویب سائٹ سے اسٹاک سنک اور آن لائن آرڈرز',
               icon: Icons.shopping_bag_rounded,
               iconColor: const Color(0xFF6366F1),
               isIndustryModule: true,
@@ -1187,8 +1279,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'HR & Employee Management',
               subtitle:
                   'Staff directory, daily punch attendance register, salary calculations and pay-slips.',
-              urduDesc:
-                  'اسٹاف حاضری، ماہانہ تنخواہ سلپ اور ایڈوانس کٹوتی رجسٹر',
               icon: Icons.badge_rounded,
               iconColor: const Color(0xFF0EA5E9),
               isIndustryModule: true,
@@ -1198,7 +1288,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Accounting & General Ledger',
               subtitle:
                   'Double-entry Chart of Accounts, Journal Vouchers (Debit/Credit), trial balance and ledgers.',
-              urduDesc: 'مکمل ڈبل انٹری فنانشل اکاؤنٹس اور جنرل جرنل واؤچرز',
               icon: Icons.account_balance_rounded,
               iconColor: const Color(0xFF14B8A6),
               isIndustryModule: true,
@@ -1208,8 +1297,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Fruit & Vegetable Mandi',
               subtitle:
                   'Mandi Arhat auction register, Mun/Kg weight conversion, commission % & net Zamindar payables.',
-              urduDesc:
-                  'منڈی کی روزانہ بولی، من اور کلو کا وزن اور آڑھتی کمیشن کاٹ کر ادائیگی',
               icon: Icons.agriculture_rounded,
               iconColor: const Color(0xFFEF4444),
               isIndustryModule: true,
@@ -1219,8 +1306,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Poultry Farm & Trading',
               subtitle:
                   'Flock batches, daily mortality & feed consumption, live bird crate dispatches and egg trays.',
-              urduDesc:
-                  'برائلر فلاک، یومیہ اموات، فیڈ کی کھپت، اور لائیو مرغی گاڑی کا وزن',
               icon: Icons.egg_rounded,
               iconColor: const Color(0xFFF97316),
               isIndustryModule: true,
@@ -1242,7 +1327,8 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Toggle core modules on/off',
+                  PosLocalization.tr('Toggle core modules on/off',
+                      settings: widget.settings),
                   style: TextStyle(
                       fontSize: 12,
                       color: isDark
@@ -1258,8 +1344,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Variations & Sizes',
               subtitle:
                   'Product color/size matrices and multi-variant pricing for Garments, Shoes, and Boutiques.',
-              urduDesc:
-                  'کپڑوں اور جوتوں کے سائز، رنگ اور مختلف ورائٹی کا الگ الگ اسٹاک',
               icon: Icons.style_rounded,
               iconColor: const Color(0xFF8B5CF6),
               isIndustryModule: false,
@@ -1269,8 +1353,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Batch Numbers & Expiry Tracking',
               subtitle:
                   'Batch number tracking, expiry date alerts, and pack size bonus calculations.',
-              urduDesc:
-                  'دوائیوں اور اشیاء خوردونوش کے بیچ نمبر اور ایکسپائری کی تاریخ کا الرٹ',
               icon: Icons.medical_services_rounded,
               iconColor: const Color(0xFFEC4899),
               isIndustryModule: false,
@@ -1280,8 +1362,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Stock Transfers',
               subtitle:
                   'Transfer inventory between main warehouse and retail branch stores.',
-              urduDesc:
-                  'گودام اور مختلف برانچوں کے درمیان سامان کی منتقلی کا رجسٹر',
               icon: Icons.sync_alt_rounded,
               iconColor: const Color(0xFF0EA5E9),
               isIndustryModule: false,
@@ -1291,8 +1371,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Stock & Expiry Audit',
               subtitle:
                   'Physical stock counting, shelf auditing, and inventory variance adjustments.',
-              urduDesc:
-                  'دکان اور گودام کے سامان کی گنتی اور اصل اسٹاک سے موازنہ',
               icon: Icons.fact_check_rounded,
               iconColor: const Color(0xFFF59E0B),
               isIndustryModule: false,
@@ -1302,8 +1380,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Returns Management',
               subtitle:
                   'Credit Notes for customer returns and Debit Notes for supplier returns.',
-              urduDesc:
-                  'گاہک کی سامان واپسی (Credit Note) اور سپلائر کو سامان واپسی (Debit Note)',
               icon: Icons.assignment_return_rounded,
               iconColor: const Color(0xFF6366F1),
               isIndustryModule: false,
@@ -1313,8 +1389,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Expenses Tracker',
               subtitle:
                   'Track daily shop expenses, utility bills, maintenance costs, and petty cash.',
-              urduDesc:
-                  'بجلی، کرایہ، چائے، تنخواہ اور روزمرہ کے تمام اخراجات کا اندراج',
               icon: Icons.receipt_long_rounded,
               iconColor: const Color(0xFF10B981),
               isIndustryModule: false,
@@ -1324,8 +1398,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Annual Fiscal Closing',
               subtitle:
                   'End of financial year audit, net profit distribution, and opening balance rollover.',
-              urduDesc:
-                  'مالی سال کا اختتام، نفع و نقصان کا حتمی حساب اور نئے سال کا اوپننگ بیلنس',
               icon: Icons.account_balance_wallet_rounded,
               iconColor: const Color(0xFF14B8A6),
               isIndustryModule: false,
@@ -1335,8 +1407,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'SMS & WhatsApp Notifications',
               subtitle:
                   'Send automatic WhatsApp invoices, SMS payment reminders & templates.',
-              urduDesc:
-                  'واٹس ایپ رسیدیں، ایس ایم ایس یاددہانی اور کسٹم پیغامات',
               icon: Icons.mark_email_read_rounded,
               iconColor: const Color(0xFF059669),
               isIndustryModule: false,
@@ -1346,7 +1416,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Orders, Price Groups & Discounts',
               subtitle:
                   'Sales orders, purchase orders, selling price tiers, discount rules & commission agents.',
-              urduDesc: 'آرڈرز، ریٹ گروپس، ڈسکاؤنٹ رولز اور کمیشن ایجنٹس',
               icon: Icons.layers_rounded,
               iconColor: const Color(0xFF6366F1),
               isIndustryModule: false,
@@ -1356,7 +1425,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Barcode Labels & Bulk Import',
               subtitle:
                   'Print barcode sticker labels and import bulk catalogs via CSV/Excel.',
-              urduDesc: 'بارکوڈ اسٹیکر پرنٹنگ اور ایکسل امپورٹ',
               icon: Icons.qr_code_2_rounded,
               iconColor: const Color(0xFF0284C7),
               isIndustryModule: false,
@@ -1366,7 +1434,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Financial & Profit Reports',
               subtitle:
                   'Detailed Profit & Loss, Tax reports, Cash Register Z-Reports & Contact Dues.',
-              urduDesc: 'نفع نقصان، ٹیکس اور مکمل مالیاتی رپورٹس',
               icon: Icons.analytics_rounded,
               iconColor: const Color(0xFFEC4899),
               isIndustryModule: false,
@@ -1376,7 +1443,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'FBR / ZATCA Tax Compliance',
               subtitle:
                   'Pakistan FBR POS invoicing QR & Saudi ZATCA TLV compliant tax invoices.',
-              urduDesc: 'ایف بی آر اور زکوٰۃ ٹیکس انوائس کیو آر کمپلائنس',
               icon: Icons.verified_user_rounded,
               iconColor: const Color(0xFF0D9488),
               isIndustryModule: false,
@@ -1386,7 +1452,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Multi-Currency & Exchange Rates',
               subtitle:
                   'Support multiple currencies with configurable FX rates on invoices.',
-              urduDesc: 'متعدد کرنسیاں اور ایکسچینج ریٹس کی سہولت',
               icon: Icons.currency_exchange_rounded,
               iconColor: const Color(0xFF8B5CF6),
               isIndustryModule: false,
@@ -1396,7 +1461,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'LAN Multi-Counter Network',
               subtitle:
                   'Connect secondary counters and mobile billing terminals over local Wi-Fi/LAN.',
-              urduDesc: 'ایک سے زیادہ کاؤنٹرز کو لوکل نیٹ ورک پر جوڑنا',
               icon: Icons.lan_rounded,
               iconColor: const Color(0xFF3B82F6),
               isIndustryModule: false,
@@ -1406,7 +1470,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Cloud Hybrid Sync & Android App',
               subtitle:
                   'Bidirectional sync with webpixels.net cloud backend and Owner Mobile App.',
-              urduDesc: 'کلاؤڈ سنک اور اینڈرائیڈ اونر ایپ کنیکٹیوٹی',
               icon: Icons.cloud_sync_rounded,
               iconColor: const Color(0xFF0EA5E9),
               isIndustryModule: false,
@@ -1416,7 +1479,6 @@ class _ModuleSettingsScreenState extends State<ModuleSettingsScreen> {
               title: 'Automated Encrypted Cloud Backup',
               subtitle:
                   'Scheduled AES-encrypted offsite backups for disaster recovery.',
-              urduDesc: 'خودکار انکرپٹڈ کلاؤڈ بیک اپ',
               icon: Icons.backup_rounded,
               iconColor: const Color(0xFF10B981),
               isIndustryModule: false,

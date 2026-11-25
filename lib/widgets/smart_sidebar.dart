@@ -133,13 +133,15 @@ class _SmartSidebarState extends State<SmartSidebar> {
     if (_filter.isNotEmpty) return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localized =
+        PosLocalization.trPrimary(title, settings: widget.settings);
     return Padding(
       padding: const EdgeInsets.only(left: 14, right: 12, top: 16, bottom: 6),
       child: Row(
         children: [
           Flexible(
             child: Text(
-              title.toUpperCase(),
+              localized.toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -166,294 +168,15 @@ class _SmartSidebarState extends State<SmartSidebar> {
     );
   }
 
-  String _getDisplayTitle(String title, String? defaultUrduSubtitle) {
-    final settings = widget.settings;
-    if (settings == null) return title;
-    final primary = settings.activePrimaryLanguage;
-    if (primary == 'en') return title;
-    if (primary == 'ur' &&
-        defaultUrduSubtitle != null &&
-        defaultUrduSubtitle.isNotEmpty) {
-      return defaultUrduSubtitle;
-    }
-    return PosLocalization.tr(title, settings: settings);
-  }
+  String _getDisplayTitle(String title) =>
+      PosLocalization.trPrimary(title, settings: widget.settings);
 
-  String? _getLocalizedSubtitle(String title, String? defaultUrduSubtitle) {
-    // Secondary language is ONLY allowed when Primary Language is English
-    final settings = widget.settings;
-    if (settings == null || !settings.hasEffectiveSecondaryLanguage) {
-      return null;
-    }
-
-    final sec = settings.secondaryLanguage.toLowerCase().trim();
-    if (sec == 'ur' &&
-        defaultUrduSubtitle != null &&
-        defaultUrduSubtitle.isNotEmpty) {
-      return defaultUrduSubtitle;
-    }
-    if (sec == 'en') return null;
-
-    final translated = PosLocalization.tr(title, primaryOverride: sec);
-    if (translated != title && translated.isNotEmpty) {
-      return translated;
-    }
-
-    if (sec == 'fa') {
-      const farsiSubtitles = {
-        'Dashboard': 'داشبورد اصلی',
-        'POS Terminal': 'ترمینال فروش',
-        'Products': 'محصولات و موجودی',
-        'Stock Transfers': 'انتقال کالا و انبار',
-        'Stock Adjustments': 'تعدیل و کسری موجودی',
-        'Sales': 'فروش و صورتحساب',
-        'Purchases': 'خرید و ورود کالا',
-        'Expenses': 'هزینه‌ها و تنخواه',
-        'Contacts': 'مشتریان و تامین‌کنندگان',
-        'Contacts & Khata': 'مشتریان، تامین‌کنندگان و حساب‌ها',
-        'User Management': 'کاربران و اختیارات',
-        'Reports': 'گزارش‌ها و تحلیل مالی',
-        'SMS & WhatsApp Alerts': 'اعلان‌ها و پیامک',
-        'Settings': 'تنظیمات و پیکربندی',
-        'Business Settings': 'اطلاعات کسب و کار',
-        'Payment Accounts': 'بانک و نقدینگی',
-        'Annual Fiscal Closing': 'بستن حساب سال مالی',
-        'Cloud & MySQL Sync': 'همگام‌سازی ابری',
-        'Modular Features': 'ماژول‌های انتخابی',
-        'Specialized Industry Modules': 'ماژول‌های تخصصی',
-        'List Products': 'فهرست محصولات',
-        'Add Product': 'افزودن محصول جدید',
-        'Print Labels': 'چاپ بارکد',
-        'Variations': 'تنوع کالا',
-        'Import Products': 'ورود محصولات',
-        'Price Groups': 'گروه‌های قیمت',
-        'Units': 'واحدهای سنجش',
-        'Categories': 'دسته‌بندی‌ها',
-        'Brands': 'برندها',
-        'Warranties': 'گارانتی‌ها',
-        'List Transfers': 'فهرست انتقالات',
-        'Add Transfer': 'ثبت انتقال جدید',
-        'Stock Adjustment': 'تعدیل موجودی',
-        'Adjustments List': 'فهرست تعدیلات',
-        'Add Adjustment': 'ثبت تعدیل جدید',
-        'All Sales': 'همه فروش‌ها',
-        'List POS': 'فاکتورهای صندوق',
-        'Sales Return': 'مرجوعی فروش',
-        'Purchases List': 'فهرست خریدها',
-        'Add Purchase': 'ثبت خرید جدید',
-        'Purchase Return': 'مرجوعی خرید',
-        'List Expenses': 'فهرست هزینه‌ها',
-        'Add Expense': 'ثبت هزینه جدید',
-        'Customers': 'مشتریان',
-        'Suppliers': 'تامین‌کنندگان',
-        'Customer Groups': 'گروه‌های مشتری',
-        'Users': 'کاربران',
-        'Roles & Permissions': 'نقش‌ها و دسترسی‌ها',
-        'Profit / Loss Report': 'گزارش سود و زیان',
-        'Purchase & Sale': 'خرید و فروش',
-        'Tax Report': 'گزارش مالیات',
-        'Contact Dues': 'بدهی اشخاص',
-        'Stock & Expiry Audit': 'حسابرسی انبار و انقضا',
-        'Trending Products': 'کالاهای پرفروش',
-      };
-      return farsiSubtitles[title];
-    }
-
-    if (sec == 'ps') {
-      const pashtoSubtitles = {
-        'Dashboard': 'مرکزي ډشبورډ',
-        'POS Terminal': 'د خرڅلاو ترمینل',
-        'Products': 'توکي او زېرمه',
-        'Stock Transfers': 'د توکو لېږد',
-        'Stock Adjustments': 'د زېرمې برابرول',
-        'Sales': 'پلور او بیلونه',
-        'Purchases': 'پېرل او توکي ترلاسه کول',
-        'Expenses': 'لګښتونه او پیټي کیش',
-        'Contacts': 'پېرودونکي او درمل پلورونکي',
-        'Contacts & Khata': 'پېرودونکي، عرضه کوونکي او حسابونه',
-        'User Management': 'کاروونکي او واکونه',
-        'Reports': 'راپورونه او مالي تحلیل',
-        'SMS & WhatsApp Alerts': 'خبرتیاوې او پیغامونه',
-        'Settings': 'تنظیمات او سازونه',
-        'Business Settings': 'د سوداګرۍ معلومات',
-        'Payment Accounts': 'بانکي او نغدي حسابونه',
-        'Annual Fiscal Closing': 'کلنی حساب بندول',
-        'Cloud & MySQL Sync': 'کلاوډ همغږي',
-        'Modular Features': 'فعالې برخې',
-        'Specialized Industry Modules': 'ځانګړې برخې',
-        'List Products': 'د توکو لست',
-        'Add Product': 'نوی توکی اضافه کول',
-        'Print Labels': 'د بارکوډ چاپ',
-        'Variations': 'ویرینټونه',
-        'Import Products': 'د توکو واردول',
-        'Price Groups': 'د بیو ګروپونه',
-        'Units': 'د اندازه کولو واحدونه',
-        'Categories': 'ډلبندۍ',
-        'Brands': 'برانډونه',
-        'Warranties': 'وارنټۍ',
-        'List Transfers': 'د لېږد لست',
-        'Add Transfer': 'نوی لېږد',
-        'Stock Adjustment': 'د زېرمې برابرول',
-        'Adjustments List': 'د برابرولو لست',
-        'Add Adjustment': 'نوی برابرول',
-        'All Sales': 'ټول پلورونه',
-        'List POS': 'د پی او ایس بلونه',
-        'Sales Return': 'د پلور بېرته ګرځول',
-        'Purchases List': 'د پېرلو لست',
-        'Add Purchase': 'نوی پېرل',
-        'Purchase Return': 'د پېر بېرته ګرځول',
-        'List Expenses': 'د لګښتونو لست',
-        'Add Expense': 'نوی لګښت',
-        'Customers': 'پېرودونکي',
-        'Suppliers': 'عرضه کوونکي',
-        'Customer Groups': 'د پېرودونکو ګروپونه',
-        'Users': 'کاروونکي',
-        'Roles & Permissions': 'واکونه او رولونه',
-        'Profit / Loss Report': 'د ګټې او تاوان راپور',
-        'Purchase & Sale': 'پېر او پلور',
-        'Tax Report': 'د مالیاتو راپور',
-        'Contact Dues': 'د پېرودونکو پاتې پیسې',
-        'Stock & Expiry Audit': 'د زېرمې او نېټې څارنه',
-        'Trending Products': 'ډېر پلورل شوي توکي',
-      };
-      return pashtoSubtitles[title];
-    }
-
-    if (sec == 'ur') {
-      return defaultUrduSubtitle;
-    }
-
-    if (sec == 'es') {
-      const spanishSubtitles = {
-        'Dashboard': 'Panel Principal',
-        'POS Terminal': 'Terminal POS',
-        'Products': 'Productos e Inventario',
-        'Stock Transfers': 'Transferencias',
-        'Stock Adjustments': 'Ajustes de Stock',
-        'Sales': 'Ventas y Facturas',
-        'Purchases': 'Compras y Pedidos',
-        'Expenses': 'Gastos y Caja Chica',
-        'Contacts': 'Clientes y Proveedores',
-        'Contacts & Khata': 'Clientes y Proveedores',
-        'User Management': 'Usuarios y Permisos',
-        'Reports': 'Informes y Finanzas',
-        'SMS & WhatsApp Alerts': 'Alertas y Mensajes',
-        'Settings': 'Configuración',
-        'Business Settings': 'Ajustes del Negocio',
-        'Payment Accounts': 'Cuentas de Pago',
-        'Annual Fiscal Closing': 'Cierre Fiscal Anual',
-        'Cloud & MySQL Sync': 'Sincronización Cloud',
-        'Modular Features': 'Módulos',
-        'Specialized Industry Modules': 'Módulos Especiales',
-        'List Products': 'Lista de Productos',
-        'Add Product': 'Nuevo Producto',
-        'Print Labels': 'Imprimir Códigos',
-        'Variations': 'Variaciones',
-        'Import Products': 'Importar Productos',
-        'Price Groups': 'Grupos de Precios',
-        'Units': 'Unidades',
-        'Categories': 'Categorías',
-        'Brands': 'Marcas',
-        'Warranties': 'Garantías',
-        'List Transfers': 'Lista de Transferencias',
-        'Add Transfer': 'Nueva Transferencia',
-        'Stock Adjustment': 'Ajuste de Stock',
-        'Adjustments List': 'Lista de Ajustes',
-        'Add Adjustment': 'Nuevo Ajuste',
-        'All Sales': 'Todas las Ventas',
-        'List POS': 'Ventas POS',
-        'Sales Return': 'Devolución de Venta',
-        'Purchases List': 'Lista de Compras',
-        'Add Purchase': 'Nueva Compra',
-        'Purchase Return': 'Devolución de Compra',
-        'List Expenses': 'Lista de Gastos',
-        'Add Expense': 'Nuevo Gasto',
-        'Customers': 'Clientes',
-        'Suppliers': 'Proveedores',
-        'Customer Groups': 'Grupos de Clientes',
-        'Users': 'Usuarios',
-        'Roles & Permissions': 'Permisos',
-        'Profit / Loss Report': 'Ganancias y Pérdidas',
-        'Purchase & Sale': 'Compras y Ventas',
-        'Tax Report': 'Reporte de Impuestos',
-        'Contact Dues': 'Saldos Pendientes',
-        'Stock & Expiry Audit': 'Auditoría de Stock',
-        'Trending Products': 'Productos Populares',
-      };
-      return spanishSubtitles[title];
-    }
-
-    if (sec == 'nl') {
-      const dutchSubtitles = {
-        'Dashboard': 'Hoofddashboard',
-        'POS Terminal': 'Kassasysteem POS',
-        'Products': 'Producten en Voorraad',
-        'Stock Transfers': 'Voorraadoverdracht',
-        'Stock Adjustments': 'Voorraadcorrecties',
-        'Sales': 'Verkopen en Facturen',
-        'Purchases': 'Inkopen en Bestellingen',
-        'Expenses': 'Uitgaven en Kasboek',
-        'Contacts': 'Klanten en Leveranciers',
-        'Contacts & Khata': 'Klanten en Leveranciers',
-        'User Management': 'Gebruikersbeheer',
-        'Reports': 'Rapporten en Financiën',
-        'SMS & WhatsApp Alerts': 'Notificaties',
-        'Settings': 'Instellingen',
-        'Business Settings': 'Bedrijfsinstellingen',
-        'Payment Accounts': 'Betaalrekeningen',
-        'Annual Fiscal Closing': 'Fiscaal Jaarafsluiting',
-        'Cloud & MySQL Sync': 'Cloud & MySQL Sync',
-        'Modular Features': 'Modules',
-        'Specialized Industry Modules': 'Branchemodules',
-        'List Products': 'Productenlijst',
-        'Add Product': 'Nieuw Product',
-        'Print Labels': 'Labels Afdrukken',
-        'Variations': 'Variaties',
-        'Import Products': 'Producten Importeren',
-        'Price Groups': 'Prijsgroepen',
-        'Units': 'Eenheden',
-        'Categories': 'Categorieën',
-        'Brands': 'Merken',
-        'Warranties': 'Garanties',
-        'List Transfers': 'Overdrachten',
-        'Add Transfer': 'Nieuwe Overdracht',
-        'Stock Adjustment': 'Voorraadcorrectie',
-        'Adjustments List': 'Correctielijst',
-        'Add Adjustment': 'Nieuwe Correctie',
-        'All Sales': 'Alle Verkopen',
-        'List POS': 'Kassaoverzicht',
-        'Sales Return': 'Verkoopretouren',
-        'Purchases List': 'Inkooplijst',
-        'Add Purchase': 'Nieuwe Inkoop',
-        'Purchase Return': 'Inkoopretouren',
-        'List Expenses': 'Uitgavenlijst',
-        'Add Expense': 'Nieuwe Uitgave',
-        'Customers': 'Klanten',
-        'Suppliers': 'Leveranciers',
-        'Customer Groups': 'Klantgroepen',
-        'Users': 'Gebruikers',
-        'Roles & Permissions': 'Rollen & Rechten',
-        'Profit / Loss Report': 'Winst- en Verliesrekening',
-        'Purchase & Sale': 'Inkoop & Verkoop',
-        'Tax Report': 'Belastingrapport',
-        'Contact Dues': 'Openstaande Saldi',
-        'Stock & Expiry Audit': 'Voorraadaudit',
-        'Trending Products': 'Populaire Producten',
-      };
-      return dutchSubtitles[title];
-    }
-
-    if (sec == 'en') {
-      return null;
-    }
-
-    return null;
-  }
+  String? _getLocalizedSubtitle(String title) =>
+      PosLocalization.trSecondary(title, settings: widget.settings);
 
   Widget _navItem({
     required IconData icon,
     required String title,
-    String? urduSubtitle,
     required AppRoute route,
     bool hasSubmenu = false,
     bool isExpanded = false,
@@ -463,8 +186,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
     VoidCallback? onToggleSubmenu,
     VoidCallback? onTapDirect,
   }) {
-    final displayTitle = _getDisplayTitle(title, urduSubtitle);
-    final activeSubtitle = _getLocalizedSubtitle(title, urduSubtitle);
+    final displayTitle = _getDisplayTitle(title);
+    final activeSubtitle = _getLocalizedSubtitle(title);
     final matchesFilter = _filter.isEmpty ||
         title.toLowerCase().contains(_filter) ||
         displayTitle.toLowerCase().contains(_filter) ||
@@ -691,12 +414,11 @@ class _SmartSidebarState extends State<SmartSidebar> {
 
   Widget _subItem({
     required String title,
-    String? urduSubtitle,
     required AppRoute route,
     VoidCallback? onTapCustom,
   }) {
-    final displayTitle = _getDisplayTitle(title, urduSubtitle);
-    final activeSubtitle = _getLocalizedSubtitle(title, urduSubtitle);
+    final displayTitle = _getDisplayTitle(title);
+    final activeSubtitle = _getLocalizedSubtitle(title);
     final matchesFilter = _filter.isEmpty ||
         title.toLowerCase().contains(_filter) ||
         displayTitle.toLowerCase().contains(_filter) ||
@@ -863,7 +585,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
       _navItem(
         icon: Icons.dashboard_outlined,
         title: 'Home',
-        urduSubtitle: 'مرکزی ڈیش بورڈ',
         route: AppRoute.dashboard,
       ),
 
@@ -872,7 +593,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.point_of_sale_rounded,
           title: 'POS Terminal (F1)',
-          urduSubtitle: 'فوری کاؤنٹر سیل',
           badgeText: 'F1',
           badgeColor: const Color(0xFF10B981),
           route: AppRoute.posTerminal,
@@ -889,7 +609,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.inventory_2_outlined,
             title: 'Products',
-            urduSubtitle: 'پروڈکٹس اور سٹاک',
             route: AppRoute.productsList,
             hasSubmenu: true,
             isExpanded: _productsExpanded,
@@ -899,60 +618,29 @@ class _SmartSidebarState extends State<SmartSidebar> {
             onTapDirect: () => widget.onSelect(AppRoute.productsList),
           ),
           if (!widget.isCollapsed && _productsExpanded) ...[
-            _subItem(
-                title: 'List Products',
-                urduSubtitle: 'پروڈکٹس لسٹ',
-                route: AppRoute.productsList),
+            _subItem(title: 'List Products', route: AppRoute.productsList),
             if (canAddProduct)
-              _subItem(
-                  title: 'Add Product',
-                  urduSubtitle: 'نیا پروڈکٹ',
-                  route: AppRoute.addProduct),
+              _subItem(title: 'Add Product', route: AppRoute.addProduct),
             if (canPrintLabels &&
                 _isModEnabled(BusinessSettings.modulePrintLabels))
-              _subItem(
-                  title: 'Print Labels',
-                  urduSubtitle: 'بارکوڈ لیبلز',
-                  route: AppRoute.printLabels),
+              _subItem(title: 'Print Labels', route: AppRoute.printLabels),
             if (_isModEnabled(BusinessSettings.moduleVariations))
-              _subItem(
-                  title: 'Variations',
-                  urduSubtitle: 'ویرینٹس',
-                  route: AppRoute.variationTemplates),
+              _subItem(title: 'Variations', route: AppRoute.variationTemplates),
             if (canAddProduct &&
                 _isModEnabled(BusinessSettings.modulePrintLabels))
               _subItem(
-                  title: 'Import Products',
-                  urduSubtitle: 'امپورٹ',
-                  route: AppRoute.importProducts),
+                  title: 'Import Products', route: AppRoute.importProducts),
             if (canSettings &&
                 _isModEnabled(BusinessSettings.moduleWholesaleTools))
               _subItem(
-                  title: 'Price Groups',
-                  urduSubtitle: 'قیمت گروپس',
-                  route: AppRoute.sellingPriceGroups),
+                  title: 'Price Groups', route: AppRoute.sellingPriceGroups),
             if ((canSettings || canAddProduct) &&
                 _isModEnabled(BusinessSettings.moduleWholesaleTools))
-              _subItem(
-                  title: 'Discount Rules',
-                  urduSubtitle: 'رعایت کے اصول',
-                  route: AppRoute.discountRules),
-            _subItem(
-                title: 'Units',
-                urduSubtitle: 'پیمائش کے یونٹس',
-                route: AppRoute.units),
-            _subItem(
-                title: 'Categories',
-                urduSubtitle: 'کیٹیگریز',
-                route: AppRoute.categories),
-            _subItem(
-                title: 'Brands',
-                urduSubtitle: 'برانڈز',
-                route: AppRoute.brands),
-            _subItem(
-                title: 'Warranties',
-                urduSubtitle: 'وارنٹیز',
-                route: AppRoute.warranties),
+              _subItem(title: 'Discount Rules', route: AppRoute.discountRules),
+            _subItem(title: 'Units', route: AppRoute.units),
+            _subItem(title: 'Categories', route: AppRoute.categories),
+            _subItem(title: 'Brands', route: AppRoute.brands),
+            _subItem(title: 'Warranties', route: AppRoute.warranties),
           ],
         ],
       ],
@@ -963,7 +651,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.local_shipping_outlined,
           title: 'Stock Transfers',
-          urduSubtitle: 'برانچ ٹرانسفر',
           route: AppRoute.stockTransfers,
           hasSubmenu: true,
           isExpanded: _transfersExpanded,
@@ -973,14 +660,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(AppRoute.stockTransfers),
         ),
         if (!widget.isCollapsed && _transfersExpanded) ...[
-          _subItem(
-              title: 'List Transfers',
-              urduSubtitle: 'تمام ٹرانسفرز',
-              route: AppRoute.stockTransfers),
-          _subItem(
-              title: 'Add Transfer',
-              urduSubtitle: 'نیا ٹرانسفر بھیجیں',
-              route: AppRoute.stockTransfers),
+          _subItem(title: 'List Transfers', route: AppRoute.stockTransfers),
+          _subItem(title: 'Add Transfer', route: AppRoute.stockTransfers),
         ],
       ],
 
@@ -989,7 +670,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.tune_outlined,
           title: 'Stock Adjustment',
-          urduSubtitle: 'سٹاک درستگی / ضیاع',
           route: AppRoute.stockAdjustments,
           hasSubmenu: true,
           isExpanded: _adjustmentsExpanded,
@@ -999,14 +679,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(AppRoute.stockAdjustments),
         ),
         if (!widget.isCollapsed && _adjustmentsExpanded) ...[
-          _subItem(
-              title: 'Adjustments List',
-              urduSubtitle: 'لسٹ',
-              route: AppRoute.stockAdjustments),
-          _subItem(
-              title: 'Add Adjustment',
-              urduSubtitle: 'نیا اندراج',
-              route: AppRoute.stockAdjustments),
+          _subItem(title: 'Adjustments List', route: AppRoute.stockAdjustments),
+          _subItem(title: 'Add Adjustment', route: AppRoute.stockAdjustments),
         ],
       ],
 
@@ -1021,7 +695,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.receipt_long_outlined,
           title: 'Sell',
-          urduSubtitle: 'فروخت اور بلنگ',
           route: AppRoute.salesList,
           hasSubmenu: true,
           isExpanded: _sellExpanded,
@@ -1030,36 +703,17 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(AppRoute.salesList),
         ),
         if (!widget.isCollapsed && _sellExpanded) ...[
-          if (canSales)
-            _subItem(
-                title: 'All Sales',
-                urduSubtitle: 'تمام بلز',
-                route: AppRoute.salesList),
+          if (canSales) _subItem(title: 'All Sales', route: AppRoute.salesList),
+          if (canSales && _isModEnabled(BusinessSettings.moduleWholesaleTools))
+            _subItem(title: 'Sales Orders', route: AppRoute.salesOrders),
           if (canSales && _isModEnabled(BusinessSettings.moduleWholesaleTools))
             _subItem(
-                title: 'Sales Orders',
-                urduSubtitle: 'سیلز آرڈرز',
-                route: AppRoute.salesOrders),
-          if (canSales && _isModEnabled(BusinessSettings.moduleWholesaleTools))
-            _subItem(
-                title: 'Commission Agents',
-                urduSubtitle: 'کمیشن ایجنٹس',
-                route: AppRoute.commissionAgents),
+                title: 'Commission Agents', route: AppRoute.commissionAgents),
           if (canPos)
-            _subItem(
-                title: 'POS Terminal',
-                urduSubtitle: 'کاؤنٹر سیل',
-                route: AppRoute.posTerminal),
-          if (canSales)
-            _subItem(
-                title: 'List POS',
-                urduSubtitle: 'پی او ایس انوائسز',
-                route: AppRoute.salesList),
+            _subItem(title: 'POS Terminal', route: AppRoute.posTerminal),
+          if (canSales) _subItem(title: 'List POS', route: AppRoute.salesList),
           if (canReturns && _isModEnabled(BusinessSettings.moduleReturns))
-            _subItem(
-                title: 'Sales Return',
-                urduSubtitle: 'سیلز واپسی',
-                route: AppRoute.salesReturn),
+            _subItem(title: 'Sales Return', route: AppRoute.salesReturn),
         ],
       ],
 
@@ -1068,7 +722,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.shopping_cart_outlined,
           title: 'Purchases',
-          urduSubtitle: 'خریداری / مال انورڈ',
           route: AppRoute.purchasesList,
           hasSubmenu: true,
           isExpanded: _purchasesExpanded,
@@ -1078,25 +731,13 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(AppRoute.purchasesList),
         ),
         if (!widget.isCollapsed && _purchasesExpanded) ...[
-          _subItem(
-              title: 'Purchases List',
-              urduSubtitle: 'خریداری لسٹ',
-              route: AppRoute.purchasesList),
+          _subItem(title: 'Purchases List', route: AppRoute.purchasesList),
           if (_isModEnabled(BusinessSettings.moduleWholesaleTools))
-            _subItem(
-                title: 'Purchase Orders',
-                urduSubtitle: 'پرچیز آرڈرز',
-                route: AppRoute.purchaseOrders),
+            _subItem(title: 'Purchase Orders', route: AppRoute.purchaseOrders),
           if (canAddPurchase)
-            _subItem(
-                title: 'Add Purchase',
-                urduSubtitle: 'نئی خریداری درج کریں',
-                route: AppRoute.addPurchase),
+            _subItem(title: 'Add Purchase', route: AppRoute.addPurchase),
           if (canAddPurchase && _isModEnabled(BusinessSettings.moduleReturns))
-            _subItem(
-                title: 'Purchase Return',
-                urduSubtitle: 'خریداری واپسی',
-                route: AppRoute.purchaseReturn),
+            _subItem(title: 'Purchase Return', route: AppRoute.purchaseReturn),
         ],
       ],
 
@@ -1105,7 +746,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.account_balance_wallet_outlined,
           title: 'Expenses',
-          urduSubtitle: 'دکان و پیٹی کیش اخراجات',
           route: AppRoute.expenses,
           hasSubmenu: true,
           isExpanded: _expensesExpanded,
@@ -1115,14 +755,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(AppRoute.expenses),
         ),
         if (!widget.isCollapsed && _expensesExpanded) ...[
-          _subItem(
-              title: 'List Expenses',
-              urduSubtitle: 'تمام اخراجات',
-              route: AppRoute.expenses),
-          _subItem(
-              title: 'Add Expense',
-              urduSubtitle: 'نیا خرچہ شامل کریں',
-              route: AppRoute.expenses),
+          _subItem(title: 'List Expenses', route: AppRoute.expenses),
+          _subItem(title: 'Add Expense', route: AppRoute.expenses),
         ],
       ],
 
@@ -1136,7 +770,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.people_alt_outlined,
           title: 'Contacts & Khata',
-          urduSubtitle: 'گاہک، سپلائر اور کھاتہ',
           route: AppRoute.customers,
           hasSubmenu: true,
           isExpanded: _contactsExpanded,
@@ -1146,18 +779,9 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(AppRoute.customers),
         ),
       if (!widget.isCollapsed && _contactsExpanded && canKhata) ...[
-        _subItem(
-            title: 'Customers',
-            urduSubtitle: 'گاہک / کسٹمرز',
-            route: AppRoute.customers),
-        _subItem(
-            title: 'Suppliers',
-            urduSubtitle: 'سپلائرز / وینڈرز',
-            route: AppRoute.suppliers),
-        _subItem(
-            title: 'Customer Groups',
-            urduSubtitle: 'کسٹمر گروپس',
-            route: AppRoute.customers),
+        _subItem(title: 'Customers', route: AppRoute.customers),
+        _subItem(title: 'Suppliers', route: AppRoute.suppliers),
+        _subItem(title: 'Customer Groups', route: AppRoute.customers),
       ],
 
       if (canSettings &&
@@ -1165,7 +789,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.account_balance_outlined,
           title: 'Cheques & Clearing',
-          urduSubtitle: 'چیک مینجمنٹ',
           route: AppRoute.chequeManagement,
         ),
       ],
@@ -1175,7 +798,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.manage_accounts_outlined,
           title: 'User Management',
-          urduSubtitle: 'صارفین اور اختیارات',
           route: AppRoute.userManagement,
           hasSubmenu: true,
           isExpanded: _userMgmtExpanded,
@@ -1185,14 +807,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(AppRoute.userManagement),
         ),
       if (!widget.isCollapsed && _userMgmtExpanded && canManageUsers) ...[
-        _subItem(
-            title: 'Users',
-            urduSubtitle: 'صارفین کی فہرست',
-            route: AppRoute.userManagement),
-        _subItem(
-            title: 'Roles & Permissions',
-            urduSubtitle: 'اختیارات',
-            route: AppRoute.userManagement),
+        _subItem(title: 'Users', route: AppRoute.userManagement),
+        _subItem(title: 'Roles & Permissions', route: AppRoute.userManagement),
       ],
 
       // ==========================================
@@ -1205,7 +821,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.analytics_outlined,
           title: 'Reports',
-          urduSubtitle: 'نفع نقصان اور مالیاتی رپورٹس',
           route: AppRoute.reports,
           hasSubmenu: true,
           isExpanded: _reportsExpanded,
@@ -1215,39 +830,21 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(AppRoute.reports),
         ),
         if (!widget.isCollapsed && _reportsExpanded) ...[
-          _subItem(
-              title: 'Profit / Loss Report',
-              urduSubtitle: 'نفع نقصان',
-              route: AppRoute.reports),
-          _subItem(
-              title: 'Purchase & Sale',
-              urduSubtitle: 'خرید و فروخت',
-              route: AppRoute.reports),
+          _subItem(title: 'Profit / Loss Report', route: AppRoute.reports),
+          _subItem(title: 'Purchase & Sale', route: AppRoute.reports),
           if (_isModEnabled(BusinessSettings.moduleFiscalTax))
-            _subItem(
-                title: 'Tax Report',
-                urduSubtitle: 'ٹیکس رپورٹ',
-                route: AppRoute.reports),
-          _subItem(
-              title: 'Contact Dues',
-              urduSubtitle: 'کھاتہ بقایا جات',
-              route: AppRoute.reports),
+            _subItem(title: 'Tax Report', route: AppRoute.reports),
+          _subItem(title: 'Contact Dues', route: AppRoute.reports),
           if (_isModEnabled(BusinessSettings.moduleStockAudit))
             _subItem(
-                title: 'Stock & Expiry Audit',
-                urduSubtitle: 'سٹاک و ایکسپائری',
-                route: AppRoute.inventoryAudit),
-          _subItem(
-              title: 'Trending Products',
-              urduSubtitle: 'زیادہ بکنے والا مال',
-              route: AppRoute.reports),
+                title: 'Stock & Expiry Audit', route: AppRoute.inventoryAudit),
+          _subItem(title: 'Trending Products', route: AppRoute.reports),
         ],
       ] else if (canReports &&
           _isModEnabled(BusinessSettings.moduleStockAudit)) ...[
         _navItem(
           icon: Icons.fact_check_outlined,
           title: 'Stock & Expiry Audit',
-          urduSubtitle: 'سٹاک و ایکسپائری',
           route: AppRoute.inventoryAudit,
         ),
       ],
@@ -1257,7 +854,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.mark_email_read_outlined,
           title: 'SMS & WhatsApp Alerts',
-          urduSubtitle: 'اطلاعات کے ٹیمپلیٹس',
           route: AppRoute.notificationTemplates,
         ),
 
@@ -1270,7 +866,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
         _navItem(
           icon: Icons.settings_suggest_outlined,
           title: 'Settings',
-          urduSubtitle: 'سسٹم، برانچ و کلاؤڈ کنفیگریشن',
           route: AppRoute.settings,
           hasSubmenu: true,
           isExpanded: _settingsExpanded,
@@ -1280,32 +875,18 @@ class _SmartSidebarState extends State<SmartSidebar> {
           onTapDirect: () => widget.onSelect(AppRoute.settings),
         ),
         if (!widget.isCollapsed && _settingsExpanded) ...[
-          _subItem(
-              title: 'Business Settings',
-              urduSubtitle: 'کاروباری معلومات',
-              route: AppRoute.settings),
+          _subItem(title: 'Business Settings', route: AppRoute.settings),
           if (_isModEnabled(BusinessSettings.moduleAccountingCrm))
             _subItem(
-                title: 'Payment Accounts',
-                urduSubtitle: 'بینک و کیش',
-                route: AppRoute.paymentAccounts),
+                title: 'Payment Accounts', route: AppRoute.paymentAccounts),
           if (_isModEnabled(BusinessSettings.moduleFiscalClosing))
             _subItem(
-                title: 'Annual Fiscal Closing',
-                urduSubtitle: 'سالانہ کلوزنگ',
-                route: AppRoute.annualClosing),
+                title: 'Annual Fiscal Closing', route: AppRoute.annualClosing),
           if (_isModEnabled(BusinessSettings.moduleCloudSync))
-            _subItem(
-                title: 'Cloud & MySQL Sync',
-                urduSubtitle: 'کلاؤڈ سنک',
-                route: AppRoute.cloudSync),
-          _subItem(
-              title: 'Modular Features',
-              urduSubtitle: 'ماڈیولز آن/آف',
-              route: AppRoute.moduleSettings),
+            _subItem(title: 'Cloud & MySQL Sync', route: AppRoute.cloudSync),
+          _subItem(title: 'Modular Features', route: AppRoute.moduleSettings),
           _subItem(
             title: 'About Developer & Support',
-            urduSubtitle: 'سافٹ ویئر معلومات و رابطہ',
             route: AppRoute.settings,
             onTapCustom: () =>
                 AboutDeveloperDialog.show(context, settings: widget.settings),
@@ -1322,7 +903,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.restaurant_rounded,
             title: 'Restaurant / Cafe',
-            urduSubtitle: 'ٹیبل اور کچن کمانڈ (KOT)',
             route: AppRoute.restaurantCafe,
             isActiveParent: widget.selectedRoute == AppRoute.restaurantCafe,
           ),
@@ -1330,7 +910,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.build_circle_outlined,
             title: 'Repair Shop / Service',
-            urduSubtitle: 'جاب کارڈ اور ریپئرنگ',
             route: AppRoute.repairService,
             isActiveParent: widget.selectedRoute == AppRoute.repairService,
           ),
@@ -1338,7 +917,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.hotel_outlined,
             title: 'Hotel Management',
-            urduSubtitle: 'کمروں اور گیسٹ کا کھاتہ',
             route: AppRoute.hotelManagement,
             isActiveParent: widget.selectedRoute == AppRoute.hotelManagement,
           ),
@@ -1346,7 +924,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.fitness_center_rounded,
             title: 'Gym & Fitness Center',
-            urduSubtitle: 'ممبرشپ اور فیس حاضری',
             route: AppRoute.gymFitness,
             isActiveParent: widget.selectedRoute == AppRoute.gymFitness,
           ),
@@ -1354,7 +931,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.precision_manufacturing_outlined,
             title: 'Manufacturing / BOM',
-            urduSubtitle: 'پیداوار اور خام مال',
             route: AppRoute.manufacturing,
             isActiveParent: widget.selectedRoute == AppRoute.manufacturing,
           ),
@@ -1362,7 +938,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.agriculture_outlined,
             title: 'Fruit Mandi (Arhat)',
-            urduSubtitle: 'منڈی بولی اور کمیشن',
             route: AppRoute.fruitMandi,
             isActiveParent: widget.selectedRoute == AppRoute.fruitMandi,
           ),
@@ -1370,7 +945,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.egg_outlined,
             title: 'Poultry Farm & Trading',
-            urduSubtitle: 'فلاک اور پولٹری فارم',
             route: AppRoute.poultryBusiness,
             isActiveParent: widget.selectedRoute == AppRoute.poultryBusiness,
           ),
@@ -1378,7 +952,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.shopping_bag_outlined,
             title: 'Online Store (Woo)',
-            urduSubtitle: 'آن لائن اسٹور سنک',
             route: AppRoute.wooCommerceSync,
             isActiveParent: widget.selectedRoute == AppRoute.wooCommerceSync,
           ),
@@ -1386,7 +959,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.badge_outlined,
             title: 'HR & Employee (Payroll)',
-            urduSubtitle: 'اسٹاف حاضری اور تنخواہ',
             route: AppRoute.hrmEmployee,
             isActiveParent: widget.selectedRoute == AppRoute.hrmEmployee,
           ),
@@ -1394,7 +966,6 @@ class _SmartSidebarState extends State<SmartSidebar> {
           _navItem(
             icon: Icons.account_balance_outlined,
             title: 'Accounting & Ledgers',
-            urduSubtitle: 'جنرل لیجر اور واؤچرز',
             route: AppRoute.accountingCrm,
             isActiveParent: widget.selectedRoute == AppRoute.accountingCrm,
           ),
@@ -1461,7 +1032,8 @@ class _SmartSidebarState extends State<SmartSidebar> {
                   onChanged: (val) =>
                       setState(() => _filter = val.trim().toLowerCase()),
                   decoration: InputDecoration(
-                    hintText: 'Search menu...',
+                    hintText: PosLocalization.tr('Search menu...',
+                        settings: widget.settings),
                     hintStyle: TextStyle(
                       fontSize: 12,
                       color: isDark
@@ -1532,10 +1104,11 @@ class _SmartSidebarState extends State<SmartSidebar> {
                               const Icon(Icons.bolt_rounded,
                                   color: Colors.amberAccent, size: 20),
                               const SizedBox(width: 8),
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  'POS Terminal',
-                                  style: TextStyle(
+                                  PosLocalization.tr('POS Terminal',
+                                      settings: widget.settings),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w800,
@@ -1696,7 +1269,9 @@ class _SmartSidebarState extends State<SmartSidebar> {
                         ),
                       ),
                       Tooltip(
-                        message: 'About Developer & Support (Webdeventh)',
+                        message: PosLocalization.tr(
+                            'About Developer & Support (Webdeventh)',
+                            settings: widget.settings),
                         child: InkWell(
                           onTap: () => AboutDeveloperDialog.show(context,
                               settings: widget.settings),

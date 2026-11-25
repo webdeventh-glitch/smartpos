@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'models/models.dart';
 import 'services/app_logger.dart';
 import 'services/database_service.dart';
+import 'services/localization_service.dart';
 import 'services/theme_service.dart';
 import 'services/auth_service.dart';
 import 'services/qulop_service.dart';
@@ -61,6 +62,19 @@ class SmartPosApp extends StatelessWidget {
               theme: ThemeService.lightTheme,
               darkTheme: ThemeService.darkTheme,
               scrollBehavior: ThemeService.scrollBehavior,
+              builder: (context, child) {
+                return ValueListenableBuilder<BusinessSettings?>(
+                  valueListenable: PosLocalization.settingsNotifier,
+                  builder: (context, activeSettings, _) {
+                    return Directionality(
+                      textDirection: PosLocalization.textDirection(
+                        activeSettings?.activePrimaryLanguage,
+                      ),
+                      child: child ?? const SizedBox.shrink(),
+                    );
+                  },
+                );
+              },
               home: const _DatabaseInitializer(),
             );
           },
@@ -98,6 +112,7 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
     }
 
     var settings = await dbService.getBusinessSettings();
+    PosLocalization.setActiveSettings(settings);
     final users = await dbService.getUsers();
 
     // If database has 0 users, force isConfigured to false so Setup Wizard runs to create initial Super Admin
@@ -106,6 +121,7 @@ class _DatabaseInitializerState extends State<_DatabaseInitializer> {
           'No users detected in database. Routing to Setup Wizard.');
       settings = settings.copyWith(isConfigured: false);
       await dbService.updateBusinessSettings(settings);
+      PosLocalization.setActiveSettings(settings);
     }
 
     ThemeService.setTouchFriendly(settings.touchFriendlyMode);

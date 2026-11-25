@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 import '../../services/qulop_service.dart';
 
 class QulopLockoutScreen extends StatefulWidget {
@@ -22,8 +23,10 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
   final TextEditingController _keyController = TextEditingController();
   bool _isVerifying = false;
   String? _errorMessage;
-  String _hardwareId = 'Detecting...';
-  String _deviceMac = 'Loading...';
+  late String _hardwareId =
+      PosLocalization.tr('Detecting...', settings: widget.settings);
+  late String _deviceMac =
+      PosLocalization.tr('Loading...', settings: widget.settings);
   bool _copiedHwId = false;
   bool _copiedMac = false;
 
@@ -53,8 +56,9 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
   Future<void> _activateLicense() async {
     final key = QulopService.sanitizeKeyInput(_keyController.text);
     if (key.isEmpty) {
-      setState(() =>
-          _errorMessage = 'Please enter or paste your Software License Key.');
+      setState(() => _errorMessage = PosLocalization.tr(
+          'Please enter or paste your Software License Key.',
+          settings: widget.settings));
       return;
     }
 
@@ -92,8 +96,10 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
     if (mounted) {
       setState(() => _isVerifying = false);
       final durationLabel = verification.isLifetime
-          ? 'Lifetime'
-          : '${verification.remainingDays} days';
+          ? PosLocalization.tr('Lifetime', settings: widget.settings)
+          : PosLocalization.trParams(
+              '{days} days', {'days': '${verification.remainingDays}'},
+              settings: widget.settings);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -102,7 +108,14 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Software Activated Successfully! ${verification.tierLabel} ($durationLabel)',
+                  PosLocalization.trParams(
+                    'Software Activated Successfully! {tier} ({duration})',
+                    {
+                      'tier': verification.tierLabel,
+                      'duration': durationLabel,
+                    },
+                    settings: widget.settings,
+                  ),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -174,9 +187,10 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                 const SizedBox(height: 20),
 
                 // Front Title: Software License Required
-                const Text(
-                  'Software License Required',
-                  style: TextStyle(
+                Text(
+                  PosLocalization.tr('Software License Required',
+                      settings: widget.settings),
+                  style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
@@ -186,9 +200,11 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                const Text(
-                  'Subscription Expired or Software Not Activated',
-                  style: TextStyle(
+                Text(
+                  PosLocalization.tr(
+                      'Subscription Expired or Software Not Activated',
+                      settings: widget.settings),
+                  style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF94A3B8),
                     fontWeight: FontWeight.w500,
@@ -211,14 +227,15 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.fingerprint_rounded,
+                              const Icon(Icons.fingerprint_rounded,
                                   size: 16, color: Color(0xFF38BDF8)),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Text(
-                                'Hardware Machine ID (HWID)',
-                                style: TextStyle(
+                                PosLocalization.tr('Hardware Machine ID (HWID)',
+                                    settings: widget.settings),
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF94A3B8),
@@ -257,7 +274,11 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    _copiedHwId ? 'Copied!' : 'Copy HWID',
+                                    _copiedHwId
+                                        ? PosLocalization.tr('Copied!',
+                                            settings: widget.settings)
+                                        : PosLocalization.tr('Copy HWID',
+                                            settings: widget.settings),
                                     style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -287,7 +308,9 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Physical MAC: $_deviceMac',
+                              PosLocalization.trParams(
+                                  'Physical MAC: {mac}', {'mac': _deviceMac},
+                                  settings: widget.settings),
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF94A3B8),
@@ -305,7 +328,11 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                               });
                             },
                             child: Text(
-                              _copiedMac ? 'MAC Copied!' : 'Copy MAC',
+                              _copiedMac
+                                  ? PosLocalization.tr('MAC Copied!',
+                                      settings: widget.settings)
+                                  : PosLocalization.tr('Copy MAC',
+                                      settings: widget.settings),
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -318,10 +345,12 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Send either Machine HWID or Physical MAC to the software vendor via WhatsApp to receive your signed activation key.',
-                        style:
-                            TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      Text(
+                        PosLocalization.tr(
+                            'Send either Machine HWID or Physical MAC to the software vendor via WhatsApp to receive your signed activation key.',
+                            settings: widget.settings),
+                        style: const TextStyle(
+                            fontSize: 11, color: Color(0xFF64748B)),
                       ),
                     ],
                   ),
@@ -329,9 +358,10 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                 const SizedBox(height: 24),
 
                 // License Key Input Field
-                const Text(
-                  'Enter Software License Key',
-                  style: TextStyle(
+                Text(
+                  PosLocalization.tr('Enter Software License Key',
+                      settings: widget.settings),
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFFE2E8F0),
@@ -348,7 +378,9 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                   decoration: InputDecoration(
-                    hintText: 'Paste key here (e.g. QULOP-YRL-XXXX-ey...)',
+                    hintText: PosLocalization.tr(
+                        'Paste key here (e.g. QULOP-YRL-XXXX-ey...)',
+                        settings: widget.settings),
                     hintStyle:
                         const TextStyle(color: Color(0xFF64748B), fontSize: 12),
                     filled: true,
@@ -369,7 +401,8 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.paste_rounded,
                           color: Color(0xFF94A3B8)),
-                      tooltip: 'Paste from clipboard',
+                      tooltip: PosLocalization.tr('Paste from clipboard',
+                          settings: widget.settings),
                       onPressed: () async {
                         final data = await Clipboard.getData('text/plain');
                         if (data?.text != null) {
@@ -431,14 +464,15 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white),
                         )
-                      : const Row(
+                      : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.verified_user_rounded, size: 18),
-                            SizedBox(width: 8),
+                            const Icon(Icons.verified_user_rounded, size: 18),
+                            const SizedBox(width: 8),
                             Text(
-                              'Verify & Activate Software',
-                              style: TextStyle(
+                              PosLocalization.tr('Verify & Activate Software',
+                                  settings: widget.settings),
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800, fontSize: 14),
                             ),
                           ],
@@ -450,7 +484,9 @@ class _QulopLockoutScreenState extends State<QulopLockoutScreen> {
                 // Vendor WhatsApp Assistance Help
                 Center(
                   child: Text(
-                    'Need a key or renewal? Visit webpixels.net  •  Phone / WhatsApp: +92 313 8437438  •  WhatsApp Only: +92 320 1166949',
+                    PosLocalization.tr(
+                        'Need a key or renewal? Visit webpixels.net  •  Phone / WhatsApp: +92 313 8437438  •  WhatsApp Only: +92 320 1166949',
+                        settings: widget.settings),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.white.withValues(alpha: 0.6),

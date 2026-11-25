@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class QuickCustomerDialog extends StatefulWidget {
   final Function(Contact) onCustomerAdded;
@@ -231,7 +232,7 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Add Quick Customer',
+                            PosLocalization.tr('Add Quick Customer'),
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
@@ -241,7 +242,8 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                             ),
                           ),
                           Text(
-                            'Create new customer and assign to current cart',
+                            PosLocalization.tr(
+                                'Create new customer and assign to current cart'),
                             style: TextStyle(
                               fontSize: 12,
                               color: isDark
@@ -279,7 +281,8 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                     fontSize: 13,
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: _inputDecoration(
-                  hintText: 'e.g. Walk-in Customer / Al-Madina Medicos',
+                  hintText: PosLocalization.tr(
+                      'e.g. Walk-in Customer / Al-Madina Medicos'),
                   prefixIcon: Icons.person_outline,
                   isDark: isDark,
                 ),
@@ -417,7 +420,7 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                     fontSize: 13,
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: _inputDecoration(
-                  hintText: 'Street address, City, State',
+                  hintText: PosLocalization.tr('Street address, City, State'),
                   prefixIcon: Icons.location_on_outlined,
                   isDark: isDark,
                 ),
@@ -432,7 +435,7 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                     ? _selectedGroupId
                     : null,
                 decoration: _inputDecoration(
-                  hintText: 'Retail Base Price',
+                  hintText: PosLocalization.tr('Retail Base Price'),
                   prefixIcon: Icons.groups_outlined,
                   isDark: isDark,
                 ),
@@ -441,7 +444,7 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                   DropdownMenuItem<int?>(
                     value: null,
                     child: Text(
-                      'Retail (Standard Base Price)',
+                      PosLocalization.tr('Retail (Standard Base Price)'),
                       style: TextStyle(
                           fontSize: 13,
                           color:
@@ -485,8 +488,8 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                           borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel',
-                        style: TextStyle(
+                    child: Text(PosLocalization.tr('Cancel'),
+                        style: const TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 13)),
                   ),
                   const SizedBox(width: 12),
@@ -507,8 +510,8 @@ class _QuickCustomerDialogState extends State<QuickCustomerDialog> {
                             height: 18,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
-                        : const Text('Save & Select',
-                            style: TextStyle(
+                        : Text(PosLocalization.tr('Save & Select'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
                 ],

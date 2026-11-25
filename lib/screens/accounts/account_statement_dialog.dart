@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class AccountStatementDialog extends StatefulWidget {
   final PaymentAccount account;
@@ -155,9 +156,10 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Account statement copied to clipboard!'),
-        backgroundColor: Color(0xFF10B981),
+      SnackBar(
+        content:
+            Text(PosLocalization.tr('Account statement copied to clipboard!')),
+        backgroundColor: const Color(0xFF10B981),
       ),
     );
   }
@@ -318,7 +320,7 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
             ),
           ),
           IconButton(
-            tooltip: 'Close',
+            tooltip: PosLocalization.tr('Close'),
             icon: const Icon(Icons.close_rounded, size: 22),
             color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
             onPressed: () => Navigator.pop(context),
@@ -367,8 +369,9 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
                   borderRadius: BorderRadius.circular(8)),
             ),
             icon: const Icon(Icons.copy_all_rounded, size: 16),
-            label: const Text('Copy Statement',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            label: Text(PosLocalization.tr('Copy Statement'),
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
             onPressed: _copyStatementToClipboard,
           ),
         ],
@@ -529,7 +532,7 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
                   isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
           const SizedBox(height: 12),
           Text(
-            'No transactions recorded for this period',
+            PosLocalization.tr('No transactions recorded for this period'),
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -537,9 +540,10 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Inflows and outflows for this account will appear here.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          Text(
+            PosLocalization.tr(
+                'Inflows and outflows for this account will appear here.'),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
           ),
         ],
       ),
@@ -559,38 +563,38 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
               isDark ? const Color(0xFF131D31) : const Color(0xFFF1F5F9)),
           horizontalMargin: 20,
           columnSpacing: 16,
-          columns: const [
+          columns: [
             DataColumn(
-                label: Text('DATE & TIME',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+                label: Text(PosLocalization.tr('DATE & TIME'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11))),
             DataColumn(
-                label: Text('REF / VOUCHER #',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+                label: Text(PosLocalization.tr('REF / VOUCHER #'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11))),
             DataColumn(
-                label: Text('DESCRIPTION / PARTICULARS',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+                label: Text(PosLocalization.tr('DESCRIPTION / PARTICULARS'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11))),
             DataColumn(
-                label: Text('METHOD',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-            DataColumn(
-                numeric: true,
-                label: Text('DEBIT (INFLOW)',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+                label: Text(PosLocalization.tr('METHOD'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11))),
             DataColumn(
                 numeric: true,
-                label: Text('CREDIT (OUTFLOW)',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+                label: Text(PosLocalization.tr('DEBIT (INFLOW)'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11))),
             DataColumn(
                 numeric: true,
-                label: Text('BALANCE',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+                label: Text(PosLocalization.tr('CREDIT (OUTFLOW)'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11))),
+            DataColumn(
+                numeric: true,
+                label: Text(PosLocalization.tr('BALANCE'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 11))),
           ],
           rows: _entries.map((e) {
             final isDr = e.debit > 0;
@@ -687,8 +691,8 @@ class _AccountStatementDialogState extends State<AccountStatementDialog> {
                   borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close Passbook',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(PosLocalization.tr('Close Passbook'),
+                style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

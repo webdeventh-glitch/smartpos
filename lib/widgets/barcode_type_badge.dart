@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
+import '../services/localization_service.dart';
 
 /// Shared symbology helpers, visual mini-barcode icons, and dropdown builder
 /// for consistent barcode type selection across Add Product and Settings.
@@ -30,14 +31,14 @@ class BarcodeTypeBadge {
   static String subtitleFor(String type) {
     switch (normalize(type)) {
       case code39:
-        return 'Uppercase & Digits';
+        return PosLocalization.tr('Uppercase & Digits');
       case ean13:
-        return '13 Digits • Retail';
+        return PosLocalization.tr('13 Digits • Retail');
       case upcA:
-        return '12 Digits • Standard';
+        return PosLocalization.tr('12 Digits • Standard');
       case code128:
       default:
-        return 'Alphanumeric • Fast';
+        return PosLocalization.tr('Alphanumeric • Fast');
     }
   }
 

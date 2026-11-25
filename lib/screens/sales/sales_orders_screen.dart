@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
+import '../../services/localization_service.dart';
 
 /// Step 6.1: Sales Orders Management Screen (Ordered -> Partial -> Completed).
 class SalesOrdersScreen extends StatefulWidget {
@@ -115,13 +116,13 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
           final cur = widget.settings.currencySymbol;
 
           return AlertDialog(
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.assignment_add, color: Color(0xFF4F46E5)),
-                SizedBox(width: 8),
-                Text('Create New Sales Order',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Icon(Icons.assignment_add, color: Color(0xFF4F46E5)),
+                const SizedBox(width: 8),
+                Text(PosLocalization.tr('Create New Sales Order'),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
             content: SizedBox(
@@ -136,10 +137,10 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                         Expanded(
                           child: TextField(
                             controller: orderNoCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Order Number',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Order Number'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -149,10 +150,10 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           child: DropdownButtonFormField<Contact>(
                             initialValue: selectedCustomer,
                             isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Customer',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Customer'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                             items: customers
                                 .map((c) => DropdownMenuItem(
@@ -171,15 +172,16 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                     DropdownButtonFormField<CommissionAgent?>(
                       initialValue: selectedAgent,
                       isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Commission Agent (Optional)',
+                      decoration: InputDecoration(
+                        labelText:
+                            PosLocalization.tr('Commission Agent (Optional)'),
                         isDense: true,
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                       items: [
-                        const DropdownMenuItem<CommissionAgent?>(
+                        DropdownMenuItem<CommissionAgent?>(
                           value: null,
-                          child: Text('None'),
+                          child: Text(PosLocalization.tr('None')),
                         ),
                         ...agents.map((a) => DropdownMenuItem<CommissionAgent?>(
                               value: a,
@@ -197,10 +199,10 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           child: DropdownButtonFormField<Product>(
                             initialValue: pickerProduct,
                             isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Select Product',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Select Product'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                             items: products
                                 .map((p) => DropdownMenuItem(
@@ -227,10 +229,10 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                             controller: qtyCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Qty',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Qty'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -241,10 +243,10 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                             controller: priceCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Price',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Price'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -268,19 +270,20 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                                     errorMsg = null;
                                   });
                                 },
-                          child: const Text('Add'),
+                          child: Text(PosLocalization.tr('Add')),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     if (draftLines.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Center(
                           child: Text(
-                              'Add at least one item to create a sales order.',
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey)),
+                              PosLocalization.tr(
+                                  'Add at least one item to create a sales order.'),
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey)),
                         ),
                       )
                     else
@@ -321,10 +324,11 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                     const SizedBox(height: 10),
                     TextField(
                       controller: noteCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Order Note / Delivery Instructions',
+                      decoration: InputDecoration(
+                        labelText: PosLocalization.tr(
+                            'Order Note / Delivery Instructions'),
                         isDense: true,
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -353,7 +357,7 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
             actions: [
               TextButton(
                 onPressed: saving ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(PosLocalization.tr('Cancel')),
               ),
               ElevatedButton.icon(
                 icon: const Icon(Icons.check, size: 16),
@@ -427,9 +431,9 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
     final pendingItems = items.where((i) => i.remainingQuantity > 0).toList();
     if (pendingItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text('All items in this sales order are already invoiced.')),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'All items in this sales order are already invoiced.'))),
       );
       return;
     }
@@ -541,10 +545,11 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                                     keyboardType:
                                         const TextInputType.numberWithOptions(
                                             decimal: true),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Invoice Qty',
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          PosLocalization.tr('Invoice Qty'),
                                       isDense: true,
-                                      border: OutlineInputBorder(),
+                                      border: const OutlineInputBorder(),
                                     ),
                                     onChanged: (_) => setDlg(() {
                                       paidCtrl.text = computePlannedTotal()
@@ -564,21 +569,25 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             initialValue: paymentMethod,
-                            decoration: const InputDecoration(
-                              labelText: 'Payment Method',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Payment Method'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
-                            items: const [
+                            items: [
                               DropdownMenuItem(
-                                  value: 'cash', child: Text('Cash')),
+                                  value: 'cash',
+                                  child: Text(PosLocalization.tr('Cash'))),
                               DropdownMenuItem(
-                                  value: 'card', child: Text('Card')),
+                                  value: 'card',
+                                  child: Text(PosLocalization.tr('Card'))),
                               DropdownMenuItem(
                                   value: 'bank_transfer',
-                                  child: Text('Bank Transfer')),
+                                  child: Text(
+                                      PosLocalization.tr('Bank Transfer'))),
                               DropdownMenuItem(
-                                  value: 'cheque', child: Text('Cheque')),
+                                  value: 'cheque',
+                                  child: Text(PosLocalization.tr('Cheque'))),
                             ],
                             onChanged: (v) =>
                                 setDlg(() => paymentMethod = v ?? 'cash'),
@@ -607,10 +616,10 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           Expanded(
                             child: TextField(
                               controller: chequeNoCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Cheque No.',
+                              decoration: InputDecoration(
+                                labelText: PosLocalization.tr('Cheque No.'),
                                 isDense: true,
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
                               ),
                             ),
                           ),
@@ -618,10 +627,10 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           Expanded(
                             child: TextField(
                               controller: bankNameCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Bank Name',
+                              decoration: InputDecoration(
+                                labelText: PosLocalization.tr('Bank Name'),
                                 isDense: true,
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
                               ),
                             ),
                           ),
@@ -629,10 +638,11 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                           Expanded(
                             child: TextField(
                               controller: chequeDueCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Due Date (YYYY-MM-DD)',
+                              decoration: InputDecoration(
+                                labelText:
+                                    PosLocalization.tr('Due Date (YYYY-MM-DD)'),
                                 isDense: true,
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
                               ),
                             ),
                           ),
@@ -642,10 +652,10 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                     const SizedBox(height: 10),
                     TextField(
                       controller: noteCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Invoice Note',
+                      decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Invoice Note'),
                         isDense: true,
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ],
@@ -655,7 +665,7 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
             actions: [
               TextButton(
                 onPressed: converting ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(PosLocalization.tr('Cancel')),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -742,7 +752,7 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Sales Orders',
+                      Text(PosLocalization.tr('Sales Orders'),
                           style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -750,7 +760,8 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                                   ? Colors.white
                                   : const Color(0xFF0F172A))),
                       Text(
-                        'Manage advance customer orders (Ordered -> Partial -> Completed) & convert to final invoices',
+                        PosLocalization.tr(
+                            'Manage advance customer orders (Ordered -> Partial -> Completed) & convert to final invoices'),
                         style: TextStyle(
                             fontSize: 12,
                             color: isDark
@@ -769,7 +780,7 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                   ),
                   onPressed: _showCreateOrderDialog,
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('New Sales Order'),
+                  label: Text(PosLocalization.tr('New Sales Order')),
                 ),
               ],
             ),
@@ -811,11 +822,12 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                   width: 240,
                   child: TextField(
                     controller: _searchCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'Search order # or customer...',
-                      prefixIcon: Icon(Icons.search, size: 18),
+                    decoration: InputDecoration(
+                      hintText:
+                          PosLocalization.tr('Search order # or customer...'),
+                      prefixIcon: const Icon(Icons.search, size: 18),
                       isDense: true,
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (v) {
                       _search = v;
@@ -840,9 +852,12 @@ class _SalesOrdersScreenState extends State<SalesOrdersScreen> {
                       child: _loading
                           ? const Center(child: CircularProgressIndicator())
                           : _orders.isEmpty
-                              ? const Center(
-                                  child: Text('No sales orders found.',
-                                      style: TextStyle(color: Colors.grey)))
+                              ? Center(
+                                  child: Text(
+                                      PosLocalization.tr(
+                                          'No sales orders found.'),
+                                      style:
+                                          const TextStyle(color: Colors.grey)))
                               : ListView.separated(
                                   itemCount: _orders.length,
                                   separatorBuilder: (_, __) =>

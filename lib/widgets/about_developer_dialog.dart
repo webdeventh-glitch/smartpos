@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/business_settings.dart';
+import '../services/localization_service.dart';
 import '../services/qulop_service.dart';
 import 'system_logs_dialog.dart';
 
@@ -74,7 +75,9 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
       }
     } catch (_) {
       Clipboard.setData(ClipboardData(text: url));
-      _showToast('Link copied to clipboard: $url');
+      _showToast(PosLocalization.trParams(
+          'Link copied to clipboard: {url}', {'url': url},
+          settings: widget.settings));
     }
   }
 
@@ -110,7 +113,9 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
 
     Clipboard.setData(ClipboardData(text: diag.toString()));
     setState(() => _copied = true);
-    _showToast('Diagnostic details copied! You can paste them in WhatsApp.');
+    _showToast(PosLocalization.tr(
+        'Diagnostic details copied! You can paste them in WhatsApp.',
+        settings: widget.settings));
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) setState(() => _copied = false);
     });
@@ -192,7 +197,9 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'About Smart POS & Developer Support',
+                            PosLocalization.tr(
+                                'About Smart POS & Developer Support',
+                                settings: widget.settings),
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
@@ -202,7 +209,9 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Enterprise Multi-Industry Point of Sale & ERP Systems',
+                            PosLocalization.tr(
+                                'Enterprise Multi-Industry Point of Sale & ERP Systems',
+                                settings: widget.settings),
                             style: TextStyle(
                               fontSize: 12,
                               color: textSecondary,
@@ -213,7 +222,8 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.close_rounded, size: 20),
-                      tooltip: 'Close',
+                      tooltip: PosLocalization.tr('Close',
+                          settings: widget.settings),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -258,9 +268,10 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                                     color: Colors.white.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Text(
-                                    'OFFICIAL VENDOR',
-                                    style: TextStyle(
+                                  child: Text(
+                                    PosLocalization.tr('OFFICIAL VENDOR',
+                                        settings: widget.settings),
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 10,
@@ -290,9 +301,13 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'Lead Engineer: $developerName',
-                              style: TextStyle(
+                            Text(
+                              PosLocalization.trParams(
+                                'Lead Engineer: {name}',
+                                {'name': developerName},
+                                settings: widget.settings,
+                              ),
+                              style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
@@ -305,7 +320,8 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
 
                       // Direct Contact & Connect Channels
                       Text(
-                        'Direct Contact & Customer Support',
+                        PosLocalization.tr('Direct Contact & Customer Support',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -324,9 +340,11 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                               iconColor: const Color(0xFF25D366),
                               bgColor: const Color(0xFF25D366)
                                   .withValues(alpha: 0.1),
-                              title: 'WhatsApp Only',
+                              title: PosLocalization.tr('WhatsApp Only',
+                                  settings: widget.settings),
                               subtitle: whatsappOnlyDisplay,
-                              actionLabel: 'Chat Now',
+                              actionLabel: PosLocalization.tr('Chat Now',
+                                  settings: widget.settings),
                               onTap: _openWhatsApp,
                               isDark: isDark,
                               borderColor: borderColor,
@@ -341,9 +359,11 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                               iconColor: const Color(0xFF0284C7),
                               bgColor: const Color(0xFF0284C7)
                                   .withValues(alpha: 0.1),
-                              title: 'Official Website',
+                              title: PosLocalization.tr('Official Website',
+                                  settings: widget.settings),
                               subtitle: websiteUrl.replaceAll('https://', ''),
-                              actionLabel: 'Visit Site',
+                              actionLabel: PosLocalization.tr('Visit Site',
+                                  settings: widget.settings),
                               onTap: () => _openUrl(websiteUrl),
                               isDark: isDark,
                               borderColor: borderColor,
@@ -362,14 +382,18 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                               iconColor: const Color(0xFF4F46E5),
                               bgColor: const Color(0xFF4F46E5)
                                   .withValues(alpha: 0.1),
-                              title: 'Phone / WhatsApp',
+                              title: PosLocalization.tr('Phone / WhatsApp',
+                                  settings: widget.settings),
                               subtitle: phoneDisplay,
-                              actionLabel: 'Copy Phone',
+                              actionLabel: PosLocalization.tr('Copy Phone',
+                                  settings: widget.settings),
                               onTap: () {
                                 Clipboard.setData(
                                     const ClipboardData(text: phoneDisplay));
-                                _showToast(
-                                    'Phone number copied: $phoneDisplay');
+                                _showToast(PosLocalization.trParams(
+                                    'Phone number copied: {phone}',
+                                    {'phone': phoneDisplay},
+                                    settings: widget.settings));
                               },
                               isDark: isDark,
                               borderColor: borderColor,
@@ -384,9 +408,11 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                               iconColor: const Color(0xFFD97706),
                               bgColor: const Color(0xFFD97706)
                                   .withValues(alpha: 0.1),
-                              title: 'Official Email',
+                              title: PosLocalization.tr('Official Email',
+                                  settings: widget.settings),
                               subtitle: emailAddress,
-                              actionLabel: 'Send Email',
+                              actionLabel: PosLocalization.tr('Send Email',
+                                  settings: widget.settings),
                               onTap: _openEmail,
                               isDark: isDark,
                               borderColor: borderColor,
@@ -418,7 +444,9 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                                         size: 16, color: Color(0xFF4F46E5)),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Client Machine Hardware ID:',
+                                      PosLocalization.tr(
+                                          'Client Machine Hardware ID:',
+                                          settings: widget.settings),
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
@@ -435,9 +463,10 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                                         .withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: const Text(
-                                    'ACTIVE LICENSE',
-                                    style: TextStyle(
+                                  child: Text(
+                                    PosLocalization.tr('ACTIVE LICENSE',
+                                        settings: widget.settings),
+                                    style: const TextStyle(
                                       color: Color(0xFF10B981),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 10,
@@ -474,9 +503,10 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                                     size: 15,
                                     color: Color(0xFFEF4444),
                                   ),
-                                  label: const Text(
-                                    'View Error Logs (ایرر لاگز)',
-                                    style: TextStyle(
+                                  label: Text(
+                                    PosLocalization.tr('View Error Logs',
+                                        settings: widget.settings),
+                                    style: const TextStyle(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFFEF4444),
@@ -506,8 +536,12 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                                   ),
                                   label: Text(
                                     _copied
-                                        ? 'Copied Diagnostic Info'
-                                        : 'Copy Diagnostic Info for Support',
+                                        ? PosLocalization.tr(
+                                            'Copied Diagnostic Info',
+                                            settings: widget.settings)
+                                        : PosLocalization.tr(
+                                            'Copy Diagnostic Info for Support',
+                                            settings: widget.settings),
                                     style: TextStyle(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.bold,
@@ -527,7 +561,9 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
 
                       // Supported Industries Banner
                       Text(
-                        'Specialized Pakistan Industry Engines',
+                        PosLocalization.tr(
+                            'Specialized Pakistan Industry Engines',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -539,13 +575,20 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          _industryBadge('☀️ Solar & Inverter Agencies'),
-                          _industryBadge('💊 Medicine & Pharmacy Distribution'),
-                          _industryBadge('🛒 Supermarkets & FMCG Groceries'),
-                          _industryBadge('🍽️ Restaurant KDS & Dining Tables'),
-                          _industryBadge('📱 Mobile & Laptop Repairs'),
-                          _industryBadge('🏗️ Manufacturing BOM & Production'),
-                          _industryBadge('🇵🇰 FBR & ZATCA Fiscal E-Invoicing'),
+                          _industryBadge(
+                              '☀️ ${PosLocalization.tr('Solar & Inverter Agencies', settings: widget.settings)}'),
+                          _industryBadge(
+                              '💊 ${PosLocalization.tr('Medicine & Pharmacy Distribution', settings: widget.settings)}'),
+                          _industryBadge(
+                              '🛒 ${PosLocalization.tr('Supermarkets & FMCG Groceries', settings: widget.settings)}'),
+                          _industryBadge(
+                              '🍽️ ${PosLocalization.tr('Restaurant KDS & Dining Tables', settings: widget.settings)}'),
+                          _industryBadge(
+                              '📱 ${PosLocalization.tr('Mobile & Laptop Repairs', settings: widget.settings)}'),
+                          _industryBadge(
+                              '🏗️ ${PosLocalization.tr('Manufacturing BOM & Production', settings: widget.settings)}'),
+                          _industryBadge(
+                              '🇵🇰 ${PosLocalization.tr('FBR & ZATCA Fiscal E-Invoicing', settings: widget.settings)}'),
                         ],
                       ),
                     ],
@@ -569,7 +612,9 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '© 2026 Webdeventh. All Rights Reserved.',
+                      PosLocalization.tr(
+                          '© 2026 Webdeventh. All Rights Reserved.',
+                          settings: widget.settings),
                       style: TextStyle(fontSize: 11.5, color: textSecondary),
                     ),
                     ElevatedButton(
@@ -582,7 +627,8 @@ class _AboutDeveloperDialogState extends State<AboutDeveloperDialog> {
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Close'),
+                      child: Text(PosLocalization.tr('Close',
+                          settings: widget.settings)),
                     ),
                   ],
                 ),

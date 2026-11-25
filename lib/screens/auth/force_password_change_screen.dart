@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/auth_service.dart';
+import '../../services/localization_service.dart';
 
 /// Mandatory password rotation gate shown on first login when `mustChangePassword` is true.
 class ForcePasswordChangeScreen extends StatefulWidget {
@@ -54,7 +55,9 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
     if (!res.success) {
       setState(() {
         _submitting = false;
-        _errorMessage = res.errorMessage ?? 'Could not update password.';
+        _errorMessage = res.errorMessage ??
+            PosLocalization.tr('Could not update password.',
+                settings: widget.settings);
       });
     }
   }
@@ -114,7 +117,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Password Update Required',
+                              PosLocalization.tr('Password Update Required',
+                                  settings: widget.settings),
                               style: TextStyle(
                                 fontSize: 19,
                                 fontWeight: FontWeight.w900,
@@ -124,7 +128,14 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                               ),
                             ),
                             Text(
-                              'Signed in as @${widget.user.username} (${widget.user.name})',
+                              PosLocalization.trParams(
+                                'Signed in as @{username} ({name})',
+                                {
+                                  'username': widget.user.username,
+                                  'name': widget.user.name,
+                                },
+                                settings: widget.settings,
+                              ),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isDark
@@ -145,9 +156,11 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: const Color(0xFFFDE68A)),
                     ),
-                    child: const Text(
-                      'For security, you must replace your temporary or migrated password before accessing the POS terminal.',
-                      style: TextStyle(
+                    child: Text(
+                      PosLocalization.tr(
+                          'For security, you must replace your temporary or migrated password before accessing the POS terminal.',
+                          settings: widget.settings),
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF92400E),
                         fontWeight: FontWeight.w600,
@@ -179,7 +192,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                     obscureText: _obscureCurrent,
                     enabled: !_submitting,
                     decoration: InputDecoration(
-                      labelText: 'Current Password',
+                      labelText: PosLocalization.tr('Current Password',
+                          settings: widget.settings),
                       prefixIcon:
                           const Icon(Icons.lock_outline_rounded, size: 18),
                       suffixIcon: IconButton(
@@ -196,7 +210,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                       isDense: true,
                     ),
                     validator: (v) => v == null || v.isEmpty
-                        ? 'Enter your current password'
+                        ? PosLocalization.tr('Enter your current password',
+                            settings: widget.settings)
                         : null,
                   ),
                   const SizedBox(height: 14),
@@ -205,8 +220,9 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                     obscureText: _obscureNew,
                     enabled: !_submitting,
                     decoration: InputDecoration(
-                      labelText:
+                      labelText: PosLocalization.tr(
                           'New Password (min 8 chars, letters + numbers)',
+                          settings: widget.settings),
                       prefixIcon: const Icon(Icons.vpn_key_outlined, size: 18),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -232,7 +248,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                     obscureText: _obscureConfirm,
                     enabled: !_submitting,
                     decoration: InputDecoration(
-                      labelText: 'Confirm New Password',
+                      labelText: PosLocalization.tr('Confirm New Password',
+                          settings: widget.settings),
                       prefixIcon: const Icon(Icons.check_circle_outline_rounded,
                           size: 18),
                       suffixIcon: IconButton(
@@ -250,10 +267,12 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                     ),
                     validator: (v) {
                       if (v == null || v.isEmpty) {
-                        return 'Please confirm new password';
+                        return PosLocalization.tr('Please confirm new password',
+                            settings: widget.settings);
                       }
                       if (v.trim() != _newCtrl.text.trim()) {
-                        return 'Passwords do not match';
+                        return PosLocalization.tr('Passwords do not match',
+                            settings: widget.settings);
                       }
                       return null;
                     },
@@ -266,7 +285,8 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                         onPressed:
                             _submitting ? null : () => AuthService.logout(),
                         icon: const Icon(Icons.logout_rounded, size: 16),
-                        label: const Text('Sign Out'),
+                        label: Text(PosLocalization.tr('Sign Out',
+                            settings: widget.settings)),
                       ),
                       const Spacer(),
                       ElevatedButton.icon(
@@ -292,9 +312,10 @@ class _ForcePasswordChangeScreenState extends State<ForcePasswordChangeScreen> {
                                 ),
                               )
                             : const Icon(Icons.security_rounded, size: 18),
-                        label: const Text(
-                          'Update Password & Continue',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        label: Text(
+                          PosLocalization.tr('Update Password & Continue',
+                              settings: widget.settings),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],

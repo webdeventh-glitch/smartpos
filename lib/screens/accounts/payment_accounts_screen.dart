@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import 'account_statement_dialog.dart';
+import '../../services/localization_service.dart';
 
 class PaymentAccountsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -120,19 +121,20 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                             color: Color(0xFF4F46E5), size: 22),
                       ),
                       const SizedBox(width: 14),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Add Payment Account',
-                                style: TextStyle(
+                            Text(PosLocalization.tr('Add Payment Account'),
+                                style: const TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF0F172A))),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
-                                'Register a bank account, cash drawer or merchant terminal',
-                                style: TextStyle(
+                                PosLocalization.tr(
+                                    'Register a bank account, cash drawer or merchant terminal'),
+                                style: const TextStyle(
                                     fontSize: 12, color: Color(0xFF64748B))),
                           ],
                         ),
@@ -158,7 +160,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                         style: const TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w600),
                         decoration: InputDecoration(
-                          hintText: 'e.g. Meezan Main Operating, Cash Drawer',
+                          hintText: PosLocalization.tr(
+                              'e.g. Meezan Main Operating, Cash Drawer'),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
@@ -180,7 +183,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                         controller: numCtrl,
                         style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
-                          hintText: 'e.g. PK36MEZN000123456789',
+                          hintText:
+                              PosLocalization.tr('e.g. PK36MEZN000123456789'),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
@@ -215,19 +219,23 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                               borderSide:
                                   const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
-                        items: const [
+                        items: [
                           DropdownMenuItem(
                               value: 'cash',
-                              child: Text('Cash Drawer / Register',
-                                  style: TextStyle(fontSize: 13))),
+                              child: Text(
+                                  PosLocalization.tr('Cash Drawer / Register'),
+                                  style: const TextStyle(fontSize: 13))),
                           DropdownMenuItem(
                               value: 'bank',
-                              child: Text('Bank Operating Account',
-                                  style: TextStyle(fontSize: 13))),
+                              child: Text(
+                                  PosLocalization.tr('Bank Operating Account'),
+                                  style: const TextStyle(fontSize: 13))),
                           DropdownMenuItem(
                               value: 'pos_terminal',
-                              child: Text('POS Merchant Terminal / Gateway',
-                                  style: TextStyle(fontSize: 13))),
+                              child: Text(
+                                  PosLocalization.tr(
+                                      'POS Merchant Terminal / Gateway'),
+                                  style: const TextStyle(fontSize: 13))),
                         ],
                         onChanged: (val) =>
                             setDlgState(() => type = val ?? type),
@@ -264,7 +272,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                         controller: noteCtrl,
                         style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
-                          hintText: 'Additional account details...',
+                          hintText: PosLocalization.tr(
+                              'Additional account details...'),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
@@ -307,8 +316,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel',
-                            style: TextStyle(
+                        child: Text(PosLocalization.tr('Cancel'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 13)),
                       ),
                       const SizedBox(width: 10),
@@ -323,8 +332,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.check_rounded, size: 18),
-                        label: const Text('Save Account',
-                            style: TextStyle(
+                        label: Text(PosLocalization.tr('Save Account'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           final name = nameCtrl.text.trim();
@@ -370,9 +379,9 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
       {PaymentAccount? initialFromAccount}) async {
     if (_accounts.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'At least 2 payment accounts are required to transfer funds.')),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'At least 2 payment accounts are required to transfer funds.'))),
       );
       return;
     }
@@ -430,19 +439,22 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                             color: Color(0xFF059669), size: 22),
                       ),
                       const SizedBox(width: 14),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Transfer Funds Between Accounts',
-                                style: TextStyle(
+                            Text(
+                                PosLocalization.tr(
+                                    'Transfer Funds Between Accounts'),
+                                style: const TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF0F172A))),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
-                                'Double-entry bookkeeping between drawers and banks',
-                                style: TextStyle(
+                                PosLocalization.tr(
+                                    'Double-entry bookkeeping between drawers and banks'),
+                                style: const TextStyle(
                                     fontSize: 12, color: Color(0xFF64748B))),
                           ],
                         ),
@@ -553,8 +565,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                         controller: noteCtrl,
                         style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
-                          hintText:
-                              'e.g. Daily cash register deposit to bank...',
+                          hintText: PosLocalization.tr(
+                              'e.g. Daily cash register deposit to bank...'),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
@@ -597,8 +609,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel',
-                            style: TextStyle(
+                        child: Text(PosLocalization.tr('Cancel'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 13)),
                       ),
                       const SizedBox(width: 10),
@@ -613,15 +625,15 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.sync_alt_rounded, size: 18),
-                        label: const Text('Transfer Funds',
-                            style: TextStyle(
+                        label: Text(PosLocalization.tr('Transfer Funds'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           if (fromAcc.id == toAcc.id) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Source and destination accounts cannot be the same!'),
+                              SnackBar(
+                                  content: Text(PosLocalization.tr(
+                                      'Source and destination accounts cannot be the same!')),
                                   backgroundColor: Colors.red),
                             );
                             return;
@@ -785,17 +797,22 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                               borderSide:
                                   const BorderSide(color: Color(0xFFE2E8F0))),
                         ),
-                        items: const [
-                          DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                        items: [
+                          DropdownMenuItem(
+                              value: 'cash',
+                              child: Text(PosLocalization.tr('Cash'))),
                           DropdownMenuItem(
                               value: 'bank_transfer',
-                              child: Text('Bank Transfer / Cheque')),
+                              child: Text(PosLocalization.tr(
+                                  'Bank Transfer / Cheque'))),
                           DropdownMenuItem(
                               value: 'card',
-                              child: Text('Card / Online Terminal')),
+                              child: Text(PosLocalization.tr(
+                                  'Card / Online Terminal'))),
                           DropdownMenuItem(
                               value: 'other',
-                              child: Text('Owner Capital / Other')),
+                              child: Text(
+                                  PosLocalization.tr('Owner Capital / Other'))),
                         ],
                         onChanged: (val) =>
                             setDlgState(() => paymentMethod = val ?? 'cash'),
@@ -806,8 +823,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                         controller: noteCtrl,
                         style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
-                          hintText:
-                              'e.g. Cash top-up, Director loan, Bank profit...',
+                          hintText: PosLocalization.tr(
+                              'e.g. Cash top-up, Director loan, Bank profit...'),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
@@ -846,8 +863,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel',
-                            style: TextStyle(
+                        child: Text(PosLocalization.tr('Cancel'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 13)),
                       ),
                       const SizedBox(width: 10),
@@ -862,8 +879,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.check_rounded, size: 18),
-                        label: const Text('Deposit Funds',
-                            style: TextStyle(
+                        label: Text(PosLocalization.tr('Deposit Funds'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 13)),
                         onPressed: () async {
                           final amt =
@@ -905,7 +922,7 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reverse & Delete Fund Transfer?'),
+        title: Text(PosLocalization.tr('Reverse & Delete Fund Transfer?')),
         content: Text(
           'Are you sure you want to reverse transfer ${t.refNo}?\n\n'
           'This will restore $currency${t.amount.toStringAsFixed(2)} back to "${t.fromAccountName}" and '
@@ -914,13 +931,13 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(PosLocalization.tr('Cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFEF4444),
                 foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reverse Transfer'),
+            child: Text(PosLocalization.tr('Reverse Transfer')),
           ),
         ],
       ),
@@ -970,19 +987,20 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Payment Accounts & Banking',
-                        style: TextStyle(
+                    Text(PosLocalization.tr('Payment Accounts & Banking'),
+                        style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF0F172A))),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                        'Manage cash drawers, bank accounts, POS merchant terminals, and double-entry transfers.',
-                        style:
-                            TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                        PosLocalization.tr(
+                            'Manage cash drawers, bank accounts, POS merchant terminals, and double-entry transfers.'),
+                        style: const TextStyle(
+                            fontSize: 13, color: Color(0xFF64748B))),
                   ],
                 ),
                 Row(
@@ -997,8 +1015,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.add_rounded, size: 18),
-                      label: const Text('Add Account',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(PosLocalization.tr('Add Account'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _showAddAccountDialog,
                     ),
                     const SizedBox(width: 10),
@@ -1012,8 +1030,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.sync_alt_rounded, size: 18),
-                      label: const Text('Transfer Funds',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(PosLocalization.tr('Transfer Funds'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _showTransferFundsDialog,
                     ),
                   ],
@@ -1069,48 +1087,57 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: _accounts.isEmpty
-                              ? const Center(
-                                  child: Text(
-                                      'No payment accounts configured yet.'))
+                              ? Center(
+                                  child: Text(PosLocalization.tr(
+                                      'No payment accounts configured yet.')))
                               : SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: DataTable(
                                     headingRowColor: WidgetStateProperty.all(
                                         const Color(0xFFF8FAFC)),
-                                    columns: const [
+                                    columns: [
                                       DataColumn(
-                                          label: Text('ACCOUNT NAME',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'ACCOUNT NAME'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
-                                      DataColumn(
+                                      const DataColumn(
                                           label: Text('TYPE',
                                               style: TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('ACCOUNT / IBAN',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'ACCOUNT / IBAN'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('OPENING BALANCE',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'OPENING BALANCE'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('CURRENT BALANCE',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'CURRENT BALANCE'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
-                                      DataColumn(
+                                      const DataColumn(
                                           label: Text('NOTE',
                                               style: TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('ACTIONS',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('ACTIONS'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                     ],
@@ -1192,8 +1219,10 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                                                     Icons
                                                         .arrow_downward_rounded,
                                                     size: 14),
-                                                label: const Text('Deposit',
-                                                    style: TextStyle(
+                                                label: Text(
+                                                    PosLocalization.tr(
+                                                        'Deposit'),
+                                                    style: const TextStyle(
                                                         fontSize: 11,
                                                         fontWeight:
                                                             FontWeight.bold)),
@@ -1220,8 +1249,10 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                                                 icon: const Icon(
                                                     Icons.sync_alt_rounded,
                                                     size: 14),
-                                                label: const Text('Transfer',
-                                                    style: TextStyle(
+                                                label: Text(
+                                                    PosLocalization.tr(
+                                                        'Transfer'),
+                                                    style: const TextStyle(
                                                         fontSize: 11,
                                                         fontWeight:
                                                             FontWeight.bold)),
@@ -1249,8 +1280,10 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                                                 icon: const Icon(
                                                     Icons.receipt_long_rounded,
                                                     size: 14),
-                                                label: const Text('Statement',
-                                                    style: TextStyle(
+                                                label: Text(
+                                                    PosLocalization.tr(
+                                                        'Statement'),
+                                                    style: const TextStyle(
                                                         fontSize: 11,
                                                         fontWeight:
                                                             FontWeight.bold)),
@@ -1274,48 +1307,55 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: _transfers.isEmpty
-                              ? const Center(
-                                  child:
-                                      Text('No fund transfers recorded yet.'))
+                              ? Center(
+                                  child: Text(PosLocalization.tr(
+                                      'No fund transfers recorded yet.')))
                               : SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: DataTable(
                                     headingRowColor: WidgetStateProperty.all(
                                         const Color(0xFFF8FAFC)),
-                                    columns: const [
-                                      DataColumn(
+                                    columns: [
+                                      const DataColumn(
                                           label: Text('DATE',
                                               style: TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('REF NO',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('REF NO'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('FROM ACCOUNT',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'FROM ACCOUNT'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('TO ACCOUNT',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('TO ACCOUNT'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('AMOUNT TRANSFERRED',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'AMOUNT TRANSFERRED'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
-                                      DataColumn(
+                                      const DataColumn(
                                           label: Text('NOTE',
                                               style: TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('ACTIONS',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('ACTIONS'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                     ],
@@ -1349,8 +1389,8 @@ class _PaymentAccountsScreenState extends State<PaymentAccountsScreen>
                                                 Icons.delete_outline_rounded,
                                                 size: 18,
                                                 color: Color(0xFFEF4444)),
-                                            tooltip:
-                                                'Reverse & Delete Transfer',
+                                            tooltip: PosLocalization.tr(
+                                                'Reverse & Delete Transfer'),
                                             onPressed: () => _deleteTransfer(t),
                                           ),
                                         ),

@@ -616,9 +616,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          widget.settings.enableSecondaryLanguage
-                              ? 'اضافی سٹاک درج کریں۔ یہ خود بخود انوینٹری اور خریداری کے کھاتے میں اپ ڈیٹ ہو جائے گا۔'
-                              : 'Enter incoming stock quantity. This will update inventory and purchase accounts automatically.',
+                          PosLocalization.tr(
+                            'Enter incoming stock quantity. This will update inventory and purchase accounts automatically.',
+                            settings: widget.settings,
+                          ),
                           style: const TextStyle(
                               fontSize: 11,
                               color: Color(0xFF065F46),
@@ -783,9 +784,17 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                widget.settings.enableSecondaryLanguage
-                                    ? 'کامیابی: ${product.name} میں $qty ${product.unit} نیا سٹاک شامل کر دیا گیا! (نیا ٹوٹل: ${(product.stockQuantity + qty).toStringAsFixed(1)})'
-                                    : 'Success: Added $qty ${product.unit} to ${product.name}! (New total: ${(product.stockQuantity + qty).toStringAsFixed(1)})',
+                                PosLocalization.trParams(
+                                  'Success: Added {qty} {unit} to {name}! (New total: {total})',
+                                  {
+                                    'qty': '$qty',
+                                    'unit': product.unit,
+                                    'name': product.name,
+                                    'total': (product.stockQuantity + qty)
+                                        .toStringAsFixed(1),
+                                  },
+                                  settings: widget.settings,
+                                ),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold),
                               ),
@@ -865,7 +874,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     showDialog(
       context: context,
       builder: (_) => UniversalPrintPreviewDialog(
-        title: 'Stock Reorder & Demand Sheet (ری آرڈر ڈیمانڈ شیٹ)',
+        title: PosLocalization.tr('Stock Reorder & Demand Sheet',
+            settings: widget.settings),
         htmlContent: html,
         defaultPaperSize: 'a4',
         settings: widget.settings,
@@ -941,9 +951,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'اکاؤنٹنگ قوانین کے مطابق جس پروڈکٹ کی سیل یا پرچیز ہو چکی ہو اسے ڈیلیٹ نہیں کیا جا سکتا، ورنہ پرانی انوائسز اور نفع و نقصان کی رپورٹس خراب ہو جائیں گی۔\n\nاگر آپ مزید فروخت نہیں کرنا چاہتے تو اس کا اسٹاک 0 کر دیں یا نام میں (Inactive) لکھ دیں۔',
-                style: TextStyle(
+              Text(
+                PosLocalization.tr(
+                  'Per accounting rules, products with existing sales or purchases cannot be deleted as it would corrupt past invoices and profit/loss reports. Set stock to 0 or mark as (Inactive) instead.',
+                  settings: widget.settings,
+                ),
+                style: const TextStyle(
                   fontSize: 12,
                   color: Color(0xFF475569),
                   height: 1.4,
@@ -960,7 +973,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                     borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('OK (سمجھ گیا)'),
+              child: Text(PosLocalization.tr('OK', settings: widget.settings)),
             ),
           ],
         ),

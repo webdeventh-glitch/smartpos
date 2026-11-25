@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import 'receipt_dialog.dart';
 import '../returns/sales_return_dialog.dart';
+import '../../services/localization_service.dart';
 
 class RecentTransactionsDialog extends StatefulWidget {
   final BusinessSettings settings;
@@ -77,8 +78,9 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
 
     if (fullSale == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Could not load sale details for printing.'),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'Could not load sale details for printing.')),
             backgroundColor: Colors.red),
       );
       return;
@@ -111,8 +113,9 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
 
     if (fullSale == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Could not load sale items for return processing.'),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'Could not load sale items for return processing.')),
             backgroundColor: Colors.red),
       );
       return;
@@ -126,8 +129,9 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
         onReturnSuccess: () {
           _loadRecentSales();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Return processed successfully!'),
+            SnackBar(
+                content:
+                    Text(PosLocalization.tr('Return processed successfully!')),
                 backgroundColor: Colors.green),
           );
         },
@@ -168,7 +172,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Transfer Invoice to Customer Ledger',
+                      PosLocalization.tr('Transfer Invoice to Customer Ledger'),
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -194,7 +198,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Select Target Customer Account:',
+                      PosLocalization.tr('Select Target Customer Account:'),
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -226,7 +230,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                           autofocus: true,
                           style: TextStyle(color: textCol, fontSize: 13),
                           decoration: InputDecoration(
-                            hintText: 'Type customer name or phone...',
+                            hintText: PosLocalization.tr(
+                                'Type customer name or phone...'),
                             prefixIcon:
                                 const Icon(Icons.person_search, size: 20),
                             border: OutlineInputBorder(
@@ -273,7 +278,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogCtx, false),
-                  child: const Text('Cancel'),
+                  child: Text(PosLocalization.tr('Cancel')),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -283,7 +288,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                   onPressed: selectedContact == null
                       ? null
                       : () => Navigator.pop(dialogCtx, true),
-                  child: const Text('Confirm Transfer'),
+                  child: Text(PosLocalization.tr('Confirm Transfer')),
                 ),
               ],
             );
@@ -373,7 +378,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Recent POS Transactions',
+                            PosLocalization.tr('Recent POS Transactions'),
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
@@ -383,7 +388,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Review recent customer sales, reprint 80mm/58mm/A4 invoices, or initiate returns.',
+                            PosLocalization.tr(
+                                'Review recent customer sales, reprint 80mm/58mm/A4 invoices, or initiate returns.'),
                             style:
                                 TextStyle(fontSize: 12, color: textSecondary),
                           ),
@@ -392,13 +398,13 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.refresh_rounded, size: 20),
-                      tooltip: 'Reload Transactions',
+                      tooltip: PosLocalization.tr('Reload Transactions'),
                       onPressed: _loadRecentSales,
                     ),
                     const SizedBox(width: 8),
                     IconButton(
                       icon: const Icon(Icons.close_rounded, size: 20),
-                      tooltip: 'Close (ESC)',
+                      tooltip: PosLocalization.tr('Close (ESC)'),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -454,8 +460,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                         onChanged: (val) => _applyFilter(),
                         style: TextStyle(fontSize: 13, color: textPrimary),
                         decoration: InputDecoration(
-                          hintText:
-                              'Search by Invoice No (e.g. INV-1001) or Customer Name...',
+                          hintText: PosLocalization.tr(
+                              'Search by Invoice No (e.g. INV-1001) or Customer Name...'),
                           hintStyle:
                               TextStyle(fontSize: 13, color: textSecondary),
                           prefixIcon: const Icon(Icons.search, size: 18),
@@ -509,7 +515,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                         textSecondary.withValues(alpha: 0.5)),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'No transactions found',
+                                  PosLocalization.tr('No transactions found'),
                                   style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
@@ -517,7 +523,8 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Completed sales made in the POS terminal will appear here.',
+                                  PosLocalization.tr(
+                                      'Completed sales made in the POS terminal will appear here.'),
                                   style: TextStyle(
                                       fontSize: 12, color: textSecondary),
                                 ),
@@ -577,11 +584,12 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                                               sale.invoiceNo));
                                                   ScaffoldMessenger.of(context)
                                                       .showSnackBar(
-                                                    const SnackBar(
+                                                    SnackBar(
                                                       content: Text(
-                                                          'Invoice copied to clipboard'),
-                                                      duration:
-                                                          Duration(seconds: 1),
+                                                          PosLocalization.tr(
+                                                              'Invoice copied to clipboard')),
+                                                      duration: const Duration(
+                                                          seconds: 1),
                                                     ),
                                                   );
                                                 },
@@ -650,9 +658,10 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                                     color: Color(0xFFEF4444),
                                                   ),
                                                 )
-                                              : const Text(
-                                                  'Fully Paid',
-                                                  style: TextStyle(
+                                              : Text(
+                                                  PosLocalization.tr(
+                                                      'Fully Paid'),
+                                                  style: const TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.bold,
                                                     color: Color(0xFF10B981),
@@ -740,9 +749,9 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                                 Icons.print_outlined,
                                                 size: 15,
                                                 color: Color(0xFF4F46E5)),
-                                            label: const Text(
-                                              'Reprint',
-                                              style: TextStyle(
+                                            label: Text(
+                                              PosLocalization.tr('Reprint'),
+                                              style: const TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.bold,
                                                   color: Color(0xFF4F46E5)),
@@ -770,9 +779,9 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                                 Icons.keyboard_return_rounded,
                                                 size: 15,
                                                 color: Color(0xFFD97706)),
-                                            label: const Text(
-                                              'Refund',
-                                              style: TextStyle(
+                                            label: Text(
+                                              PosLocalization.tr('Refund'),
+                                              style: const TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.bold,
                                                   color: Color(0xFFD97706)),
@@ -801,9 +810,9 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                                                     .account_balance_wallet_outlined,
                                                 size: 15,
                                                 color: Color(0xFF0D9488)),
-                                            label: const Text(
-                                              'To Ledger',
-                                              style: TextStyle(
+                                            label: Text(
+                                              PosLocalization.tr('To Ledger'),
+                                              style: const TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.bold,
                                                   color: Color(0xFF0D9488)),
@@ -843,7 +852,7 @@ class _RecentTransactionsDialogState extends State<RecentTransactionsDialog> {
                     Row(
                       children: [
                         Text(
-                          'Total Filtered Volume: ',
+                          PosLocalization.tr('Total Filtered Volume: '),
                           style: TextStyle(fontSize: 12, color: textSecondary),
                         ),
                         Text(

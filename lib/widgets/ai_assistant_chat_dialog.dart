@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/ai_assistant_service.dart';
+import '../services/localization_service.dart';
 
 class AiAssistantChatDialog extends StatefulWidget {
   final BusinessSettings settings;
@@ -14,11 +15,13 @@ class AiAssistantChatDialog extends StatefulWidget {
 class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
   final TextEditingController _msgCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
-  final List<Map<String, String>> _messages = [
+  late final List<Map<String, String>> _messages = [
     {
       'role': 'ai',
-      'text':
-          'Assalam-o-Alaikum! Main Smart POS ka AI Business Assistant hoon. Main aapki store sales, inventory guidance, aur software chalane me mukammal madad kar sakta hoon. Aaj main aapki kya madad karun?',
+      'text': PosLocalization.tr(
+        'Assalam-o-Alaikum! Main Smart POS ka AI Business Assistant hoon. Main aapki store sales, inventory guidance, aur software chalane me mukammal madad kar sakta hoon. Aaj main aapki kya madad karun?',
+        settings: widget.settings,
+      ),
     }
   ];
   bool _isTyping = false;
@@ -60,8 +63,11 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
         setState(() {
           _messages.add({
             'role': 'ai',
-            'text':
-                'Maazrat, AI response generate karne me masla pesh aaya: ${e.toString()}',
+            'text': PosLocalization.trParams(
+              'Maazrat, AI response generate karne me masla pesh aaya: {error}',
+              {'error': e.toString()},
+              settings: widget.settings,
+            ),
           });
           _isTyping = false;
         });
@@ -117,20 +123,24 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                         color: Colors.white, size: 22),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Smart POS AI Business Advisor',
-                          style: TextStyle(
+                          PosLocalization.tr('Smart POS AI Business Advisor',
+                              settings: widget.settings),
+                          style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 16),
                         ),
                         Text(
-                          'Powered by Google Gemini / OpenAI • Roman Urdu & English',
-                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                          PosLocalization.tr(
+                              'Powered by Google Gemini / OpenAI • Roman Urdu & English',
+                              settings: widget.settings),
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 11),
                         ),
                       ],
                     ),
@@ -153,24 +163,30 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                   children: [
                     ActionChip(
                       avatar: const Icon(Icons.keyboard_outlined, size: 14),
-                      label: const Text('Shortcut keys kya hain?',
-                          style: TextStyle(fontSize: 11)),
+                      label: Text(
+                          PosLocalization.tr('Shortcut keys kya hain?',
+                              settings: widget.settings),
+                          style: const TextStyle(fontSize: 11)),
                       onPressed: () => _sendMessage(
                           'Smart POS me keyboard shortcut keys kya hain?'),
                     ),
                     const SizedBox(width: 8),
                     ActionChip(
                       avatar: const Icon(Icons.trending_up_rounded, size: 14),
-                      label: const Text('Sales barhane ka mashwara',
-                          style: TextStyle(fontSize: 11)),
+                      label: Text(
+                          PosLocalization.tr('Sales barhane ka mashwara',
+                              settings: widget.settings),
+                          style: const TextStyle(fontSize: 11)),
                       onPressed: () => _sendMessage(
                           'Retail store ki sales aur profit margin barhane ke liye koi 3 tips dein.'),
                     ),
                     const SizedBox(width: 8),
                     ActionChip(
                       avatar: const Icon(Icons.history_rounded, size: 14),
-                      label: const Text('Draft bill resume kahan se hoga?',
-                          style: TextStyle(fontSize: 11)),
+                      label: Text(
+                          PosLocalization.tr('Draft bill resume kahan se hoga?',
+                              settings: widget.settings),
+                          style: const TextStyle(fontSize: 11)),
                       onPressed: () => _sendMessage(
                           'Customer ka draft bill kahan se resume karun?'),
                     ),
@@ -228,16 +244,19 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 alignment: Alignment.centerLeft,
-                child: const Row(
+                child: Row(
                   children: [
-                    SizedBox(
+                    const SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Color(0xFF7C3AED))),
-                    SizedBox(width: 10),
-                    Text('AI is typing response...',
-                        style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    const SizedBox(width: 10),
+                    Text(
+                        PosLocalization.tr('AI is typing response...',
+                            settings: widget.settings),
+                        style:
+                            const TextStyle(fontSize: 11, color: Colors.grey)),
                   ],
                 ),
               ),
@@ -258,11 +277,12 @@ class _AiAssistantChatDialogState extends State<AiAssistantChatDialog> {
                     child: TextField(
                       controller: _msgCtrl,
                       onSubmitted: _sendMessage,
-                      decoration: const InputDecoration(
-                        hintText:
+                      decoration: InputDecoration(
+                        hintText: PosLocalization.tr(
                             'Type your question in Roman Urdu or English...',
+                            settings: widget.settings),
                         isDense: true,
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ),

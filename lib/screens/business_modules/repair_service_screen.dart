@@ -44,8 +44,9 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
         setState(() => _isLoading = false);
         await AppErrorHandler.showErrorDialog(
           context,
-          title: 'Load Failed',
-          message: 'Could not load repair job sheets.',
+          title: PosLocalization.tr('Load Failed', settings: widget.settings),
+          message: PosLocalization.tr('Could not load repair job sheets.',
+              settings: widget.settings),
           error: e,
           stackTrace: st,
           tag: 'RepairService',
@@ -89,7 +90,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
             return AlertDialog(
               backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               title: Text(
-                'New Repair Job Sheet',
+                PosLocalization.tr('New Repair Job Sheet',
+                    settings: widget.settings),
                 style: TextStyle(
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
                   fontWeight: FontWeight.bold,
@@ -109,7 +111,9 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                 ? Colors.white
                                 : const Color(0xFF0F172A)),
                         decoration: InputDecoration(
-                          labelText: 'Customer Name & Mobile No.*',
+                          labelText: PosLocalization.tr(
+                              'Customer Name & Mobile No.*',
+                              settings: widget.settings),
                           labelStyle: TextStyle(
                               color: isDark
                                   ? const Color(0xFF94A3B8)
@@ -124,8 +128,9 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                 ? Colors.white
                                 : const Color(0xFF0F172A)),
                         decoration: InputDecoration(
-                          labelText:
+                          labelText: PosLocalization.tr(
                               'Device Model / Item (e.g. iPhone 15, HP Laptop)*',
+                              settings: widget.settings),
                           labelStyle: TextStyle(
                               color: isDark
                                   ? const Color(0xFF94A3B8)
@@ -140,7 +145,9 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                 ? Colors.white
                                 : const Color(0xFF0F172A)),
                         decoration: InputDecoration(
-                          labelText: 'IMEI / Serial Number / Barcode',
+                          labelText: PosLocalization.tr(
+                              'IMEI / Serial Number / Barcode',
+                              settings: widget.settings),
                           labelStyle: TextStyle(
                               color: isDark
                                   ? const Color(0xFF94A3B8)
@@ -156,7 +163,9 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                 ? Colors.white
                                 : const Color(0xFF0F172A)),
                         decoration: InputDecoration(
-                          labelText: 'Reported Fault / Problem Description*',
+                          labelText: PosLocalization.tr(
+                              'Reported Fault / Problem Description*',
+                              settings: widget.settings),
                           labelStyle: TextStyle(
                               color: isDark
                                   ? const Color(0xFF94A3B8)
@@ -175,7 +184,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                       ? Colors.white
                                       : const Color(0xFF0F172A)),
                               decoration: InputDecoration(
-                                labelText: 'Estimated Cost',
+                                labelText: PosLocalization.tr('Estimated Cost',
+                                    settings: widget.settings),
                                 labelStyle: TextStyle(
                                     color: isDark
                                         ? const Color(0xFF94A3B8)
@@ -193,7 +203,9 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                       ? Colors.white
                                       : const Color(0xFF0F172A)),
                               decoration: InputDecoration(
-                                labelText: 'Advance Received',
+                                labelText: PosLocalization.tr(
+                                    'Advance Received',
+                                    settings: widget.settings),
                                 labelStyle: TextStyle(
                                     color: isDark
                                         ? const Color(0xFF94A3B8)
@@ -206,7 +218,9 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                       const SizedBox(height: 14),
                       const Divider(),
                       const SizedBox(height: 6),
-                      Text('Device Physical Intake Checklist',
+                      Text(
+                          PosLocalization.tr('Device Physical Intake Checklist',
+                              settings: widget.settings),
                           style: TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.bold,
@@ -219,48 +233,62 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                         runSpacing: 4,
                         children: [
                           FilterChip(
-                            label: const Text('Power ON / Booting',
-                                style: TextStyle(fontSize: 10.5)),
+                            label: Text(
+                                PosLocalization.tr('Power ON / Booting',
+                                    settings: widget.settings),
+                                style: const TextStyle(fontSize: 10.5)),
                             selected: powerOn,
                             onSelected: (v) => setModalState(() => powerOn = v),
                           ),
                           FilterChip(
-                            label: const Text('Display / Touch Intact',
-                                style: TextStyle(fontSize: 10.5)),
+                            label: Text(
+                                PosLocalization.tr('Display / Touch Intact',
+                                    settings: widget.settings),
+                                style: const TextStyle(fontSize: 10.5)),
                             selected: screenOk,
                             onSelected: (v) =>
                                 setModalState(() => screenOk = v),
                           ),
                           FilterChip(
-                            label: const Text('Body Scratches / Dents',
-                                style: TextStyle(fontSize: 10.5)),
+                            label: Text(
+                                PosLocalization.tr('Body Scratches / Dents',
+                                    settings: widget.settings),
+                                style: const TextStyle(fontSize: 10.5)),
                             selected: scratches,
                             onSelected: (v) =>
                                 setModalState(() => scratches = v),
                           ),
                           FilterChip(
-                            label: const Text('Camera OK',
-                                style: TextStyle(fontSize: 10.5)),
+                            label: Text(
+                                PosLocalization.tr('Camera OK',
+                                    settings: widget.settings),
+                                style: const TextStyle(fontSize: 10.5)),
                             selected: cameraOk,
                             onSelected: (v) =>
                                 setModalState(() => cameraOk = v),
                           ),
                           FilterChip(
-                            label: const Text('Audio / Mic OK',
-                                style: TextStyle(fontSize: 10.5)),
+                            label: Text(
+                                PosLocalization.tr('Audio / Mic OK',
+                                    settings: widget.settings),
+                                style: const TextStyle(fontSize: 10.5)),
                             selected: audioOk,
                             onSelected: (v) => setModalState(() => audioOk = v),
                           ),
                           FilterChip(
-                            label: const Text('SIM / SD Removed',
-                                style: TextStyle(fontSize: 10.5)),
+                            label: Text(
+                                PosLocalization.tr('SIM / SD Removed',
+                                    settings: widget.settings),
+                                style: const TextStyle(fontSize: 10.5)),
                             selected: simRemoved,
                             onSelected: (v) =>
                                 setModalState(() => simRemoved = v),
                           ),
                           FilterChip(
-                            label: const Text('Water / Liquid Damage',
-                                style: TextStyle(fontSize: 10.5)),
+                            label: Text(
+                                PosLocalization.tr('Water / Liquid Damage',
+                                    settings: widget.settings),
+                                style: const TextStyle(fontSize: 10.5)),
                             selected: liquidDamage,
                             onSelected: (v) =>
                                 setModalState(() => liquidDamage = v),
@@ -275,9 +303,12 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                 ? Colors.white
                                 : const Color(0xFF0F172A)),
                         decoration: InputDecoration(
-                          labelText:
+                          labelText: PosLocalization.tr(
                               'Device PIN / Pattern / Password (Optional)',
-                          hintText: 'e.g. 1234 or L-Shape pattern',
+                              settings: widget.settings),
+                          hintText: PosLocalization.tr(
+                              'e.g. 1234 or L-Shape pattern',
+                              settings: widget.settings),
                           isDense: true,
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8)),
@@ -290,7 +321,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: Text('Cancel',
+                  child: Text(
+                      PosLocalization.tr('Cancel', settings: widget.settings),
                       style: TextStyle(
                           color: isDark
                               ? const Color(0xFF94A3B8)
@@ -332,7 +364,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                       _loadJobs();
                     }
                   },
-                  child: const Text('Create Job Sheet'),
+                  child: Text(PosLocalization.tr('Create Job Sheet',
+                      settings: widget.settings)),
                 ),
               ],
             );
@@ -359,7 +392,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                 color: Color(0xFFEAB308), size: 22),
             const SizedBox(width: 10),
             Text(
-              'Service & Repair Job Management',
+              PosLocalization.tr('Service & Repair Job Management',
+                  settings: widget.settings),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -371,7 +405,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Reload SQLite Jobs',
+            tooltip: PosLocalization.tr('Reload SQLite Jobs',
+                settings: widget.settings),
             onPressed: _loadJobs,
           ),
           Padding(
@@ -382,8 +417,10 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                   foregroundColor: Colors.black),
               onPressed: _showAddJobSheetModal,
               icon: const Icon(Icons.add_task_rounded, size: 16),
-              label: const Text('New Job Sheet',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(
+                  PosLocalization.tr('New Job Sheet',
+                      settings: widget.settings),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -408,7 +445,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ChoiceChip(
-                            label: Text(filter),
+                            label: Text(PosLocalization.tr(filter,
+                                settings: widget.settings)),
                             selected: _statusFilter == filter,
                             selectedColor: const Color(0xFFEAB308),
                             labelStyle: TextStyle(
@@ -442,7 +480,13 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        'No repair jobs match filter: $_statusFilter',
+                        PosLocalization.trParams(
+                            'No repair jobs match filter: {filter}',
+                            {
+                              'filter': PosLocalization.tr(_statusFilter,
+                                  settings: widget.settings)
+                            },
+                            settings: widget.settings),
                         style: TextStyle(
                             color: isDark
                                 ? const Color(0xFF94A3B8)
@@ -550,7 +594,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                      status,
+                                      PosLocalization.tr(status,
+                                          settings: widget.settings),
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 11,
@@ -561,7 +606,14 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Customer: ${job['customer'] ?? ''} • IMEI/Serial: ${job['imei'] ?? 'N/A'}',
+                                PosLocalization.trParams(
+                                    'Customer: {customer} • IMEI/Serial: {imei}',
+                                    {
+                                      'customer': '${job['customer'] ?? ''}',
+                                      'imei':
+                                          '${job['imei'] ?? PosLocalization.tr('N/A', settings: widget.settings)}',
+                                    },
+                                    settings: widget.settings),
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: isDark
@@ -570,7 +622,9 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Fault: ${job['fault'] ?? ''}',
+                                PosLocalization.trParams('Fault: {fault}',
+                                    {'fault': '${job['fault'] ?? ''}'},
+                                    settings: widget.settings),
                                 style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -591,7 +645,13 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    'Parts Used: ${_formatPartsSummary(job['used_parts'])}',
+                                    PosLocalization.trParams(
+                                        'Parts Used: {parts}',
+                                        {
+                                          'parts': _formatPartsSummary(
+                                              job['used_parts'])
+                                        },
+                                        settings: widget.settings),
                                     style: const TextStyle(
                                         fontSize: 11,
                                         color: Color(0xFF047857),
@@ -609,7 +669,14 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                   Row(
                                     children: [
                                       Text(
-                                        'Estimate: $currency${estCostVal.toStringAsFixed(2)}',
+                                        PosLocalization.trParams(
+                                            'Estimate: {currency}{amount}',
+                                            {
+                                              'currency': currency,
+                                              'amount':
+                                                  estCostVal.toStringAsFixed(2),
+                                            },
+                                            settings: widget.settings),
                                         style: TextStyle(
                                             fontWeight: FontWeight.w700,
                                             fontSize: 12,
@@ -619,7 +686,14 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                       ),
                                       const SizedBox(width: 16),
                                       Text(
-                                        'Advance: $currency${advanceVal.toStringAsFixed(2)}',
+                                        PosLocalization.trParams(
+                                            'Advance: {currency}{amount}',
+                                            {
+                                              'currency': currency,
+                                              'amount':
+                                                  advanceVal.toStringAsFixed(2),
+                                            },
+                                            settings: widget.settings),
                                         style: const TextStyle(
                                             fontWeight: FontWeight.w700,
                                             fontSize: 12,
@@ -627,7 +701,13 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                       ),
                                       const SizedBox(width: 16),
                                       Text(
-                                        'Assigned: ${job['technician'] ?? 'General'}',
+                                        PosLocalization.trParams(
+                                            'Assigned: {tech}',
+                                            {
+                                              'tech':
+                                                  '${job['technician'] ?? PosLocalization.tr('General', settings: widget.settings)}',
+                                            },
+                                            settings: widget.settings),
                                         style: TextStyle(
                                             fontSize: 11,
                                             color: isDark
@@ -650,8 +730,11 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                             _showSparePartsDialog(job),
                                         icon: const Icon(Icons.build_rounded,
                                             size: 14),
-                                        label: const Text('Spare Parts',
-                                            style: TextStyle(fontSize: 11)),
+                                        label: Text(
+                                            PosLocalization.tr('Spare Parts',
+                                                settings: widget.settings),
+                                            style:
+                                                const TextStyle(fontSize: 11)),
                                       ),
                                       const SizedBox(width: 6),
                                       OutlinedButton.icon(
@@ -670,54 +753,89 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                             context: context,
                                             builder: (_) =>
                                                 UniversalPrintPreviewDialog(
-                                              title:
-                                                  'Repair Job Slip • $jobNoVal',
+                                              title: PosLocalization.trParams(
+                                                  'Repair Job Slip • {jobNo}',
+                                                  {'jobNo': jobNoVal},
+                                                  settings: widget.settings),
                                               htmlContent: html,
                                               defaultPaperSize: 'a4',
                                               settings: widget.settings,
                                               pdfGenerator: (_) =>
                                                   PdfExportService
                                                       .generateReportPdf(
-                                                title:
-                                                    'Repair Job Slip ($jobNoVal)',
+                                                title: PosLocalization.trParams(
+                                                    'Repair Job Slip ({jobNo})',
+                                                    {'jobNo': jobNoVal},
+                                                    settings: widget.settings),
                                                 subtitle:
                                                     '${job['customer'] ?? ''} • ${job['device'] ?? ''}',
-                                                headers: const [
-                                                  'Field',
-                                                  'Value'
+                                                headers: [
+                                                  PosLocalization.tr('Field',
+                                                      settings:
+                                                          widget.settings),
+                                                  PosLocalization.tr('Value',
+                                                      settings:
+                                                          widget.settings),
                                                 ],
                                                 rows: [
-                                                  ['Job #', jobNoVal],
                                                   [
-                                                    'Device',
+                                                    PosLocalization.tr('Job #',
+                                                        settings:
+                                                            widget.settings),
+                                                    jobNoVal
+                                                  ],
+                                                  [
+                                                    PosLocalization.tr('Device',
+                                                        settings:
+                                                            widget.settings),
                                                     '${job['device'] ?? ''}'
                                                   ],
                                                   [
-                                                    'Customer',
+                                                    PosLocalization.tr(
+                                                        'Customer',
+                                                        settings:
+                                                            widget.settings),
                                                     '${job['customer'] ?? ''}'
                                                   ],
                                                   [
-                                                    'IMEI/Serial',
-                                                    '${job['imei'] ?? 'N/A'}'
+                                                    PosLocalization.tr(
+                                                        'IMEI/Serial',
+                                                        settings:
+                                                            widget.settings),
+                                                    '${job['imei'] ?? PosLocalization.tr('N/A', settings: widget.settings)}'
                                                   ],
                                                   [
-                                                    'Fault',
+                                                    PosLocalization.tr('Fault',
+                                                        settings:
+                                                            widget.settings),
                                                     '${job['fault'] ?? ''}'
                                                   ],
                                                   [
-                                                    'Technician',
-                                                    '${job['technician'] ?? 'General'}'
+                                                    PosLocalization.tr(
+                                                        'Technician',
+                                                        settings:
+                                                            widget.settings),
+                                                    '${job['technician'] ?? PosLocalization.tr('General', settings: widget.settings)}'
                                                   ],
                                                   [
-                                                    'Estimate',
+                                                    PosLocalization.tr(
+                                                        'Estimate',
+                                                        settings:
+                                                            widget.settings),
                                                     '$currency${estCostVal.toStringAsFixed(2)}'
                                                   ],
                                                   [
-                                                    'Advance Paid',
+                                                    PosLocalization.tr(
+                                                        'Advance Paid',
+                                                        settings:
+                                                            widget.settings),
                                                     '$currency${advanceVal.toStringAsFixed(2)}'
                                                   ],
                                                   [
-                                                    'Balance Due',
+                                                    PosLocalization.tr(
+                                                        'Balance Due',
+                                                        settings:
+                                                            widget.settings),
                                                     '$currency${(estCostVal - advanceVal).clamp(0, double.infinity).toStringAsFixed(2)}'
                                                   ],
                                                 ],
@@ -727,8 +845,11 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                           );
                                         },
                                         icon: const Icon(Icons.print, size: 14),
-                                        label: const Text('Print Slip',
-                                            style: TextStyle(fontSize: 11)),
+                                        label: Text(
+                                            PosLocalization.tr('Print Slip',
+                                                settings: widget.settings),
+                                            style:
+                                                const TextStyle(fontSize: 11)),
                                       ),
                                       const SizedBox(width: 8),
                                       OutlinedButton.icon(
@@ -750,8 +871,11 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                         icon: const Icon(
                                             Icons.chat_bubble_outline_rounded,
                                             size: 14),
-                                        label: const Text('Notify',
-                                            style: TextStyle(fontSize: 11)),
+                                        label: Text(
+                                            PosLocalization.tr('Notify',
+                                                settings: widget.settings),
+                                            style:
+                                                const TextStyle(fontSize: 11)),
                                       ),
                                       const SizedBox(width: 8),
                                       if (status != 'Delivered')
@@ -765,8 +889,11 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                           ),
                                           onPressed: () => _updateJobStatus(
                                               job, 'Delivered'),
-                                          child: const Text('Mark Done',
-                                              style: TextStyle(fontSize: 11)),
+                                          child: Text(
+                                              PosLocalization.tr('Mark Done',
+                                                  settings: widget.settings),
+                                              style: const TextStyle(
+                                                  fontSize: 11)),
                                         )
                                       else
                                         ElevatedButton(
@@ -779,8 +906,11 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                           ),
                                           onPressed: () => _updateJobStatus(
                                               job, 'Diagnosing'),
-                                          child: const Text('Re-open',
-                                              style: TextStyle(fontSize: 11)),
+                                          child: Text(
+                                              PosLocalization.tr('Re-open',
+                                                  settings: widget.settings),
+                                              style: const TextStyle(
+                                                  fontSize: 11)),
                                         ),
                                     ],
                                   ),
@@ -977,7 +1107,10 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                 const Icon(Icons.build_circle_rounded,
                     color: Color(0xFFF97316), size: 22),
                 const SizedBox(width: 8),
-                Text('Spare Parts & Stock • ${job['job_no'] ?? job['device']}',
+                Text(
+                    PosLocalization.trParams('Spare Parts & Stock • {job}',
+                        {'job': '${job['job_no'] ?? job['device']}'},
+                        settings: widget.settings),
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -991,15 +1124,18 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                      'Select replacement spare part from inventory to deduct stock:',
-                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                      PosLocalization.tr(
+                          'Select replacement spare part from inventory to deduct stock:',
+                          settings: widget.settings),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<Product>(
                     initialValue: selectedProduct,
                     decoration: InputDecoration(
-                      labelText:
+                      labelText: PosLocalization.tr(
                           'Select Spare Part (Screen, Battery, IC, Cable)',
+                          settings: widget.settings),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8)),
                       isDense: true,
@@ -1008,7 +1144,16 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                         .map((p) => DropdownMenuItem(
                             value: p,
                             child: Text(
-                                '${p.name} (Stock: ${p.stockQuantity.toInt()} • $currency${p.sellingPrice.toStringAsFixed(2)})',
+                                PosLocalization.trParams(
+                                    '{name} (Stock: {stock} • {currency}{price})',
+                                    {
+                                      'name': p.name,
+                                      'stock': '${p.stockQuantity.toInt()}',
+                                      'currency': currency,
+                                      'price':
+                                          p.sellingPrice.toStringAsFixed(2),
+                                    },
+                                    settings: widget.settings),
                                 style: const TextStyle(fontSize: 13))))
                         .toList(),
                     onChanged: (val) {
@@ -1024,7 +1169,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                           decoration: InputDecoration(
-                            labelText: 'Quantity to Deduct',
+                            labelText: PosLocalization.tr('Quantity to Deduct',
+                                settings: widget.settings),
                             border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8)),
                             isDense: true,
@@ -1038,7 +1184,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                           foregroundColor: Colors.white,
                         ),
                         icon: const Icon(Icons.add_shopping_cart, size: 16),
-                        label: const Text('Deduct & Attach'),
+                        label: Text(PosLocalization.tr('Deduct & Attach',
+                            settings: widget.settings)),
                         onPressed: selectedProduct == null
                             ? null
                             : () async {
@@ -1084,8 +1231,13 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                                 if (!mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(
-                                        'Deducted ${qty.toInt()}x ${selectedProduct!.name} from inventory! Attached to repair sheet.'),
+                                    content: Text(PosLocalization.trParams(
+                                        'Deducted {qty}x {name} from inventory! Attached to repair sheet.',
+                                        {
+                                          'qty': '${qty.toInt()}',
+                                          'name': selectedProduct!.name
+                                        },
+                                        settings: widget.settings)),
                                     backgroundColor: const Color(0xFF10B981),
                                   ),
                                 );
@@ -1094,7 +1246,9 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                     ],
                   ),
                   const Divider(height: 24),
-                  Text('Parts Attached to Job:',
+                  Text(
+                      PosLocalization.tr('Parts Attached to Job:',
+                          settings: widget.settings),
                       style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -1102,8 +1256,12 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                               isDark ? Colors.white : const Color(0xFF0F172A))),
                   const SizedBox(height: 8),
                   if (currentParts.isEmpty)
-                    const Text('No spare parts attached yet. Labor only.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey))
+                    Text(
+                        PosLocalization.tr(
+                            'No spare parts attached yet. Labor only.',
+                            settings: widget.settings),
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey))
                   else
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 140),
@@ -1134,7 +1292,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close')),
+                  child: Text(
+                      PosLocalization.tr('Close', settings: widget.settings))),
             ],
           );
         },
@@ -1176,7 +1335,10 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
                   color: Color(0xFF25D366), size: 20),
             ),
             const SizedBox(width: 10),
-            Text('Notify $customerName ($jobNoVal)',
+            Text(
+                PosLocalization.trParams('Notify {customer} ({jobNo})',
+                    {'customer': customerName, 'jobNo': jobNoVal},
+                    settings: widget.settings),
                 style:
                     const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           ],
@@ -1188,10 +1350,12 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
             children: [
               TextField(
                 controller: phoneCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Customer WhatsApp / Mobile Phone',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone_rounded, size: 18),
+                decoration: InputDecoration(
+                  labelText: PosLocalization.tr(
+                      'Customer WhatsApp / Mobile Phone',
+                      settings: widget.settings),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.phone_rounded, size: 18),
                   isDense: true,
                 ),
               ),
@@ -1199,9 +1363,10 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
               TextField(
                 controller: msgCtrl,
                 maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Notification Message',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: PosLocalization.tr('Notification Message',
+                      settings: widget.settings),
+                  border: const OutlineInputBorder(),
                   isDense: true,
                 ),
               ),
@@ -1211,7 +1376,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child:
+                Text(PosLocalization.tr('Cancel', settings: widget.settings)),
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
@@ -1219,7 +1385,8 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
               foregroundColor: Colors.white,
             ),
             icon: const Icon(Icons.send_rounded, size: 16),
-            label: const Text('Send Notification'),
+            label: Text(PosLocalization.tr('Send Notification',
+                settings: widget.settings)),
             onPressed: () async {
               final phone = phoneCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
               final text = msgCtrl.text;
@@ -1234,8 +1401,10 @@ class _RepairServiceScreenState extends State<RepairServiceScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                        'Notification dispatched to $customerName ($phone)!'),
+                    content: Text(PosLocalization.trParams(
+                        'Notification dispatched to {customer} ({phone})!',
+                        {'customer': customerName, 'phone': phone},
+                        settings: widget.settings)),
                     backgroundColor: const Color(0xFF10B981),
                   ),
                 );

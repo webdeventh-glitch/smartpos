@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/business_settings.dart';
+import 'i18n/i18n_extra.dart';
 
 /// Language descriptor for UI selection
 class LanguageOption {
@@ -28,6 +29,18 @@ class LanguageOption {
 ///    - If unchecked/disabled, clean English only is displayed.
 class PosLocalization {
   PosLocalization._();
+
+  /// Active app settings synced on bootstrap and whenever settings change,
+  /// allowing any widget or helper dialog to resolve selected translations even
+  /// when a [BusinessSettings] instance is not explicitly passed.
+  static BusinessSettings? currentSettings;
+  static final ValueNotifier<BusinessSettings?> settingsNotifier =
+      ValueNotifier<BusinessSettings?>(null);
+
+  static void setActiveSettings(BusinessSettings? settings) {
+    currentSettings = settings;
+    settingsNotifier.value = settings;
+  }
 
   /// All supported primary languages
   static const List<LanguageOption> supportedLanguages = [
@@ -66,7 +79,8 @@ class PosLocalization {
     String? secondaryOverride,
     bool? enableSecondaryOverride,
   }) {
-    final primary = (primaryOverride ?? settings?.activePrimaryLanguage ?? 'en')
+    final active = settings ?? currentSettings;
+    final primary = (primaryOverride ?? active?.activePrimaryLanguage ?? 'en')
         .toLowerCase()
         .trim();
     final isPrimaryEnglish = primary == 'en';
@@ -74,9 +88,9 @@ class PosLocalization {
     // If primary is NOT English, secondary is strictly ignored
     final hasSecondary = isPrimaryEnglish &&
         (enableSecondaryOverride ??
-            settings?.hasEffectiveSecondaryLanguage ??
+            active?.hasEffectiveSecondaryLanguage ??
             false);
-    final secondary = (secondaryOverride ?? settings?.secondaryLanguage ?? 'ur')
+    final secondary = (secondaryOverride ?? active?.secondaryLanguage ?? 'ur')
         .toLowerCase()
         .trim();
 
@@ -97,6 +111,45 @@ class PosLocalization {
     return '$primaryText ($secondaryText)';
   }
 
+  /// Returns only the primary language text (never combined with secondary),
+  /// useful when secondary text is rendered on its own subtitle line.
+  static String trPrimary(String key, {BusinessSettings? settings}) {
+    final active = settings ?? currentSettings;
+    final primary =
+        (active?.activePrimaryLanguage ?? 'en').toLowerCase().trim();
+    return _lookup(key, primary) ?? _lookup(key, 'en') ?? key;
+  }
+
+  /// Returns only the active secondary translation when primary is English and
+  /// secondary language is enabled; otherwise returns null.
+  static String? trSecondary(String key, {BusinessSettings? settings}) {
+    final active = settings ?? currentSettings;
+    if (active == null || !active.hasEffectiveSecondaryLanguage) {
+      return null;
+    }
+    final sec = active.secondaryLanguage.toLowerCase().trim();
+    if (sec.isEmpty || sec == 'en') return null;
+    final primaryText = _lookup(key, 'en') ?? key;
+    final secText = _lookup(key, sec);
+    if (secText == null || secText.isEmpty || secText == primaryText) {
+      return null;
+    }
+    return secText;
+  }
+
+  /// Translates [key] and substitutes `{placeholder}` parameters.
+  static String trParams(
+    String key,
+    Map<String, String> params, {
+    BusinessSettings? settings,
+  }) {
+    var out = tr(key, settings: settings);
+    params.forEach((k, v) {
+      out = out.replaceAll('{$k}', v);
+    });
+    return out;
+  }
+
   /// Quick quantity / scale label generator
   static String quickQuantityLabel({
     required double val,
@@ -106,15 +159,16 @@ class PosLocalization {
     String? secondaryOverride,
     bool? enableSecondaryOverride,
   }) {
-    final primary = (primaryOverride ?? settings?.activePrimaryLanguage ?? 'en')
+    final active = settings ?? currentSettings;
+    final primary = (primaryOverride ?? active?.activePrimaryLanguage ?? 'en')
         .toLowerCase()
         .trim();
     final isPrimaryEnglish = primary == 'en';
     final hasSecondary = isPrimaryEnglish &&
         (enableSecondaryOverride ??
-            settings?.hasEffectiveSecondaryLanguage ??
+            active?.hasEffectiveSecondaryLanguage ??
             false);
-    final secondary = (secondaryOverride ?? settings?.secondaryLanguage ?? 'ur')
+    final secondary = (secondaryOverride ?? active?.secondaryLanguage ?? 'ur')
         .toLowerCase()
         .trim();
 
@@ -299,7 +353,7 @@ class PosLocalization {
       final res = dict[clean]!;
       return key.contains('*') ? '$res *' : res;
     }
-    return null;
+    return I18nExtra.lookup(lang, key);
   }
 
   // ================= DICTIONARIES =================

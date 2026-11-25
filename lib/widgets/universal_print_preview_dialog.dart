@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../services/localization_service.dart';
 import '../services/pdf_export_service.dart';
 import '../services/print_service.dart';
 
@@ -56,17 +57,19 @@ class _UniversalPrintPreviewDialogState
       setState(() => _isPrinting = false);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
-                Icon(Icons.print_rounded, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text('Document dispatched to Windows Print Manager!'),
+                const Icon(Icons.print_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Text(PosLocalization.tr(
+                    'Document dispatched to Windows Print Manager!',
+                    settings: widget.settings)),
               ],
             ),
-            backgroundColor: Color(0xFF10B981),
+            backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -146,16 +149,22 @@ class _UniversalPrintPreviewDialogState
                                   color: Colors.white,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold),
-                              items: const [
+                              items: [
                                 DropdownMenuItem(
                                     value: '80mm',
-                                    child: Text('80mm Thermal (POS)')),
+                                    child: Text(PosLocalization.tr(
+                                        '80mm Thermal (POS)',
+                                        settings: widget.settings))),
                                 DropdownMenuItem(
                                     value: '58mm',
-                                    child: Text('58mm Thermal (Mini)')),
+                                    child: Text(PosLocalization.tr(
+                                        '58mm Thermal (Mini)',
+                                        settings: widget.settings))),
                                 DropdownMenuItem(
                                     value: 'a4',
-                                    child: Text('A4 Standard Sheet')),
+                                    child: Text(PosLocalization.tr(
+                                        'A4 Standard Sheet',
+                                        settings: widget.settings))),
                               ],
                               onChanged: (val) {
                                 if (val != null) {
@@ -235,7 +244,8 @@ class _UniversalPrintPreviewDialogState
                                 borderRadius: BorderRadius.circular(8)),
                           ),
                           icon: const Icon(Icons.copy_rounded, size: 16),
-                          label: const Text('Copy Text'),
+                          label: Text(PosLocalization.tr('Copy Text',
+                              settings: widget.settings)),
                           onPressed: () => PrintService.copyToClipboard(
                               widget.plainTextContent, context),
                         ),
@@ -248,7 +258,8 @@ class _UniversalPrintPreviewDialogState
                                 borderRadius: BorderRadius.circular(8)),
                           ),
                           icon: const Icon(Icons.save_alt_rounded, size: 16),
-                          label: const Text('Save HTML'),
+                          label: Text(PosLocalization.tr('Save HTML',
+                              settings: widget.settings)),
                           onPressed: () {
                             final html = _getHtml(_selectedPaperSize);
                             PrintService.saveHtmlToFile(
@@ -268,7 +279,8 @@ class _UniversalPrintPreviewDialogState
                             ),
                             icon: const Icon(Icons.picture_as_pdf_rounded,
                                 size: 16),
-                            label: const Text('Export PDF'),
+                            label: Text(PosLocalization.tr('Export PDF',
+                                settings: widget.settings)),
                             onPressed: () async {
                               final messenger = ScaffoldMessenger.of(context);
                               final bytes = await widget
@@ -278,8 +290,10 @@ class _UniversalPrintPreviewDialogState
                               await PdfExportService.openPdfFile(file);
                               messenger.showSnackBar(
                                 SnackBar(
-                                  content:
-                                      Text('PDF saved & opened: ${file.path}'),
+                                  content: Text(PosLocalization.trParams(
+                                      'PDF saved & opened: {path}',
+                                      {'path': file.path},
+                                      settings: widget.settings)),
                                   backgroundColor: const Color(0xFF10B981),
                                 ),
                               );
@@ -306,8 +320,12 @@ class _UniversalPrintPreviewDialogState
                                   color: Colors.white, strokeWidth: 2))
                           : const Icon(Icons.print_rounded, size: 18),
                       label: Text(_isPrinting
-                          ? 'Printing...'
-                          : 'Print to Windows Printer ($_selectedPaperSize)'),
+                          ? PosLocalization.tr('Printing...',
+                              settings: widget.settings)
+                          : PosLocalization.trParams(
+                              'Print to Windows Printer ({size})',
+                              {'size': _selectedPaperSize},
+                              settings: widget.settings)),
                       onPressed: _isPrinting ? null : _handlePrint,
                     ),
                   ],

@@ -213,9 +213,11 @@ class PosSummaryBar extends StatelessWidget {
                   onTap: onWordsLanguageTap,
                   borderRadius: BorderRadius.circular(8),
                   child: Tooltip(
-                    message: settings.enableSecondaryLanguage
-                        ? 'Click to change words language (${wordsLanguage.toUpperCase()}) / زبان تبدیل کریں'
-                        : 'Click to change words language (${wordsLanguage.toUpperCase()})',
+                    message: PosLocalization.trParams(
+                      'Click to change words language ({lang})',
+                      {'lang': wordsLanguage.toUpperCase()},
+                      settings: settings,
+                    ),
                     child: Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: isSmallScreen ? 10 : 16,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class PurchaseReturnScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -107,7 +108,8 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Debit Note / Purchase Return',
+                                PosLocalization.tr(
+                                    'Debit Note / Purchase Return'),
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
@@ -233,9 +235,9 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                   _label('Return Reason / Damage Report', isDark),
                   TextFormField(
                       controller: reasonCtrl,
-                      decoration: const InputDecoration(
-                          hintText:
-                              'e.g. Near expiry medicine returned to manufacturer',
+                      decoration: InputDecoration(
+                          hintText: PosLocalization.tr(
+                              'e.g. Near expiry medicine returned to manufacturer'),
                           isDense: true)),
                   const SizedBox(height: 18),
                   Container(
@@ -249,8 +251,8 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Total Debit Note Value:',
-                            style: TextStyle(
+                        Text(PosLocalization.tr('Total Debit Note Value:'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF1E40AF))),
                         Text('$currency${total.toStringAsFixed(2)}',
@@ -267,7 +269,7 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                     children: [
                       OutlinedButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Cancel')),
+                          child: Text(PosLocalization.tr('Cancel'))),
                       const SizedBox(width: 12),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -277,14 +279,16 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                               horizontal: 20, vertical: 12),
                         ),
                         icon: const Icon(Icons.check_circle_outline, size: 18),
-                        label: const Text('Confirm Purchase Return',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        label: Text(
+                            PosLocalization.tr('Confirm Purchase Return'),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: () async {
                           if (selectedProduct == null || qty <= 0) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Please select product and quantity'),
+                              SnackBar(
+                                  content: Text(PosLocalization.tr(
+                                      'Please select product and quantity')),
                                   backgroundColor: Colors.orange),
                             );
                             return;
@@ -392,7 +396,7 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Purchase Returns & Debit Notes',
+                      PosLocalization.tr('Purchase Returns & Debit Notes'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -401,7 +405,8 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Return near-expiry, damaged or recall medicines back to distributors and debit vendor balance',
+                      PosLocalization.tr(
+                          'Return near-expiry, damaged or recall medicines back to distributors and debit vendor balance'),
                       style: TextStyle(
                           fontSize: 12,
                           color: isDark
@@ -420,8 +425,8 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_circle_outline, size: 18),
-                  label: const Text('Add Purchase Return',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: Text(PosLocalization.tr('Add Purchase Return'),
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   onPressed: _openAddReturnDialog,
                 ),
               ],
@@ -464,10 +469,10 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
               ),
               child: TextField(
                 onChanged: (v) => setState(() => _search = v.trim()),
-                decoration: const InputDecoration(
-                  hintText:
-                      'Search by debit note reference, purchase bill no, or supplier name...',
-                  prefixIcon: Icon(Icons.search, size: 20),
+                decoration: InputDecoration(
+                  hintText: PosLocalization.tr(
+                      'Search by debit note reference, purchase bill no, or supplier name...'),
+                  prefixIcon: const Icon(Icons.search, size: 20),
                   isDense: true,
                 ),
               ),
@@ -489,11 +494,11 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                       padding: EdgeInsets.all(40),
                       child: Center(child: CircularProgressIndicator()))
                   : filtered.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(40),
+                      ? Padding(
+                          padding: const EdgeInsets.all(40),
                           child: Center(
-                              child: Text(
-                                  'No purchase return records recorded yet.')),
+                              child: Text(PosLocalization.tr(
+                                  'No purchase return records recorded yet.'))),
                         )
                       : Scrollbar(
                           controller: _hScrollController,
@@ -508,38 +513,44 @@ class _PurchaseReturnScreenState extends State<PurchaseReturnScreen> {
                               headingRowColor: WidgetStateProperty.all(isDark
                                   ? const Color(0xFF0F172A)
                                   : const Color(0xFFF8FAFC)),
-                              columns: const [
+                              columns: [
                                 DataColumn(
-                                    label: Text('DEBIT NOTE REF',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('DEBIT NOTE REF'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
-                                DataColumn(
+                                const DataColumn(
                                     label: Text('DATE',
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('PURCHASE BILL',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('PURCHASE BILL'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('DISTRIBUTOR / VENDOR',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr(
+                                            'DISTRIBUTOR / VENDOR'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('ITEMS RETURNED',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('ITEMS RETURNED'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('DEBIT AMOUNT',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('DEBIT AMOUNT'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('STATUS',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('STATUS'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('REASON',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('REASON'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                               ],
                               rows: filtered.map((r) {

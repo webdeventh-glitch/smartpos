@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
 
 class VariationTemplatesScreen extends StatefulWidget {
@@ -66,8 +67,10 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       children: [
                         Text(
                           toEdit == null
-                              ? 'Add Variation Template'
-                              : 'Edit Variation Template',
+                              ? PosLocalization.tr('Add Variation Template',
+                                  settings: widget.settings)
+                              : PosLocalization.tr('Edit Variation Template',
+                                  settings: widget.settings),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
@@ -86,7 +89,10 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _fieldLabel('Variation Name * (e.g. Size, Color, Capacity)',
+                    _fieldLabel(
+                        PosLocalization.tr(
+                            'Variation Name * (e.g. Size, Color, Capacity)',
+                            settings: widget.settings),
                         isDark: isDark),
                     const SizedBox(height: 6),
                     TextField(
@@ -94,11 +100,16 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       style: TextStyle(
                           color:
                               isDark ? Colors.white : const Color(0xFF0F172A)),
-                      decoration: _inputDeco('e.g. Size', isDark: isDark),
+                      decoration: _inputDeco(
+                          PosLocalization.tr('e.g. Size',
+                              settings: widget.settings),
+                          isDark: isDark),
                     ),
                     const SizedBox(height: 16),
                     _fieldLabel(
-                        'Add Variation Values (e.g. Small, Medium, Large)',
+                        PosLocalization.tr(
+                            'Add Variation Values (e.g. Small, Medium, Large)',
+                            settings: widget.settings),
                         isDark: isDark),
                     const SizedBox(height: 6),
                     Row(
@@ -110,7 +121,9 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                                 color: isDark
                                     ? Colors.white
                                     : const Color(0xFF0F172A)),
-                            decoration: _inputDeco('Type a value and click Add',
+                            decoration: _inputDeco(
+                                PosLocalization.tr('Type a value and click Add',
+                                    settings: widget.settings),
                                 isDark: isDark),
                             onSubmitted: (text) {
                               final val = text.trim();
@@ -137,7 +150,8 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                                 borderRadius: BorderRadius.circular(8)),
                           ),
                           icon: const Icon(Icons.add_rounded, size: 16),
-                          label: const Text('Add Value'),
+                          label: Text(PosLocalization.tr('Add Value',
+                              settings: widget.settings)),
                           onPressed: () {
                             final val = valCtrl.text.trim();
                             if (val.isNotEmpty && !values.contains(val)) {
@@ -167,7 +181,9 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       child: values.isEmpty
                           ? Center(
                               child: Text(
-                                'No values added yet. Add at least 1 value.',
+                                PosLocalization.tr(
+                                    'No values added yet. Add at least 1 value.',
+                                    settings: widget.settings),
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: isDark
@@ -392,9 +408,10 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Variation Templates',
-                        style: TextStyle(
+                      Text(
+                        PosLocalization.tr('Variation Templates',
+                            settings: widget.settings),
+                        style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF0F172A),
@@ -402,7 +419,9 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Pre-configure attributes like Size, Color, and Specs for Variable Products.',
+                        PosLocalization.tr(
+                            'Pre-configure attributes like Size, Color, and Specs for Variable Products.',
+                            settings: widget.settings),
                         style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey.shade600,
@@ -423,8 +442,10 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Template',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: Text(
+                      PosLocalization.tr('Add Template',
+                          settings: widget.settings),
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
                   onPressed: () => _openTemplateDialog(),
                 ),
               ],
@@ -448,7 +469,9 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                         _currentPage = 1;
                       }),
                       decoration: InputDecoration(
-                        hintText: 'Search variation templates...',
+                        hintText: PosLocalization.tr(
+                            'Search variation templates...',
+                            settings: widget.settings),
                         hintStyle: const TextStyle(
                             fontSize: 13, color: Color(0xFF94A3B8)),
                         prefixIcon: const Icon(Icons.search,
@@ -476,7 +499,9 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '${filtered.length} Templates defined',
+                      PosLocalization.trParams('{count} Templates defined',
+                          {'count': '${filtered.length}'},
+                          settings: widget.settings),
                       style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -508,12 +533,16 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                     Icon(Icons.style_outlined,
                         size: 48, color: Colors.grey.shade400),
                     const SizedBox(height: 12),
-                    const Text('No Variation Templates Found',
-                        style: TextStyle(
+                    Text(
+                        PosLocalization.tr('No Variation Templates Found',
+                            settings: widget.settings),
+                        style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Text(
-                        'Click "Add Template" to configure variation templates.',
+                        PosLocalization.tr(
+                            'Click "Add Template" to configure variation templates.',
+                            settings: widget.settings),
                         style: TextStyle(
                             color: Colors.grey.shade600, fontSize: 13)),
                   ],
@@ -555,9 +584,14 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                                     decoration: const BoxDecoration(
                                         color: Color(0xFFF8FAFC)),
                                     children: [
-                                      _th('Template Name'),
-                                      _th('Variation Values'),
-                                      _th('Actions', alignRight: true),
+                                      _th(PosLocalization.tr('Template Name',
+                                          settings: widget.settings)),
+                                      _th(PosLocalization.tr('Variation Values',
+                                          settings: widget.settings)),
+                                      _th(
+                                          PosLocalization.tr('Actions',
+                                              settings: widget.settings),
+                                          alignRight: true),
                                     ],
                                   ),
                                   ...paginatedTemplates.map((t) {
@@ -624,7 +658,9 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                                                 MainAxisAlignment.end,
                                             children: [
                                               IconButton(
-                                                tooltip: 'Edit Template',
+                                                tooltip: PosLocalization.tr(
+                                                    'Edit Template',
+                                                    settings: widget.settings),
                                                 icon: const Icon(
                                                     Icons.edit_outlined,
                                                     size: 18,
@@ -633,7 +669,9 @@ class _VariationTemplatesScreenState extends State<VariationTemplatesScreen> {
                                                     _openTemplateDialog(t),
                                               ),
                                               IconButton(
-                                                tooltip: 'Delete Template',
+                                                tooltip: PosLocalization.tr(
+                                                    'Delete Template',
+                                                    settings: widget.settings),
                                                 icon: const Icon(
                                                     Icons
                                                         .delete_outline_rounded,

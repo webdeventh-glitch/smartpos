@@ -3,6 +3,7 @@ import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/thermal_printer_service.dart';
+import '../../services/localization_service.dart';
 
 /// Modular ESC/POS Thermal Printer Management & Auto-Print settings panel
 /// embedded inside Settings -> Bill Customization & Printing (Step 4.1).
@@ -122,10 +123,10 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                 children: [
                   TextField(
                     controller: nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Printer Name *',
+                    decoration: InputDecoration(
+                      labelText: PosLocalization.tr('Printer Name *'),
                       isDense: true,
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -134,18 +135,20 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: connType,
-                          decoration: const InputDecoration(
-                            labelText: 'Connection Type',
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Connection Type'),
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                                 value: 'network',
-                                child: Text('Network (LAN TCP/IP)')),
+                                child: Text(PosLocalization.tr(
+                                    'Network (LAN TCP/IP)'))),
                             DropdownMenuItem(
                                 value: 'windows',
-                                child: Text('Windows USB / Shared')),
+                                child: Text(PosLocalization.tr(
+                                    'Windows USB / Shared'))),
                           ],
                           onChanged: (v) {
                             if (v != null) setDlgState(() => connType = v);
@@ -156,16 +159,20 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: paperWidth,
-                          decoration: const InputDecoration(
-                            labelText: 'Roll Width',
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Roll Width'),
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
-                                value: '80mm', child: Text('80mm (48 chars)')),
+                                value: '80mm',
+                                child: Text(
+                                    PosLocalization.tr('80mm (48 chars)'))),
                             DropdownMenuItem(
-                                value: '58mm', child: Text('58mm (32 chars)')),
+                                value: '58mm',
+                                child: Text(
+                                    PosLocalization.tr('58mm (32 chars)'))),
                           ],
                           onChanged: (v) {
                             if (v != null) setDlgState(() => paperWidth = v);
@@ -182,11 +189,12 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                           flex: 3,
                           child: TextField(
                             controller: ipCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Printer IP Address *',
+                            decoration: InputDecoration(
+                              labelText:
+                                  PosLocalization.tr('Printer IP Address *'),
                               hintText: '192.168.1.100',
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -196,11 +204,11 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                           child: TextField(
                             controller: portCtrl,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Port',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Port'),
                               hintText: '9100',
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -209,21 +217,23 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                   ] else ...[
                     TextField(
                       controller: winPathCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Windows Printer Name or UNC Path *',
+                      decoration: InputDecoration(
+                        labelText: PosLocalization.tr(
+                            'Windows Printer Name or UNC Path *'),
                         hintText: r'EPSON TM-T82  or  \\PC\POS80',
                         isDense: true,
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ],
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: capProfile,
-                    decoration: const InputDecoration(
-                      labelText: 'Capability Profile (ESC/POS)',
+                    decoration: InputDecoration(
+                      labelText:
+                          PosLocalization.tr('Capability Profile (ESC/POS)'),
                       isDense: true,
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                     items: ThermalPrinterService.capabilityProfiles
                         .map((p) => DropdownMenuItem(value: p, child: Text(p)))
@@ -236,32 +246,36 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                   SwitchListTile.adaptive(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Default Counter Receipt Printer',
-                        style: TextStyle(fontSize: 13)),
+                    title: Text(
+                        PosLocalization.tr('Default Counter Receipt Printer'),
+                        style: const TextStyle(fontSize: 13)),
                     value: isDefault,
                     onChanged: (v) => setDlgState(() => isDefault = v),
                   ),
                   SwitchListTile.adaptive(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Use as Kitchen KOT Printer',
-                        style: TextStyle(fontSize: 13)),
+                    title: Text(
+                        PosLocalization.tr('Use as Kitchen KOT Printer'),
+                        style: const TextStyle(fontSize: 13)),
                     value: isKot,
                     onChanged: (v) => setDlgState(() => isKot = v),
                   ),
                   SwitchListTile.adaptive(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Auto-Cut Paper After Print',
-                        style: TextStyle(fontSize: 13)),
+                    title: Text(
+                        PosLocalization.tr('Auto-Cut Paper After Print'),
+                        style: const TextStyle(fontSize: 13)),
                     value: autoCut,
                     onChanged: (v) => setDlgState(() => autoCut = v),
                   ),
                   SwitchListTile.adaptive(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Open Cash Drawer Pulse (ESC p)',
-                        style: TextStyle(fontSize: 13)),
+                    title: Text(
+                        PosLocalization.tr('Open Cash Drawer Pulse (ESC p)'),
+                        style: const TextStyle(fontSize: 13)),
                     value: openDrawer,
                     onChanged: (v) => setDlgState(() => openDrawer = v),
                   ),
@@ -272,7 +286,7 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(PosLocalization.tr('Cancel')),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -280,7 +294,7 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.save_rounded, size: 17),
-              label: const Text('Save Printer'),
+              label: Text(PosLocalization.tr('Save Printer')),
               onPressed: () async {
                 if (nameCtrl.text.trim().isEmpty) return;
                 final config = ThermalPrinterConfig(
@@ -362,24 +376,25 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Row(
                   children: [
-                    Icon(Icons.receipt_rounded,
+                    const Icon(Icons.receipt_rounded,
                         color: Color(0xFF4F46E5), size: 24),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'ESC/POS Thermal Printers & Auto-Print Setup',
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w800),
                           ),
                           Text(
-                            'Configure 58mm / 80mm network TCP or Windows USB/shared thermal printers & kitchen KOT routing.',
-                            style: TextStyle(
+                            PosLocalization.tr(
+                                'Configure 58mm / 80mm network TCP or Windows USB/shared thermal printers & kitchen KOT routing.'),
+                            style: const TextStyle(
                                 fontSize: 12, color: Color(0xFF64748B)),
                           ),
                         ],
@@ -395,7 +410,7 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                   foregroundColor: Colors.white,
                 ),
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Add Printer'),
+                label: Text(PosLocalization.tr('Add Printer')),
                 onPressed: () => _showPrinterDialog(),
               ),
             ],
@@ -412,9 +427,11 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                     value: _autoPrintReceipt,
                     onChanged: (v) => _toggleAutoPrint(receipt: v),
                   ),
-                  const Text(
-                    'Auto-Print Thermal Receipt on Sale Completion',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  Text(
+                    PosLocalization.tr(
+                        'Auto-Print Thermal Receipt on Sale Completion'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ],
               ),
@@ -425,9 +442,10 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                     value: _autoPrintKot,
                     onChanged: (v) => _toggleAutoPrint(kot: v),
                   ),
-                  const Text(
-                    'Auto-Print KOT to Kitchen Printer',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  Text(
+                    PosLocalization.tr('Auto-Print KOT to Kitchen Printer'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ],
               ),
@@ -448,15 +466,16 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: borderColor),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Color(0xFF64748B)),
-                  SizedBox(width: 10),
+                  const Icon(Icons.info_outline, color: Color(0xFF64748B)),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'No thermal printer configured yet. Click "Add Printer" to add an 80mm or 58mm Network / Windows ESC/POS printer.',
-                      style:
-                          TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                      PosLocalization.tr(
+                          'No thermal printer configured yet. Click "Add Printer" to add an 80mm or 58mm Network / Windows ESC/POS printer.'),
+                      style: const TextStyle(
+                          fontSize: 12.5, color: Color(0xFF64748B)),
                     ),
                   ),
                 ],
@@ -510,9 +529,9 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                                       color: const Color(0xFFDBEAFE),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    child: const Text(
-                                      'Default POS',
-                                      style: TextStyle(
+                                    child: Text(
+                                      PosLocalization.tr('Default POS'),
+                                      style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                           color: Color(0xFF1D4ED8)),
@@ -526,9 +545,9 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                                       color: const Color(0xFFFFEDD5),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    child: const Text(
-                                      'KOT Kitchen',
-                                      style: TextStyle(
+                                    child: Text(
+                                      PosLocalization.tr('KOT Kitchen'),
+                                      style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                           color: Color(0xFFC2410C)),
@@ -547,8 +566,8 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.bolt_rounded, size: 15),
-                        label: const Text('Test Print',
-                            style: TextStyle(fontSize: 11.5)),
+                        label: Text(PosLocalization.tr('Test Print'),
+                            style: const TextStyle(fontSize: 11.5)),
                         onPressed: () => _testPrint(pr),
                       ),
                       const SizedBox(width: 6),
@@ -563,17 +582,17 @@ class _PrinterManagementSectionState extends State<PrinterManagementSection> {
                             widget.onSettingsUpdated(next);
                             _loadPrinters();
                           },
-                          child: const Text('Set Default',
-                              style: TextStyle(fontSize: 11.5)),
+                          child: Text(PosLocalization.tr('Set Default'),
+                              style: const TextStyle(fontSize: 11.5)),
                         ),
                       IconButton(
-                        tooltip: 'Edit Printer',
+                        tooltip: PosLocalization.tr('Edit Printer'),
                         icon: const Icon(Icons.edit_outlined,
                             size: 18, color: Color(0xFF4F46E5)),
                         onPressed: () => _showPrinterDialog(pr),
                       ),
                       IconButton(
-                        tooltip: 'Delete Printer',
+                        tooltip: PosLocalization.tr('Delete Printer'),
                         icon: const Icon(Icons.delete_outline_rounded,
                             size: 18, color: Color(0xFFEF4444)),
                         onPressed: () async {

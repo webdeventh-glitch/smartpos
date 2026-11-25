@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/localization_service.dart';
 
 class StatusPill extends StatelessWidget {
   final String status;
@@ -10,7 +11,8 @@ class StatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     Color bg;
     Color fg;
-    String label = customLabel ?? status.toUpperCase();
+    final String label =
+        customLabel ?? PosLocalization.tr(status.toUpperCase());
 
     switch (status.toLowerCase()) {
       case 'paid':

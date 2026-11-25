@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class QuickAddSupplierDialog extends StatefulWidget {
   final BusinessSettings settings;
@@ -149,7 +150,7 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Quick Add Supplier / Vendor',
+                        PosLocalization.tr('Quick Add Supplier / Vendor'),
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -175,7 +176,7 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Supplier Name *',
+                              Text(PosLocalization.tr('Supplier Name *'),
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -186,7 +187,8 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                                 style:
                                     TextStyle(fontSize: 13, color: textPrimary),
                                 decoration: inputDeco.copyWith(
-                                    hintText: 'e.g. Abbott Wholesale Depot'),
+                                    hintText: PosLocalization.tr(
+                                        'e.g. Abbott Wholesale Depot')),
                                 validator: (v) =>
                                     (v == null || v.trim().isEmpty)
                                         ? 'Name required'
@@ -200,7 +202,8 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Business / Company Name',
+                              Text(
+                                  PosLocalization.tr('Business / Company Name'),
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -211,7 +214,8 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                                 style:
                                     TextStyle(fontSize: 13, color: textPrimary),
                                 decoration: inputDeco.copyWith(
-                                    hintText: 'e.g. Abbott Laboratories'),
+                                    hintText: PosLocalization.tr(
+                                        'e.g. Abbott Laboratories')),
                               ),
                             ],
                           ),
@@ -225,7 +229,7 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Phone / Mobile Number',
+                              Text(PosLocalization.tr('Phone / Mobile Number'),
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -246,7 +250,7 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Email Address',
+                              Text(PosLocalization.tr('Email Address'),
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -272,7 +276,7 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Office / Depot Address',
+                              Text(PosLocalization.tr('Office / Depot Address'),
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -283,8 +287,8 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                                 style:
                                     TextStyle(fontSize: 13, color: textPrimary),
                                 decoration: inputDeco.copyWith(
-                                    hintText:
-                                        'e.g. Commercial Market, Karachi'),
+                                    hintText: PosLocalization.tr(
+                                        'e.g. Commercial Market, Karachi')),
                               ),
                             ],
                           ),
@@ -343,7 +347,7 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
+                      child: Text(PosLocalization.tr('Cancel')),
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton.icon(
@@ -362,8 +366,8 @@ class _QuickAddSupplierDialogState extends State<QuickAddSupplierDialog> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.check_rounded, size: 17),
-                      label: const Text('Save & Select',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(PosLocalization.tr('Save & Select'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _isSaving ? null : _save,
                     ),
                   ],

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class WooCommerceSyncScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -75,9 +76,10 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
     );
     if (showToast && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('WooCommerce API settings saved to SQLite.'),
-          backgroundColor: Color(0xFF10B981),
+        SnackBar(
+          content: Text(
+              PosLocalization.tr('WooCommerce API settings saved to SQLite.')),
+          backgroundColor: const Color(0xFF10B981),
         ),
       );
     }
@@ -111,9 +113,9 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
     final parsed = Uri.tryParse(rawUrl);
     if (parsed == null || !parsed.hasScheme || parsed.host.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Enter a valid store URL (https://...) before syncing.'),
+        SnackBar(
+          content: Text(PosLocalization.tr(
+              'Enter a valid store URL (https://...) before syncing.')),
           backgroundColor: Colors.red,
         ),
       );
@@ -282,9 +284,9 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
     final parsed = Uri.tryParse(rawUrl);
     if (parsed == null || !parsed.hasScheme || parsed.host.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Enter a valid store URL (https://...) before syncing.'),
+        SnackBar(
+          content: Text(PosLocalization.tr(
+              'Enter a valid store URL (https://...) before syncing.')),
           backgroundColor: Colors.red,
         ),
       );
@@ -361,9 +363,9 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
     final parsed = Uri.tryParse(rawUrl);
     if (parsed == null || !parsed.hasScheme || parsed.host.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Enter a valid store URL (https://...) before syncing.'),
+        SnackBar(
+          content: Text(PosLocalization.tr(
+              'Enter a valid store URL (https://...) before syncing.')),
           backgroundColor: Colors.red,
         ),
       );
@@ -439,7 +441,7 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
                 color: Color(0xFF9333EA), size: 22),
             const SizedBox(width: 10),
             Text(
-              'WooCommerce & Online Store Integration',
+              PosLocalization.tr('WooCommerce & Online Store Integration'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -479,7 +481,7 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
               ),
               onPressed: _isSyncing ? null : _pushStockToStore,
               icon: const Icon(Icons.cloud_upload_outlined, size: 16),
-              label: const Text('Push Stock'),
+              label: Text(PosLocalization.tr('Push Stock')),
             ),
           ),
           Padding(
@@ -534,7 +536,7 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'No Online WooCommerce Orders Yet',
+              PosLocalization.tr('No Online WooCommerce Orders Yet'),
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
@@ -542,9 +544,10 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Click "Fetch Online Orders" above to import pending purchases from your website.',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
+            Text(
+              PosLocalization.tr(
+                  'Click "Fetch Online Orders" above to import pending purchases from your website.'),
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -554,7 +557,7 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
               ),
               onPressed: _isSyncing ? null : _fetchOnlineOrders,
               icon: const Icon(Icons.cloud_download_rounded, size: 18),
-              label: const Text('Fetch Online Orders Now'),
+              label: Text(PosLocalization.tr('Fetch Online Orders Now')),
             ),
           ],
         ),
@@ -731,7 +734,9 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
                     const Icon(Icons.vpn_key_rounded,
                         color: Color(0xFF9333EA), size: 20),
                     const SizedBox(width: 8),
-                    Text('WooCommerce REST API Configuration',
+                    Text(
+                        PosLocalization.tr(
+                            'WooCommerce REST API Configuration'),
                         style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
@@ -746,7 +751,8 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
                   style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
-                    labelText: 'WordPress / WooCommerce Store Website URL',
+                    labelText: PosLocalization.tr(
+                        'WordPress / WooCommerce Store Website URL'),
                     labelStyle: TextStyle(
                         color: isDark
                             ? const Color(0xFF94A3B8)
@@ -767,7 +773,8 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
                                 ? Colors.white
                                 : const Color(0xFF0F172A)),
                         decoration: InputDecoration(
-                          labelText: 'Consumer Key (ck_...)',
+                          labelText:
+                              PosLocalization.tr('Consumer Key (ck_...)'),
                           labelStyle: TextStyle(
                               color: isDark
                                   ? const Color(0xFF94A3B8)
@@ -787,7 +794,8 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
                                 ? Colors.white
                                 : const Color(0xFF0F172A)),
                         decoration: InputDecoration(
-                          labelText: 'Consumer Secret (cs_...)',
+                          labelText:
+                              PosLocalization.tr('Consumer Secret (cs_...)'),
                           labelStyle: TextStyle(
                               color: isDark
                                   ? const Color(0xFF94A3B8)
@@ -802,13 +810,15 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
                 const SizedBox(height: 14),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text(
-                      'Auto-fetch online customer orders periodically',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  subtitle: const Text(
-                      'Periodically pulls pending website sales into local POS order queue',
-                      style: TextStyle(fontSize: 11)),
+                  title: Text(
+                      PosLocalization.tr(
+                          'Auto-fetch online customer orders periodically'),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: Text(
+                      PosLocalization.tr(
+                          'Periodically pulls pending website sales into local POS order queue'),
+                      style: const TextStyle(fontSize: 11)),
                   value: _autoSyncOrders,
                   activeThumbColor: const Color(0xFF9333EA),
                   onChanged: (v) {
@@ -823,7 +833,7 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
                     OutlinedButton.icon(
                       icon: const Icon(Icons.health_and_safety_outlined,
                           size: 16),
-                      label: const Text('Test Connection Ping'),
+                      label: Text(PosLocalization.tr('Test Connection Ping')),
                       onPressed: _triggerManualPing,
                     ),
                     ElevatedButton.icon(
@@ -832,7 +842,7 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
                         foregroundColor: Colors.white,
                       ),
                       icon: const Icon(Icons.save_outlined, size: 16),
-                      label: const Text('Save API Credentials'),
+                      label: Text(PosLocalization.tr('Save API Credentials')),
                       onPressed: () => _saveConfig(),
                     ),
                   ],
@@ -847,9 +857,9 @@ class _WooCommerceSyncScreenState extends State<WooCommerceSyncScreen>
 
   Widget _buildLogsTab(bool isDark) {
     if (_syncLogs.isEmpty) {
-      return const Center(
-        child: Text('No sync activity logs recorded yet.',
-            style: TextStyle(color: Colors.grey)),
+      return Center(
+        child: Text(PosLocalization.tr('No sync activity logs recorded yet.'),
+            style: const TextStyle(color: Colors.grey)),
       );
     }
     return ListView.separated(

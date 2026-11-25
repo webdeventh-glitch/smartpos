@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 /// Step 6.5: Discount Schedules & Promotional Rules Engine UI.
 class DiscountRulesScreen extends StatefulWidget {
@@ -107,10 +108,11 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                 children: [
                   TextField(
                     controller: nameCtrl,
-                    decoration: const InputDecoration(
-                        labelText: 'Rule Name (e.g., Weekend 15% Off)',
+                    decoration: InputDecoration(
+                        labelText: PosLocalization.tr(
+                            'Rule Name (e.g., Weekend 15% Off)'),
                         isDense: true,
-                        border: OutlineInputBorder()),
+                        border: const OutlineInputBorder()),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -118,23 +120,27 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: ruleType,
-                          decoration: const InputDecoration(
-                              labelText: 'Rule Mode',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Rule Mode'),
                               isDense: true,
-                              border: OutlineInputBorder()),
-                          items: const [
+                              border: const OutlineInputBorder()),
+                          items: [
                             DropdownMenuItem(
                                 value: 'standard',
-                                child: Text('Standard Promo')),
+                                child:
+                                    Text(PosLocalization.tr('Standard Promo'))),
                             DropdownMenuItem(
                                 value: 'buy_x_get_y',
-                                child: Text('Buy X Get Y Free')),
+                                child: Text(
+                                    PosLocalization.tr('Buy X Get Y Free'))),
                             DropdownMenuItem(
                                 value: 'quantity_break',
-                                child: Text('Quantity Break')),
+                                child:
+                                    Text(PosLocalization.tr('Quantity Break'))),
                             DropdownMenuItem(
                                 value: 'time_based',
-                                child: Text('Time-Based Happy Hour')),
+                                child: Text(PosLocalization.tr(
+                                    'Time-Based Happy Hour'))),
                           ],
                           onChanged: (v) =>
                               setDlg(() => ruleType = v ?? 'standard'),
@@ -146,10 +152,10 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                         child: TextField(
                           controller: priorityCtrl,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                              labelText: 'Priority',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Priority'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                     ],
@@ -162,10 +168,10 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                           child: TextField(
                             controller: buyQtyCtrl,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                                labelText: 'Buy X Qty',
+                            decoration: InputDecoration(
+                                labelText: PosLocalization.tr('Buy X Qty'),
                                 isDense: true,
-                                border: OutlineInputBorder()),
+                                border: const OutlineInputBorder()),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -173,10 +179,10 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                           child: TextField(
                             controller: freeQtyCtrl,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                                labelText: 'Get Y Free Qty',
+                            decoration: InputDecoration(
+                                labelText: PosLocalization.tr('Get Y Free Qty'),
                                 isDense: true,
-                                border: OutlineInputBorder()),
+                                border: const OutlineInputBorder()),
                           ),
                         ),
                       ],
@@ -187,16 +193,19 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             initialValue: discountType,
-                            decoration: const InputDecoration(
-                                labelText: 'Discount Type',
+                            decoration: InputDecoration(
+                                labelText: PosLocalization.tr('Discount Type'),
                                 isDense: true,
-                                border: OutlineInputBorder()),
-                            items: const [
+                                border: const OutlineInputBorder()),
+                            items: [
                               DropdownMenuItem(
                                   value: 'percentage',
-                                  child: Text('Percentage (%)')),
+                                  child: Text(
+                                      PosLocalization.tr('Percentage (%)'))),
                               DropdownMenuItem(
-                                  value: 'fixed', child: Text('Fixed Amount')),
+                                  value: 'fixed',
+                                  child:
+                                      Text(PosLocalization.tr('Fixed Amount'))),
                             ],
                             onChanged: (v) =>
                                 setDlg(() => discountType = v ?? 'percentage'),
@@ -208,10 +217,10 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                             controller: amountCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true),
-                            decoration: const InputDecoration(
-                                labelText: 'Value',
+                            decoration: InputDecoration(
+                                labelText: PosLocalization.tr('Value'),
                                 isDense: true,
-                                border: OutlineInputBorder()),
+                                border: const OutlineInputBorder()),
                           ),
                         ),
                         if (ruleType == 'quantity_break') ...[
@@ -220,10 +229,10 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                             child: TextField(
                               controller: minQtyCtrl,
                               keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                  labelText: 'Min Qty',
+                              decoration: InputDecoration(
+                                  labelText: PosLocalization.tr('Min Qty'),
                                   isDense: true,
-                                  border: OutlineInputBorder()),
+                                  border: const OutlineInputBorder()),
                             ),
                           ),
                         ],
@@ -235,20 +244,22 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                       Expanded(
                         child: TextField(
                           controller: startsCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'Start Date (YYYY-MM-DD)',
+                          decoration: InputDecoration(
+                              labelText:
+                                  PosLocalization.tr('Start Date (YYYY-MM-DD)'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
                           controller: endsCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'End Date (YYYY-MM-DD)',
+                          decoration: InputDecoration(
+                              labelText:
+                                  PosLocalization.tr('End Date (YYYY-MM-DD)'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                     ],
@@ -259,27 +270,31 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                       Expanded(
                         child: TextField(
                           controller: startTimeCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'Start Time HH:mm (optional)',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr(
+                                  'Start Time HH:mm (optional)'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
                           controller: endTimeCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'End Time HH:mm (optional)',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr(
+                                  'End Time HH:mm (optional)'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  const Text('Days of Week (leave empty for all days)',
-                      style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text(
+                      PosLocalization.tr(
+                          'Days of Week (leave empty for all days)'),
+                      style: const TextStyle(fontSize: 11, color: Colors.grey)),
                   const SizedBox(height: 4),
                   Wrap(
                     spacing: 6,
@@ -305,13 +320,15 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                       Expanded(
                         child: DropdownButtonFormField<int?>(
                           initialValue: categoryId,
-                          decoration: const InputDecoration(
-                              labelText: 'Category Scope',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Category Scope'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                           items: [
-                            const DropdownMenuItem<int?>(
-                                value: null, child: Text('All Categories')),
+                            DropdownMenuItem<int?>(
+                                value: null,
+                                child:
+                                    Text(PosLocalization.tr('All Categories'))),
                             ...categories.map((c) => DropdownMenuItem<int?>(
                                 value: c.id, child: Text(c.name))),
                           ],
@@ -322,13 +339,14 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                       Expanded(
                         child: DropdownButtonFormField<int?>(
                           initialValue: brandId,
-                          decoration: const InputDecoration(
-                              labelText: 'Brand Scope',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Brand Scope'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                           items: [
-                            const DropdownMenuItem<int?>(
-                                value: null, child: Text('All Brands')),
+                            DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text(PosLocalization.tr('All Brands'))),
                             ...brands.map((b) => DropdownMenuItem<int?>(
                                 value: b.id, child: Text(b.name))),
                           ],
@@ -339,8 +357,8 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Rule Active in POS',
-                        style: TextStyle(fontSize: 13)),
+                    title: Text(PosLocalization.tr('Rule Active in POS'),
+                        style: const TextStyle(fontSize: 13)),
                     value: isActive,
                     onChanged: (v) => setDlg(() => isActive = v),
                   ),
@@ -351,7 +369,7 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+                child: Text(PosLocalization.tr('Cancel'))),
             ElevatedButton(
               onPressed: saving
                   ? null
@@ -444,7 +462,9 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Discount Schedules & Auto-Promos',
+                      Text(
+                          PosLocalization.tr(
+                              'Discount Schedules & Auto-Promos'),
                           style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -452,7 +472,8 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                                   ? Colors.white
                                   : const Color(0xFF0F172A))),
                       Text(
-                          'Configure Buy X Get Y, Quantity Breaks, and Time-Based rules auto-evaluated at POS',
+                          PosLocalization.tr(
+                              'Configure Buy X Get Y, Quantity Breaks, and Time-Based rules auto-evaluated at POS'),
                           style: TextStyle(
                               fontSize: 12,
                               color: isDark
@@ -467,7 +488,7 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                       foregroundColor: Colors.white),
                   onPressed: () => _showRuleDialog(),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('New Discount Rule'),
+                  label: Text(PosLocalization.tr('New Discount Rule')),
                 ),
               ],
             ),
@@ -482,10 +503,11 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
                     : _rules.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
-                                'No scheduled discount rules configured yet.',
-                                style: TextStyle(color: Colors.grey)))
+                                PosLocalization.tr(
+                                    'No scheduled discount rules configured yet.'),
+                                style: const TextStyle(color: Colors.grey)))
                         : ListView.separated(
                             itemCount: _rules.length,
                             separatorBuilder: (_, __) =>
@@ -545,13 +567,14 @@ class _DiscountRulesScreenState extends State<DiscountRulesScreen> {
                                       },
                                     ),
                                     IconButton(
-                                      tooltip: 'Edit Rule',
+                                      tooltip: PosLocalization.tr('Edit Rule'),
                                       icon: const Icon(Icons.edit_outlined,
                                           size: 18),
                                       onPressed: () => _showRuleDialog(r),
                                     ),
                                     IconButton(
-                                      tooltip: 'Delete Rule',
+                                      tooltip:
+                                          PosLocalization.tr('Delete Rule'),
                                       icon: const Icon(Icons.delete_outline,
                                           size: 18, color: Colors.red),
                                       onPressed: r.id == null

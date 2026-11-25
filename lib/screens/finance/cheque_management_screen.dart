@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 /// Step 6.3: Cheque Management Screen (Due dates, Pending / Cleared / Bounced / Overdue workflow).
 class ChequeManagementScreen extends StatefulWidget {
@@ -102,7 +103,7 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Cheque Management',
+                      Text(PosLocalization.tr('Cheque Management'),
                           style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -110,7 +111,8 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
                                   ? Colors.white
                                   : const Color(0xFF0F172A))),
                       Text(
-                          'Track customer & supplier cheques, due dates, overdue alerts, and bank clearance status',
+                          PosLocalization.tr(
+                              'Track customer & supplier cheques, due dates, overdue alerts, and bank clearance status'),
                           style: TextStyle(
                               fontSize: 12,
                               color: isDark
@@ -120,7 +122,7 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Refresh Cheques',
+                  tooltip: PosLocalization.tr('Refresh Cheques'),
                   onPressed: _load,
                   icon: const Icon(Icons.refresh),
                 ),
@@ -188,11 +190,12 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
                   width: 260,
                   child: TextField(
                     controller: _searchCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'Search cheque #, bank, contact...',
-                      prefixIcon: Icon(Icons.search, size: 18),
+                    decoration: InputDecoration(
+                      hintText: PosLocalization.tr(
+                          'Search cheque #, bank, contact...'),
+                      prefixIcon: const Icon(Icons.search, size: 18),
                       isDense: true,
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (v) {
                       _search = v;
@@ -213,9 +216,10 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
                     : _cheques.isEmpty
-                        ? const Center(
-                            child: Text('No cheque records found.',
-                                style: TextStyle(color: Colors.grey)))
+                        ? Center(
+                            child: Text(
+                                PosLocalization.tr('No cheque records found.'),
+                                style: const TextStyle(color: Colors.grey)))
                         : ListView.separated(
                             itemCount: _cheques.length,
                             separatorBuilder: (_, __) =>
@@ -285,7 +289,8 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
                                             foregroundColor: Colors.white),
                                         onPressed: () =>
                                             _changeStatus(c, 'cleared'),
-                                        child: const Text('Clear'),
+                                        child:
+                                            Text(PosLocalization.tr('Clear')),
                                       ),
                                     if (c.chequeStatus == 'pending') ...[
                                       const SizedBox(width: 6),
@@ -294,7 +299,8 @@ class _ChequeManagementScreenState extends State<ChequeManagementScreen> {
                                             foregroundColor: Colors.red),
                                         onPressed: () =>
                                             _changeStatus(c, 'bounced'),
-                                        child: const Text('Bounced'),
+                                        child:
+                                            Text(PosLocalization.tr('Bounced')),
                                       ),
                                     ],
                                   ],

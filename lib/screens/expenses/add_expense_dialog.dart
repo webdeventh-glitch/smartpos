@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class AddExpenseDialog extends StatefulWidget {
   final BusinessSettings settings;
@@ -68,8 +69,9 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
     final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0.0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please enter a valid expense amount greater than 0'),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'Please enter a valid expense amount greater than 0')),
             backgroundColor: Colors.orange),
       );
       return;
@@ -195,7 +197,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Add Store Expense',
+                            PosLocalization.tr('Add Store Expense'),
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
@@ -204,7 +206,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Record petty cash, store maintenance, bills or overheads',
+                            PosLocalization.tr(
+                                'Record petty cash, store maintenance, bills or overheads'),
                             style:
                                 TextStyle(fontSize: 12, color: textSecondary),
                           ),
@@ -228,7 +231,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Expense Category
-                    Text('Expense Category *',
+                    Text(PosLocalization.tr('Expense Category *'),
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -344,7 +347,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Payment Method',
+                              Text(PosLocalization.tr('Payment Method'),
                                   style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -390,7 +393,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     const SizedBox(height: 16),
 
                     // Reference Number
-                    Text('Reference / Voucher No.',
+                    Text(PosLocalization.tr('Reference / Voucher No.'),
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -419,7 +422,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     const SizedBox(height: 16),
 
                     // Note / Remarks
-                    Text('Note / Remarks',
+                    Text(PosLocalization.tr('Note / Remarks'),
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -430,8 +433,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                       maxLines: 2,
                       style: TextStyle(fontSize: 13, color: textPrimary),
                       decoration: InputDecoration(
-                        hintText:
-                            'Enter expense details (e.g. Paid for tea & snacks, office maintenance)...',
+                        hintText: PosLocalization.tr(
+                            'Enter expense details (e.g. Paid for tea & snacks, office maintenance)...'),
                         hintStyle:
                             TextStyle(fontSize: 12, color: textSecondary),
                         filled: true,
@@ -477,8 +480,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel',
-                          style: TextStyle(
+                      child: Text(PosLocalization.tr('Cancel'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.w600, fontSize: 13)),
                     ),
                     const SizedBox(width: 10),
@@ -499,8 +502,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.check_rounded, size: 18),
-                      label: const Text('Save Expense',
-                          style: TextStyle(
+                      label: Text(PosLocalization.tr('Save Expense'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 13)),
                       onPressed: _isSaving ? null : _saveExpense,
                     ),

@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../widgets/record_contact_payment_dialog.dart';
 import 'contact_ledger_screen.dart';
+import '../../services/localization_service.dart';
 
 class SuppliersScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -116,7 +117,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Add Supplier / Vendor',
+                            PosLocalization.tr('Add Supplier / Vendor'),
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
@@ -126,7 +127,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                             ),
                           ),
                           Text(
-                            'Register vendor for procurement and purchase orders',
+                            PosLocalization.tr(
+                                'Register vendor for procurement and purchase orders'),
                             style: TextStyle(
                                 fontSize: 12,
                                 color: isDark
@@ -162,7 +164,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                     fontSize: 13,
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: inputDecoration.copyWith(
-                  hintText: 'e.g. Michael Smith',
+                  hintText: PosLocalization.tr('e.g. Michael Smith'),
                   hintStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF64748B)
@@ -183,7 +185,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                     fontSize: 13,
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: inputDecoration.copyWith(
-                  hintText: 'e.g. Apex Wholesalers Ltd',
+                  hintText: PosLocalization.tr('e.g. Apex Wholesalers Ltd'),
                   hintStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF64748B)
@@ -269,7 +271,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                     fontSize: 13,
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: inputDecoration.copyWith(
-                  hintText: 'Street address, City',
+                  hintText: PosLocalization.tr('Street address, City'),
                   hintStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF64748B)
@@ -302,8 +304,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                           borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Cancel',
-                        style: TextStyle(
+                    child: Text(PosLocalization.tr('Cancel'),
+                        style: const TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 13)),
                   ),
                   const SizedBox(width: 12),
@@ -321,9 +323,10 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                       final name = nameCtrl.text.trim();
                       if (name.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Supplier name is required.'),
-                            backgroundColor: Color(0xFFEA580C),
+                          SnackBar(
+                            content: Text(PosLocalization.tr(
+                                'Supplier name is required.')),
+                            backgroundColor: const Color(0xFFEA580C),
                           ),
                         );
                         return;
@@ -351,8 +354,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                       }
                       _load();
                     },
-                    child: const Text('Save Supplier',
-                        style: TextStyle(
+                    child: Text(PosLocalization.tr('Save Supplier'),
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
                 ],
@@ -418,8 +421,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.factory_rounded, size: 18),
-                  label: const Text('Add Supplier',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: Text(PosLocalization.tr('Add Supplier'),
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   onPressed: _openAddSupplier,
                 );
 
@@ -427,7 +430,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Suppliers & Vendors',
+                      PosLocalization.tr('Suppliers & Vendors'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -436,7 +439,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Manage manufacturers, product distributors, vendor invoices, and outstanding payables.',
+                      PosLocalization.tr(
+                          'Manage manufacturers, product distributors, vendor invoices, and outstanding payables.'),
                       style: TextStyle(
                           fontSize: 13,
                           color: isDark
@@ -518,7 +522,9 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                       ? Padding(
                           padding: const EdgeInsets.all(40),
                           child: Center(
-                              child: Text('No suppliers recorded yet.',
+                              child: Text(
+                                  PosLocalization.tr(
+                                      'No suppliers recorded yet.'),
                                   style: TextStyle(
                                       color: isDark
                                           ? const Color(0xFF64748B)
@@ -740,9 +746,10 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                                                         icon: const Icon(
                                                             Icons.outbox,
                                                             size: 14),
-                                                        label: const Text(
-                                                            'Pay Due',
-                                                            style: TextStyle(
+                                                        label: Text(
+                                                            PosLocalization.tr(
+                                                                'Pay Due'),
+                                                            style: const TextStyle(
                                                                 fontSize: 11,
                                                                 fontWeight:
                                                                     FontWeight
@@ -780,9 +787,10 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                                                       icon: const Icon(
                                                           Icons.receipt_long,
                                                           size: 14),
-                                                      label: const Text(
-                                                          'Ledger',
-                                                          style: TextStyle(
+                                                      label: Text(
+                                                          PosLocalization.tr(
+                                                              'Ledger'),
+                                                          style: const TextStyle(
                                                               fontSize: 11,
                                                               fontWeight:
                                                                   FontWeight

@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
 
 class SellingPriceGroupsScreen extends StatefulWidget {
@@ -79,8 +80,10 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                       children: [
                         Text(
                           group != null
-                              ? 'Edit Selling Price Group'
-                              : 'Add Selling Price Group',
+                              ? PosLocalization.tr('Edit Selling Price Group',
+                                  settings: widget.settings)
+                              : PosLocalization.tr('Add Selling Price Group',
+                                  settings: widget.settings),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
@@ -101,24 +104,33 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                     const SizedBox(height: 18),
 
                     // Name
-                    _buildFieldLabel('Group Name',
-                        isRequired: true, isDark: isDark),
+                    _buildFieldLabel(
+                        PosLocalization.tr('Group Name',
+                            settings: widget.settings),
+                        isRequired: true,
+                        isDark: isDark),
                     TextFormField(
                       controller: nameCtrl,
                       style: TextStyle(
                           color:
                               isDark ? Colors.white : const Color(0xFF0F172A)),
                       decoration: _inputDecor(
-                          'e.g. Wholesale, Distributor, VIP Customer',
+                          PosLocalization.tr(
+                              'e.g. Wholesale, Distributor, VIP Customer',
+                              settings: widget.settings),
                           isDark: isDark),
                       validator: (val) => val == null || val.trim().isEmpty
-                          ? 'Please enter a name'
+                          ? PosLocalization.tr('Please enter a name',
+                              settings: widget.settings)
                           : null,
                     ),
                     const SizedBox(height: 16),
 
                     // Description
-                    _buildFieldLabel('Description', isDark: isDark),
+                    _buildFieldLabel(
+                        PosLocalization.tr('Description',
+                            settings: widget.settings),
+                        isDark: isDark),
                     TextFormField(
                       controller: descCtrl,
                       maxLines: 2,
@@ -126,7 +138,9 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                           color:
                               isDark ? Colors.white : const Color(0xFF0F172A)),
                       decoration: _inputDecor(
-                          'e.g. Standard wholesale pricing with 15% discount',
+                          PosLocalization.tr(
+                              'e.g. Standard wholesale pricing with 15% discount',
+                              settings: widget.settings),
                           isDark: isDark),
                     ),
                     const SizedBox(height: 16),
@@ -152,7 +166,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Active Status',
+                                PosLocalization.tr('Active Status',
+                                    settings: widget.settings),
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
@@ -162,7 +177,9 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                 ),
                               ),
                               Text(
-                                'Enable this price group during billing',
+                                PosLocalization.tr(
+                                    'Enable this price group during billing',
+                                    settings: widget.settings),
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: isDark
@@ -202,7 +219,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                 borderRadius: BorderRadius.circular(8)),
                           ),
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Cancel'),
+                          child: Text(PosLocalization.tr('Cancel',
+                              settings: widget.settings)),
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton.icon(
@@ -238,8 +256,11 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                             _loadGroups();
                           },
                           icon: const Icon(Icons.check, size: 16),
-                          label: Text(
-                              group != null ? 'Update Group' : 'Save Group'),
+                          label: Text(group != null
+                              ? PosLocalization.tr('Update Group',
+                                  settings: widget.settings)
+                              : PosLocalization.tr('Save Group',
+                                  settings: widget.settings)),
                         ),
                       ],
                     ),
@@ -259,10 +280,15 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        title: Text('Delete Price Group',
+        title: Text(
+            PosLocalization.tr('Delete Price Group', settings: widget.settings),
             style: TextStyle(
                 color: isDark ? Colors.white : const Color(0xFF0F172A))),
-        content: Text('Are you sure you want to delete "${group.name}"?',
+        content: Text(
+            PosLocalization.trParams(
+                'Are you sure you want to delete "{name}"?',
+                {'name': group.name},
+                settings: widget.settings),
             style: TextStyle(
                 color: isDark
                     ? const Color(0xFFCBD5E1)
@@ -270,7 +296,7 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel',
+            child: Text(PosLocalization.tr('Cancel', settings: widget.settings),
                 style: TextStyle(
                     color: isDark
                         ? const Color(0xFF94A3B8)
@@ -281,7 +307,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                 backgroundColor: const Color(0xFFEF4444),
                 foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child:
+                Text(PosLocalization.tr('Delete', settings: widget.settings)),
           ),
         ],
       ),
@@ -387,7 +414,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Selling Price Groups',
+                        PosLocalization.tr('Selling Price Groups',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -397,7 +425,9 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Manage tiered pricing rules (Retail, Wholesale, VIP, Franchise)',
+                        PosLocalization.tr(
+                            'Manage tiered pricing rules (Retail, Wholesale, VIP, Franchise)',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 13,
                           color: isDark
@@ -421,8 +451,10 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                   ),
                   onPressed: () => _showAddEditDialog(),
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add Price Group',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: Text(
+                      PosLocalization.tr('Add Price Group',
+                          settings: widget.settings),
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ],
             ),
@@ -433,7 +465,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
               children: [
                 Expanded(
                   child: _buildMetricCard(
-                    title: 'Total Price Groups',
+                    title: PosLocalization.tr('Total Price Groups',
+                        settings: widget.settings),
                     value: '${_groups.length}',
                     icon: Icons.price_change_outlined,
                     color: const Color(0xFF4F46E5),
@@ -443,7 +476,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                 const SizedBox(width: 14),
                 Expanded(
                   child: _buildMetricCard(
-                    title: 'Active Groups',
+                    title: PosLocalization.tr('Active Groups',
+                        settings: widget.settings),
                     value: '$activeCount',
                     icon: Icons.check_circle_outline,
                     color: const Color(0xFF10B981),
@@ -453,7 +487,8 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                 const SizedBox(width: 14),
                 Expanded(
                   child: _buildMetricCard(
-                    title: 'Inactive Groups',
+                    title: PosLocalization.tr('Inactive Groups',
+                        settings: widget.settings),
                     value: '${_groups.length - activeCount}',
                     icon: Icons.pause_circle_outline,
                     color: const Color(0xFFF59E0B),
@@ -488,7 +523,9 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                         _currentPage = 1;
                       }),
                       decoration: InputDecoration(
-                        hintText: 'Search by group name or description...',
+                        hintText: PosLocalization.tr(
+                            'Search by group name or description...',
+                            settings: widget.settings),
                         hintStyle: TextStyle(
                             fontSize: 13,
                             color: isDark
@@ -561,8 +598,12 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                 const SizedBox(height: 12),
                                 Text(
                                   _searchQuery.isEmpty
-                                      ? 'No price groups found'
-                                      : 'No matching price groups found',
+                                      ? PosLocalization.tr(
+                                          'No price groups found',
+                                          settings: widget.settings)
+                                      : PosLocalization.tr(
+                                          'No matching price groups found',
+                                          settings: widget.settings),
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
@@ -573,7 +614,9 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Click "Add Price Group" to configure tiered prices.',
+                                  PosLocalization.tr(
+                                      'Click "Add Price Group" to configure tiered prices.',
+                                      settings: widget.settings),
                                   style: TextStyle(
                                       fontSize: 13,
                                       color: isDark
@@ -619,7 +662,11 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                                           : const Color(
                                                               0xFF475569)))),
                                           DataColumn(
-                                              label: Text('GROUP NAME',
+                                              label: Text(
+                                                  PosLocalization.tr(
+                                                      'GROUP NAME',
+                                                      settings:
+                                                          widget.settings),
                                                   style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.w800,
@@ -630,7 +677,11 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                                           : const Color(
                                                               0xFF475569)))),
                                           DataColumn(
-                                              label: Text('DESCRIPTION',
+                                              label: Text(
+                                                  PosLocalization.tr(
+                                                      'DESCRIPTION',
+                                                      settings:
+                                                          widget.settings),
                                                   style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.w800,
@@ -641,7 +692,10 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                                           : const Color(
                                                               0xFF475569)))),
                                           DataColumn(
-                                              label: Text('STATUS',
+                                              label: Text(
+                                                  PosLocalization.tr('STATUS',
+                                                      settings:
+                                                          widget.settings),
                                                   style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.w800,
@@ -652,7 +706,10 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                                           : const Color(
                                                               0xFF475569)))),
                                           DataColumn(
-                                              label: Text('ACTIONS',
+                                              label: Text(
+                                                  PosLocalization.tr('ACTIONS',
+                                                      settings:
+                                                          widget.settings),
                                                   style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.w800,
@@ -765,8 +822,14 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                                   ),
                                                   child: Text(
                                                     g.isActive
-                                                        ? 'Active'
-                                                        : 'Inactive',
+                                                        ? PosLocalization.tr(
+                                                            'Active',
+                                                            settings:
+                                                                widget.settings)
+                                                        : PosLocalization.tr(
+                                                            'Inactive',
+                                                            settings: widget
+                                                                .settings),
                                                     style: TextStyle(
                                                       fontSize: 11,
                                                       fontWeight:
@@ -798,7 +861,11 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                                                   0xFF818CF8)
                                                               : const Color(
                                                                   0xFF4F46E5)),
-                                                      tooltip: 'Edit Group',
+                                                      tooltip:
+                                                          PosLocalization.tr(
+                                                              'Edit Group',
+                                                              settings: widget
+                                                                  .settings),
                                                       onPressed: () =>
                                                           _showAddEditDialog(g),
                                                     ),
@@ -808,7 +875,11 @@ class _SellingPriceGroupsScreenState extends State<SellingPriceGroupsScreen> {
                                                           size: 16,
                                                           color: Color(
                                                               0xFFEF4444)),
-                                                      tooltip: 'Delete Group',
+                                                      tooltip:
+                                                          PosLocalization.tr(
+                                                              'Delete Group',
+                                                              settings: widget
+                                                                  .settings),
                                                       onPressed: () =>
                                                           _deleteGroup(g),
                                                     ),

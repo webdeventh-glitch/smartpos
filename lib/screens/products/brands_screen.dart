@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
 
 class BrandsScreen extends StatefulWidget {
@@ -77,7 +78,11 @@ class _BrandsScreenState extends State<BrandsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      brandToEdit == null ? 'Add Brand' : 'Edit Brand',
+                      brandToEdit == null
+                          ? PosLocalization.tr('Add Brand',
+                              settings: widget.settings)
+                          : PosLocalization.tr('Edit Brand',
+                              settings: widget.settings),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -95,18 +100,25 @@ class _BrandsScreenState extends State<BrandsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _fieldLabel('Brand Name *', isDark),
+                _fieldLabel(
+                    '${PosLocalization.tr('Brand Name', settings: widget.settings)} *',
+                    isDark),
                 const SizedBox(height: 6),
                 TextField(
                   controller: nameCtrl,
                   style: TextStyle(
                       fontSize: 13,
                       color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                  decoration:
-                      _inputDeco('e.g. Coca-Cola, Samsung, Nestle', isDark),
+                  decoration: _inputDeco(
+                      PosLocalization.tr('e.g. Coca-Cola, Samsung, Nestle',
+                          settings: widget.settings),
+                      isDark),
                 ),
                 const SizedBox(height: 14),
-                _fieldLabel('Short Description', isDark),
+                _fieldLabel(
+                    PosLocalization.tr('Short Description',
+                        settings: widget.settings),
+                    isDark),
                 const SizedBox(height: 6),
                 TextField(
                   controller: descCtrl,
@@ -114,8 +126,10 @@ class _BrandsScreenState extends State<BrandsScreen> {
                   style: TextStyle(
                       fontSize: 13,
                       color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                  decoration:
-                      _inputDeco('Optional notes or brand details', isDark),
+                  decoration: _inputDeco(
+                      PosLocalization.tr('Optional notes or brand details',
+                          settings: widget.settings),
+                      isDark),
                 ),
                 const SizedBox(height: 22),
                 Row(
@@ -123,7 +137,9 @@ class _BrandsScreenState extends State<BrandsScreen> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: Text('Cancel',
+                      child: Text(
+                          PosLocalization.tr('Cancel',
+                              settings: widget.settings),
                           style: TextStyle(
                               color: isDark
                                   ? const Color(0xFF94A3B8)
@@ -144,8 +160,10 @@ class _BrandsScreenState extends State<BrandsScreen> {
                         final name = nameCtrl.text.trim();
                         if (name.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Please enter brand name')),
+                            SnackBar(
+                                content: Text(PosLocalization.tr(
+                                    'Please enter brand name',
+                                    settings: widget.settings))),
                           );
                           return;
                         }
@@ -165,8 +183,11 @@ class _BrandsScreenState extends State<BrandsScreen> {
                         if (ctx.mounted) Navigator.pop(ctx);
                         _load();
                       },
-                      child: Text(
-                          brandToEdit == null ? 'Save Brand' : 'Update Brand'),
+                      child: Text(brandToEdit == null
+                          ? PosLocalization.tr('Save Brand',
+                              settings: widget.settings)
+                          : PosLocalization.tr('Update Brand',
+                              settings: widget.settings)),
                     ),
                   ],
                 ),
@@ -184,13 +205,20 @@ class _BrandsScreenState extends State<BrandsScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Cannot Delete Brand'),
+          title: Text(PosLocalization.tr('Cannot Delete Brand',
+              settings: widget.settings)),
           content: Text(
-            'Brand "${brand.name}" has $prodsCount active products associated with it. Please reassign or delete these products before deleting the brand.',
+            PosLocalization.trParams(
+              'Brand "{name}" has {count} active products associated with it. Please reassign or delete these products before deleting the brand.',
+              {'name': brand.name, 'count': '$prodsCount'},
+              settings: widget.settings,
+            ),
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+                onPressed: () => Navigator.pop(ctx),
+                child:
+                    Text(PosLocalization.tr('OK', settings: widget.settings))),
           ],
         ),
       );
@@ -200,19 +228,24 @@ class _BrandsScreenState extends State<BrandsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Brand?'),
-        content: Text(
-            'Are you sure you want to permanently delete "${brand.name}"?'),
+        title: Text(
+            PosLocalization.tr('Delete Brand?', settings: widget.settings)),
+        content: Text(PosLocalization.trParams(
+            'Are you sure you want to permanently delete "{name}"?',
+            {'name': brand.name},
+            settings: widget.settings)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(
+                  PosLocalization.tr('Cancel', settings: widget.settings))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFDC2626),
                 foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child:
+                Text(PosLocalization.tr('Delete', settings: widget.settings)),
           ),
         ],
       ),
@@ -297,7 +330,8 @@ class _BrandsScreenState extends State<BrandsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Brands Management',
+                        PosLocalization.tr('Brands Management',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -308,7 +342,9 @@ class _BrandsScreenState extends State<BrandsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Manage manufacturers, labels, and brands for product categorization.',
+                        PosLocalization.tr(
+                            'Manage manufacturers, labels, and brands for product categorization.',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 13,
                           color: isDark
@@ -332,8 +368,10 @@ class _BrandsScreenState extends State<BrandsScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Brand',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: Text(
+                      PosLocalization.tr('Add Brand',
+                          settings: widget.settings),
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
                   onPressed: () => _openBrandDialog(),
                 ),
               ],
@@ -362,7 +400,9 @@ class _BrandsScreenState extends State<BrandsScreen> {
                       onChanged: (val) =>
                           setState(() => _search = val.trim().toLowerCase()),
                       decoration: InputDecoration(
-                        hintText: 'Search brand name or notes...',
+                        hintText: PosLocalization.tr(
+                            'Search brand name or notes...',
+                            settings: widget.settings),
                         hintStyle: TextStyle(
                             fontSize: 13,
                             color: isDark
@@ -413,7 +453,9 @@ class _BrandsScreenState extends State<BrandsScreen> {
                               : const Color(0xFFC7D2FE)),
                     ),
                     child: Text(
-                      '${filtered.length} Brands found',
+                      PosLocalization.trParams('{count} Brands found',
+                          {'count': '${filtered.length}'},
+                          settings: widget.settings),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -455,7 +497,8 @@ class _BrandsScreenState extends State<BrandsScreen> {
                             : Colors.grey.shade400),
                     const SizedBox(height: 12),
                     Text(
-                      'No Brands Found',
+                      PosLocalization.tr('No Brands Found',
+                          settings: widget.settings),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -464,7 +507,9 @@ class _BrandsScreenState extends State<BrandsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Click "Add Brand" above to register your first brand.',
+                      PosLocalization.tr(
+                          'Click "Add Brand" above to register your first brand.',
+                          settings: widget.settings),
                       style: TextStyle(
                           color: isDark
                               ? const Color(0xFF94A3B8)
@@ -518,11 +563,23 @@ class _BrandsScreenState extends State<BrandsScreen> {
                                             ? const Color(0xFF0F172A)
                                             : const Color(0xFFF8FAFC)),
                                     children: [
-                                      _th('Brand Name', isDark: isDark),
-                                      _th('Description', isDark: isDark),
-                                      _th('Products Linked', isDark: isDark),
-                                      _th('Actions',
-                                          alignRight: true, isDark: isDark),
+                                      _th(
+                                          PosLocalization.tr('Brand Name',
+                                              settings: widget.settings),
+                                          isDark: isDark),
+                                      _th(
+                                          PosLocalization.tr('Description',
+                                              settings: widget.settings),
+                                          isDark: isDark),
+                                      _th(
+                                          PosLocalization.tr('Products Linked',
+                                              settings: widget.settings),
+                                          isDark: isDark),
+                                      _th(
+                                          PosLocalization.tr('Actions',
+                                              settings: widget.settings),
+                                          alignRight: true,
+                                          isDark: isDark),
                                     ],
                                   ),
                                   ...paginatedBrands.map((b) {
@@ -657,7 +714,9 @@ class _BrandsScreenState extends State<BrandsScreen> {
                                                 MainAxisAlignment.end,
                                             children: [
                                               IconButton(
-                                                tooltip: 'Edit Brand',
+                                                tooltip: PosLocalization.tr(
+                                                    'Edit Brand',
+                                                    settings: widget.settings),
                                                 icon: Icon(Icons.edit_outlined,
                                                     size: 18,
                                                     color: isDark
@@ -669,7 +728,9 @@ class _BrandsScreenState extends State<BrandsScreen> {
                                                     _openBrandDialog(b),
                                               ),
                                               IconButton(
-                                                tooltip: 'Delete Brand',
+                                                tooltip: PosLocalization.tr(
+                                                    'Delete Brand',
+                                                    settings: widget.settings),
                                                 icon: Icon(
                                                     Icons
                                                         .delete_outline_rounded,

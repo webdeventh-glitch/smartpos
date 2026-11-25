@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/localization_service.dart';
 
 class CalculatorDialog extends StatefulWidget {
   const CalculatorDialog({super.key});
@@ -145,7 +146,7 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
                             : const Color(0xFF4F46E5)),
                     const SizedBox(width: 8),
                     Text(
-                      'Calculator',
+                      PosLocalization.tr('Calculator'),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,

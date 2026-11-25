@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class ImportProductsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -161,22 +162,23 @@ Sony WH-1000XM5,Electronics,Sony,Pc,ELEC-503,260.00,20,312.00,10,2''';
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Import Products',
-                        style: TextStyle(
+                        PosLocalization.tr('Import Products'),
+                        style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF0F172A)),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Bulk upload products from CSV or spreadsheet template',
-                        style:
-                            TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                        PosLocalization.tr(
+                            'Bulk upload products from CSV or spreadsheet template'),
+                        style: const TextStyle(
+                            fontSize: 13, color: Color(0xFF64748B)),
                       ),
                     ],
                   ),
@@ -260,25 +262,27 @@ Sony WH-1000XM5,Electronics,Sony,Pc,ELEC-503,260.00,20,312.00,10,2''';
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.info_outline,
+                      const Icon(Icons.info_outline,
                           size: 20, color: Color(0xFF4F46E5)),
-                      SizedBox(width: 10),
-                      Text('Instructions & Column Mapping',
-                          style: TextStyle(
+                      const SizedBox(width: 10),
+                      Text(PosLocalization.tr('Instructions & Column Mapping'),
+                          style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                               color: Color(0xFF0F172A))),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    '1. The first line of the CSV must contain column headers.\n'
-                    '2. Required columns: "Product Name", "Purchase Price", "Selling Price".\n'
-                    '3. Optional columns: "Category", "Brand", "Unit", "SKU", "Opening Stock", "Alert Qty".\n'
-                    '4. If SKU is left blank, a unique SKU will automatically be generated.',
-                    style: TextStyle(
+                  Text(
+                    PosLocalization.tr(
+                      '1. The first line of the CSV must contain column headers.\n'
+                      '2. Required columns: "Product Name", "Purchase Price", "Selling Price".\n'
+                      '3. Optional columns: "Category", "Brand", "Unit", "SKU", "Opening Stock", "Alert Qty".\n'
+                      '4. If SKU is left blank, a unique SKU will automatically be generated.',
+                    ),
+                    style: const TextStyle(
                         fontSize: 13, color: Color(0xFF475569), height: 1.5),
                   ),
                   const SizedBox(height: 16),
@@ -296,7 +300,7 @@ Sony WH-1000XM5,Electronics,Sony,Pc,ELEC-503,260.00,20,312.00,10,2''';
                           _parseCsv(_sampleCsv);
                         },
                         icon: const Icon(Icons.refresh, size: 16),
-                        label: const Text('Reset Sample Data'),
+                        label: Text(PosLocalization.tr('Reset Sample Data')),
                       ),
                     ],
                   ),
@@ -316,15 +320,17 @@ Sony WH-1000XM5,Electronics,Sony,Pc,ELEC-503,260.00,20,312.00,10,2''';
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Paste CSV Text',
-                      style: TextStyle(
+                  Text(PosLocalization.tr('Paste CSV Text'),
+                      style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF0F172A))),
                   const SizedBox(height: 6),
-                  const Text(
-                      'You can paste data copied directly from Excel, Google Sheets, or a .csv file:',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                  Text(
+                      PosLocalization.tr(
+                          'You can paste data copied directly from Excel, Google Sheets, or a .csv file:'),
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF64748B))),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _csvInputCtrl,
@@ -397,12 +403,14 @@ Sony WH-1000XM5,Electronics,Sony,Pc,ELEC-503,260.00,20,312.00,10,2''';
                   ),
                   const Divider(height: 1, color: Color(0xFFE2E8F0)),
                   _parsedRows.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(32),
+                      ? Padding(
+                          padding: const EdgeInsets.all(32),
                           child: Center(
                               child: Text(
-                                  'No valid rows parsed. Please paste CSV data above.',
-                                  style: TextStyle(color: Color(0xFF94A3B8)))),
+                                  PosLocalization.tr(
+                                      'No valid rows parsed. Please paste CSV data above.'),
+                                  style: const TextStyle(
+                                      color: Color(0xFF94A3B8)))),
                         )
                       : ClipRRect(
                           borderRadius: const BorderRadius.vertical(
@@ -414,52 +422,53 @@ Sony WH-1000XM5,Electronics,Sony,Pc,ELEC-503,260.00,20,312.00,10,2''';
                                   const Color(0xFFF8FAFC)),
                               columnSpacing: 20,
                               horizontalMargin: 20,
-                              columns: const [
-                                DataColumn(
+                              columns: [
+                                const DataColumn(
                                     label: Text('#',
                                         style: TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 12,
                                             color: Color(0xFF475569)))),
                                 DataColumn(
-                                    label: Text('PRODUCT NAME',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('PRODUCT NAME'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 12,
                                             color: Color(0xFF475569)))),
-                                DataColumn(
+                                const DataColumn(
                                     label: Text('SKU',
                                         style: TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 12,
                                             color: Color(0xFF475569)))),
                                 DataColumn(
-                                    label: Text('CATEGORY',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('CATEGORY'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 12,
                                             color: Color(0xFF475569)))),
                                 DataColumn(
-                                    label: Text('BRAND',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('BRAND'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 12,
                                             color: Color(0xFF475569)))),
                                 DataColumn(
-                                    label: Text('PURCHASE',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('PURCHASE'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 12,
                                             color: Color(0xFF475569)))),
                                 DataColumn(
-                                    label: Text('SELLING',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('SELLING'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 12,
                                             color: Color(0xFF475569)))),
                                 DataColumn(
-                                    label: Text('STOCK',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('STOCK'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 12,
                                             color: Color(0xFF475569)))),

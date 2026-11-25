@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class HotelManagementScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -39,8 +40,10 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
         setState(() => _isLoading = false);
         await AppErrorHandler.showErrorDialog(
           context,
-          title: 'Load Failed',
-          message: 'Could not load hotel rooms from database.',
+          title: PosLocalization.tr('Load Failed', settings: widget.settings),
+          message: PosLocalization.tr(
+              'Could not load hotel rooms from database.',
+              settings: widget.settings),
           error: e,
           stackTrace: st,
           tag: 'HotelManagement',
@@ -62,7 +65,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           title: Text(
-            'Add New Room to Hotel',
+            PosLocalization.tr('Add New Room to Hotel',
+                settings: widget.settings),
             style: TextStyle(
               color: isDark ? Colors.white : const Color(0xFF0F172A),
               fontWeight: FontWeight.bold,
@@ -76,7 +80,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                 style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  labelText: 'Room Number (e.g. 301)*',
+                  labelText: PosLocalization.tr('Room Number (e.g. 301)*',
+                      settings: widget.settings),
                   labelStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -89,7 +94,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                 style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  labelText: 'Room Category / Type',
+                  labelText: PosLocalization.tr('Room Category / Type',
+                      settings: widget.settings),
                   labelStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -102,7 +108,9 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                 style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  labelText: 'Floor Location (e.g. 3rd Floor)',
+                  labelText: PosLocalization.tr(
+                      'Floor Location (e.g. 3rd Floor)',
+                      settings: widget.settings),
                   labelStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -116,7 +124,10 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                 style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  labelText: 'Nightly Rate (${widget.settings.currencySymbol})',
+                  labelText: PosLocalization.trParams(
+                      'Nightly Rate ({currency})',
+                      {'currency': widget.settings.currencySymbol},
+                      settings: widget.settings),
                   labelStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -128,7 +139,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel',
+              child: Text(
+                  PosLocalization.tr('Cancel', settings: widget.settings),
                   style: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -156,7 +168,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   _loadRooms();
                 }
               },
-              child: const Text('Add Room'),
+              child: Text(
+                  PosLocalization.tr('Add Room', settings: widget.settings)),
             ),
           ],
         );
@@ -176,7 +189,10 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          title: Text('Check-In Room ${room['room']}',
+          title: Text(
+              PosLocalization.trParams(
+                  'Check-In Room {room}', {'room': '${room['room']}'},
+                  settings: widget.settings),
               style: TextStyle(
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
                   fontWeight: FontWeight.bold)),
@@ -189,7 +205,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
-                    labelText: 'Primary Guest Full Name*',
+                    labelText: PosLocalization.tr('Primary Guest Full Name*',
+                        settings: widget.settings),
                     labelStyle: TextStyle(
                         color: isDark
                             ? const Color(0xFF94A3B8)
@@ -202,7 +219,9 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
-                    labelText: 'CNIC / National ID / Passport No.*',
+                    labelText: PosLocalization.tr(
+                        'CNIC / National ID / Passport No.*',
+                        settings: widget.settings),
                     labelStyle: TextStyle(
                         color: isDark
                             ? const Color(0xFF94A3B8)
@@ -215,7 +234,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
-                    labelText: 'Mobile Phone Number',
+                    labelText: PosLocalization.tr('Mobile Phone Number',
+                        settings: widget.settings),
                     labelStyle: TextStyle(
                         color: isDark
                             ? const Color(0xFF94A3B8)
@@ -229,7 +249,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF0F172A)),
                   decoration: InputDecoration(
-                    labelText: 'Number of Nights Stay',
+                    labelText: PosLocalization.tr('Number of Nights Stay',
+                        settings: widget.settings),
                     labelStyle: TextStyle(
                         color: isDark
                             ? const Color(0xFF94A3B8)
@@ -242,7 +263,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel',
+              child: Text(
+                  PosLocalization.tr('Cancel', settings: widget.settings),
                   style: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -267,7 +289,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   _loadRooms();
                 }
               },
-              child: const Text('Confirm Check-In'),
+              child: Text(PosLocalization.tr('Confirm Check-In',
+                  settings: widget.settings)),
             ),
           ],
         );
@@ -309,7 +332,9 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   color: Color(0xFF10B981), size: 24),
               const SizedBox(width: 8),
               Text(
-                'Room ${room['room']} Folio Settlement',
+                PosLocalization.trParams(
+                    'Room {room} Folio Settlement', {'room': '${room['room']}'},
+                    settings: widget.settings),
                 style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A),
                     fontWeight: FontWeight.bold),
@@ -334,11 +359,26 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Guest: ${room['guest'] ?? 'Hotel Guest'}',
+                        Text(
+                            PosLocalization.trParams(
+                                'Guest: {guest}',
+                                {
+                                  'guest':
+                                      '${room['guest'] ?? PosLocalization.tr('Hotel Guest', settings: widget.settings)}'
+                                },
+                                settings: widget.settings),
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 13)),
                         Text(
-                            'Room Type: ${room['type'] ?? 'Standard'} • Floor: ${room['floor'] ?? '1st Floor'}',
+                            PosLocalization.trParams(
+                                'Room Type: {type} • Floor: {floor}',
+                                {
+                                  'type':
+                                      '${room['type'] ?? PosLocalization.tr('Standard', settings: widget.settings)}',
+                                  'floor':
+                                      '${room['floor'] ?? PosLocalization.tr('1st Floor', settings: widget.settings)}',
+                                },
+                                settings: widget.settings),
                             style: TextStyle(
                                 fontSize: 11,
                                 color: isDark
@@ -348,23 +388,33 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text('Invoice Charges Breakdown:',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(
+                      PosLocalization.tr('Invoice Charges Breakdown:',
+                          settings: widget.settings),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
                   const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                          'Room Stay ($nights Nights @ $currency${rate.toStringAsFixed(0)}):'),
+                      Text(PosLocalization.trParams(
+                          'Room Stay ({nights} Nights @ {currency}{rate}):',
+                          {
+                            'nights': '$nights',
+                            'currency': currency,
+                            'rate': rate.toStringAsFixed(0),
+                          },
+                          settings: widget.settings)),
                       Text('$currency${roomRent.toStringAsFixed(2)}',
                           style: const TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                   if (pendingFolioItems.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    const Text('Itemized Room Folio Services:',
-                        style: TextStyle(
+                    Text(
+                        PosLocalization.tr('Itemized Room Folio Services:',
+                            settings: widget.settings),
+                        style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF3B82F6))),
@@ -377,7 +427,7 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                           children: [
                             Flexible(
                               child: Text(
-                                '• ${item['_title'] ?? item['title'] ?? item['description'] ?? 'Service'}',
+                                '• ${item['_title'] ?? item['title'] ?? item['description'] ?? PosLocalization.tr('Service', settings: widget.settings)}',
                                 style: TextStyle(
                                     fontSize: 11,
                                     color: isDark
@@ -400,7 +450,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Room Service Charges:'),
+                        Text(PosLocalization.tr('Room Service Charges:',
+                            settings: widget.settings)),
                         Text('$currency${roomService.toStringAsFixed(2)}',
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold)),
@@ -411,8 +462,10 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Total Payable Bill:',
-                          style: TextStyle(
+                      Text(
+                          PosLocalization.tr('Total Payable Bill:',
+                              settings: widget.settings),
+                          style: const TextStyle(
                               fontWeight: FontWeight.w900, fontSize: 15)),
                       Text('$currency${totalBill.toStringAsFixed(2)}',
                           style: const TextStyle(
@@ -428,7 +481,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child:
+                  Text(PosLocalization.tr('Cancel', settings: widget.settings)),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -436,7 +490,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.check_circle_outline, size: 16),
-              label: const Text('Settle Bill & Check Out'),
+              label: Text(PosLocalization.tr('Settle Bill & Check Out',
+                  settings: widget.settings)),
               onPressed: () => Navigator.pop(ctx, true),
             ),
           ],
@@ -553,8 +608,14 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              'Room ${room['room']} billed ($currency${totalBill.toStringAsFixed(0)}) & marked for housekeeping.'),
+          content: Text(PosLocalization.trParams(
+              'Room {room} billed ({currency}{total}) & marked for housekeeping.',
+              {
+                'room': '${room['room']}',
+                'currency': currency,
+                'total': totalBill.toStringAsFixed(0),
+              },
+              settings: widget.settings)),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
@@ -603,7 +664,9 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     color: Color(0xFF3B82F6), size: 22),
                 const SizedBox(width: 8),
                 Text(
-                  'Post Charge to Room ${room['room']} Folio',
+                  PosLocalization.trParams('Post Charge to Room {room} Folio',
+                      {'room': '${room['room']}'},
+                      settings: widget.settings),
                   style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A),
                     fontWeight: FontWeight.bold,
@@ -618,7 +681,13 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Guest: ${room['guest'] ?? 'Hotel Guest'}',
+                    PosLocalization.trParams(
+                        'Guest: {guest}',
+                        {
+                          'guest':
+                              '${room['guest'] ?? PosLocalization.tr('Hotel Guest', settings: widget.settings)}'
+                        },
+                        settings: widget.settings),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -636,14 +705,18 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                         color: isDark ? Colors.white : const Color(0xFF0F172A),
                         fontSize: 13),
                     decoration: InputDecoration(
-                      labelText: 'Folio Charge Category',
+                      labelText: PosLocalization.tr('Folio Charge Category',
+                          settings: widget.settings),
                       labelStyle: TextStyle(
                           color: isDark
                               ? const Color(0xFF94A3B8)
                               : const Color(0xFF64748B)),
                     ),
                     items: categories
-                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                        .map((c) => DropdownMenuItem(
+                            value: c,
+                            child: Text(PosLocalization.tr(c,
+                                settings: widget.settings))))
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
@@ -657,7 +730,9 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     style: TextStyle(
                         color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
-                      labelText: 'Service Description / Items*',
+                      labelText: PosLocalization.tr(
+                          'Service Description / Items*',
+                          settings: widget.settings),
                       labelStyle: TextStyle(
                           color: isDark
                               ? const Color(0xFF94A3B8)
@@ -672,8 +747,10 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     style: TextStyle(
                         color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
-                      labelText:
-                          'Charge Amount (${widget.settings.currencySymbol})*',
+                      labelText: PosLocalization.trParams(
+                          'Charge Amount ({currency})*',
+                          {'currency': widget.settings.currencySymbol},
+                          settings: widget.settings),
                       labelStyle: TextStyle(
                           color: isDark
                               ? const Color(0xFF94A3B8)
@@ -686,7 +763,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(
+                    PosLocalization.tr('Cancel', settings: widget.settings)),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -694,7 +772,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   foregroundColor: Colors.white,
                 ),
                 icon: const Icon(Icons.add_shopping_cart, size: 16),
-                label: const Text('Post to Room Folio'),
+                label: Text(PosLocalization.tr('Post to Room Folio',
+                    settings: widget.settings)),
                 onPressed: () => Navigator.pop(ctx, true),
               ),
             ],
@@ -736,8 +815,16 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              '$selectedCategory (${widget.settings.currencySymbol}${charge.toStringAsFixed(0)}) added to Room ${room['room']} folio.'),
+          content: Text(PosLocalization.trParams(
+              '{category} ({currency}{charge}) added to Room {room} folio.',
+              {
+                'category': PosLocalization.tr(selectedCategory,
+                    settings: widget.settings),
+                'currency': widget.settings.currencySymbol,
+                'charge': charge.toStringAsFixed(0),
+                'room': '${room['room']}',
+              },
+              settings: widget.settings)),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
@@ -773,7 +860,14 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Room ${room['room']} Details (${room['type'] ?? 'Room'})',
+                  PosLocalization.trParams(
+                      'Room {room} Details ({type})',
+                      {
+                        'room': '${room['room']}',
+                        'type':
+                            '${room['type'] ?? PosLocalization.tr('Room', settings: widget.settings)}',
+                      },
+                      settings: widget.settings),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -787,8 +881,9 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                     color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text('OCCUPIED',
-                      style: TextStyle(
+                  child: Text(
+                      PosLocalization.tr('OCCUPIED', settings: widget.settings),
+                      style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFF3B82F6),
                           fontWeight: FontWeight.bold)),
@@ -796,23 +891,45 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            Text('Primary Guest: ${room['guest'] ?? 'Guest'}',
+            Text(
+                PosLocalization.trParams(
+                    'Primary Guest: {guest}',
+                    {
+                      'guest':
+                          '${room['guest'] ?? PosLocalization.tr('Guest', settings: widget.settings)}'
+                    },
+                    settings: widget.settings),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
             Text(
-                'Stay Length: $nightsVal Nights • Rate: $currency${rateVal.toStringAsFixed(0)} / night',
+                PosLocalization.trParams(
+                    'Stay Length: {nights} Nights • Rate: {currency}{rate} / night',
+                    {
+                      'nights': '$nightsVal',
+                      'currency': currency,
+                      'rate': rateVal.toStringAsFixed(0),
+                    },
+                    settings: widget.settings),
                 style: TextStyle(
                     color: isDark
                         ? const Color(0xFF94A3B8)
                         : const Color(0xFF64748B))),
             Text(
-                'Folio Room Service Charges: $currency${roomServiceVal.toStringAsFixed(0)}',
+                PosLocalization.trParams(
+                    'Folio Room Service Charges: {currency}{amount}',
+                    {
+                      'currency': currency,
+                      'amount': roomServiceVal.toStringAsFixed(0),
+                    },
+                    settings: widget.settings),
                 style: const TextStyle(color: Color(0xFF3B82F6))),
             const Divider(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Total Accrued Balance:',
+                Text(
+                    PosLocalization.tr('Total Accrued Balance:',
+                        settings: widget.settings),
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -831,7 +948,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.add_shopping_cart, size: 16),
-                    label: const Text('+ Folio Charge'),
+                    label: Text(PosLocalization.tr('+ Folio Charge',
+                        settings: widget.settings)),
                     onPressed: () {
                       Navigator.pop(ctx);
                       _addServiceCharge(room);
@@ -846,7 +964,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                       foregroundColor: Colors.white,
                     ),
                     icon: const Icon(Icons.receipt_long, size: 16),
-                    label: const Text('Check-Out & Settle'),
+                    label: Text(PosLocalization.tr('Check-Out & Settle',
+                        settings: widget.settings)),
                     onPressed: () {
                       Navigator.pop(ctx);
                       _checkOut(room);
@@ -883,7 +1002,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
             const Icon(Icons.hotel_rounded, color: Color(0xFF3B82F6), size: 22),
             const SizedBox(width: 10),
             Text(
-              'Hotel & Room Management System',
+              PosLocalization.tr('Hotel & Room Management System',
+                  settings: widget.settings),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -897,16 +1017,21 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
             style: const ButtonStyle(
               visualDensity: VisualDensity.compact,
             ),
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: 'cards',
-                icon: Icon(Icons.grid_view_rounded, size: 16),
-                label: Text('Cards View', style: TextStyle(fontSize: 12)),
+                icon: const Icon(Icons.grid_view_rounded, size: 16),
+                label: Text(
+                    PosLocalization.tr('Cards View', settings: widget.settings),
+                    style: const TextStyle(fontSize: 12)),
               ),
               ButtonSegment(
                 value: 'matrix',
-                icon: Icon(Icons.calendar_month_rounded, size: 16),
-                label: Text('30-Day Matrix', style: TextStyle(fontSize: 12)),
+                icon: const Icon(Icons.calendar_month_rounded, size: 16),
+                label: Text(
+                    PosLocalization.tr('30-Day Matrix',
+                        settings: widget.settings),
+                    style: const TextStyle(fontSize: 12)),
               ),
             ],
             selected: {_viewMode},
@@ -917,7 +1042,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
           const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh SQLite Data',
+            tooltip: PosLocalization.tr('Refresh SQLite Data',
+                settings: widget.settings),
             onPressed: _loadRooms,
           ),
           Padding(
@@ -928,7 +1054,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   foregroundColor: Colors.white),
               onPressed: _showAddRoomModal,
               icon: const Icon(Icons.add_home_work_rounded, size: 16),
-              label: const Text('Add Room'),
+              label: Text(
+                  PosLocalization.tr('Add Room', settings: widget.settings)),
             ),
           ),
         ],
@@ -945,17 +1072,33 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                       // Status Metric Badges
                       Row(
                         children: [
-                          _metric('Total Rooms', '$totalRooms',
-                              const Color(0xFF6366F1), isDark),
+                          _metric(
+                              PosLocalization.tr('Total Rooms',
+                                  settings: widget.settings),
+                              '$totalRooms',
+                              const Color(0xFF6366F1),
+                              isDark),
                           const SizedBox(width: 14),
-                          _metric('Occupied Rooms', '$occupiedRooms',
-                              const Color(0xFF3B82F6), isDark),
+                          _metric(
+                              PosLocalization.tr('Occupied Rooms',
+                                  settings: widget.settings),
+                              '$occupiedRooms',
+                              const Color(0xFF3B82F6),
+                              isDark),
                           const SizedBox(width: 14),
-                          _metric('Available Rooms', '$availableRooms',
-                              const Color(0xFF10B981), isDark),
+                          _metric(
+                              PosLocalization.tr('Available Rooms',
+                                  settings: widget.settings),
+                              '$availableRooms',
+                              const Color(0xFF10B981),
+                              isDark),
                           const SizedBox(width: 14),
-                          _metric('Cleaning / Maint.', '$cleaningRooms',
-                              const Color(0xFFF59E0B), isDark),
+                          _metric(
+                              PosLocalization.tr('Cleaning / Maint.',
+                                  settings: widget.settings),
+                              '$cleaningRooms',
+                              const Color(0xFFF59E0B),
+                              isDark),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -1245,7 +1388,9 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '30-Day Room Availability & Occupancy Calendar Matrix',
+                      PosLocalization.tr(
+                          '30-Day Room Availability & Occupancy Calendar Matrix',
+                          settings: widget.settings),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -1253,7 +1398,14 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                       ),
                     ),
                     Text(
-                      '${DateFormat('dd MMM yyyy').format(dates.first)} to ${DateFormat('dd MMM yyyy').format(dates.last)} • Instant check-in & occupancy forecast',
+                      PosLocalization.trParams(
+                          '{start} to {end} • Instant check-in & occupancy forecast',
+                          {
+                            'start':
+                                DateFormat('dd MMM yyyy').format(dates.first),
+                            'end': DateFormat('dd MMM yyyy').format(dates.last),
+                          },
+                          settings: widget.settings),
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark
@@ -1267,12 +1419,23 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                 // Legend
                 Row(
                   children: [
-                    _legendPill('Available', const Color(0xFF10B981), isDark),
-                    const SizedBox(width: 8),
-                    _legendPill('Occupied', const Color(0xFF3B82F6), isDark),
+                    _legendPill(
+                        PosLocalization.tr('Available',
+                            settings: widget.settings),
+                        const Color(0xFF10B981),
+                        isDark),
                     const SizedBox(width: 8),
                     _legendPill(
-                        'Housekeeping', const Color(0xFFF59E0B), isDark),
+                        PosLocalization.tr('Occupied',
+                            settings: widget.settings),
+                        const Color(0xFF3B82F6),
+                        isDark),
+                    const SizedBox(width: 8),
+                    _legendPill(
+                        PosLocalization.tr('Housekeeping',
+                            settings: widget.settings),
+                        const Color(0xFFF59E0B),
+                        isDark),
                   ],
                 ),
               ],
@@ -1315,7 +1478,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                       label: SizedBox(
                         width: 140,
                         child: Text(
-                          'ROOM / TYPE',
+                          PosLocalization.tr('ROOM / TYPE',
+                              settings: widget.settings),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -1358,7 +1522,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                               ),
                               Text(
                                 isToday
-                                    ? 'TODAY'
+                                    ? PosLocalization.tr('TODAY',
+                                        settings: widget.settings)
                                     : DateFormat('E').format(d).toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 9,
@@ -1397,7 +1562,9 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                                 Row(
                                   children: [
                                     Text(
-                                      'Room ${room['room']}',
+                                      PosLocalization.trParams('Room {room}',
+                                          {'room': '${room['room']}'},
+                                          settings: widget.settings),
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
@@ -1419,7 +1586,7 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                                   ],
                                 ),
                                 Text(
-                                  '${room['type'] ?? 'Room'} • $currency${((room['rate'] as num?)?.toDouble() ?? 0).toStringAsFixed(0)}',
+                                  '${room['type'] ?? PosLocalization.tr('Room', settings: widget.settings)} • $currency${((room['rate'] as num?)?.toDouble() ?? 0).toStringAsFixed(0)}',
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: isDark
@@ -1449,7 +1616,8 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                           }
 
                           Color cellColor = const Color(0xFF10B981);
-                          String cellText = 'Free';
+                          String cellText = PosLocalization.tr('Free',
+                              settings: widget.settings);
                           IconData cellIcon = Icons.add;
 
                           if (isOccupiedDay) {
@@ -1458,11 +1626,13 @@ class _HotelManagementScreenState extends State<HotelManagementScreen> {
                                 ? (guestShort.length > 8
                                     ? '${guestShort.substring(0, 8)}..'
                                     : guestShort)
-                                : 'Occupied';
+                                : PosLocalization.tr('Occupied',
+                                    settings: widget.settings);
                             cellIcon = Icons.person;
                           } else if (isCleaningDay) {
                             cellColor = const Color(0xFFF59E0B);
-                            cellText = 'Clean';
+                            cellText = PosLocalization.tr('Clean',
+                                settings: widget.settings);
                             cellIcon = Icons.cleaning_services;
                           }
 

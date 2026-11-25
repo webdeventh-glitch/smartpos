@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
+import '../../services/localization_service.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -152,7 +153,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                               items: [
                                 DropdownMenuItem<int?>(
                                   value: null,
-                                  child: Text('None (Main Level)',
+                                  child: Text(
+                                      PosLocalization.tr('None (Main Level)'),
                                       style: TextStyle(
                                           color: isDark
                                               ? Colors.white
@@ -198,7 +200,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: Text('Cancel',
+                        child: Text(PosLocalization.tr('Cancel'),
                             style: TextStyle(
                                 color: isDark
                                     ? const Color(0xFF94A3B8)
@@ -221,9 +223,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
                           if (name.isEmpty || code.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Please enter category name and code')),
+                              SnackBar(
+                                  content: Text(PosLocalization.tr(
+                                      'Please enter category name and code'))),
                             );
                             return;
                           }
@@ -270,7 +272,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Cannot Delete Category'),
+          title: Text(PosLocalization.tr('Cannot Delete Category')),
           content: Text(
             'Category "${cat.name}" has $prodsCount active products associated with it. Please reassign or delete these products first.',
           ),
@@ -286,19 +288,19 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Category?'),
+        title: Text(PosLocalization.tr('Delete Category?')),
         content:
             Text('Are you sure you want to delete category "${cat.name}"?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(PosLocalization.tr('Cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFDC2626),
                 foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(PosLocalization.tr('Delete')),
           ),
         ],
       ),
@@ -385,7 +387,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Categories & Sub-Categories',
+                        PosLocalization.tr('Categories & Sub-Categories'),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -396,7 +398,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Organize products into hierarchical departments, categories, and sub-groups.',
+                        PosLocalization.tr(
+                            'Organize products into hierarchical departments, categories, and sub-groups.'),
                         style: TextStyle(
                           fontSize: 13,
                           color: isDark
@@ -420,8 +423,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Category',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: Text(PosLocalization.tr('Add Category'),
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
                   onPressed: () => _openCategoryDialog(),
                 ),
               ],
@@ -452,8 +455,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         _currentPage = 1;
                       }),
                       decoration: InputDecoration(
-                        hintText:
-                            'Search categories by name, code, or description...',
+                        hintText: PosLocalization.tr(
+                            'Search categories by name, code, or description...'),
                         hintStyle: TextStyle(
                             fontSize: 13,
                             color: isDark
@@ -546,7 +549,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                             : Colors.grey.shade400),
                     const SizedBox(height: 12),
                     Text(
-                      'No Categories Found',
+                      PosLocalization.tr('No Categories Found'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -555,7 +558,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Click "Add Category" above to organize your catalog.',
+                      PosLocalization.tr(
+                          'Click "Add Category" above to organize your catalog.'),
                       style: TextStyle(
                           color: isDark
                               ? const Color(0xFF94A3B8)
@@ -797,7 +801,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                                 MainAxisAlignment.end,
                                             children: [
                                               IconButton(
-                                                tooltip: 'Edit Category',
+                                                tooltip: PosLocalization.tr(
+                                                    'Edit Category'),
                                                 icon: Icon(Icons.edit_outlined,
                                                     size: 18,
                                                     color: isDark
@@ -809,7 +814,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                                     _openCategoryDialog(c),
                                               ),
                                               IconButton(
-                                                tooltip: 'Delete Category',
+                                                tooltip: PosLocalization.tr(
+                                                    'Delete Category'),
                                                 icon: Icon(
                                                     Icons
                                                         .delete_outline_rounded,

@@ -3,6 +3,7 @@ import '../models/models.dart';
 import '../navigation/app_routes.dart';
 import '../services/database_service.dart';
 import '../services/auth_service.dart';
+import '../services/localization_service.dart';
 import '../utils/currency_formatter.dart';
 
 class _CommandDestination {
@@ -311,8 +312,14 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
         return false;
       }
       if (q.isEmpty) return true;
+      final t =
+          PosLocalization.tr(d.title, settings: widget.settings).toLowerCase();
+      final sub = PosLocalization.tr(d.subtitle, settings: widget.settings)
+          .toLowerCase();
       return d.title.toLowerCase().contains(q) ||
           d.subtitle.toLowerCase().contains(q) ||
+          t.contains(q) ||
+          sub.contains(q) ||
           d.keywords.any((k) => k.contains(q));
     }).take(q.isEmpty ? 8 : 6);
 
@@ -335,8 +342,10 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
                     fontSize: 15,
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  hintText:
-                      'Jump to any screen, search product, SKU, or customer...',
+                  hintText: PosLocalization.tr(
+                    'Jump to any screen, search product, SKU, or customer...',
+                    settings: widget.settings,
+                  ),
                   hintStyle: TextStyle(
                       fontSize: 13,
                       color: isDark
@@ -395,7 +404,11 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
                 shrinkWrap: true,
                 children: [
                   if (_matchedProducts.isNotEmpty) ...[
-                    _sectionTitle('Products (${_matchedProducts.length})'),
+                    _sectionTitle(PosLocalization.trParams(
+                      'Products ({count})',
+                      {'count': '${_matchedProducts.length}'},
+                      settings: widget.settings,
+                    )),
                     ..._matchedProducts.map((p) => ListTile(
                           dense: true,
                           shape: RoundedRectangleBorder(
@@ -410,7 +423,16 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
                               style:
                                   const TextStyle(fontWeight: FontWeight.w700)),
                           subtitle: Text(
-                              'SKU: ${p.sku} • Stock: ${p.stockQuantity.toStringAsFixed(1)} ${p.unit}'),
+                            PosLocalization.trParams(
+                              'SKU: {sku} • Stock: {stock} {unit}',
+                              {
+                                'sku': p.sku,
+                                'stock': p.stockQuantity.toStringAsFixed(1),
+                                'unit': p.unit,
+                              },
+                              settings: widget.settings,
+                            ),
+                          ),
                           trailing: Text(
                             CurrencyFormatter.compact(p.sellingPrice,
                                 currency: '$currency '),
@@ -430,8 +452,11 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
                     const SizedBox(height: 8),
                   ],
                   if (_matchedContacts.isNotEmpty) ...[
-                    _sectionTitle(
-                        'Customers & Suppliers (${_matchedContacts.length})'),
+                    _sectionTitle(PosLocalization.trParams(
+                      'Customers & Suppliers ({count})',
+                      {'count': '${_matchedContacts.length}'},
+                      settings: widget.settings,
+                    )),
                     ..._matchedContacts.map((c) => ListTile(
                           dense: true,
                           shape: RoundedRectangleBorder(
@@ -455,7 +480,7 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
                               style:
                                   const TextStyle(fontWeight: FontWeight.w700)),
                           subtitle: Text(
-                              '${c.type.toUpperCase()} • ${c.phone.isEmpty ? "No Phone" : c.phone}'),
+                              '${PosLocalization.tr(c.type.toUpperCase(), settings: widget.settings)} • ${c.phone.isEmpty ? PosLocalization.tr("No Phone", settings: widget.settings) : c.phone}'),
                           trailing: Text(
                             CurrencyFormatter.compact(c.balance,
                                 currency: '$currency '),
@@ -475,8 +500,9 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
                         )),
                     const SizedBox(height: 8),
                   ],
-                  _sectionTitle(
-                      q.isEmpty ? 'Quick Actions' : 'Screens & Pages'),
+                  _sectionTitle(PosLocalization.tr(
+                      q.isEmpty ? 'Quick Actions' : 'Screens & Pages',
+                      settings: widget.settings)),
                   ...filteredRoutes.map((d) => ListTile(
                         dense: true,
                         shape: RoundedRectangleBorder(
@@ -492,10 +518,14 @@ class _QuickCommandPaletteDialogState extends State<QuickCommandPaletteDialog> {
                           child: Icon(d.icon,
                               size: 17, color: const Color(0xFF4F46E5)),
                         ),
-                        title: Text(d.title,
+                        title: Text(
+                            PosLocalization.tr(d.title,
+                                settings: widget.settings),
                             style: const TextStyle(
                                 fontWeight: FontWeight.w700, fontSize: 13)),
-                        subtitle: Text(d.subtitle,
+                        subtitle: Text(
+                            PosLocalization.tr(d.subtitle,
+                                settings: widget.settings),
                             style: const TextStyle(fontSize: 11)),
                         onTap: () {
                           Navigator.pop(context);

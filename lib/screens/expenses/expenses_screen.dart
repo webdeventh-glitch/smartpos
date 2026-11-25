@@ -3,6 +3,7 @@ import '../../models/models.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import 'add_expense_dialog.dart';
+import '../../services/localization_service.dart';
 
 class ExpensesScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -38,10 +39,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   void _openAddExpense() {
     if (!(AuthService.currentUser?.hasPermission('expense.add') ?? true)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Access Denied: You do not have permission to add expenses.'),
-          backgroundColor: Color(0xFFEF4444),
+        SnackBar(
+          content: Text(PosLocalization.tr(
+              'Access Denied: You do not have permission to add expenses.')),
+          backgroundColor: const Color(0xFFEF4444),
         ),
       );
       return;
@@ -95,7 +96,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Store Expenses',
+                        PosLocalization.tr('Store Expenses'),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -105,7 +106,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Track operational store costs, rent, electricity bills, and petty expenses.',
+                        PosLocalization.tr(
+                            'Track operational store costs, rent, electricity bills, and petty expenses.'),
                         style: TextStyle(fontSize: 13, color: textSecondary),
                       ),
                     ],
@@ -125,8 +127,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: const Icon(Icons.add_rounded, size: 19),
-                    label: const Text('Add Expense',
-                        style: TextStyle(
+                    label: Text(PosLocalization.tr('Add Expense'),
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 13)),
                     onPressed: _openAddExpense,
                   ),
@@ -192,16 +194,18 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             onChanged: (val) =>
                                 setState(() => _searchQuery = val.trim()),
                             style: TextStyle(fontSize: 13, color: textPrimary),
-                            decoration: const InputDecoration(
-                              hintText: 'Search by Ref No, category or note...',
-                              hintStyle: TextStyle(
+                            decoration: InputDecoration(
+                              hintText: PosLocalization.tr(
+                                  'Search by Ref No, category or note...'),
+                              hintStyle: const TextStyle(
                                   fontSize: 12, color: Color(0xFF94A3B8)),
-                              prefixIcon: Icon(Icons.search,
+                              prefixIcon: const Icon(Icons.search,
                                   size: 17, color: Color(0xFF94A3B8)),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 9),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 9),
                               isDense: true,
                             ),
                           ),
@@ -247,7 +251,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                 padding: const EdgeInsets.all(40),
                                 child: Center(
                                   child: Text(
-                                      'No expense records found matching criteria.',
+                                      PosLocalization.tr(
+                                          'No expense records found matching criteria.'),
                                       style: TextStyle(color: textSecondary)),
                                 ),
                               )
@@ -269,12 +274,18 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                     ),
                                     dataRowMinHeight: 52,
                                     dataRowMaxHeight: 56,
-                                    columns: const [
-                                      DataColumn(label: Text('DATE')),
-                                      DataColumn(label: Text('REF NO')),
-                                      DataColumn(label: Text('CATEGORY')),
-                                      DataColumn(label: Text('AMOUNT')),
-                                      DataColumn(label: Text('NOTE')),
+                                    columns: [
+                                      const DataColumn(label: Text('DATE')),
+                                      DataColumn(
+                                          label: Text(
+                                              PosLocalization.tr('REF NO'))),
+                                      DataColumn(
+                                          label: Text(
+                                              PosLocalization.tr('CATEGORY'))),
+                                      DataColumn(
+                                          label: Text(
+                                              PosLocalization.tr('AMOUNT'))),
+                                      const DataColumn(label: Text('NOTE')),
                                     ],
                                     rows: filtered.map((e) {
                                       return DataRow(

@@ -9,6 +9,7 @@ import 'product_search_dialog.dart';
 import 'quick_add_supplier_dialog.dart';
 import 'quick_add_product_dialog.dart';
 import 'purchase_receipt_dialog.dart';
+import '../../services/localization_service.dart';
 
 class AddPurchaseScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -474,7 +475,10 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                   fontWeight: FontWeight.w800, fontSize: 16),
                             ),
                             Text(
-                              '${it.product.name} (پیلیٹ و سیریل نمبرز کی لاٹ اندراج)',
+                              PosLocalization.trParams(
+                                  '{name} — Pallet & Serial Range',
+                                  {'name': it.product.name},
+                                  settings: widget.settings),
                               style: const TextStyle(
                                   fontSize: 12, color: Colors.grey),
                               maxLines: 1,
@@ -495,11 +499,12 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                       Expanded(
                         child: TextField(
                           controller: lotCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Pallet / Lot No. (پیلیٹ / لاٹ نمبر) *',
+                          decoration: InputDecoration(
+                            labelText:
+                                '${PosLocalization.tr('Pallet / Lot No.', settings: widget.settings)} *',
                             hintText: 'e.g. PLT-LONG-550-A1',
-                            prefixIcon:
-                                Icon(Icons.inventory_2_outlined, size: 18),
+                            prefixIcon: const Icon(Icons.inventory_2_outlined,
+                                size: 18),
                             isDense: true,
                           ),
                         ),
@@ -534,10 +539,12 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                       Expanded(
                         child: TextField(
                           controller: startCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Start Serial (شروع کا سیریل نمبر) *',
+                          decoration: InputDecoration(
+                            labelText:
+                                '${PosLocalization.tr('Start Serial', settings: widget.settings)} *',
                             hintText: 'e.g. LR5-72HBD-550M-2401001',
-                            prefixIcon: Icon(Icons.barcode_reader, size: 18),
+                            prefixIcon:
+                                const Icon(Icons.barcode_reader, size: 18),
                             isDense: true,
                           ),
                           onChanged: (val) {
@@ -555,11 +562,12 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                       Expanded(
                         child: TextField(
                           controller: endCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'End Serial (آخری سیریل نمبر) *',
+                          decoration: InputDecoration(
+                            labelText:
+                                '${PosLocalization.tr('End Serial', settings: widget.settings)} *',
                             hintText: 'e.g. LR5-72HBD-550M-2401036',
-                            prefixIcon:
-                                Icon(Icons.check_circle_outline, size: 18),
+                            prefixIcon: const Icon(Icons.check_circle_outline,
+                                size: 18),
                             isDense: true,
                           ),
                           onChanged: (val) {
@@ -577,9 +585,11 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                   const SizedBox(height: 14),
                   DropdownButtonFormField<int>(
                     initialValue: selectedWarranty,
-                    decoration: const InputDecoration(
-                      labelText: 'Warranty Period (وارنٹی کی مدت)',
-                      prefixIcon: Icon(Icons.verified_user_outlined, size: 18),
+                    decoration: InputDecoration(
+                      labelText: PosLocalization.tr('Warranty Period',
+                          settings: widget.settings),
+                      prefixIcon:
+                          const Icon(Icons.verified_user_outlined, size: 18),
                       isDense: true,
                     ),
                     items: const [
@@ -1736,8 +1746,10 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                                         const BoxConstraints(
                                                             minWidth: 26,
                                                             minHeight: 26),
-                                                    tooltip:
-                                                        'Solar Pallet & Serial Range (پیلیٹ و سیریل رینج)',
+                                                    tooltip: PosLocalization.tr(
+                                                        'Solar Pallet & Serial Range',
+                                                        settings:
+                                                            widget.settings),
                                                     icon: const Icon(
                                                         Icons
                                                             .solar_power_rounded,

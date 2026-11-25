@@ -290,7 +290,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Future<void> _openSearchBrandDialog() async {
     final picked = await SearchableSelectDialog.show<Brand>(
       context,
-      title: 'Select Brand (برانڈ تلاش کریں)',
+      title: PosLocalization.tr('Select Brand', settings: widget.settings),
       searchHint: 'Type brand name (e.g. Canadian Solar, Inverex)...',
       items: _brands,
       selectedItem: _selectedBrand,
@@ -317,7 +317,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Future<void> _openSearchCategoryDialog() async {
     final picked = await SearchableSelectDialog.show<Category>(
       context,
-      title: 'Select Category (کیٹیگری تلاش کریں)',
+      title: PosLocalization.tr('Select Category', settings: widget.settings),
       searchHint: 'Type category name or code (e.g. Solar, Panels)...',
       items: _categories,
       selectedItem: _selectedCategory,
@@ -353,7 +353,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Future<void> _openSearchSubCategoryDialog() async {
     final picked = await SearchableSelectDialog.show<String>(
       context,
-      title: 'Select Sub category (ذیلی کیٹیگری)',
+      title:
+          PosLocalization.tr('Select Sub category', settings: widget.settings),
       searchHint: 'Search or type sub category...',
       items: _subCategories,
       selectedItem: _selectedSubCategory,
@@ -1211,12 +1212,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
             ),
             content: Text(
               missing.isNotEmpty
-                  ? (widget.settings.activePrimaryLanguage == 'ur'
-                      ? 'براہ کرم درج ذیل خانے پر کریں تاکہ پروڈکٹ محفوظ ہو سکے:\n\n• ${missing.join("\n• ")}'
-                      : 'Please fill in the following required fields:\n\n• ${missing.join("\n• ")}')
-                  : (widget.settings.activePrimaryLanguage == 'ur'
-                      ? 'براہ کرم سرخ نشان والے تمام ضروری خانے درست کریں۔'
-                      : 'Please correct all highlighted required fields.'),
+                  ? PosLocalization.trParams(
+                      'Please fill in the following required fields:\n\n• {fields}',
+                      {'fields': missing.join('\n• ')},
+                      settings: widget.settings,
+                    )
+                  : PosLocalization.tr(
+                      'Please correct all highlighted required fields.',
+                      settings: widget.settings,
+                    ),
               style: const TextStyle(fontSize: 14, height: 1.5),
             ),
             actions: [
@@ -1260,9 +1264,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 backgroundColor: Colors.red,
-                content: Text(widget.settings.activePrimaryLanguage == 'ur'
-                    ? 'فروخت قیمت 0 سے زیادہ ہونی چاہیے'
-                    : 'Selling Price must be greater than 0')),
+                content: Text(PosLocalization.tr(
+                    'Selling Price must be greater than 0',
+                    settings: widget.settings))),
           );
         }
         return false;
@@ -1282,9 +1286,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: Colors.red,
-              content: Text(widget.settings.activePrimaryLanguage == 'ur'
-                  ? 'فروخت قیمت (${widget.settings.currencySymbol}$selling) خرید قیمت (${widget.settings.currencySymbol}$purchase) سے کم نہیں ہو سکتی (نقصان سے بچاؤ)'
-                  : 'Loss Guard: Selling price (${widget.settings.currencySymbol}$selling) cannot be lower than purchase cost (${widget.settings.currencySymbol}$purchase)!'),
+              content: Text(PosLocalization.trParams(
+                'Loss Guard: Selling price ({sell}) cannot be lower than purchase cost ({cost})!',
+                {
+                  'sell': '${widget.settings.currencySymbol}$selling',
+                  'cost': '${widget.settings.currencySymbol}$purchase'
+                },
+                settings: widget.settings,
+              )),
             ),
           );
         }
@@ -1472,7 +1481,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'کامیابی: پروڈکٹ "$savedName" اور ${savedStock.toInt()} یونٹ سٹاک محفوظ ہو گیا!',
+                    PosLocalization.trParams(
+                      'Success: Product "{name}" saved with {stock} units in stock!',
+                      {
+                        'name': savedName,
+                        'stock': '${savedStock.toInt()}',
+                      },
+                      settings: widget.settings,
+                    ),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -1499,8 +1515,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
               ],
             ),
-            content: Text('پروڈکٹ محفوظ نہیں ہو سکی:\n\n$e',
-                style: const TextStyle(fontSize: 14)),
+            content: Text(
+              PosLocalization.trParams(
+                'Could not save product:\n\n{error}',
+                {'error': '$e'},
+                settings: widget.settings,
+              ),
+              style: const TextStyle(fontSize: 14),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
@@ -1848,7 +1870,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   valueText: _selectedUnit.isNotEmpty
                                       ? _selectedUnit
                                       : null,
-                                  placeholder: 'Select Unit (اکائی تلاش کریں)',
+                                  placeholder: PosLocalization.tr('Select Unit',
+                                      settings: widget.settings),
                                   prefixIcon: Icons.straighten_rounded,
                                   onTap: _openSearchUnitDialog,
                                   onAdd: _showQuickAddUnitDialog,
@@ -1862,7 +1885,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 child: SearchSelectField(
                                   label: 'Brand',
                                   valueText: _selectedBrand?.name,
-                                  placeholder: 'Select Brand (برانڈ تلاش کریں)',
+                                  placeholder: PosLocalization.tr(
+                                      'Select Brand',
+                                      settings: widget.settings),
                                   prefixIcon: Icons.branding_watermark_outlined,
                                   onTap: _openSearchBrandDialog,
                                   onAdd: _quickAddBrand,
@@ -1877,8 +1902,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   label: 'Category',
                                   isRequired: true,
                                   valueText: _selectedCategory?.name,
-                                  placeholder:
-                                      'Select Category (کیٹیگری تلاش کریں)',
+                                  placeholder: PosLocalization.tr(
+                                      'Select Category',
+                                      settings: widget.settings),
                                   prefixIcon: Icons.category_outlined,
                                   onTap: _openSearchCategoryDialog,
                                   onAdd: _quickAddCategory,
@@ -1895,7 +1921,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 valueText: _selectedUnit.isNotEmpty
                                     ? _selectedUnit
                                     : null,
-                                placeholder: 'Select Unit (اکائی تلاش کریں)',
+                                placeholder: PosLocalization.tr('Select Unit',
+                                    settings: widget.settings),
                                 prefixIcon: Icons.straighten_rounded,
                                 onTap: _openSearchUnitDialog,
                                 onAdd: _showQuickAddUnitDialog,
@@ -1904,7 +1931,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               SearchSelectField(
                                 label: 'Brand',
                                 valueText: _selectedBrand?.name,
-                                placeholder: 'Select Brand (برانڈ تلاش کریں)',
+                                placeholder: PosLocalization.tr('Select Brand',
+                                    settings: widget.settings),
                                 prefixIcon: Icons.branding_watermark_outlined,
                                 onTap: _openSearchBrandDialog,
                                 onAdd: _quickAddBrand,
@@ -1914,8 +1942,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 label: 'Category',
                                 isRequired: true,
                                 valueText: _selectedCategory?.name,
-                                placeholder:
-                                    'Select Category (کیٹیگری تلاش کریں)',
+                                placeholder: PosLocalization.tr(
+                                    'Select Category',
+                                    settings: widget.settings),
                                 prefixIcon: Icons.category_outlined,
                                 onTap: _openSearchCategoryDialog,
                                 onAdd: _quickAddCategory,
@@ -1939,8 +1968,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 child: SearchSelectField(
                                   label: 'Sub category',
                                   valueText: _selectedSubCategory,
-                                  placeholder:
-                                      'Select Sub category (ذیلی کیٹیگری)',
+                                  placeholder: PosLocalization.tr(
+                                      'Select Sub category',
+                                      settings: widget.settings),
                                   prefixIcon: Icons.alt_route_rounded,
                                   onTap: _openSearchSubCategoryDialog,
                                 ),
@@ -2044,8 +2074,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               SearchSelectField(
                                 label: 'Sub category',
                                 valueText: _selectedSubCategory,
-                                placeholder:
-                                    'Select Sub category (ذیلی کیٹیگری)',
+                                placeholder: PosLocalization.tr(
+                                    'Select Sub category',
+                                    settings: widget.settings),
                                 prefixIcon: Icons.alt_route_rounded,
                                 onTap: _openSearchSubCategoryDialog,
                               ),
@@ -2429,7 +2460,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 _buildFieldLabel(
-                                                    'Rack / Shelf Location (الموقع في الرف)'),
+                                                    PosLocalization.tr(
+                                                        'Rack / Shelf Location',
+                                                        settings:
+                                                            widget.settings)),
                                                 TextFormField(
                                                   controller: _rackLocationCtrl,
                                                   decoration: _inputDecor(

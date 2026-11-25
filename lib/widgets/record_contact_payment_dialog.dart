@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import '../models/models.dart';
 import '../services/database_service.dart';
+import '../services/localization_service.dart';
 import '../services/number_to_words_service.dart';
 import '../services/regional_data_service.dart';
 
@@ -146,54 +147,6 @@ class _RecordContactPaymentDialogState
   bool get _hasSecondary => widget.settings.hasEffectiveSecondaryLanguage;
   String get _secLang => widget.settings.secondaryLanguage;
 
-  String _getTextForLang(String lang, {required bool isCustomer}) {
-    switch (lang.toLowerCase()) {
-      case 'ps':
-        return isCustomer
-            ? 'له پیرودونکي څخه پیسې ترلاسه کول'
-            : 'عرضه کونکي ته پیسې ورکول';
-      case 'fa':
-        return isCustomer ? 'دریافت وجه از مشتری' : 'پرداخت به تامین‌کننده';
-      case 'ar':
-        return isCustomer ? 'استلام دفعة من العميل' : 'سداد دفعة للمورد';
-      case 'es':
-        return isCustomer ? 'Recibir pago de cliente' : 'Pagar a proveedor';
-      case 'nl':
-        return isCustomer
-            ? 'Betaling ontvangen van klant'
-            : 'Leverancier betalen';
-      case 'ur':
-        return isCustomer ? 'گاہک سے رقم وصول کریں' : 'سپلائر کو ادائیگی کریں';
-      default:
-        return isCustomer ? 'Add Payment' : 'Pay Supplier';
-    }
-  }
-
-  String _getSecondaryText({
-    required String ur,
-    required String ps,
-    required String fa,
-    required String es,
-    required String nl,
-    required String en,
-  }) {
-    switch (_secLang) {
-      case 'ps':
-        return ps;
-      case 'fa':
-        return fa;
-      case 'es':
-        return es;
-      case 'nl':
-        return nl;
-      case 'en':
-        return en;
-      case 'ur':
-      default:
-        return ur;
-    }
-  }
-
   Future<void> _pickDateTime() async {
     final pickedDate = await showDatePicker(
       context: context,
@@ -239,9 +192,10 @@ class _RecordContactPaymentDialogState
     final rawAmt = double.tryParse(_amountCtrl.text.trim()) ?? 0.0;
     if (rawAmt <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Please enter a valid payment amount greater than zero.'),
+        SnackBar(
+          content: Text(PosLocalization.tr(
+              'Please enter a valid payment amount greater than zero.',
+              settings: widget.settings)),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -282,7 +236,17 @@ class _RecordContactPaymentDialogState
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '${_isCustomer ? "Received" : "Paid"} ${widget.settings.currencySymbol} ${rawAmt.toStringAsFixed(2)} for ${widget.contact.name} successfully!',
+                    PosLocalization.trParams(
+                      _isCustomer
+                          ? 'Received {currency} {amount} for {name} successfully!'
+                          : 'Paid {currency} {amount} for {name} successfully!',
+                      {
+                        'currency': widget.settings.currencySymbol,
+                        'amount': rawAmt.toStringAsFixed(2),
+                        'name': widget.contact.name,
+                      },
+                      settings: widget.settings,
+                    ),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -298,7 +262,11 @@ class _RecordContactPaymentDialogState
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save payment: $e'),
+            content: Text(PosLocalization.trParams(
+              'Failed to save payment: {error}',
+              {'error': '$e'},
+              settings: widget.settings,
+            )),
             backgroundColor: Colors.red,
           ),
         );
@@ -508,26 +476,11 @@ class _RecordContactPaymentDialogState
 
   /// 1. Top Header
   Widget _buildHeader(bool isDark, Color textPrimary, Color textSecondary) {
-    final primLang = widget.settings.activePrimaryLanguage;
-    String primaryTitle = primLang == 'en'
-        ? (_isCustomer ? 'Add Payment' : 'Pay Supplier')
-        : _getTextForLang(primLang, isCustomer: _isCustomer);
-    String? secondarySubtitle;
-
-    if (_hasSecondary) {
-      secondarySubtitle = _getSecondaryText(
-        ur: _isCustomer ? 'گاہک سے رقم وصول کریں' : 'سپلائر کو ادائیگی کریں',
-        ps: _isCustomer
-            ? 'له پیرودونکي څخه پیسې ترلاسه کول'
-            : 'عرضه کونکي ته پیسې ورکول',
-        fa: _isCustomer ? 'دریافت وجه از مشتری' : 'پرداخت به تامین‌کننده',
-        es: _isCustomer ? 'Recibir pago de cliente' : 'Pagar a proveedor',
-        nl: _isCustomer
-            ? 'Betaling ontvangen van klant'
-            : 'Leverancier betalen',
-        en: _isCustomer ? 'Receive Customer Payment' : 'Supplier Payment',
-      );
-    }
+    final titleKey = _isCustomer ? 'Add Payment' : 'Pay Supplier';
+    final primaryTitle =
+        PosLocalization.trPrimary(titleKey, settings: widget.settings);
+    final secondarySubtitle =
+        PosLocalization.trSecondary(titleKey, settings: widget.settings);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
@@ -573,7 +526,7 @@ class _RecordContactPaymentDialogState
           IconButton(
             onPressed: () => Navigator.pop(context),
             icon: Icon(Icons.close_rounded, color: textSecondary, size: 22),
-            tooltip: 'Close',
+            tooltip: PosLocalization.tr('Close', settings: widget.settings),
             hoverColor: isDark ? Colors.white10 : Colors.black12,
             splashRadius: 20,
           ),
@@ -585,7 +538,9 @@ class _RecordContactPaymentDialogState
   /// Customer Info Card
   Widget _buildCustomerCard(
       Color cardBg, Color borderColor, Color textPrimary, Color textSecondary) {
-    final partyLabel = _isCustomer ? 'Customer name' : 'Supplier name';
+    final partyLabel = PosLocalization.tr(
+        _isCustomer ? 'Customer name' : 'Supplier name',
+        settings: widget.settings);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -623,7 +578,7 @@ class _RecordContactPaymentDialogState
             Row(
               children: [
                 Text(
-                  'Business: ',
+                  '${PosLocalization.tr('Business:', settings: widget.settings)} ',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -644,7 +599,7 @@ class _RecordContactPaymentDialogState
             Row(
               children: [
                 Text(
-                  'Phone: ',
+                  '${PosLocalization.tr('Phone:', settings: widget.settings)} ',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -664,7 +619,7 @@ class _RecordContactPaymentDialogState
           Row(
             children: [
               Text(
-                'Khata Code: ',
+                '${PosLocalization.tr('Khata Code:', settings: widget.settings)} ',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
@@ -686,7 +641,7 @@ class _RecordContactPaymentDialogState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Address: ',
+                  '${PosLocalization.tr('Address:', settings: widget.settings)} ',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -747,14 +702,17 @@ class _RecordContactPaymentDialogState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _financeRow(
-                  label: _isCustomer ? 'Total Sale:' : 'Total Purchase:',
+                  label: PosLocalization.tr(
+                      _isCustomer ? 'Total Sale:' : 'Total Purchase:',
+                      settings: widget.settings),
                   value: '$cur ${NumberFormat('#,##0.00').format(totalDebit)}',
                   textPrimary: textPrimary,
                   textSecondary: textSecondary,
                 ),
                 const SizedBox(height: 4),
                 _financeRow(
-                  label: 'Total Paid:',
+                  label: PosLocalization.tr('Total Paid:',
+                      settings: widget.settings),
                   value: '$cur ${NumberFormat('#,##0.00').format(totalCredit)}',
                   textPrimary: textPrimary,
                   textSecondary: textSecondary,
@@ -762,8 +720,9 @@ class _RecordContactPaymentDialogState
                 ),
                 const SizedBox(height: 4),
                 _financeRow(
-                  label:
+                  label: PosLocalization.tr(
                       _isCustomer ? 'Total Sale Due:' : 'Total Purchase Due:',
+                      settings: widget.settings),
                   value:
                       '$cur ${NumberFormat('#,##0.00').format(saleDue > 0 ? saleDue : totalDue)}',
                   textPrimary: textPrimary,
@@ -775,7 +734,8 @@ class _RecordContactPaymentDialogState
                 ),
                 const SizedBox(height: 4),
                 _financeRow(
-                  label: 'Opening Balance:',
+                  label: PosLocalization.tr('Opening Balance:',
+                      settings: widget.settings),
                   value:
                       '$cur ${NumberFormat('#,##0.00').format(openingBalance)}',
                   textPrimary: textPrimary,
@@ -783,7 +743,8 @@ class _RecordContactPaymentDialogState
                 ),
                 const SizedBox(height: 4),
                 _financeRow(
-                  label: 'Opening Balance Due:',
+                  label: PosLocalization.tr('Opening Balance Due:',
+                      settings: widget.settings),
                   value:
                       '$cur ${NumberFormat('#,##0.00').format(openingBalanceDue)}',
                   textPrimary: textPrimary,
@@ -828,18 +789,8 @@ class _RecordContactPaymentDialogState
   /// Field 1: Payment Method Dropdown
   Widget _buildPaymentMethodField(
       bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
-    String label = 'Payment Method:*';
-    if (_hasSecondary) {
-      final sub = _getSecondaryText(
-        ur: 'ادائیگی کا طریقہ',
-        ps: 'د تادیې طریقه',
-        fa: 'روش پرداخت',
-        es: 'Método de pago',
-        nl: 'Betaalmethode',
-        en: 'Payment Method',
-      );
-      label = 'Payment Method ($sub):*';
-    }
+    final label =
+        '${PosLocalization.tr('Payment Method', settings: widget.settings)}:*';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -863,50 +814,12 @@ class _RecordContactPaymentDialogState
               padding: const EdgeInsets.symmetric(horizontal: 10),
               icon: const Icon(Icons.arrow_drop_down, size: 20),
               items: [
+                _buildMethodItem('cash', Icons.money_rounded, 'Cash'),
                 _buildMethodItem(
-                    'cash',
-                    Icons.money_rounded,
-                    'Cash',
-                    _getSecondaryText(
-                        ur: 'نقد / کیش',
-                        ps: 'نغدې',
-                        fa: 'نقدی',
-                        es: 'Efectivo',
-                        nl: 'Contant',
-                        en: 'Cash')),
+                    'bank_transfer', Icons.account_balance_rounded, 'Bank'),
+                _buildMethodItem('card', Icons.credit_card_rounded, 'Card'),
                 _buildMethodItem(
-                    'bank_transfer',
-                    Icons.account_balance_rounded,
-                    'Bank',
-                    _getSecondaryText(
-                        ur: 'بینک',
-                        ps: 'بانک',
-                        fa: 'حساب بانکی',
-                        es: 'Banco',
-                        nl: 'Bank',
-                        en: 'Bank')),
-                _buildMethodItem(
-                    'card',
-                    Icons.credit_card_rounded,
-                    'Card',
-                    _getSecondaryText(
-                        ur: 'کارڈ',
-                        ps: 'کارت',
-                        fa: 'کارت‌خوان',
-                        es: 'Tarjeta',
-                        nl: 'Kaart',
-                        en: 'Card')),
-                _buildMethodItem(
-                    'cheque',
-                    Icons.receipt_long_rounded,
-                    'Cheque',
-                    _getSecondaryText(
-                        ur: 'چیک',
-                        ps: 'چک',
-                        fa: 'چک',
-                        es: 'Cheque',
-                        nl: 'Cheque',
-                        en: 'Cheque')),
+                    'cheque', Icons.receipt_long_rounded, 'Cheque'),
               ],
               onChanged: (val) {
                 if (val != null) setState(() => _paymentMethod = val);
@@ -919,7 +832,7 @@ class _RecordContactPaymentDialogState
   }
 
   DropdownMenuItem<String> _buildMethodItem(
-      String value, IconData icon, String title, String sub) {
+      String value, IconData icon, String titleKey) {
     return DropdownMenuItem<String>(
       value: value,
       child: Row(
@@ -927,7 +840,7 @@ class _RecordContactPaymentDialogState
           Icon(icon, size: 16, color: const Color(0xFF059669)),
           const SizedBox(width: 8),
           Text(
-            _hasSecondary ? '$title ($sub)' : title,
+            PosLocalization.tr(titleKey, settings: widget.settings),
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
           ),
         ],
@@ -938,18 +851,8 @@ class _RecordContactPaymentDialogState
   /// Field 2: Paid On Interactive Date & Time Picker
   Widget _buildPaidOnField(
       bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
-    String label = 'Paid on:*';
-    if (_hasSecondary) {
-      final sub = _getSecondaryText(
-        ur: 'ادائیگی کی تاریخ',
-        ps: 'د تادیې نېټه',
-        fa: 'تاریخ پرداخت',
-        es: 'Fecha de pago',
-        nl: 'Betaaldatum',
-        en: 'Payment Date',
-      );
-      label = 'Paid on ($sub):*';
-    }
+    final label =
+        '${PosLocalization.tr('Paid on', settings: widget.settings)}:*';
 
     final formatted = DateFormat('dd/MM/yyyy HH:mm').format(_selectedDate);
 
@@ -1009,18 +912,8 @@ class _RecordContactPaymentDialogState
   /// Field 3: Amount Field with Quick Fill Chips
   Widget _buildAmountField(String cur, double totalDue, bool isDark,
       Color textPrimary, Color textSecondary, Color borderColor) {
-    String label = 'Amount:*';
-    if (_hasSecondary) {
-      final sub = _getSecondaryText(
-        ur: 'رقم',
-        ps: 'پیسې',
-        fa: 'مبلغ',
-        es: 'Monto',
-        nl: 'Bedrag',
-        en: 'Amount',
-      );
-      label = 'Amount ($sub):*';
-    }
+    final label =
+        '${PosLocalization.tr('Amount', settings: widget.settings)}:*';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1086,7 +979,11 @@ class _RecordContactPaymentDialogState
             runSpacing: 4,
             children: [
               _buildQuickChip(
-                label: 'Full Due ($cur${totalDue.toStringAsFixed(0)})',
+                label: PosLocalization.trParams(
+                  'Full Due ({currency}{amount})',
+                  {'currency': cur, 'amount': totalDue.toStringAsFixed(0)},
+                  settings: widget.settings,
+                ),
                 onTap: () => _setAmount(totalDue),
                 isDark: isDark,
               ),
@@ -1096,7 +993,7 @@ class _RecordContactPaymentDialogState
                 isDark: isDark,
               ),
               _buildQuickChip(
-                label: 'Clear',
+                label: PosLocalization.tr('Clear', settings: widget.settings),
                 onTap: () => _setAmount(0.0),
                 isDark: isDark,
                 color: Colors.redAccent.withValues(alpha: 0.15),
@@ -1190,7 +1087,7 @@ class _RecordContactPaymentDialogState
                 Row(
                   children: [
                     Text(
-                      'Amount in Words: ',
+                      '${PosLocalization.tr('Amount in Words:', settings: widget.settings)} ',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -1212,7 +1109,9 @@ class _RecordContactPaymentDialogState
                 Text(
                   hasVal
                       ? primaryWords
-                      : 'Enter payment amount above to view in words...',
+                      : PosLocalization.tr(
+                          'Enter payment amount above to view in words...',
+                          settings: widget.settings),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: hasVal ? FontWeight.bold : FontWeight.normal,
@@ -1244,23 +1143,14 @@ class _RecordContactPaymentDialogState
   /// Attach Document
   Widget _buildAttachDocumentSection(
       bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
-    String label = 'Attach Document:';
-    if (_hasSecondary) {
-      final sub = _getSecondaryText(
-        ur: 'دستاویز یا رسید منسلک کریں',
-        ps: 'سند ضمیمه کړئ',
-        fa: 'پیوست سند یا رسید',
-        es: 'Adjuntar documento',
-        nl: 'Document bijvoegen',
-        en: 'Attach Document',
-      );
-      label = 'Attach Document ($sub):';
-    }
+    final label =
+        '${PosLocalization.tr('Attach Document', settings: widget.settings)}:';
 
     final hasFile =
         _attachedDocumentPath != null && _attachedDocumentPath!.isNotEmpty;
-    final filename =
-        hasFile ? p.basename(_attachedDocumentPath!) : 'No file chosen';
+    final filename = hasFile
+        ? p.basename(_attachedDocumentPath!)
+        : PosLocalization.tr('No file chosen', settings: widget.settings);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1284,8 +1174,10 @@ class _RecordContactPaymentDialogState
                 elevation: 0,
               ),
               icon: const Icon(Icons.attach_file_rounded, size: 16),
-              label: const Text('Choose File',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              label: Text(
+                  PosLocalization.tr('Choose File', settings: widget.settings),
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1331,7 +1223,8 @@ class _RecordContactPaymentDialogState
                       ),
                     )
                   : Text(
-                      'No file chosen',
+                      PosLocalization.tr('No file chosen',
+                          settings: widget.settings),
                       style: TextStyle(fontSize: 12, color: textSecondary),
                     ),
             ),
@@ -1339,7 +1232,9 @@ class _RecordContactPaymentDialogState
         ),
         const SizedBox(height: 6),
         Text(
-          'Allowed File: .pdf, .csv, .zip, .doc, .docx, .jpeg, .jpg, .png',
+          PosLocalization.tr(
+              'Allowed File: .pdf, .csv, .zip, .doc, .docx, .jpeg, .jpg, .png',
+              settings: widget.settings),
           style: TextStyle(fontSize: 11, color: textSecondary),
         ),
       ],
@@ -1349,18 +1244,8 @@ class _RecordContactPaymentDialogState
   /// Payment Note
   Widget _buildPaymentNoteField(
       bool isDark, Color textPrimary, Color textSecondary, Color borderColor) {
-    String label = 'Payment Note:';
-    if (_hasSecondary) {
-      final sub = _getSecondaryText(
-        ur: 'تفصیل یا رسید نمبر',
-        ps: 'یادښت یا رسید شمېره',
-        fa: 'توضیحات و شماره سند',
-        es: 'Nota o referencia',
-        nl: 'Notitie / Referentie',
-        en: 'Payment Note',
-      );
-      label = 'Payment Note ($sub):';
-    }
+    final label =
+        '${PosLocalization.tr('Payment Note', settings: widget.settings)}:';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1375,8 +1260,9 @@ class _RecordContactPaymentDialogState
           minLines: 3,
           style: TextStyle(fontSize: 13, color: textPrimary),
           decoration: InputDecoration(
-            hintText:
+            hintText: PosLocalization.tr(
                 'Enter payment reference, bank slip number, cheque number, or transaction notes...',
+                settings: widget.settings),
             hintStyle: TextStyle(
                 fontSize: 12, color: textSecondary.withValues(alpha: 0.7)),
             filled: true,
@@ -1403,30 +1289,9 @@ class _RecordContactPaymentDialogState
 
   /// 3. Footer
   Widget _buildFooter(bool isDark, Color textSecondary) {
-    String cancelLabel = 'Cancel';
-    String saveLabel = 'Save Payment & Update Khata';
-
-    if (_hasSecondary) {
-      final cancelSub = _getSecondaryText(
-        ur: 'منسوخ',
-        ps: 'لغوه',
-        fa: 'انصراف',
-        es: 'Cancelar',
-        nl: 'Annuleren',
-        en: 'Cancel',
-      );
-      cancelLabel = 'Cancel / $cancelSub';
-
-      final saveSub = _getSecondaryText(
-        ur: 'محفوظ کریں',
-        ps: 'خوندي کړئ',
-        fa: 'ثبت و بروزرسانی',
-        es: 'Guardar pago',
-        nl: 'Opslaan',
-        en: 'Save',
-      );
-      saveLabel = 'Save Payment ($saveSub)';
-    }
+    final cancelLabel = PosLocalization.tr('Cancel', settings: widget.settings);
+    final saveLabel = PosLocalization.tr('Save Payment & Update Khata',
+        settings: widget.settings);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
@@ -1469,7 +1334,10 @@ class _RecordContactPaymentDialogState
                   )
                 : const Icon(Icons.check_circle_rounded, size: 18),
             label: Text(
-              _isSaving ? 'Processing...' : saveLabel,
+              _isSaving
+                  ? PosLocalization.tr('Processing...',
+                      settings: widget.settings)
+                  : saveLabel,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
           ),

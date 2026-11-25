@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
 
 class WarrantiesScreen extends StatefulWidget {
@@ -70,8 +71,10 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                     children: [
                       Text(
                         toEdit == null
-                            ? 'Add Warranty Policy'
-                            : 'Edit Warranty Policy',
+                            ? PosLocalization.tr('Add Warranty Policy',
+                                settings: widget.settings)
+                            : PosLocalization.tr('Edit Warranty Policy',
+                                settings: widget.settings),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -90,7 +93,10 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _fieldLabel('Warranty Name * (e.g. 1 Year Standard Warranty)',
+                  _fieldLabel(
+                      PosLocalization.tr(
+                          'Warranty Name * (e.g. 1 Year Standard Warranty)',
+                          settings: widget.settings),
                       isDark),
                   const SizedBox(height: 6),
                   TextField(
@@ -98,8 +104,10 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                     style: TextStyle(
                         fontSize: 13,
                         color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                    decoration:
-                        _inputDeco('e.g. 1 Year Standard Warranty', isDark),
+                    decoration: _inputDeco(
+                        PosLocalization.tr('e.g. 1 Year Standard Warranty',
+                            settings: widget.settings),
+                        isDark),
                   ),
                   const SizedBox(height: 14),
                   Row(
@@ -108,7 +116,9 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _fieldLabel('Duration *', isDark),
+                            _fieldLabel(
+                                '${PosLocalization.tr('Duration', settings: widget.settings)} *',
+                                isDark),
                             const SizedBox(height: 6),
                             TextField(
                               controller: durCtrl,
@@ -128,7 +138,10 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _fieldLabel('Duration Type', isDark),
+                            _fieldLabel(
+                                PosLocalization.tr('Duration Type',
+                                    settings: widget.settings),
+                                isDark),
                             const SizedBox(height: 6),
                             DropdownButtonFormField<String>(
                               initialValue: durationType,
@@ -140,11 +153,16 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                                   color: isDark
                                       ? Colors.white
                                       : const Color(0xFF0F172A)),
-                              decoration: _inputDeco('Type', isDark),
+                              decoration: _inputDeco(
+                                  PosLocalization.tr('Type',
+                                      settings: widget.settings),
+                                  isDark),
                               items: ['days', 'months', 'years']
                                   .map((t) => DropdownMenuItem(
                                       value: t,
-                                      child: Text(t.toUpperCase(),
+                                      child: Text(
+                                          PosLocalization.tr(t.toUpperCase(),
+                                              settings: widget.settings),
                                           style: TextStyle(
                                               color: isDark
                                                   ? Colors.white
@@ -162,7 +180,10 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _fieldLabel('Terms & Conditions / Description', isDark),
+                  _fieldLabel(
+                      PosLocalization.tr('Terms & Conditions / Description',
+                          settings: widget.settings),
+                      isDark),
                   const SizedBox(height: 6),
                   TextField(
                     controller: descCtrl,
@@ -170,8 +191,10 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                     style: TextStyle(
                         fontSize: 13,
                         color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                    decoration:
-                        _inputDeco('Optional policy coverage details', isDark),
+                    decoration: _inputDeco(
+                        PosLocalization.tr('Optional policy coverage details',
+                            settings: widget.settings),
+                        isDark),
                   ),
                   const SizedBox(height: 22),
                   Row(
@@ -179,7 +202,9 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                     children: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: Text('Cancel',
+                        child: Text(
+                            PosLocalization.tr('Cancel',
+                                settings: widget.settings),
                             style: TextStyle(
                                 color: isDark
                                     ? const Color(0xFF94A3B8)
@@ -201,8 +226,10 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                           final dur = int.tryParse(durCtrl.text.trim()) ?? 0;
                           if (name.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Please enter warranty name')),
+                              SnackBar(
+                                  content: Text(PosLocalization.tr(
+                                      'Please enter warranty name',
+                                      settings: widget.settings))),
                             );
                             return;
                           }
@@ -229,8 +256,10 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                           _load();
                         },
                         child: Text(toEdit == null
-                            ? 'Save Warranty'
-                            : 'Update Warranty'),
+                            ? PosLocalization.tr('Save Warranty',
+                                settings: widget.settings)
+                            : PosLocalization.tr('Update Warranty',
+                                settings: widget.settings)),
                       ),
                     ],
                   ),
@@ -247,19 +276,24 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Warranty?'),
-        content: Text(
-            'Are you sure you want to delete warranty "${warranty.name}"?'),
+        title: Text(
+            PosLocalization.tr('Delete Warranty?', settings: widget.settings)),
+        content: Text(PosLocalization.trParams(
+            'Are you sure you want to delete warranty "{name}"?',
+            {'name': warranty.name},
+            settings: widget.settings)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(
+                  PosLocalization.tr('Cancel', settings: widget.settings))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFDC2626),
                 foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child:
+                Text(PosLocalization.tr('Delete', settings: widget.settings)),
           ),
         ],
       ),
@@ -345,7 +379,8 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Warranties & Guarantees',
+                        PosLocalization.tr('Warranties & Guarantees',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -356,7 +391,9 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Manage customer warranty policies, repair terms, and replacement durations.',
+                        PosLocalization.tr(
+                            'Manage customer warranty policies, repair terms, and replacement durations.',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 13,
                           color: isDark
@@ -380,8 +417,10 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Warranty',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: Text(
+                      PosLocalization.tr('Add Warranty',
+                          settings: widget.settings),
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
                   onPressed: () => _openWarrantyDialog(),
                 ),
               ],
@@ -412,7 +451,9 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                         _currentPage = 1;
                       }),
                       decoration: InputDecoration(
-                        hintText: 'Search warranty policies...',
+                        hintText: PosLocalization.tr(
+                            'Search warranty policies...',
+                            settings: widget.settings),
                         hintStyle: TextStyle(
                             fontSize: 13,
                             color: isDark
@@ -463,7 +504,9 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                               : const Color(0xFFC7D2FE)),
                     ),
                     child: Text(
-                      '${filtered.length} Policies active',
+                      PosLocalization.trParams('{count} Policies active',
+                          {'count': '${filtered.length}'},
+                          settings: widget.settings),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -505,7 +548,8 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                             : Colors.grey.shade400),
                     const SizedBox(height: 12),
                     Text(
-                      'No Warranties Found',
+                      PosLocalization.tr('No Warranties Found',
+                          settings: widget.settings),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -514,7 +558,9 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Click "Add Warranty" to define your coverage policies.',
+                      PosLocalization.tr(
+                          'Click "Add Warranty" to define your coverage policies.',
+                          settings: widget.settings),
                       style: TextStyle(
                           color: isDark
                               ? const Color(0xFF94A3B8)
@@ -568,12 +614,24 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                                             ? const Color(0xFF0F172A)
                                             : const Color(0xFFF8FAFC)),
                                     children: [
-                                      _th('Warranty Name', isDark: isDark),
-                                      _th('Duration', isDark: isDark),
-                                      _th('Description / Terms',
+                                      _th(
+                                          PosLocalization.tr('Warranty Name',
+                                              settings: widget.settings),
                                           isDark: isDark),
-                                      _th('Actions',
-                                          alignRight: true, isDark: isDark),
+                                      _th(
+                                          PosLocalization.tr('Duration',
+                                              settings: widget.settings),
+                                          isDark: isDark),
+                                      _th(
+                                          PosLocalization.tr(
+                                              'Description / Terms',
+                                              settings: widget.settings),
+                                          isDark: isDark),
+                                      _th(
+                                          PosLocalization.tr('Actions',
+                                              settings: widget.settings),
+                                          alignRight: true,
+                                          isDark: isDark),
                                     ],
                                   ),
                                   ...paginatedWarranties.map((w) {

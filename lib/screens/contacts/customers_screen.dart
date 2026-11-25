@@ -13,6 +13,7 @@ import '../../services/print_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
 import '../../widgets/record_contact_payment_dialog.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
+import '../../services/localization_service.dart';
 
 class CustomersScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -167,27 +168,31 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       children: [
                         TextField(
                           controller: nameCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Group Name (e.g. Wholesale, VIP) *',
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr(
+                                'Group Name (e.g. Wholesale, VIP) *'),
                             isDense: true,
                           ),
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
                           initialValue: calcType,
-                          decoration: const InputDecoration(
-                            labelText: 'Price Calculation Type',
+                          decoration: InputDecoration(
+                            labelText:
+                                PosLocalization.tr('Price Calculation Type'),
                             isDense: true,
                           ),
                           items: [
-                            const DropdownMenuItem(
+                            DropdownMenuItem(
                               value: 'percentage',
-                              child: Text('Percentage (% Discount / Markup)'),
+                              child: Text(PosLocalization.tr(
+                                  'Percentage (% Discount / Markup)')),
                             ),
                             if (priceGroups.isNotEmpty)
-                              const DropdownMenuItem(
+                              DropdownMenuItem(
                                 value: 'selling_price_group',
-                                child: Text('Selling Price Group'),
+                                child: Text(
+                                    PosLocalization.tr('Selling Price Group')),
                               ),
                           ],
                           onChanged: (v) {
@@ -201,17 +206,18 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             controller: amountCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                                 signed: true, decimal: true),
-                            decoration: const InputDecoration(
-                              labelText:
-                                  'Price Adjustment % (-10 = 10% off, +5 = 5% markup)',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr(
+                                  'Price Adjustment % (-10 = 10% off, +5 = 5% markup)'),
                               isDense: true,
                             ),
                           )
                         else
                           DropdownButtonFormField<int?>(
                             initialValue: selectedPriceGroupId,
-                            decoration: const InputDecoration(
-                              labelText: 'Linked Selling Price Group',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr(
+                                  'Linked Selling Price Group'),
                               isDense: true,
                             ),
                             items: priceGroups
@@ -229,7 +235,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(formCtx),
-                      child: const Text('Cancel'),
+                      child: Text(PosLocalization.tr('Cancel')),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -260,7 +266,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         if (formCtx.mounted) Navigator.pop(formCtx);
                         _load();
                       },
-                      child: const Text('Save Group'),
+                      child: Text(PosLocalization.tr('Save Group')),
                     ),
                   ],
                 ),
@@ -274,16 +280,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Customer Groups & Tiered Pricing',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(PosLocalization.tr('Customer Groups & Tiered Pricing'),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
                   ),
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text('New Group'),
+                  label: Text(PosLocalization.tr('New Group')),
                   onPressed: () => openGroupForm(),
                 ),
               ],
@@ -292,7 +298,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
               width: 480,
               height: 300,
               child: groups.isEmpty
-                  ? const Center(child: Text('No customer groups created yet.'))
+                  ? Center(
+                      child: Text(PosLocalization.tr(
+                          'No customer groups created yet.')))
                   : ListView.separated(
                       itemCount: groups.length,
                       separatorBuilder: (_, __) => const Divider(height: 1),
@@ -353,7 +361,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close')),
+                  child: Text(PosLocalization.tr('Close'))),
             ],
           );
         },
@@ -464,8 +472,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.groups_rounded, size: 18),
-                        label: const Text('Customer Groups',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        label: Text(PosLocalization.tr('Customer Groups'),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: _showCustomerGroupsManager,
                       ),
                     OutlinedButton.icon(
@@ -478,8 +487,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.print_rounded, size: 18),
-                      label: const Text('Print Defaulters Sheet',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(PosLocalization.tr('Print Defaulters Sheet'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () => _printDefaultersSheet(const <Contact>[]),
                     ),
                     if (_canManageCustomers)
@@ -494,8 +503,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.person_add_rounded, size: 18),
-                        label: const Text('Add Customer',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        label: Text(PosLocalization.tr('Add Customer'),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: () => _openAddCustomer(),
                       ),
                   ],
@@ -505,7 +515,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Customers & Defaulters Khata Management',
+                      PosLocalization.tr(
+                          'Customers & Defaulters Khata Management'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -514,7 +525,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Track customer accounts, overdue defaulters, send WhatsApp & SMS reminders, and collect dues.',
+                      PosLocalization.tr(
+                          'Track customer accounts, overdue defaulters, send WhatsApp & SMS reminders, and collect dues.'),
                       style: TextStyle(
                           fontSize: 13,
                           color: isDark
@@ -640,7 +652,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         fontSize: 13,
                         color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
-                      hintText: 'Search by name, phone...',
+                      hintText: PosLocalization.tr('Search by name, phone...'),
                       prefixIcon: const Icon(Icons.search, size: 18),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
@@ -930,9 +942,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                               ),
                                                             ),
                                                           if (isOverLimit)
-                                                            const Text(
-                                                              'Exceeded Limit!',
-                                                              style: TextStyle(
+                                                            Text(
+                                                              PosLocalization.tr(
+                                                                  'Exceeded Limit!'),
+                                                              style: const TextStyle(
                                                                   fontSize: 10,
                                                                   color: Colors
                                                                       .orange,
@@ -1027,9 +1040,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                               Icons
                                                                   .attach_money,
                                                               size: 14),
-                                                          label: const Text(
-                                                              'Pay Due',
-                                                              style: TextStyle(
+                                                          label: Text(
+                                                              PosLocalization.tr(
+                                                                  'Pay Due'),
+                                                              style: const TextStyle(
                                                                   fontSize: 11,
                                                                   fontWeight:
                                                                       FontWeight
@@ -1065,9 +1079,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                             FontAwesomeIcons
                                                                 .whatsapp,
                                                             size: 13),
-                                                        label: const Text(
-                                                            'Reminder',
-                                                            style: TextStyle(
+                                                        label: Text(
+                                                            PosLocalization.tr(
+                                                                'Reminder'),
+                                                            style: const TextStyle(
                                                                 fontSize: 11,
                                                                 fontWeight:
                                                                     FontWeight
@@ -1108,9 +1123,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                       icon: const Icon(
                                                           Icons.receipt_long,
                                                           size: 14),
-                                                      label: const Text(
-                                                          'Ledger',
-                                                          style: TextStyle(
+                                                      label: Text(
+                                                          PosLocalization.tr(
+                                                              'Ledger'),
+                                                          style: const TextStyle(
                                                               fontSize: 11,
                                                               fontWeight:
                                                                   FontWeight
@@ -1147,9 +1163,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                                         icon: const Icon(
                                                             Icons.edit_outlined,
                                                             size: 14),
-                                                        label: const Text(
-                                                            'Edit',
-                                                            style: TextStyle(
+                                                        label: Text(
+                                                            PosLocalization.tr(
+                                                                'Edit'),
+                                                            style: const TextStyle(
                                                                 fontSize: 11,
                                                                 fontWeight:
                                                                     FontWeight

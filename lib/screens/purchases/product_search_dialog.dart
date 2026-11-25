@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../../services/localization_service.dart';
 
 class ProductSearchDialog extends StatefulWidget {
   final List<Product> products;
@@ -115,7 +116,7 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Search & Select Product',
+                          PosLocalization.tr('Search & Select Product'),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -147,7 +148,8 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                     autofocus: true,
                     style: TextStyle(fontSize: 13, color: textPrimary),
                     decoration: InputDecoration(
-                      hintText: 'Search by name, SKU, barcode, formula...',
+                      hintText: PosLocalization.tr(
+                          'Search by name, SKU, barcode, formula...'),
                       hintStyle: TextStyle(color: textSecondary, fontSize: 13),
                       prefixIcon: const Icon(Icons.search,
                           size: 20, color: Color(0xFF4F46E5)),
@@ -190,8 +192,8 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                         scrollDirection: Axis.horizontal,
                         children: [
                           ChoiceChip(
-                            label: const Text('All Categories',
-                                style: TextStyle(fontSize: 11)),
+                            label: Text(PosLocalization.tr('All Categories'),
+                                style: const TextStyle(fontSize: 11)),
                             selected: _selectedCategory == null,
                             onSelected: (val) {
                               setState(() {
@@ -238,13 +240,14 @@ class _ProductSearchDialogState extends State<ProductSearchDialog> {
                               size: 48,
                               color: textSecondary.withValues(alpha: 0.5)),
                           const SizedBox(height: 12),
-                          Text('No matching products found',
+                          Text(PosLocalization.tr('No matching products found'),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: textSecondary)),
                           const SizedBox(height: 4),
                           Text(
-                              'Try searching with a different keyword or barcode',
+                              PosLocalization.tr(
+                                  'Try searching with a different keyword or barcode'),
                               style: TextStyle(
                                   fontSize: 12,
                                   color: textSecondary.withValues(alpha: 0.7))),

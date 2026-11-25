@@ -3,6 +3,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
+import '../../services/localization_service.dart';
 
 class FruitMandiScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -186,7 +187,7 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          title: Text('New Mandi Auction (Boli Entry)',
+          title: Text(PosLocalization.tr('New Mandi Auction (Boli Entry)'),
               style: TextStyle(
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
                   fontWeight: FontWeight.bold)),
@@ -201,7 +202,8 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
                     style: TextStyle(
                         color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
-                      labelText: 'Zamindar / Grower Name (Maal Malik)*',
+                      labelText: PosLocalization.tr(
+                          'Zamindar / Grower Name (Maal Malik)*'),
                       labelStyle: TextStyle(
                           color: isDark
                               ? const Color(0xFF94A3B8)
@@ -214,7 +216,8 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
                     style: TextStyle(
                         color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
-                      labelText: 'Buyer / Khareedar (Beopari)*',
+                      labelText:
+                          PosLocalization.tr('Buyer / Khareedar (Beopari)*'),
                       labelStyle: TextStyle(
                           color: isDark
                               ? const Color(0xFF94A3B8)
@@ -227,8 +230,8 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
                     style: TextStyle(
                         color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
-                      labelText:
-                          'Fruit / Veg Item (e.g. Mango Chaunsa, Potato)',
+                      labelText: PosLocalization.tr(
+                          'Fruit / Veg Item (e.g. Mango Chaunsa, Potato)'),
                       labelStyle: TextStyle(
                           color: isDark
                               ? const Color(0xFF94A3B8)
@@ -247,7 +250,8 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
                                   ? Colors.white
                                   : const Color(0xFF0F172A)),
                           decoration: InputDecoration(
-                            labelText: 'Crates / Naga / Bags',
+                            labelText:
+                                PosLocalization.tr('Crates / Naga / Bags'),
                             labelStyle: TextStyle(
                                 color: isDark
                                     ? const Color(0xFF94A3B8)
@@ -265,7 +269,7 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
                                   ? Colors.white
                                   : const Color(0xFF0F172A)),
                           decoration: InputDecoration(
-                            labelText: 'Total Weight (Kg)',
+                            labelText: PosLocalization.tr('Total Weight (Kg)'),
                             labelStyle: TextStyle(
                                 color: isDark
                                     ? const Color(0xFF94A3B8)
@@ -283,7 +287,8 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
                                   ? Colors.white
                                   : const Color(0xFF0F172A)),
                           decoration: InputDecoration(
-                            labelText: 'Rate per Mun (40kg)',
+                            labelText:
+                                PosLocalization.tr('Rate per Mun (40kg)'),
                             labelStyle: TextStyle(
                                 color: isDark
                                     ? const Color(0xFF94A3B8)
@@ -300,7 +305,7 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel',
+              child: Text(PosLocalization.tr('Cancel'),
                   style: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -355,8 +360,8 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
                   if (ctx.mounted) Navigator.pop(ctx);
                 }
               },
-              child: const Text('Save Boli / Auction',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(PosLocalization.tr('Save Boli / Auction'),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -381,7 +386,8 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
                 color: Color(0xFF84CC16), size: 24),
             const SizedBox(width: 10),
             Text(
-              'Fruit & Vegetable Wholesale / Mandi Arhat System',
+              PosLocalization.tr(
+                  'Fruit & Vegetable Wholesale / Mandi Arhat System'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -414,8 +420,8 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
                   foregroundColor: Colors.black),
               onPressed: _showAddBoliModal,
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Add Boli / Auction Entry',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(PosLocalization.tr('Add Boli / Auction Entry'),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -557,8 +563,9 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
                                     style: OutlinedButton.styleFrom(
                                         visualDensity: VisualDensity.compact),
                                     onPressed: () => _openBikriSlip(a),
-                                    child: const Text('Bikri Slip',
-                                        style: TextStyle(fontSize: 11)),
+                                    child: Text(
+                                        PosLocalization.tr('Bikri Slip'),
+                                        style: const TextStyle(fontSize: 11)),
                                   ),
                                 ],
                               ),
@@ -578,7 +585,8 @@ class _FruitMandiScreenState extends State<FruitMandiScreen>
             padding: const EdgeInsets.all(24),
             child: Center(
               child: Text(
-                'Consignor & Zamindar Settlement ledgers are ready.',
+                PosLocalization.tr(
+                    'Consignor & Zamindar Settlement ledgers are ready.'),
                 style: TextStyle(
                     color: isDark
                         ? const Color(0xFF94A3B8)

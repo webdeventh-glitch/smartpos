@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/lan_realtime_service.dart';
+import '../../services/localization_service.dart';
 
 class KitchenDisplaySystemScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -91,7 +92,13 @@ class _KitchenDisplaySystemScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('KOT status updated to $newStatus'),
+            content: Text(PosLocalization.trParams(
+                'KOT status updated to {status}',
+                {
+                  'status':
+                      PosLocalization.tr(newStatus, settings: widget.settings)
+                },
+                settings: widget.settings)),
             backgroundColor: const Color(0xFF10B981),
             duration: const Duration(seconds: 1),
           ),
@@ -101,7 +108,9 @@ class _KitchenDisplaySystemScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update KOT status: $e'),
+            content: Text(PosLocalization.trParams(
+                'Failed to update KOT status: {error}', {'error': '$e'},
+                settings: widget.settings)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -184,9 +193,10 @@ class _KitchenDisplaySystemScreenState
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Kitchen Display System (KDS)',
-                  style: TextStyle(
+                Text(
+                  PosLocalization.tr('Kitchen Display System (KDS)',
+                      settings: widget.settings),
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -194,7 +204,15 @@ class _KitchenDisplaySystemScreenState
                   ),
                 ),
                 Text(
-                  'Live KOT Queue • ${widget.settings.businessName.isNotEmpty ? widget.settings.businessName : "Restaurant"}',
+                  PosLocalization.trParams(
+                      'Live KOT Queue • {business}',
+                      {
+                        'business': widget.settings.businessName.isNotEmpty
+                            ? widget.settings.businessName
+                            : PosLocalization.tr('Restaurant',
+                                settings: widget.settings)
+                      },
+                      settings: widget.settings),
                   style:
                       const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                 ),
@@ -233,7 +251,8 @@ class _KitchenDisplaySystemScreenState
           const SizedBox(width: 12),
           // Refresh Button
           IconButton(
-            tooltip: 'Refresh KOT Orders',
+            tooltip: PosLocalization.tr('Refresh KOT Orders',
+                settings: widget.settings),
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () => _loadOrders(),
           ),
@@ -256,23 +275,47 @@ class _KitchenDisplaySystemScreenState
               children: [
                 // KPI Counters
                 _buildKpiChip(
-                    'Active Orders', '$activeCount', const Color(0xFF38BDF8)),
+                    PosLocalization.tr('Active Orders',
+                        settings: widget.settings),
+                    '$activeCount',
+                    const Color(0xFF38BDF8)),
                 const SizedBox(width: 12),
-                _buildKpiChip('In Prep (Cooking)', '$cookingCount',
+                _buildKpiChip(
+                    PosLocalization.tr('In Prep (Cooking)',
+                        settings: widget.settings),
+                    '$cookingCount',
                     const Color(0xFFF59E0B)),
                 const SizedBox(width: 12),
                 _buildKpiChip(
-                    'Ready to Serve', '$readyCount', const Color(0xFF10B981)),
+                    PosLocalization.tr('Ready to Serve',
+                        settings: widget.settings),
+                    '$readyCount',
+                    const Color(0xFF10B981)),
                 const Spacer(),
                 // Filter Tabs
                 Wrap(
                   spacing: 8,
                   children: [
-                    _buildFilterChip('Active', 'Active ($activeCount)'),
-                    _buildFilterChip('Cooking', 'Cooking ($cookingCount)'),
-                    _buildFilterChip('Ready', 'Ready ($readyCount)'),
                     _buildFilterChip(
-                        'All', 'All Orders (${_kotOrders.length})'),
+                        'Active',
+                        PosLocalization.trParams(
+                            'Active ({count})', {'count': '$activeCount'},
+                            settings: widget.settings)),
+                    _buildFilterChip(
+                        'Cooking',
+                        PosLocalization.trParams(
+                            'Cooking ({count})', {'count': '$cookingCount'},
+                            settings: widget.settings)),
+                    _buildFilterChip(
+                        'Ready',
+                        PosLocalization.trParams(
+                            'Ready ({count})', {'count': '$readyCount'},
+                            settings: widget.settings)),
+                    _buildFilterChip(
+                        'All',
+                        PosLocalization.trParams('All Orders ({count})',
+                            {'count': '${_kotOrders.length}'},
+                            settings: widget.settings)),
                   ],
                 ),
               ],
@@ -294,18 +337,21 @@ class _KitchenDisplaySystemScreenState
                                 color: const Color(0xFF10B981)
                                     .withValues(alpha: 0.6)),
                             const SizedBox(height: 16),
-                            const Text(
-                              'All Kitchen Orders Cleared!',
-                              style: TextStyle(
+                            Text(
+                              PosLocalization.tr('All Kitchen Orders Cleared!',
+                                  settings: widget.settings),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const Text(
-                              'New food orders sent from POS or Waiters will automatically pop up here.',
-                              style: TextStyle(
+                            Text(
+                              PosLocalization.tr(
+                                  'New food orders sent from POS or Waiters will automatically pop up here.',
+                                  settings: widget.settings),
+                              style: const TextStyle(
                                   color: Color(0xFF94A3B8), fontSize: 13),
                             ),
                           ],
@@ -471,7 +517,14 @@ class _KitchenDisplaySystemScreenState
                       ),
                     ),
                     Text(
-                      '$orderType • $serverName',
+                      PosLocalization.trParams(
+                          '{type} • {server}',
+                          {
+                            'type': PosLocalization.tr(orderType.toString(),
+                                settings: widget.settings),
+                            'server': '$serverName',
+                          },
+                          settings: widget.settings),
                       style: const TextStyle(
                         fontSize: 10,
                         color: Color(0xFF94A3B8),
@@ -517,7 +570,10 @@ class _KitchenDisplaySystemScreenState
                             : const Color(0xFF94A3B8)),
                     const SizedBox(width: 4),
                     Text(
-                      timeStr.isNotEmpty ? timeStr : 'Just now',
+                      timeStr.isNotEmpty
+                          ? timeStr
+                          : PosLocalization.tr('Just now',
+                              settings: widget.settings),
                       style: const TextStyle(
                           fontSize: 11, color: Color(0xFF94A3B8)),
                     ),
@@ -534,8 +590,11 @@ class _KitchenDisplaySystemScreenState
                   ),
                   child: Text(
                     elapsedMinutes > 0
-                        ? '${elapsedMinutes}m elapsed'
-                        : '< 1m elapsed',
+                        ? PosLocalization.trParams('{minutes}m elapsed',
+                            {'minutes': '$elapsedMinutes'},
+                            settings: widget.settings)
+                        : PosLocalization.tr('< 1m elapsed',
+                            settings: widget.settings),
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -607,8 +666,9 @@ class _KitchenDisplaySystemScreenState
                       ),
                       onPressed: () => _updateStatus(id, 'Cooking'),
                       icon: const Icon(Icons.restaurant, size: 15),
-                      label: const Text('Cook',
-                          style: TextStyle(
+                      label: Text(
+                          PosLocalization.tr('Cook', settings: widget.settings),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
                   ),
@@ -624,8 +684,10 @@ class _KitchenDisplaySystemScreenState
                       ),
                       onPressed: () => _updateStatus(id, 'Ready'),
                       icon: const Icon(Icons.check_circle_outline, size: 15),
-                      label: const Text('Mark Ready',
-                          style: TextStyle(
+                      label: Text(
+                          PosLocalization.tr('Mark Ready',
+                              settings: widget.settings),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
                   ),
@@ -642,8 +704,10 @@ class _KitchenDisplaySystemScreenState
                       ),
                       onPressed: () => _updateStatus(id, 'Served'),
                       icon: const Icon(Icons.done_all, size: 15),
-                      label: const Text('Served',
-                          style: TextStyle(
+                      label: Text(
+                          PosLocalization.tr('Served',
+                              settings: widget.settings),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
                   ),
@@ -660,8 +724,10 @@ class _KitchenDisplaySystemScreenState
                       ),
                       onPressed: () => _updateStatus(id, 'Cooking'),
                       icon: const Icon(Icons.replay, size: 15),
-                      label: const Text('Re-open',
-                          style: TextStyle(
+                      label: Text(
+                          PosLocalization.tr('Re-open',
+                              settings: widget.settings),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
                   ),

@@ -3,6 +3,7 @@ import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/messaging_service.dart';
+import '../../services/localization_service.dart';
 
 class NotificationTemplatesScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -80,7 +81,8 @@ class _NotificationTemplatesScreenState
         await AppErrorHandler.showErrorDialog(
           context,
           title: 'Load Failed',
-          message: 'Could not load SMS gateways and notification logs.',
+          message: PosLocalization.tr(
+              'Could not load SMS gateways and notification logs.'),
           error: e,
           stackTrace: st,
           tag: 'NotificationTemplates',
@@ -157,32 +159,40 @@ class _NotificationTemplatesScreenState
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: provider,
-                          decoration: const InputDecoration(
-                              labelText: 'Provider / Network Preset',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr(
+                                  'Provider / Network Preset'),
                               isDense: true,
-                              border: OutlineInputBorder()),
-                          items: const [
+                              border: const OutlineInputBorder()),
+                          items: [
                             DropdownMenuItem(
                                 value: 'zong',
-                                child: Text('Zong Corporate Branded SMS')),
+                                child: Text(PosLocalization.tr(
+                                    'Zong Corporate Branded SMS'))),
                             DropdownMenuItem(
                                 value: 'ufone',
-                                child: Text('Ufone Corporate SMS')),
+                                child: Text(
+                                    PosLocalization.tr('Ufone Corporate SMS'))),
                             DropdownMenuItem(
                                 value: 'jazz',
-                                child: Text('Jazz / Mobilink Business')),
+                                child: Text(PosLocalization.tr(
+                                    'Jazz / Mobilink Business'))),
                             DropdownMenuItem(
                                 value: 'telenor',
-                                child: Text('Telenor Corporate SMS')),
+                                child: Text(PosLocalization.tr(
+                                    'Telenor Corporate SMS'))),
                             DropdownMenuItem(
                                 value: 'sendpk',
-                                child: Text('SendPK / Pakistan Aggregator')),
+                                child: Text(PosLocalization.tr(
+                                    'SendPK / Pakistan Aggregator'))),
                             DropdownMenuItem(
                                 value: 'generic_http',
-                                child: Text('Generic Custom REST API')),
+                                child: Text(PosLocalization.tr(
+                                    'Generic Custom REST API'))),
                             DropdownMenuItem(
                                 value: 'twilio',
-                                child: Text('Twilio International API')),
+                                child: Text(PosLocalization.tr(
+                                    'Twilio International API'))),
                           ],
                           onChanged: (val) {
                             if (val != null) {
@@ -206,15 +216,19 @@ class _NotificationTemplatesScreenState
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: method,
-                          decoration: const InputDecoration(
-                              labelText: 'HTTP Method',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('HTTP Method'),
                               isDense: true,
-                              border: OutlineInputBorder()),
-                          items: const [
+                              border: const OutlineInputBorder()),
+                          items: [
                             DropdownMenuItem(
-                                value: 'GET', child: Text('GET (Query URL)')),
+                                value: 'GET',
+                                child: Text(
+                                    PosLocalization.tr('GET (Query URL)'))),
                             DropdownMenuItem(
-                                value: 'POST', child: Text('POST (JSON Body)')),
+                                value: 'POST',
+                                child: Text(
+                                    PosLocalization.tr('POST (JSON Body)'))),
                           ],
                           onChanged: (val) {
                             if (val != null) setDlgState(() => method = val);
@@ -226,19 +240,19 @@ class _NotificationTemplatesScreenState
                   const SizedBox(height: 12),
                   TextField(
                     controller: nameCtrl,
-                    decoration: const InputDecoration(
-                        labelText: 'Gateway Label Name *',
+                    decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Gateway Label Name *'),
                         isDense: true,
-                        border: OutlineInputBorder()),
+                        border: const OutlineInputBorder()),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: urlCtrl,
-                    decoration: const InputDecoration(
-                      labelText:
-                          'API Endpoint URL (supports {to}, {message}, {mask}, {key}) *',
+                    decoration: InputDecoration(
+                      labelText: PosLocalization.tr(
+                          'API Endpoint URL (supports {to}, {message}, {mask}, {key}) *'),
                       isDense: true,
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -247,10 +261,11 @@ class _NotificationTemplatesScreenState
                       Expanded(
                         child: TextField(
                           controller: keyCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'API Key / Username',
+                          decoration: InputDecoration(
+                              labelText:
+                                  PosLocalization.tr('API Key / Username'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -258,10 +273,11 @@ class _NotificationTemplatesScreenState
                         child: TextField(
                           controller: secretCtrl,
                           obscureText: true,
-                          decoration: const InputDecoration(
-                              labelText: 'API Secret / Password',
+                          decoration: InputDecoration(
+                              labelText:
+                                  PosLocalization.tr('API Secret / Password'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                     ],
@@ -272,18 +288,19 @@ class _NotificationTemplatesScreenState
                       Expanded(
                         child: TextField(
                           controller: senderCtrl,
-                          decoration: const InputDecoration(
-                              labelText:
-                                  'Branded Mask / Sender ID (e.g. SMARTPOS)',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr(
+                                  'Branded Mask / Sender ID (e.g. SMARTPOS)'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Row(
                         children: [
-                          const Text('Active:',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(PosLocalization.tr('Active:'),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
                           Switch(
                             value: isActive,
                             activeThumbColor: const Color(0xFF0038B8),
@@ -300,7 +317,7 @@ class _NotificationTemplatesScreenState
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+                child: Text(PosLocalization.tr('Cancel'))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0038B8),
@@ -310,8 +327,9 @@ class _NotificationTemplatesScreenState
                 final url = urlCtrl.text.trim();
                 if (name.isEmpty || url.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Please enter gateway name and API URL!'),
+                    SnackBar(
+                        content: Text(PosLocalization.tr(
+                            'Please enter gateway name and API URL!')),
                         backgroundColor: Colors.red),
                   );
                   return;
@@ -348,7 +366,7 @@ class _NotificationTemplatesScreenState
                 if (ctx.mounted) Navigator.pop(ctx);
                 _loadData();
               },
-              child: const Text('Save Gateway'),
+              child: Text(PosLocalization.tr('Save Gateway')),
             ),
           ],
         ),
@@ -375,9 +393,10 @@ class _NotificationTemplatesScreenState
             children: [
               TextField(
                 controller: phoneCtrl,
-                decoration: const InputDecoration(
-                    labelText: 'Recipient Phone Number (e.g. 03001234567)',
-                    border: OutlineInputBorder()),
+                decoration: InputDecoration(
+                    labelText: PosLocalization.tr(
+                        'Recipient Phone Number (e.g. 03001234567)'),
+                    border: const OutlineInputBorder()),
               ),
               const SizedBox(height: 12),
               if (testing) const LinearProgressIndicator(),
@@ -392,7 +411,7 @@ class _NotificationTemplatesScreenState
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Close')),
+                child: Text(PosLocalization.tr('Close'))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0038B8),
@@ -407,8 +426,8 @@ class _NotificationTemplatesScreenState
 
                       final ok = await MessagingService.sendSms(
                         to: phoneCtrl.text.trim(),
-                        message:
-                            'Smart POS Test SMS: Gateway connection verified successfully!',
+                        message: PosLocalization.tr(
+                            'Smart POS Test SMS: Gateway connection verified successfully!'),
                         recipientName: 'Test Recipient',
                         gatewayOverride: gw,
                       );
@@ -421,7 +440,7 @@ class _NotificationTemplatesScreenState
                       });
                       _loadData();
                     },
-              child: const Text('Send Test SMS'),
+              child: Text(PosLocalization.tr('Send Test SMS')),
             ),
           ],
         ),
@@ -436,8 +455,9 @@ class _NotificationTemplatesScreenState
     final recipients = _filteredBulkRecipients;
     if (recipients.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('No customers found in selected target audience!'),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'No customers found in selected target audience!')),
             backgroundColor: Colors.orange),
       );
       return;
@@ -446,7 +466,7 @@ class _NotificationTemplatesScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Confirm Bulk SMS Campaign'),
+        title: Text(PosLocalization.tr('Confirm Bulk SMS Campaign')),
         content: Text(
           'Are you sure you want to broadcast this message to ${recipients.length} customers?\n\n'
           'Estimated SMS units: ${recipients.length}',
@@ -454,13 +474,13 @@ class _NotificationTemplatesScreenState
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(PosLocalization.tr('Cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
                 foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Launch Campaign'),
+            child: Text(PosLocalization.tr('Launch Campaign')),
           ),
         ],
       ),
@@ -502,16 +522,21 @@ class _NotificationTemplatesScreenState
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Campaign Summary'),
+          title: Text(PosLocalization.tr('Campaign Summary')),
           content: Text(
-            'Campaign completed!\n\n'
-            'Total Contacts: ${result['total']}\n'
-            'Successful Sent: ${result['successful']}\n'
-            'Failed: ${result['failed']}',
+            PosLocalization.trParams(
+              'Campaign completed!\n\nTotal Contacts: {total}\nSuccessful Sent: {sent}\nFailed: {failed}',
+              {
+                'total': '${result['total']}',
+                'sent': '${result['successful']}',
+                'failed': '${result['failed']}',
+              },
+            ),
           ),
           actions: [
             ElevatedButton(
-                onPressed: () => Navigator.pop(ctx), child: const Text('Done')),
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(PosLocalization.tr('Done'))),
           ],
         ),
       );
@@ -556,7 +581,8 @@ class _NotificationTemplatesScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'SMS & WhatsApp Messaging Hub',
+                              PosLocalization.tr(
+                                  'SMS & WhatsApp Messaging Hub'),
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
@@ -566,7 +592,8 @@ class _NotificationTemplatesScreenState
                               ),
                             ),
                             Text(
-                              'Bulk Marketing, Pakistani Telco SMS Gateways (Zong/Ufone/Jazz), and WhatsApp Direct Billing',
+                              PosLocalization.tr(
+                                  'Bulk Marketing, Pakistani Telco SMS Gateways (Zong/Ufone/Jazz), and WhatsApp Direct Billing'),
                               style: TextStyle(
                                   fontSize: 12,
                                   color: isDark
@@ -585,8 +612,8 @@ class _NotificationTemplatesScreenState
                             horizontal: 16, vertical: 10),
                       ),
                       icon: const Icon(Icons.add_rounded, size: 18),
-                      label: const Text('Add Gateway',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(PosLocalization.tr('Add Gateway'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () => _showAddGatewayDialog(),
                     ),
                   ],
@@ -653,16 +680,18 @@ class _NotificationTemplatesScreenState
                 size: 48,
                 color: Colors.grey),
             const SizedBox(height: 12),
-            const Text('No SMS Gateways configured yet',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(PosLocalization.tr('No SMS Gateways configured yet'),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            const Text(
-                'Add your Zong, Ufone, Jazz, or Generic REST SMS API credentials to enable customer billing SMS.',
-                style: TextStyle(color: Colors.grey)),
+            Text(
+                PosLocalization.tr(
+                    'Add your Zong, Ufone, Jazz, or Generic REST SMS API credentials to enable customer billing SMS.'),
+                style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               icon: const Icon(Icons.add),
-              label: const Text('Add SMS Gateway'),
+              label: Text(PosLocalization.tr('Add SMS Gateway')),
               onPressed: () => _showAddGatewayDialog(),
             ),
           ],
@@ -771,19 +800,19 @@ class _NotificationTemplatesScreenState
                   style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.compact),
                   icon: const Icon(Icons.send_rounded, size: 14),
-                  label: const Text('Test SMS'),
+                  label: Text(PosLocalization.tr('Test SMS')),
                   onPressed: () => _testGateway(gw),
                 ),
                 const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 18),
-                  tooltip: 'Edit Gateway',
+                  tooltip: PosLocalization.tr('Edit Gateway'),
                   onPressed: () => _showAddGatewayDialog(gatewayToEdit: gw),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline,
                       size: 18, color: Colors.red),
-                  tooltip: 'Delete Gateway',
+                  tooltip: PosLocalization.tr('Delete Gateway'),
                   onPressed: () async {
                     final db = await DatabaseService.initialize();
                     await db.deleteSmsGateway(gw.id!);
@@ -812,8 +841,9 @@ class _NotificationTemplatesScreenState
           // Filter Chips
           Row(
             children: [
-              const Text('Target Audience:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(PosLocalization.tr('Target Audience:'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 14)),
               const SizedBox(width: 12),
               ChoiceChip(
                 label: Text('All Customers (${_customers.length})'),
@@ -829,7 +859,7 @@ class _NotificationTemplatesScreenState
               ),
               const SizedBox(width: 8),
               ChoiceChip(
-                label: const Text('VIP / High Value'),
+                label: Text(PosLocalization.tr('VIP / High Value')),
                 selected: _targetAudience == 'vip',
                 onSelected: (s) => setState(() => _targetAudience = 'vip'),
               ),
@@ -852,34 +882,35 @@ class _NotificationTemplatesScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Campaign Message Composer',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(PosLocalization.tr('Campaign Message Composer'),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
-                  const Text(
-                      'Insert dynamic personalized tags into your campaign message:',
-                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                      PosLocalization.tr(
+                          'Insert dynamic personalized tags into your campaign message:'),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     children: [
                       ActionChip(
                         avatar: const Icon(Icons.person, size: 14),
-                        label: const Text('{customer_name}'),
+                        label: Text(PosLocalization.tr('{customer_name}')),
                         onPressed: () {
                           _bulkMsgCtrl.text += ' {customer_name}';
                         },
                       ),
                       ActionChip(
                         avatar: const Icon(Icons.store, size: 14),
-                        label: const Text('{business_name}'),
+                        label: Text(PosLocalization.tr('{business_name}')),
                         onPressed: () {
                           _bulkMsgCtrl.text += ' {business_name}';
                         },
                       ),
                       ActionChip(
                         avatar: const Icon(Icons.payments, size: 14),
-                        label: const Text('{due_amount}'),
+                        label: Text(PosLocalization.tr('{due_amount}')),
                         onPressed: () {
                           _bulkMsgCtrl.text += ' {due_amount}';
                         },
@@ -891,10 +922,10 @@ class _NotificationTemplatesScreenState
                     controller: _bulkMsgCtrl,
                     maxLines: 4,
                     onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText:
-                          'Type your promotional or recovery announcement...',
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      hintText: PosLocalization.tr(
+                          'Type your promotional or recovery announcement...'),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -960,20 +991,23 @@ class _NotificationTemplatesScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.chat_rounded,
+                      const Icon(Icons.chat_rounded,
                           color: Color(0xFF25D366), size: 24),
-                      SizedBox(width: 10),
-                      Text('Direct WhatsApp Dispatcher (Zero API Cost)',
-                          style: TextStyle(
+                      const SizedBox(width: 10),
+                      Text(
+                          PosLocalization.tr(
+                              'Direct WhatsApp Dispatcher (Zero API Cost)'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 16)),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Opens WhatsApp Web or WhatsApp Desktop on your PC and sends bills, invoice links, or recovery notices without paid API keys.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  Text(
+                    PosLocalization.tr(
+                        'Opens WhatsApp Web or WhatsApp Desktop on your PC and sends bills, invoice links, or recovery notices without paid API keys.'),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -981,11 +1015,11 @@ class _NotificationTemplatesScreenState
                       Expanded(
                         child: TextField(
                           controller: _waPhoneCtrl,
-                          decoration: const InputDecoration(
-                            labelText:
-                                'WhatsApp Mobile Number (e.g. 03001234567) *',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.phone_iphone_rounded),
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr(
+                                'WhatsApp Mobile Number (e.g. 03001234567) *'),
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.phone_iphone_rounded),
                           ),
                         ),
                       ),
@@ -993,10 +1027,10 @@ class _NotificationTemplatesScreenState
                       Expanded(
                         child: TextField(
                           controller: _waNameCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Customer Name',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.person_rounded),
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Customer Name'),
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.person_rounded),
                           ),
                         ),
                       ),
@@ -1005,11 +1039,12 @@ class _NotificationTemplatesScreenState
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      const Text('Quick Template:',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(PosLocalization.tr('Quick Template:'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(width: 8),
                       ActionChip(
-                        label: const Text('Store Welcome & Greeting'),
+                        label: Text(
+                            PosLocalization.tr('Store Welcome & Greeting')),
                         onPressed: () {
                           _waMsgCtrl.text =
                               'Assalam-o-Alaikum ${_waNameCtrl.text.isNotEmpty ? _waNameCtrl.text : "Valued Customer"}!\n\nThank you for choosing ${widget.settings.businessName}. We are at your service for high quality products and best wholesale prices.\nContact us: ${widget.settings.phone}';
@@ -1018,7 +1053,7 @@ class _NotificationTemplatesScreenState
                       ),
                       const SizedBox(width: 8),
                       ActionChip(
-                        label: const Text('Payment Due Reminder'),
+                        label: Text(PosLocalization.tr('Payment Due Reminder')),
                         onPressed: () {
                           _waMsgCtrl.text =
                               'Assalam-o-Alaikum ${_waNameCtrl.text.isNotEmpty ? _waNameCtrl.text : "Muhtaram Customer"}!\n\nThis is a gentle payment reminder from ${widget.settings.businessName}. Kindly settle your pending ledger balance at your earliest convenience.\nThank you! ${widget.settings.phone}';
@@ -1031,9 +1066,9 @@ class _NotificationTemplatesScreenState
                   TextField(
                     controller: _waMsgCtrl,
                     maxLines: 5,
-                    decoration: const InputDecoration(
-                      labelText: 'WhatsApp Message Body *',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: PosLocalization.tr('WhatsApp Message Body *'),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -1047,16 +1082,17 @@ class _NotificationTemplatesScreenState
                             horizontal: 24, vertical: 12),
                       ),
                       icon: const Icon(Icons.send_rounded, size: 18),
-                      label: const Text('Launch WhatsApp & Send Bill',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(
+                          PosLocalization.tr('Launch WhatsApp & Send Bill'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () async {
                         final phone = _waPhoneCtrl.text.trim();
                         final text = _waMsgCtrl.text.trim();
                         if (phone.isEmpty || text.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Please enter phone number and message body!'),
+                            SnackBar(
+                                content: Text(PosLocalization.tr(
+                                    'Please enter phone number and message body!')),
                                 backgroundColor: Colors.red),
                           );
                           return;
@@ -1072,9 +1108,10 @@ class _NotificationTemplatesScreenState
 
                         if (ok && mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('WhatsApp launched!'),
-                                backgroundColor: Color(0xFF25D366)),
+                            SnackBar(
+                                content: Text(
+                                    PosLocalization.tr('WhatsApp launched!')),
+                                backgroundColor: const Color(0xFF25D366)),
                           );
                           _loadData();
                         }
@@ -1095,7 +1132,9 @@ class _NotificationTemplatesScreenState
   // =========================================================================
   Widget _buildLogsTab(bool isDark) {
     if (_logs.isEmpty) {
-      return const Center(child: Text('No outgoing messages recorded yet.'));
+      return Center(
+          child:
+              Text(PosLocalization.tr('No outgoing messages recorded yet.')));
     }
 
     return ListView.separated(

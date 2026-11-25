@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
+import '../../services/localization_service.dart';
 
 class HrmEmployeeScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -317,23 +318,28 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                   children: [
                     DropdownButtonFormField<String>(
                       initialValue: status,
-                      decoration: const InputDecoration(
-                        labelText: 'Attendance Status',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Attendance Status'),
+                        border: const OutlineInputBorder(),
                         isDense: true,
                       ),
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                             value: 'Present',
-                            child: Text('Present (Full Day)')),
+                            child:
+                                Text(PosLocalization.tr('Present (Full Day)'))),
                         DropdownMenuItem(
-                            value: 'Late', child: Text('Late Arrival')),
+                            value: 'Late',
+                            child: Text(PosLocalization.tr('Late Arrival'))),
                         DropdownMenuItem(
-                            value: 'Half Day', child: Text('Half Day Shift')),
+                            value: 'Half Day',
+                            child: Text(PosLocalization.tr('Half Day Shift'))),
                         DropdownMenuItem(
-                            value: 'Absent', child: Text('Absent / Unpaid')),
+                            value: 'Absent',
+                            child: Text(PosLocalization.tr('Absent / Unpaid'))),
                         DropdownMenuItem(
-                            value: 'On Leave', child: Text('Approved Leave')),
+                            value: 'On Leave',
+                            child: Text(PosLocalization.tr('Approved Leave'))),
                       ],
                       onChanged: (val) {
                         if (val != null) setDlgState(() => status = val);
@@ -345,9 +351,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                         Expanded(
                           child: TextField(
                             controller: inCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Clock-In Time',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Clock-In Time'),
+                              border: const OutlineInputBorder(),
                               isDense: true,
                             ),
                           ),
@@ -356,9 +362,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                         Expanded(
                           child: TextField(
                             controller: outCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Clock-Out Time',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Clock-Out Time'),
+                              border: const OutlineInputBorder(),
                               isDense: true,
                             ),
                           ),
@@ -368,9 +374,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     const SizedBox(height: 14),
                     TextField(
                       controller: noteCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Remarks / Shift Note',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Remarks / Shift Note'),
+                        border: const OutlineInputBorder(),
                         isDense: true,
                       ),
                     ),
@@ -380,7 +386,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: Text(PosLocalization.tr('Cancel')),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -397,7 +403,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     );
                     Navigator.pop(ctx);
                   },
-                  child: const Text('Save Punch'),
+                  child: Text(PosLocalization.tr('Save Punch')),
                 ),
               ],
             );
@@ -421,7 +427,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: Text('Add New Staff Member',
+          title: Text(PosLocalization.tr('Add New Staff Member'),
               style: TextStyle(
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
                   fontWeight: FontWeight.bold)),
@@ -432,27 +438,27 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Staff Full Name*',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: PosLocalization.tr('Staff Full Name*'),
+                    border: const OutlineInputBorder(),
                     isDense: true,
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: roleCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Designation / Role*',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: PosLocalization.tr('Designation / Role*'),
+                    border: const OutlineInputBorder(),
                     isDense: true,
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: phoneCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Mobile Phone Number',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: PosLocalization.tr('Mobile Phone Number'),
+                    border: const OutlineInputBorder(),
                     isDense: true,
                   ),
                 ),
@@ -460,9 +466,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                 TextField(
                   controller: salCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Monthly Basic Salary',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: PosLocalization.tr('Monthly Basic Salary'),
+                    border: const OutlineInputBorder(),
                     isDense: true,
                   ),
                 ),
@@ -472,7 +478,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(PosLocalization.tr('Cancel')),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -505,7 +511,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                   if (ctx.mounted) Navigator.pop(ctx);
                 }
               },
-              child: const Text('Add Employee'),
+              child: Text(PosLocalization.tr('Add Employee')),
             ),
           ],
         );
@@ -545,9 +551,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                         color: Color(0xFF2563EB), size: 22),
                   ),
                   const SizedBox(width: 12),
-                  const Text('Issue Staff Advance Loan',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(PosLocalization.tr('Issue Staff Advance Loan'),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               ),
               content: SizedBox(
@@ -557,9 +563,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                   children: [
                     DropdownButtonFormField<Map<String, dynamic>>(
                       initialValue: selectedEmployee,
-                      decoration: const InputDecoration(
-                        labelText: 'Select Staff Member',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Select Staff Member'),
+                        border: const OutlineInputBorder(),
                         isDense: true,
                       ),
                       items: _staff.map((emp) {
@@ -603,9 +609,10 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     const SizedBox(height: 12),
                     DropdownButtonFormField<PaymentAccount>(
                       initialValue: selectedAccount,
-                      decoration: const InputDecoration(
-                        labelText: 'Disbursal Payment Account',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText:
+                            PosLocalization.tr('Disbursal Payment Account'),
+                        border: const OutlineInputBorder(),
                         isDense: true,
                       ),
                       items: _paymentAccounts.map((a) {
@@ -622,9 +629,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     const SizedBox(height: 12),
                     TextField(
                       controller: notesCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Purpose / Notes',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Purpose / Notes'),
+                        border: const OutlineInputBorder(),
                         isDense: true,
                       ),
                     ),
@@ -634,7 +641,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: Text(PosLocalization.tr('Cancel')),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -642,7 +649,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     foregroundColor: Colors.white,
                   ),
                   icon: const Icon(Icons.check_rounded, size: 16),
-                  label: const Text('Disburse & Record Loan'),
+                  label: Text(PosLocalization.tr('Disburse & Record Loan')),
                   onPressed: () async {
                     if (selectedEmployee == null) return;
                     final total = double.tryParse(amountCtrl.text) ?? 0.0;
@@ -758,10 +765,14 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Staff Advance Salary Loans & Installments',
-                            style: TextStyle(
+                        Text(
+                            PosLocalization.tr(
+                                'Staff Advance Salary Loans & Installments'),
+                            style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text('Automated payroll installment deduction ledger',
+                        Text(
+                            PosLocalization.tr(
+                                'Automated payroll installment deduction ledger'),
                             style: TextStyle(
                                 fontSize: 11,
                                 color: isDark
@@ -777,7 +788,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                       visualDensity: VisualDensity.compact,
                     ),
                     icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Issue Advance Loan'),
+                    label: Text(PosLocalization.tr('Issue Advance Loan')),
                     onPressed: () {
                       Navigator.pop(ctx);
                       _showIssueLoanDialog();
@@ -808,8 +819,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Active Staff Loans',
-                                      style: TextStyle(
+                                  Text(PosLocalization.tr('Active Staff Loans'),
+                                      style: const TextStyle(
                                           fontSize: 11, color: Colors.grey)),
                                   Text('$activeCount Staff Members',
                                       style: const TextStyle(
@@ -834,8 +845,10 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Total Capital Outstanding',
-                                      style: TextStyle(
+                                  Text(
+                                      PosLocalization.tr(
+                                          'Total Capital Outstanding'),
+                                      style: const TextStyle(
                                           fontSize: 11, color: Colors.grey)),
                                   Text(
                                       '$currency${totalOutstanding.toStringAsFixed(0)}',
@@ -862,8 +875,10 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Monthly Deduction Flow',
-                                      style: TextStyle(
+                                  Text(
+                                      PosLocalization.tr(
+                                          'Monthly Deduction Flow'),
+                                      style: const TextStyle(
                                           fontSize: 11, color: Colors.grey)),
                                   Text(
                                       '$currency${totalMonthlyRepay.toStringAsFixed(0)} / mo',
@@ -879,10 +894,11 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                       ),
                       const SizedBox(height: 16),
                       if (_staffLoans.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text('No advance loans recorded.',
-                              style: TextStyle(color: Colors.grey)),
+                        Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                              PosLocalization.tr('No advance loans recorded.'),
+                              style: const TextStyle(color: Colors.grey)),
                         )
                       else
                         ListView.separated(
@@ -1037,7 +1053,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
+                  child: Text(PosLocalization.tr('Close')),
                 ),
               ],
             );
@@ -1118,7 +1134,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Process & Disburse Monthly Payroll',
+                        Text(
+                            PosLocalization.tr(
+                                'Process & Disburse Monthly Payroll'),
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -1126,7 +1144,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                                     ? Colors.white
                                     : const Color(0xFF0F172A))),
                         Text(
-                            'Generates expense & updates bank/cash balance automatically',
+                            PosLocalization.tr(
+                                'Generates expense & updates bank/cash balance automatically'),
                             style: TextStyle(
                                 fontSize: 12,
                                 color: isDark
@@ -1149,9 +1168,10 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               initialValue: selectedMonth,
-                              decoration: const InputDecoration(
-                                labelText: 'Salary Month & Year',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText:
+                                    PosLocalization.tr('Salary Month & Year'),
+                                border: const OutlineInputBorder(),
                                 isDense: true,
                               ),
                               items: [
@@ -1173,9 +1193,10 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                           Expanded(
                             child: DropdownButtonFormField<PaymentAccount>(
                               initialValue: selectedAccount,
-                              decoration: const InputDecoration(
-                                labelText: 'Disbursal Payment Account',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText: PosLocalization.tr(
+                                    'Disbursal Payment Account'),
+                                border: const OutlineInputBorder(),
                                 isDense: true,
                               ),
                               items: _paymentAccounts.map((a) {
@@ -1193,8 +1214,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                         ],
                       ),
                       const SizedBox(height: 16),
-                      const Text('Staff Salary Breakdown:',
-                          style: TextStyle(
+                      Text(PosLocalization.tr('Staff Salary Breakdown:'),
+                          style: const TextStyle(
                               fontSize: 13, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       Container(
@@ -1255,10 +1276,11 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                                     child: TextFormField(
                                       initialValue: alw.toStringAsFixed(0),
                                       keyboardType: TextInputType.number,
-                                      decoration: const InputDecoration(
-                                        labelText: '+ Allowances',
+                                      decoration: InputDecoration(
+                                        labelText:
+                                            PosLocalization.tr('+ Allowances'),
                                         isDense: true,
-                                        border: OutlineInputBorder(),
+                                        border: const OutlineInputBorder(),
                                       ),
                                       onChanged: (v) {
                                         setDlgState(() {
@@ -1274,10 +1296,11 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                                     child: TextFormField(
                                       initialValue: ded.toStringAsFixed(0),
                                       keyboardType: TextInputType.number,
-                                      decoration: const InputDecoration(
-                                        labelText: '- Deductions',
+                                      decoration: InputDecoration(
+                                        labelText:
+                                            PosLocalization.tr('- Deductions'),
                                         isDense: true,
-                                        border: OutlineInputBorder(),
+                                        border: const OutlineInputBorder(),
                                       ),
                                       onChanged: (v) {
                                         setDlgState(() {
@@ -1340,7 +1363,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: Text(PosLocalization.tr('Cancel')),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -1350,7 +1373,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                         horizontal: 18, vertical: 12),
                   ),
                   icon: const Icon(Icons.check_circle_rounded, size: 18),
-                  label: const Text('Confirm & Disburse Salaries'),
+                  label:
+                      Text(PosLocalization.tr('Confirm & Disburse Salaries')),
                   onPressed: () async {
                     final db = await DatabaseService.initialize();
 
@@ -1643,7 +1667,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
             const Icon(Icons.badge_rounded, color: Color(0xFF2563EB), size: 22),
             const SizedBox(width: 10),
             Text(
-              'HR & Employee Management (Attendance & Payroll)',
+              PosLocalization.tr(
+                  'HR & Employee Management (Attendance & Payroll)'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -1680,7 +1705,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
               ),
               onPressed: _showQuickBarcodeClockInModal,
               icon: const Icon(Icons.qr_code_scanner_rounded, size: 16),
-              label: const Text('Fast Clock-In'),
+              label: Text(PosLocalization.tr('Fast Clock-In')),
             ),
           ),
           Padding(
@@ -1691,7 +1716,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                   foregroundColor: Colors.white),
               onPressed: _showAddEmployeeModal,
               icon: const Icon(Icons.person_add, size: 16),
-              label: const Text('Add Employee'),
+              label: Text(PosLocalization.tr('Add Employee')),
             ),
           ),
         ],
@@ -1720,7 +1745,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                       // Date Selector
                       IconButton(
                         icon: const Icon(Icons.chevron_left_rounded),
-                        tooltip: 'Previous Day',
+                        tooltip: PosLocalization.tr('Previous Day'),
                         onPressed: () {
                           setState(() {
                             _selectedAttendanceDate = _selectedAttendanceDate
@@ -1757,7 +1782,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                       ),
                       IconButton(
                         icon: const Icon(Icons.chevron_right_rounded),
-                        tooltip: 'Next Day',
+                        tooltip: PosLocalization.tr('Next Day'),
                         onPressed: () {
                           setState(() {
                             _selectedAttendanceDate = _selectedAttendanceDate
@@ -1772,8 +1797,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                               () => _selectedAttendanceDate = DateTime.now());
                           _loadDailyAttendance();
                         },
-                        child:
-                            const Text('Today', style: TextStyle(fontSize: 12)),
+                        child: Text(PosLocalization.tr('Today'),
+                            style: const TextStyle(fontSize: 12)),
                       ),
                       const Spacer(),
                       // Barcode Quick Punch Input
@@ -1783,7 +1808,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                           controller: _quickScanCtrl,
                           onSubmitted: (_) => _quickBarcodePunch(),
                           decoration: InputDecoration(
-                            hintText: 'Scan Staff Barcode / ID (e.g. EMP-01)',
+                            hintText: PosLocalization.tr(
+                                'Scan Staff Barcode / ID (e.g. EMP-01)'),
                             prefixIcon: const Icon(
                                 Icons.qr_code_scanner_rounded,
                                 size: 18),
@@ -1867,42 +1893,42 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                         : const Color(0xFFF8FAFC)),
                     columns: [
                       DataColumn(
-                          label: Text('EMPLOYEE',
+                          label: Text(PosLocalization.tr('EMPLOYEE'),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: isDark
                                       ? const Color(0xFF94A3B8)
                                       : const Color(0xFF475569)))),
                       DataColumn(
-                          label: Text('DESIGNATION',
+                          label: Text(PosLocalization.tr('DESIGNATION'),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: isDark
                                       ? const Color(0xFF94A3B8)
                                       : const Color(0xFF475569)))),
                       DataColumn(
-                          label: Text('CLOCK IN',
+                          label: Text(PosLocalization.tr('CLOCK IN'),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: isDark
                                       ? const Color(0xFF94A3B8)
                                       : const Color(0xFF475569)))),
                       DataColumn(
-                          label: Text('CLOCK OUT',
+                          label: Text(PosLocalization.tr('CLOCK OUT'),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: isDark
                                       ? const Color(0xFF94A3B8)
                                       : const Color(0xFF475569)))),
                       DataColumn(
-                          label: Text('STATUS',
+                          label: Text(PosLocalization.tr('STATUS'),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: isDark
                                       ? const Color(0xFF94A3B8)
                                       : const Color(0xFF475569)))),
                       DataColumn(
-                          label: Text('ACTIONS',
+                          label: Text(PosLocalization.tr('ACTIONS'),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: isDark
@@ -2025,8 +2051,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                                   style: OutlinedButton.styleFrom(
                                       visualDensity: VisualDensity.compact),
                                   onPressed: () => _showPunchDialog(s),
-                                  child: const Text('Punch',
-                                      style: TextStyle(fontSize: 11)),
+                                  child: Text(PosLocalization.tr('Punch'),
+                                      style: const TextStyle(fontSize: 11)),
                                 ),
                               ],
                             ),
@@ -2052,7 +2078,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Current Month Payroll Register',
+                        Text(
+                            PosLocalization.tr(
+                                'Current Month Payroll Register'),
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
@@ -2060,9 +2088,11 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                                     ? Colors.white
                                     : const Color(0xFF0F172A))),
                         const SizedBox(height: 2),
-                        const Text(
-                            'Process, post salaries to accounts & generate individual payslips',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                            PosLocalization.tr(
+                                'Process, post salaries to accounts & generate individual payslips'),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                     Row(
@@ -2085,7 +2115,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                           onPressed: _showProcessPayrollDialog,
                           icon: const Icon(Icons.account_balance_wallet_rounded,
                               size: 16),
-                          label: const Text('Process Monthly Payroll'),
+                          label: Text(
+                              PosLocalization.tr('Process Monthly Payroll')),
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton.icon(
@@ -2094,7 +2125,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                               foregroundColor: Colors.white),
                           onPressed: () => _openPayrollPrint(_staff),
                           icon: const Icon(Icons.print, size: 16),
-                          label: const Text('Print All Pay Slips'),
+                          label:
+                              Text(PosLocalization.tr('Print All Pay Slips')),
                         ),
                       ],
                     ),
@@ -2206,8 +2238,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                                 onPressed: () => _openDetailedPaySlip(e),
                                 icon: const Icon(Icons.receipt_long_rounded,
                                     size: 14),
-                                label: const Text('Pay Slip',
-                                    style: TextStyle(fontSize: 11)),
+                                label: Text(PosLocalization.tr('Pay Slip'),
+                                    style: const TextStyle(fontSize: 11)),
                               ),
                             ],
                           ),
@@ -2249,8 +2281,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     color: Color(0xFF2563EB), size: 24),
               ),
               const SizedBox(width: 12),
-              const Text('Fast Barcode / PIN Clock-In',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              Text(PosLocalization.tr('Fast Barcode / PIN Clock-In'),
+                  style: const TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.bold)),
             ],
           ),
           content: SizedBox(
@@ -2259,17 +2292,18 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Scan employee badge barcode or enter 4-digit PIN / Staff ID to instantly punch attendance:',
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                Text(
+                  PosLocalization.tr(
+                      'Scan employee badge barcode or enter 4-digit PIN / Staff ID to instantly punch attendance:'),
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: inputCtrl,
                   autofocus: true,
                   decoration: InputDecoration(
-                    labelText: 'Badge Barcode or Staff ID',
-                    hintText: 'e.g. EMP-01 or scan barcode',
+                    labelText: PosLocalization.tr('Badge Barcode or Staff ID'),
+                    hintText: PosLocalization.tr('e.g. EMP-01 or scan barcode'),
                     prefixIcon: const Icon(Icons.badge_rounded),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10)),
@@ -2285,7 +2319,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(PosLocalization.tr('Cancel')),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -2293,7 +2327,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.check_circle_rounded, size: 16),
-              label: const Text('Punch Attendance'),
+              label: Text(PosLocalization.tr('Punch Attendance')),
               onPressed: () {
                 Navigator.pop(ctx);
                 _onQuickScanSubmitted(inputCtrl.text);
@@ -2374,13 +2408,13 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
             backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.payments_rounded,
+                const Icon(Icons.payments_rounded,
                     color: Color(0xFF10B981), size: 24),
-                SizedBox(width: 10),
-                Text('Disburse Commission Payout',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(width: 10),
+                Text(PosLocalization.tr('Disburse Commission Payout'),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
             content: SizedBox(
@@ -2401,8 +2435,8 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Total Commission Payable:',
-                            style: TextStyle(
+                        Text(PosLocalization.tr('Total Commission Payable:'),
+                            style: const TextStyle(
                                 fontSize: 12, color: Color(0xFF065F46))),
                         Text('$currency${totalCommission.toStringAsFixed(2)}',
                             style: const TextStyle(
@@ -2417,9 +2451,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                   const SizedBox(height: 16),
                   DropdownButtonFormField<PaymentAccount>(
                     initialValue: selectedAccount,
-                    decoration: const InputDecoration(
-                      labelText: 'Pay From Account',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: PosLocalization.tr('Pay From Account'),
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                     items: _paymentAccounts
@@ -2438,13 +2472,13 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel')),
+                  child: Text(PosLocalization.tr('Cancel'))),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF10B981),
                     foregroundColor: Colors.white),
                 icon: const Icon(Icons.check, size: 16),
-                label: const Text('Confirm & Post Payout'),
+                label: Text(PosLocalization.tr('Confirm & Post Payout')),
                 onPressed: () async {
                   final db = await DatabaseService.initialize();
                   await db.db.insert('expenses', {
@@ -2512,14 +2546,16 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                   flex: 2,
                   child: DropdownButtonFormField<Map<String, dynamic>?>(
                     initialValue: _selectedCommissionStaff,
-                    decoration: const InputDecoration(
-                      labelText: 'Select Cashier / Staff',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: PosLocalization.tr('Select Cashier / Staff'),
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                     items: [
-                      const DropdownMenuItem(
-                          value: null, child: Text('All Cashiers & Staff')),
+                      DropdownMenuItem(
+                          value: null,
+                          child:
+                              Text(PosLocalization.tr('All Cashiers & Staff'))),
                       ..._staff.map((e) => DropdownMenuItem(
                           value: e,
                           child: Text(
@@ -2535,9 +2571,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _commissionRange,
-                    decoration: const InputDecoration(
-                      labelText: 'Performance Period',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: PosLocalization.tr('Performance Period'),
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                     items: ['Today', 'This Week', 'This Month', 'All Time']
@@ -2556,9 +2592,9 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                   width: 130,
                   child: TextFormField(
                     initialValue: _commissionRate.toString(),
-                    decoration: const InputDecoration(
-                      labelText: 'Commission %',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: PosLocalization.tr('Commission %'),
+                      border: const OutlineInputBorder(),
                       isDense: true,
                       suffixText: '%',
                     ),
@@ -2578,7 +2614,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                         horizontal: 16, vertical: 14),
                   ),
                   icon: const Icon(Icons.payments_outlined, size: 18),
-                  label: const Text('Disburse Payout'),
+                  label: Text(PosLocalization.tr('Disburse Payout')),
                   onPressed: commissionEarned > 0
                       ? () =>
                           _disburseCommissionModal(commissionEarned, currency)
@@ -2662,7 +2698,7 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                                 : const Color(0xFF0F172A))),
                     IconButton(
                       icon: const Icon(Icons.refresh, size: 20),
-                      tooltip: 'Refresh Sales',
+                      tooltip: PosLocalization.tr('Refresh Sales'),
                       onPressed: _loadCommissionSales,
                     ),
                   ],
@@ -2683,10 +2719,11 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                               size: 48,
                               color: Colors.grey.withValues(alpha: 0.5)),
                           const SizedBox(height: 12),
-                          const Text(
-                              'No sales found for the selected cashier and period.',
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 13)),
+                          Text(
+                              PosLocalization.tr(
+                                  'No sales found for the selected cashier and period.'),
+                              style: const TextStyle(
+                                  color: Colors.grey, fontSize: 13)),
                         ],
                       ),
                     ),
@@ -2695,13 +2732,19 @@ class _HrmEmployeeScreenState extends State<HrmEmployeeScreen>
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
-                      columns: const [
-                        DataColumn(label: Text('Invoice #')),
-                        DataColumn(label: Text('Date & Time')),
-                        DataColumn(label: Text('Cashier / Counter')),
-                        DataColumn(label: Text('Payment')),
-                        DataColumn(label: Text('Sale Total')),
-                        DataColumn(label: Text('Commission')),
+                      columns: [
+                        DataColumn(
+                            label: Text(PosLocalization.tr('Invoice #'))),
+                        DataColumn(
+                            label: Text(PosLocalization.tr('Date & Time'))),
+                        DataColumn(
+                            label:
+                                Text(PosLocalization.tr('Cashier / Counter'))),
+                        DataColumn(label: Text(PosLocalization.tr('Payment'))),
+                        DataColumn(
+                            label: Text(PosLocalization.tr('Sale Total'))),
+                        DataColumn(
+                            label: Text(PosLocalization.tr('Commission'))),
                       ],
                       rows: _commissionSales.take(50).map((sale) {
                         final comm =

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../models/models.dart';
 import '../../services/messaging_service.dart';
+import '../../services/localization_service.dart';
 
 class PaymentReminderDialog extends StatefulWidget {
   final Contact contact;
@@ -98,8 +99,9 @@ Thank you!''';
     final phone = _formatInternationalPhone(_phoneCtrl.text);
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please enter a valid mobile number!'),
+        SnackBar(
+            content:
+                Text(PosLocalization.tr('Please enter a valid mobile number!')),
             backgroundColor: Colors.red),
       );
       return;
@@ -114,10 +116,10 @@ Thank you!''';
     Clipboard.setData(ClipboardData(text: _messageCtrl.text.trim()));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Opening WhatsApp... Message also copied to clipboard!'),
-          backgroundColor: Color(0xFF10B981),
+        SnackBar(
+          content: Text(PosLocalization.tr(
+              'Opening WhatsApp... Message also copied to clipboard!')),
+          backgroundColor: const Color(0xFF10B981),
         ),
       );
       Navigator.pop(context);
@@ -128,8 +130,9 @@ Thank you!''';
     final phone = _formatInternationalPhone(_phoneCtrl.text);
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please enter a valid mobile number!'),
+        SnackBar(
+            content:
+                Text(PosLocalization.tr('Please enter a valid mobile number!')),
             backgroundColor: Colors.red),
       );
       return;
@@ -157,9 +160,10 @@ Thank you!''';
   void _copyToClipboard() {
     Clipboard.setData(ClipboardData(text: _messageCtrl.text.trim()));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Payment reminder message copied to clipboard!'),
-        backgroundColor: Color(0xFF10B981),
+      SnackBar(
+        content: Text(PosLocalization.tr(
+            'Payment reminder message copied to clipboard!')),
+        backgroundColor: const Color(0xFF10B981),
       ),
     );
   }
@@ -220,9 +224,10 @@ Thank you!''';
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Send Payment Reminder (WhatsApp & SMS)',
-                          style: TextStyle(
+                        Text(
+                          PosLocalization.tr(
+                              'Send Payment Reminder (WhatsApp & SMS)'),
+                          style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 2),
@@ -249,9 +254,9 @@ Thank you!''';
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Phone input
-                  const Text('Customer Mobile / WhatsApp Number',
-                      style:
-                          TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(PosLocalization.tr('Customer Mobile / WhatsApp Number'),
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _phoneCtrl,
@@ -259,7 +264,8 @@ Thank you!''';
                     decoration: InputDecoration(
                       prefixIcon:
                           const Icon(Icons.phone_android_rounded, size: 18),
-                      hintText: 'e.g. 03001234567 or +923001234567',
+                      hintText: PosLocalization.tr(
+                          'e.g. 03001234567 or +923001234567'),
                       isDense: true,
                       filled: true,
                       fillColor: isDark
@@ -272,9 +278,9 @@ Thank you!''';
                   const SizedBox(height: 14),
 
                   // Template selector chips
-                  const Text('Reminder Template',
-                      style:
-                          TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(PosLocalization.tr('Reminder Template'),
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -295,18 +301,19 @@ Thank you!''';
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Message Preview & Customization',
-                          style: TextStyle(
+                      Text(
+                          PosLocalization.tr('Message Preview & Customization'),
+                          style: const TextStyle(
                               fontSize: 12, fontWeight: FontWeight.bold)),
                       InkWell(
                         onTap: _copyToClipboard,
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.copy_rounded,
+                            const Icon(Icons.copy_rounded,
                                 size: 13, color: Color(0xFF4F46E5)),
-                            SizedBox(width: 4),
-                            Text('Copy Text',
-                                style: TextStyle(
+                            const SizedBox(width: 4),
+                            Text(PosLocalization.tr('Copy Text'),
+                                style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFF4F46E5))),
@@ -361,8 +368,8 @@ Thank you!''';
                           borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: const Icon(Icons.sms_rounded, size: 16),
-                    label: const Text('Send SMS',
-                        style: TextStyle(
+                    label: Text(PosLocalization.tr('Send SMS'),
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 12)),
                     onPressed: _sendViaSms,
                   ),
@@ -378,8 +385,8 @@ Thank you!''';
                           borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 16),
-                    label: const Text('Send via WhatsApp',
-                        style: TextStyle(
+                    label: Text(PosLocalization.tr('Send via WhatsApp'),
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 13)),
                     onPressed: _sendViaWhatsApp,
                   ),

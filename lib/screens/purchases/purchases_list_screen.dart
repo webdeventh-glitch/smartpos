@@ -10,6 +10,7 @@ import '../../widgets/status_pill.dart';
 import '../../widgets/pay_due_dialog.dart';
 import 'add_purchase_screen.dart';
 import 'purchase_receipt_dialog.dart';
+import '../../services/localization_service.dart';
 
 class PurchasesListScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -121,10 +122,10 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     final currentUser = AuthService.currentUser;
     if (currentUser != null && !currentUser.hasPermission('purchase.delete')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Access Denied: You do not have permission to delete purchase invoices.'),
-          backgroundColor: Color(0xFFEF4444),
+        SnackBar(
+          content: Text(PosLocalization.tr(
+              'Access Denied: You do not have permission to delete purchase invoices.')),
+          backgroundColor: const Color(0xFFEF4444),
         ),
       );
       return;
@@ -133,7 +134,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Purchase Invoice?'),
+        title: Text(PosLocalization.tr('Delete Purchase Invoice?')),
         content: Text(
           'Are you sure you want to delete purchase invoice "${p.refNo}" from ${p.supplierName}?\n\n'
           'This will automatically reverse the added stock quantity, subtract the payable from the supplier ledger, '
@@ -142,13 +143,13 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(PosLocalization.tr('Cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFEF4444),
                 foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete Invoice'),
+            child: Text(PosLocalization.tr('Delete Invoice')),
           ),
         ],
       ),
@@ -176,10 +177,10 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     final currentUser = AuthService.currentUser;
     if (currentUser != null && !currentUser.hasPermission('purchase.edit')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Access Denied: You do not have permission to edit purchases.'),
-          backgroundColor: Color(0xFFEF4444),
+        SnackBar(
+          content: Text(PosLocalization.tr(
+              'Access Denied: You do not have permission to edit purchases.')),
+          backgroundColor: const Color(0xFFEF4444),
         ),
       );
       return;
@@ -211,8 +212,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Update Purchase Status',
-                          style: TextStyle(
+                      Text(PosLocalization.tr('Update Purchase Status'),
+                          style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)),
                       Text('Invoice: ${p.refNo} • ${p.supplierName}',
                           style: const TextStyle(
@@ -228,9 +229,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Select New Status:',
-                      style:
-                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  Text(PosLocalization.tr('Select New Status:'),
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: selectedStatus,
@@ -245,16 +246,17 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8)),
                     ),
-                    items: const [
+                    items: [
                       DropdownMenuItem(
                         value: 'received',
                         child: Row(
                           children: [
-                            Icon(Icons.check_circle_rounded,
+                            const Icon(Icons.check_circle_rounded,
                                 size: 16, color: Color(0xFF10B981)),
-                            SizedBox(width: 8),
-                            Text('Received (Goods In Store)',
-                                style: TextStyle(
+                            const SizedBox(width: 8),
+                            Text(
+                                PosLocalization.tr('Received (Goods In Store)'),
+                                style: const TextStyle(
                                     fontSize: 13, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -263,11 +265,13 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                         value: 'pending',
                         child: Row(
                           children: [
-                            Icon(Icons.hourglass_bottom_rounded,
+                            const Icon(Icons.hourglass_bottom_rounded,
                                 size: 16, color: Color(0xFFD97706)),
-                            SizedBox(width: 8),
-                            Text('Pending (Awaiting Delivery)',
-                                style: TextStyle(
+                            const SizedBox(width: 8),
+                            Text(
+                                PosLocalization.tr(
+                                    'Pending (Awaiting Delivery)'),
+                                style: const TextStyle(
                                     fontSize: 13, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -276,11 +280,11 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                         value: 'ordered',
                         child: Row(
                           children: [
-                            Icon(Icons.assignment_rounded,
+                            const Icon(Icons.assignment_rounded,
                                 size: 16, color: Color(0xFF6366F1)),
-                            SizedBox(width: 8),
-                            Text('Ordered (Purchase Order)',
-                                style: TextStyle(
+                            const SizedBox(width: 8),
+                            Text(PosLocalization.tr('Ordered (Purchase Order)'),
+                                style: const TextStyle(
                                     fontSize: 13, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -337,7 +341,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(PosLocalization.tr('Cancel')),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -347,7 +351,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                       borderRadius: BorderRadius.circular(8)),
                 ),
                 icon: const Icon(Icons.check_rounded, size: 16),
-                label: const Text('Apply Status'),
+                label: Text(PosLocalization.tr('Apply Status')),
                 onPressed: () => Navigator.pop(ctx, true),
               ),
             ],
@@ -399,7 +403,7 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Purchases & Restocking',
+                      PosLocalization.tr('Purchases & Restocking'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -409,7 +413,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Manage incoming supplier shipments, purchase invoices, and vendor payables.',
+                      PosLocalization.tr(
+                          'Manage incoming supplier shipments, purchase invoices, and vendor payables.'),
                       style: TextStyle(
                           fontSize: 13,
                           color: isDark
@@ -428,9 +433,9 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.add_rounded, size: 19),
-                  label: const Text('Add Purchase',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  label: Text(PosLocalization.tr('Add Purchase'),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
                   onPressed: _openAddPurchase,
                 ),
               ],
@@ -585,8 +590,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                           color:
                               isDark ? Colors.white : const Color(0xFF0F172A)),
                       decoration: InputDecoration(
-                        hintText:
-                            'Search purchases by Ref No, Supplier, Location...',
+                        hintText: PosLocalization.tr(
+                            'Search purchases by Ref No, Supplier, Location...'),
                         hintStyle: TextStyle(
                             fontSize: 13,
                             color: isDark
@@ -640,15 +645,19 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                             color: isDark
                                 ? Colors.white
                                 : const Color(0xFF0F172A)),
-                        items: const [
+                        items: [
                           DropdownMenuItem(
-                              value: 'all', child: Text('Status: All')),
+                              value: 'all',
+                              child: Text(PosLocalization.tr('Status: All'))),
                           DropdownMenuItem(
-                              value: 'received', child: Text('Received')),
+                              value: 'received',
+                              child: Text(PosLocalization.tr('Received'))),
                           DropdownMenuItem(
-                              value: 'pending', child: Text('Pending')),
+                              value: 'pending',
+                              child: Text(PosLocalization.tr('Pending'))),
                           DropdownMenuItem(
-                              value: 'ordered', child: Text('Ordered')),
+                              value: 'ordered',
+                              child: Text(PosLocalization.tr('Ordered'))),
                         ],
                         onChanged: (val) {
                           setState(() {
@@ -685,14 +694,19 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                             color: isDark
                                 ? Colors.white
                                 : const Color(0xFF0F172A)),
-                        items: const [
+                        items: [
                           DropdownMenuItem(
-                              value: 'all', child: Text('Payment: All')),
-                          DropdownMenuItem(value: 'paid', child: Text('Paid')),
+                              value: 'all',
+                              child: Text(PosLocalization.tr('Payment: All'))),
                           DropdownMenuItem(
-                              value: 'due', child: Text('Due / Unpaid')),
+                              value: 'paid',
+                              child: Text(PosLocalization.tr('Paid'))),
                           DropdownMenuItem(
-                              value: 'partial', child: Text('Partial')),
+                              value: 'due',
+                              child: Text(PosLocalization.tr('Due / Unpaid'))),
+                          DropdownMenuItem(
+                              value: 'partial',
+                              child: Text(PosLocalization.tr('Partial'))),
                         ],
                         onChanged: (val) {
                           setState(() {
@@ -962,7 +976,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                                 0xFF059669),
                                                           ),
                                                           tooltip:
-                                                              'Pay Supplier Due',
+                                                              PosLocalization.tr(
+                                                                  'Pay Supplier Due'),
                                                           onPressed: () {
                                                             showDialog(
                                                               context: context,
@@ -1005,7 +1020,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                                 0xFF4F46E5),
                                                           ),
                                                           tooltip:
-                                                              'Update Status (Received / Pending / Ordered)',
+                                                              PosLocalization.tr(
+                                                                  'Update Status (Received / Pending / Ordered)'),
                                                           onPressed: () =>
                                                               _openUpdateStatusDialog(
                                                                   p),
@@ -1020,8 +1036,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                               : const Color(
                                                                   0xFF004EEB),
                                                         ),
-                                                        tooltip:
-                                                            'Print Purchase Receipt',
+                                                        tooltip: PosLocalization.tr(
+                                                            'Print Purchase Receipt'),
                                                         onPressed: () {
                                                           showDialog(
                                                             context: context,
@@ -1048,7 +1064,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
                                                                 0xFFEF4444),
                                                           ),
                                                           tooltip:
-                                                              'Delete & Reverse Stock',
+                                                              PosLocalization.tr(
+                                                                  'Delete & Reverse Stock'),
                                                           onPressed: () =>
                                                               _deletePurchase(
                                                                   p),

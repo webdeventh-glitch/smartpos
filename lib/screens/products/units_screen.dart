@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/database_schema.dart';
 import '../../widgets/data_table_pagination_bar.dart';
+import '../../services/localization_service.dart';
 
 class UnitsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -103,7 +104,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _fieldLabel('Category / پیمائش کی قسم *', isDark),
+                  _fieldLabel('${PosLocalization.tr('Category')} *', isDark),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     initialValue: selectedCategory,
@@ -113,31 +114,31 @@ class _UnitsScreenState extends State<UnitsScreen> {
                         fontSize: 13,
                         color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: _inputDeco('Select Category', isDark),
-                    items: const [
+                    items: [
                       DropdownMenuItem(
                         value: 'count',
-                        child: Text(
-                            '1. Count (گنتی - Pieces, Dozen, Box, Strips)'),
+                        child: Text(PosLocalization.tr(
+                            '1. Count (Pieces, Dozen, Box, Strips)')),
                       ),
                       DropdownMenuItem(
                         value: 'weight',
-                        child:
-                            Text('2. Weight (وزن - Kg, Gram, Pao, Mann, Bori)'),
+                        child: Text(PosLocalization.tr(
+                            '2. Weight (Kg, Gram, Pao, Mann, Bori)')),
                       ),
                       DropdownMenuItem(
                         value: 'volume',
-                        child:
-                            Text('3. Volume (مائع - Liter, ML, Bottle, Can)'),
+                        child: Text(PosLocalization.tr(
+                            '3. Volume (Liter, ML, Bottle, Can)')),
                       ),
                       DropdownMenuItem(
                         value: 'length',
-                        child: Text(
-                            '4. Length / Area (لمبائی و رقبہ - Meter, Ft, Coil, Sq Ft)'),
+                        child: Text(PosLocalization.tr(
+                            '4. Length / Area (Meter, Ft, Coil, Sq Ft)')),
                       ),
                       DropdownMenuItem(
                         value: 'time',
-                        child: Text(
-                            '5. Time / Services (وقت و سروسز - Hour, Min, Session)'),
+                        child: Text(PosLocalization.tr(
+                            '5. Time / Services (Hour, Min, Session)')),
                       ),
                     ],
                     onChanged: (val) {
@@ -490,7 +491,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
             : const Color(0xFFECFDF5);
         border = isDark ? const Color(0xFF047857) : const Color(0xFFA7F3D0);
         text = isDark ? const Color(0xFF34D399) : const Color(0xFF059669);
-        label = 'Weight (وزن)';
+        label = PosLocalization.tr('Weight');
         icon = Icons.scale_rounded;
         break;
       case 'volume':
@@ -499,7 +500,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
             : const Color(0xFFEFF6FF);
         border = isDark ? const Color(0xFF1D4ED8) : const Color(0xFFBFDBFE);
         text = isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB);
-        label = 'Volume (مائع)';
+        label = PosLocalization.tr('Volume');
         icon = Icons.water_drop_rounded;
         break;
       case 'length':
@@ -517,7 +518,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
             : const Color(0xFFF0FDFA);
         border = isDark ? const Color(0xFF0F766E) : const Color(0xFF99F6E4);
         text = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488);
-        label = 'Services (وقت)';
+        label = PosLocalization.tr('Services');
         icon = Icons.schedule_rounded;
         break;
       case 'count':
@@ -527,7 +528,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
             : const Color(0xFFFAF5FF);
         border = isDark ? const Color(0xFF6D28D9) : const Color(0xFFDDD6FE);
         text = isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED);
-        label = 'Count (گنتی)';
+        label = PosLocalization.tr('Count');
         icon = Icons.tag_rounded;
         break;
     }
@@ -587,37 +588,37 @@ class _UnitsScreenState extends State<UnitsScreen> {
       {
         'key': 'all',
         'label': 'All Units',
-        'urdu': 'تمام',
+        'urdu': '',
         'icon': Icons.tune_rounded
       },
       {
         'key': 'count',
         'label': '1. Count',
-        'urdu': 'گنتی',
+        'urdu': '',
         'icon': Icons.tag_rounded
       },
       {
         'key': 'weight',
         'label': '2. Weight',
-        'urdu': 'وزن',
+        'urdu': '',
         'icon': Icons.scale_rounded
       },
       {
         'key': 'volume',
         'label': '3. Volume',
-        'urdu': 'مائع',
+        'urdu': '',
         'icon': Icons.water_drop_rounded
       },
       {
         'key': 'length',
         'label': '4. Length / Area',
-        'urdu': 'لمبائی/رقبہ',
+        'urdu': '',
         'icon': Icons.straighten_rounded
       },
       {
         'key': 'time',
         'label': '5. Time / Services',
-        'urdu': 'وقت/سروسز',
+        'urdu': '',
         'icon': Icons.schedule_rounded
       },
     ];
@@ -639,7 +640,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Units of Measure (پیمائشی یونٹس)',
+                        PosLocalization.tr('Units of Measure'),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -979,7 +980,8 @@ class _UnitsScreenState extends State<UnitsScreen> {
                                     children: [
                                       _th('Unit Name', isDark: isDark),
                                       _th('Short Name', isDark: isDark),
-                                      _th('Category (قسم)', isDark: isDark),
+                                      _th(PosLocalization.tr('Category'),
+                                          isDark: isDark),
                                       _th('Allow Decimals', isDark: isDark),
                                       _th('Multiplier / Base', isDark: isDark),
                                       _th('Actions',

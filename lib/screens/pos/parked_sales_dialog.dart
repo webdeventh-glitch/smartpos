@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/lan_realtime_service.dart';
+import '../../services/localization_service.dart';
 
 class ParkedSalesDialog extends StatefulWidget {
   final Function(ParkedSale) onResumeSale;
@@ -120,9 +121,10 @@ class _ParkedSalesDialogState extends State<ParkedSalesDialog> {
                           ),
                         ),
                         if (_isLanSecondary)
-                          const Text(
-                            'Live LAN Queue synced with Primary Payment Counter',
-                            style: TextStyle(
+                          Text(
+                            PosLocalization.tr(
+                                'Live LAN Queue synced with Primary Payment Counter'),
+                            style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF10B981)),
@@ -134,7 +136,7 @@ class _ParkedSalesDialogState extends State<ParkedSalesDialog> {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: 'Refresh Queue',
+                      tooltip: PosLocalization.tr('Refresh Queue'),
                       icon: Icon(Icons.refresh_rounded,
                           color: isDark
                               ? const Color(0xFF94A3B8)
@@ -159,8 +161,8 @@ class _ParkedSalesDialogState extends State<ParkedSalesDialog> {
               decoration: InputDecoration(
                 isDense: true,
                 prefixIcon: const Icon(Icons.search, size: 18),
-                hintText:
-                    'Filter by token (e.g. TKN-), counter, or customer...',
+                hintText: PosLocalization.tr(
+                    'Filter by token (e.g. TKN-), counter, or customer...'),
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -338,8 +340,8 @@ class _ParkedSalesDialogState extends State<ParkedSalesDialog> {
                                         Navigator.of(context).pop();
                                       }
                                     },
-                                    child: const Text('Load Bill',
-                                        style: TextStyle(
+                                    child: Text(PosLocalization.tr('Load Bill'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12)),
                                   ),

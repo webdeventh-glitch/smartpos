@@ -6,6 +6,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../widgets/barcode_type_badge.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
+import '../../services/localization_service.dart';
 
 class PrintLabelsScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -320,9 +321,9 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Print Barcode Labels',
-                        style: TextStyle(
+                      Text(
+                        PosLocalization.tr('Print Barcode Labels'),
+                        style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF0F172A),
@@ -330,7 +331,8 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Generate and print custom barcode sticker labels for shelf placement and stock tagging.',
+                        PosLocalization.tr(
+                            'Generate and print custom barcode sticker labels for shelf placement and stock tagging.'),
                         style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey.shade600,
@@ -396,9 +398,9 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '1. Products in Print Queue',
-                          style: TextStyle(
+                        Text(
+                          PosLocalization.tr('1. Products in Print Queue'),
+                          style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                               color: Color(0xFF0F172A)),
@@ -425,8 +427,8 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                               controller: controller,
                               focusNode: focusNode,
                               decoration: InputDecoration(
-                                hintText:
-                                    'Search product to add to print queue...',
+                                hintText: PosLocalization.tr(
+                                    'Search product to add to print queue...'),
                                 hintStyle: const TextStyle(
                                     fontSize: 13, color: Color(0xFF94A3B8)),
                                 prefixIcon: const Icon(Icons.search,
@@ -452,9 +454,10 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                           Container(
                             padding: const EdgeInsets.all(24),
                             alignment: Alignment.center,
-                            child: const Text(
-                                'No products selected. Search above to add items.',
-                                style: TextStyle(
+                            child: Text(
+                                PosLocalization.tr(
+                                    'No products selected. Search above to add items.'),
+                                style: const TextStyle(
                                     color: Color(0xFF94A3B8), fontSize: 13)),
                           )
                         else
@@ -554,16 +557,16 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '2. Label Information & Format',
-                          style: TextStyle(
+                        Text(
+                          PosLocalization.tr('2. Label Information & Format'),
+                          style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                               color: Color(0xFF0F172A)),
                         ),
                         const SizedBox(height: 12),
-                        const Text('Sheet / Roll Layout',
-                            style: TextStyle(
+                        Text(PosLocalization.tr('Sheet / Roll Layout'),
+                            style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF475569))),
@@ -609,7 +612,7 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                                       _customWidthMm.toStringAsFixed(0),
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
-                                    labelText: 'Width (mm)',
+                                    labelText: PosLocalization.tr('Width (mm)'),
                                     isDense: true,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
@@ -630,7 +633,8 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                                       _customHeightMm.toStringAsFixed(0),
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
-                                    labelText: 'Height (mm)',
+                                    labelText:
+                                        PosLocalization.tr('Height (mm)'),
                                     isDense: true,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
@@ -648,8 +652,8 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                           ),
                         ],
                         const SizedBox(height: 14),
-                        const Text('Fields to Print on Label',
-                            style: TextStyle(
+                        Text(PosLocalization.tr('Fields to Print on Label'),
+                            style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF475569))),
@@ -659,8 +663,9 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                             children: [
                               CheckboxListTile(
                                 dense: true,
-                                title: const Text('Show Business Name',
-                                    style: TextStyle(fontSize: 13)),
+                                title: Text(
+                                    PosLocalization.tr('Show Business Name'),
+                                    style: const TextStyle(fontSize: 13)),
                                 value: _showBusinessName,
                                 activeColor: const Color(0xFF4F46E5),
                                 onChanged: (v) => setState(
@@ -671,8 +676,10 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                               ),
                               CheckboxListTile(
                                 dense: true,
-                                title: const Text('Show Product Name & Unit',
-                                    style: TextStyle(fontSize: 13)),
+                                title: Text(
+                                    PosLocalization.tr(
+                                        'Show Product Name & Unit'),
+                                    style: const TextStyle(fontSize: 13)),
                                 value: _showProductName,
                                 activeColor: const Color(0xFF4F46E5),
                                 onChanged: (v) => setState(
@@ -683,9 +690,10 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                               ),
                               CheckboxListTile(
                                 dense: true,
-                                title: const Text(
-                                    'Show Retail Price (Inc. Tax)',
-                                    style: TextStyle(fontSize: 13)),
+                                title: Text(
+                                    PosLocalization.tr(
+                                        'Show Retail Price (Inc. Tax)'),
+                                    style: const TextStyle(fontSize: 13)),
                                 value: _showPrice,
                                 activeColor: const Color(0xFF4F46E5),
                                 onChanged: (v) =>
@@ -696,8 +704,10 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                               ),
                               CheckboxListTile(
                                 dense: true,
-                                title: const Text('Show Numeric Barcode / SKU',
-                                    style: TextStyle(fontSize: 13)),
+                                title: Text(
+                                    PosLocalization.tr(
+                                        'Show Numeric Barcode / SKU'),
+                                    style: const TextStyle(fontSize: 13)),
                                 value: _showBarcodeNumber,
                                 activeColor: const Color(0xFF4F46E5),
                                 onChanged: (v) => setState(
@@ -708,8 +718,9 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                               ),
                               CheckboxListTile(
                                 dense: true,
-                                title: const Text('Show Expiry Date',
-                                    style: TextStyle(fontSize: 13)),
+                                title: Text(
+                                    PosLocalization.tr('Show Expiry Date'),
+                                    style: const TextStyle(fontSize: 13)),
                                 value: _showExpiryDate,
                                 activeColor: const Color(0xFF4F46E5),
                                 onChanged: (v) => setState(
@@ -720,8 +731,9 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                               ),
                               CheckboxListTile(
                                 dense: true,
-                                title: const Text('Show Batch / Lot No',
-                                    style: TextStyle(fontSize: 13)),
+                                title: Text(
+                                    PosLocalization.tr('Show Batch / Lot No'),
+                                    style: const TextStyle(fontSize: 13)),
                                 value: _showBatchNo,
                                 activeColor: const Color(0xFF4F46E5),
                                 onChanged: (v) =>
@@ -791,9 +803,10 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                     Container(
                       padding: const EdgeInsets.all(32),
                       alignment: Alignment.center,
-                      child: const Text(
-                          'Add items above to preview printable barcode labels.',
-                          style: TextStyle(color: Color(0xFF94A3B8))),
+                      child: Text(
+                          PosLocalization.tr(
+                              'Add items above to preview printable barcode labels.'),
+                          style: const TextStyle(color: Color(0xFF94A3B8))),
                     )
                   else
                     Wrap(

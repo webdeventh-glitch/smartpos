@@ -1226,7 +1226,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         content: Text(
                           isSuper
                               ? 'Loss Guard Blocked: Total invoice after discount ($currency${netOrderTotal.toStringAsFixed(2)}) cannot be lower than total cost ($currency${totalCartCost.toStringAsFixed(2)})!'
-                              : 'Loss Guard Blocked: Total invoice after discount cannot be lower than total cost price! (نقصان سے بچاؤ: کل بل خریداری قیمت سے کم نہیں ہو سکتا)',
+                              : PosLocalization.tr(
+                                  'Loss Guard Blocked: Total invoice after discount cannot be lower than total cost price!',
+                                  settings: widget.settings),
                         ),
                         backgroundColor: Colors.red,
                         duration: const Duration(seconds: 4),
@@ -2786,7 +2788,8 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Bonus / Free Qty (مفت بونس)',
+                          PosLocalization.tr('Bonus / Free Qty',
+                              settings: widget.settings),
                           style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -2939,7 +2942,9 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                         content: Text(
                           isSuper
                               ? 'Loss Guard Blocked: Net selling price ($currency${netSellingPerUnit.toStringAsFixed(2)}) cannot be lower than purchase cost ($currency${minCostPrice.toStringAsFixed(2)}) to prevent business loss!'
-                              : 'Loss Guard Blocked: Net selling price cannot be lower than purchase cost price! (نقصان سے بچاؤ: فروخت کی قیمت لاگت سے کم نہیں ہو سکتی)',
+                              : PosLocalization.tr(
+                                  'Loss Guard Blocked: Net selling price cannot be lower than purchase cost price!',
+                                  settings: widget.settings),
                         ),
                         backgroundColor: Colors.red,
                         duration: const Duration(seconds: 4),
@@ -9377,10 +9382,13 @@ class _PosTerminalScreenState extends ConsumerState<PosTerminalScreen> {
                                                                         .circular(
                                                                             4),
                                                               ),
-                                                              child: const Text(
-                                                                'RETURN / واپسی',
+                                                              child: Text(
+                                                                PosLocalization.tr(
+                                                                    'RETURN',
+                                                                    settings: widget
+                                                                        .settings),
                                                                 style:
-                                                                    TextStyle(
+                                                                    const TextStyle(
                                                                   color: Colors
                                                                       .white,
                                                                   fontSize: 9,

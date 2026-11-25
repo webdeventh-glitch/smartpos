@@ -3,6 +3,7 @@ import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/pdf_export_service.dart';
+import '../../services/localization_service.dart';
 
 /// UltimatePOS-inspired multi-template Invoice Layout Customizer (Step 4.3).
 /// Supports header branding, column toggles (SKU/Brand/Image/Batch/Expiry/Warranty),
@@ -130,11 +131,12 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                         flex: 2,
                         child: TextField(
                           controller: nameCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Template Name *',
-                            hintText: 'e.g. Wholesale A4, Counter 80mm',
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Template Name *'),
+                            hintText: PosLocalization.tr(
+                                'e.g. Wholesale A4, Counter 80mm'),
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -142,20 +144,24 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: design,
-                          decoration: const InputDecoration(
-                            labelText: 'Design Style',
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Design Style'),
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
-                                value: 'detailed', child: Text('Detailed')),
+                                value: 'detailed',
+                                child: Text(PosLocalization.tr('Detailed'))),
                             DropdownMenuItem(
-                                value: 'classic', child: Text('Classic')),
+                                value: 'classic',
+                                child: Text(PosLocalization.tr('Classic'))),
                             DropdownMenuItem(
-                                value: 'elegant', child: Text('Elegant')),
+                                value: 'elegant',
+                                child: Text(PosLocalization.tr('Elegant'))),
                             DropdownMenuItem(
-                                value: 'slim', child: Text('Slim')),
+                                value: 'slim',
+                                child: Text(PosLocalization.tr('Slim'))),
                           ],
                           onChanged: (v) {
                             if (v != null) setDlgState(() => design = v);
@@ -170,18 +176,23 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: paperSize,
-                          decoration: const InputDecoration(
-                            labelText: 'Paper Size',
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Paper Size'),
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
-                                value: 'a4', child: Text('A4 Sheet')),
+                                value: 'a4',
+                                child: Text(PosLocalization.tr('A4 Sheet'))),
                             DropdownMenuItem(
-                                value: '80mm', child: Text('80mm Thermal')),
+                                value: '80mm',
+                                child:
+                                    Text(PosLocalization.tr('80mm Thermal'))),
                             DropdownMenuItem(
-                                value: '58mm', child: Text('58mm Thermal')),
+                                value: '58mm',
+                                child:
+                                    Text(PosLocalization.tr('58mm Thermal'))),
                           ],
                           onChanged: (v) {
                             if (v != null) setDlgState(() => paperSize = v);
@@ -192,16 +203,18 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: orientation,
-                          decoration: const InputDecoration(
-                            labelText: 'Orientation',
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Orientation'),
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
-                                value: 'portrait', child: Text('Portrait')),
+                                value: 'portrait',
+                                child: Text(PosLocalization.tr('Portrait'))),
                             DropdownMenuItem(
-                                value: 'landscape', child: Text('Landscape')),
+                                value: 'landscape',
+                                child: Text(PosLocalization.tr('Landscape'))),
                           ],
                           onChanged: (v) {
                             if (v != null) setDlgState(() => orientation = v);
@@ -212,10 +225,10 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       Expanded(
                         child: DropdownButtonFormField<double>(
                           initialValue: fontSize,
-                          decoration: const InputDecoration(
-                            labelText: 'Font Size',
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Font Size'),
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
                           items: const [8.5, 9.0, 10.0, 11.0, 12.0]
                               .map((s) => DropdownMenuItem(
@@ -232,8 +245,8 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Text('Accent Color:',
-                          style: TextStyle(
+                      Text(PosLocalization.tr('Accent Color:'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.w600, fontSize: 12.5)),
                       const SizedBox(width: 10),
                       for (final hex in swatches)
@@ -265,10 +278,10 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       Expanded(
                         child: TextField(
                           controller: headingCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Invoice Heading',
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Invoice Heading'),
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -276,10 +289,11 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       Expanded(
                         child: TextField(
                           controller: headerTextCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Top Header Text / Tagline',
+                          decoration: InputDecoration(
+                            labelText:
+                                PosLocalization.tr('Top Header Text / Tagline'),
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -291,140 +305,141 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       Expanded(
                         child: TextField(
                           controller: subLabelCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'Subtotal Label',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Subtotal Label'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: discLabelCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'Discount Label',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Discount Label'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: taxLabelCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'Tax Label',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Tax Label'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: totalLabelCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'Total Label',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Total Label'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text('Header Fields Visibility',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(PosLocalization.tr('Header Fields Visibility'),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
                   Wrap(
                     spacing: 8,
                     children: [
                       FilterChip(
-                          label: const Text('Logo'),
+                          label: Text(PosLocalization.tr('Logo')),
                           selected: showLogo,
                           onSelected: (v) => setDlgState(() => showLogo = v)),
                       FilterChip(
-                          label: const Text('Business Name'),
+                          label: Text(PosLocalization.tr('Business Name')),
                           selected: showBizName,
                           onSelected: (v) =>
                               setDlgState(() => showBizName = v)),
                       FilterChip(
-                          label: const Text('Address'),
+                          label: Text(PosLocalization.tr('Address')),
                           selected: showAddress,
                           onSelected: (v) =>
                               setDlgState(() => showAddress = v)),
                       FilterChip(
-                          label: const Text('Phone'),
+                          label: Text(PosLocalization.tr('Phone')),
                           selected: showPhone,
                           onSelected: (v) => setDlgState(() => showPhone = v)),
                       FilterChip(
-                          label: const Text('Email'),
+                          label: Text(PosLocalization.tr('Email')),
                           selected: showEmail,
                           onSelected: (v) => setDlgState(() => showEmail = v)),
                       FilterChip(
-                          label: const Text('Tax / NTN'),
+                          label: Text(PosLocalization.tr('Tax / NTN')),
                           selected: showTaxNo,
                           onSelected: (v) => setDlgState(() => showTaxNo = v)),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  const Text('Product Table Columns',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(PosLocalization.tr('Product Table Columns'),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
                   Wrap(
                     spacing: 8,
                     children: [
                       FilterChip(
-                          label: const Text('SKU / Code'),
+                          label: Text(PosLocalization.tr('SKU / Code')),
                           selected: showSku,
                           onSelected: (v) => setDlgState(() => showSku = v)),
                       FilterChip(
-                          label: const Text('Brand'),
+                          label: Text(PosLocalization.tr('Brand')),
                           selected: showBrand,
                           onSelected: (v) => setDlgState(() => showBrand = v)),
                       FilterChip(
-                          label: const Text('Product Image'),
+                          label: Text(PosLocalization.tr('Product Image')),
                           selected: showImage,
                           onSelected: (v) => setDlgState(() => showImage = v)),
                       FilterChip(
-                          label: const Text('Batch No.'),
+                          label: Text(PosLocalization.tr('Batch No.')),
                           selected: showBatch,
                           onSelected: (v) => setDlgState(() => showBatch = v)),
                       FilterChip(
-                          label: const Text('Expiry Date'),
+                          label: Text(PosLocalization.tr('Expiry Date')),
                           selected: showExpiry,
                           onSelected: (v) => setDlgState(() => showExpiry = v)),
                       FilterChip(
-                          label: const Text('Warranty'),
+                          label: Text(PosLocalization.tr('Warranty')),
                           selected: showWarranty,
                           onSelected: (v) =>
                               setDlgState(() => showWarranty = v)),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  const Text('Totals, QR & Footer Elements',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(PosLocalization.tr('Totals, QR & Footer Elements'),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
                   Wrap(
                     spacing: 8,
                     children: [
                       FilterChip(
-                          label: const Text('Barcode'),
+                          label: Text(PosLocalization.tr('Barcode')),
                           selected: showBarcode,
                           onSelected: (v) =>
                               setDlgState(() => showBarcode = v)),
                       FilterChip(
-                          label: const Text('QR Code'),
+                          label: Text(PosLocalization.tr('QR Code')),
                           selected: showQr,
                           onSelected: (v) => setDlgState(() => showQr = v)),
                       FilterChip(
-                          label: const Text('Customer Khata Balance'),
+                          label: Text(
+                              PosLocalization.tr('Customer Khata Balance')),
                           selected: showBalance,
                           onSelected: (v) =>
                               setDlgState(() => showBalance = v)),
                       FilterChip(
-                          label: const Text('Amount in Words'),
+                          label: Text(PosLocalization.tr('Amount in Words')),
                           selected: showWords,
                           onSelected: (v) => setDlgState(() => showWords = v)),
                       FilterChip(
-                          label: const Text('Signature Line'),
+                          label: Text(PosLocalization.tr('Signature Line')),
                           selected: showSignature,
                           onSelected: (v) =>
                               setDlgState(() => showSignature = v)),
@@ -434,10 +449,10 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                   TextField(
                     controller: termsCtrl,
                     maxLines: 2,
-                    decoration: const InputDecoration(
-                        labelText: 'Terms & Return Policy',
+                    decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Terms & Return Policy'),
                         isDense: true,
-                        border: OutlineInputBorder()),
+                        border: const OutlineInputBorder()),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -445,20 +460,20 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       Expanded(
                         child: TextField(
                           controller: footerCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'Footer Message',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Footer Message'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: signCtrl,
-                          decoration: const InputDecoration(
-                              labelText: 'Signature Label',
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Signature Label'),
                               isDense: true,
-                              border: OutlineInputBorder()),
+                              border: const OutlineInputBorder()),
                         ),
                       ),
                     ],
@@ -466,7 +481,8 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     dense: true,
-                    title: const Text('Set as Active Default Store Layout'),
+                    title: Text(PosLocalization.tr(
+                        'Set as Active Default Store Layout')),
                     value: isDefault,
                     onChanged: (v) => setDlgState(() => isDefault = v ?? false),
                   ),
@@ -477,13 +493,13 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+                child: Text(PosLocalization.tr('Cancel'))),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4F46E5),
                   foregroundColor: Colors.white),
               icon: const Icon(Icons.save_rounded, size: 17),
-              label: const Text('Save Template'),
+              label: Text(PosLocalization.tr('Save Template')),
               onPressed: () async {
                 if (nameCtrl.text.trim().isEmpty) return;
                 final layout = InvoiceLayout(
@@ -618,24 +634,26 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Row(
                   children: [
-                    Icon(Icons.collections_bookmark_rounded,
+                    const Icon(Icons.collections_bookmark_rounded,
                         color: Color(0xFF4F46E5), size: 22),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Saved Invoice Layout Templates (Multi-Template)',
-                            style: TextStyle(
+                            PosLocalization.tr(
+                                'Saved Invoice Layout Templates (Multi-Template)'),
+                            style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w800),
                           ),
                           Text(
-                            'Manage multiple UltimatePOS-style InvoiceLayouts with custom headers, columns, fonts & orientation.',
-                            style: TextStyle(
+                            PosLocalization.tr(
+                                'Manage multiple UltimatePOS-style InvoiceLayouts with custom headers, columns, fonts & orientation.'),
+                            style: const TextStyle(
                                 fontSize: 12, color: Color(0xFF64748B)),
                           ),
                         ],
@@ -651,7 +669,7 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                   foregroundColor: Colors.white,
                 ),
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('New Layout Template'),
+                label: Text(PosLocalization.tr('New Layout Template')),
                 onPressed: () => _openLayoutEditor(),
               ),
             ],
@@ -706,9 +724,9 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                                       color: const Color(0xFFDBEAFE),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    child: const Text(
-                                      'Default Template',
-                                      style: TextStyle(
+                                    child: Text(
+                                      PosLocalization.tr('Default Template'),
+                                      style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                           color: Color(0xFF1D4ED8)),
@@ -730,8 +748,8 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                       OutlinedButton.icon(
                         icon: const Icon(Icons.picture_as_pdf_rounded,
                             size: 15, color: Color(0xFFDC2626)),
-                        label: const Text('Sample PDF',
-                            style: TextStyle(fontSize: 11.5)),
+                        label: Text(PosLocalization.tr('Sample PDF'),
+                            style: const TextStyle(fontSize: 11.5)),
                         onPressed: () => _exportSamplePdf(layout),
                       ),
                       const SizedBox(width: 6),
@@ -746,18 +764,18 @@ class _InvoiceLayoutsManagerState extends State<InvoiceLayoutsManager> {
                             widget.onSettingsUpdated(next);
                             _loadLayouts();
                           },
-                          child: const Text('Set Default',
-                              style: TextStyle(fontSize: 11.5)),
+                          child: Text(PosLocalization.tr('Set Default'),
+                              style: const TextStyle(fontSize: 11.5)),
                         ),
                       IconButton(
-                        tooltip: 'Edit Layout',
+                        tooltip: PosLocalization.tr('Edit Layout'),
                         icon: const Icon(Icons.edit_outlined,
                             size: 18, color: Color(0xFF4F46E5)),
                         onPressed: () => _openLayoutEditor(layout),
                       ),
                       if (!layout.isDefault)
                         IconButton(
-                          tooltip: 'Delete Layout',
+                          tooltip: PosLocalization.tr('Delete Layout'),
                           icon: const Icon(Icons.delete_outline_rounded,
                               size: 18, color: Color(0xFFEF4444)),
                           onPressed: () async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class InventoryAuditScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -84,9 +85,10 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Stock Audit, Dead Stock & Expiry Center',
-                      style: TextStyle(
+                    Text(
+                      PosLocalization.tr(
+                          'Stock Audit, Dead Stock & Expiry Center'),
+                      style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF0F172A),
@@ -94,7 +96,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Track current on-hand quantities, stagnant/dead inventory, and impending batch expiries.',
+                      PosLocalization.tr(
+                          'Track current on-hand quantities, stagnant/dead inventory, and impending batch expiries.'),
                       style:
                           TextStyle(fontSize: 13, color: Colors.grey.shade600),
                     ),
@@ -110,8 +113,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Refresh Stock Stats',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: Text(PosLocalization.tr('Refresh Stock Stats'),
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   onPressed: () {
                     setState(() => _loading = true);
                     _loadInventoryData();
@@ -206,10 +209,13 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
               child: TextField(
                 onChanged: (val) =>
                     setState(() => _searchQuery = val.trim().toLowerCase()),
-                decoration: const InputDecoration(
-                  icon: Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
-                  hintText: 'Search product by name, SKU, or batch number...',
-                  hintStyle: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                decoration: InputDecoration(
+                  icon: const Icon(Icons.search,
+                      size: 18, color: Color(0xFF94A3B8)),
+                  hintText: PosLocalization.tr(
+                      'Search product by name, SKU, or batch number...'),
+                  hintStyle:
+                      const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                   border: InputBorder.none,
                 ),
               ),
@@ -348,15 +354,15 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
                 ),
                 dataRowMinHeight: 50,
                 dataRowMaxHeight: 56,
-                columns: const [
-                  DataColumn(label: Text('PRODUCT ITEM')),
-                  DataColumn(label: Text('SKU / BATCH')),
-                  DataColumn(label: Text('EXPIRY DATE')),
-                  DataColumn(label: Text('ON HAND STOCK')),
-                  DataColumn(label: Text('COST PRICE')),
-                  DataColumn(label: Text('SELLING PRICE')),
-                  DataColumn(label: Text('STOCK VALUE')),
-                  DataColumn(label: Text('ALERT STATUS')),
+                columns: [
+                  DataColumn(label: Text(PosLocalization.tr('PRODUCT ITEM'))),
+                  DataColumn(label: Text(PosLocalization.tr('SKU / BATCH'))),
+                  DataColumn(label: Text(PosLocalization.tr('EXPIRY DATE'))),
+                  DataColumn(label: Text(PosLocalization.tr('ON HAND STOCK'))),
+                  DataColumn(label: Text(PosLocalization.tr('COST PRICE'))),
+                  DataColumn(label: Text(PosLocalization.tr('SELLING PRICE'))),
+                  DataColumn(label: Text(PosLocalization.tr('STOCK VALUE'))),
+                  DataColumn(label: Text(PosLocalization.tr('ALERT STATUS'))),
                 ],
                 rows: products.map((p) {
                   final stockValue = p.stockQuantity * p.purchasePrice;
@@ -428,8 +434,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
                                   ),
                                 ),
                               )
-                            : const Text('Non-expiring',
-                                style: TextStyle(
+                            : Text(PosLocalization.tr('Non-expiring'),
+                                style: const TextStyle(
                                     fontSize: 11, color: Colors.grey)),
                       ),
                       DataCell(
@@ -484,8 +490,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: const Color(0xFFFDE68A)),
         ),
-        child: const Text('Dead Stock (Slow)',
-            style: TextStyle(
+        child: Text(PosLocalization.tr('Dead Stock (Slow)'),
+            style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFFB45309))),
@@ -499,8 +505,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: const Color(0xFFFECACA)),
         ),
-        child: const Text('Expiring Soon',
-            style: TextStyle(
+        child: Text(PosLocalization.tr('Expiring Soon'),
+            style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFFDC2626))),
@@ -514,8 +520,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: const Color(0xFFFECACA)),
         ),
-        child: const Text('OUT OF STOCK',
-            style: TextStyle(
+        child: Text(PosLocalization.tr('OUT OF STOCK'),
+            style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFFDC2626))),
@@ -529,8 +535,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: const Color(0xFFFDE68A)),
         ),
-        child: const Text('LOW STOCK',
-            style: TextStyle(
+        child: Text(PosLocalization.tr('LOW STOCK'),
+            style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFFD97706))),
@@ -543,8 +549,8 @@ class _InventoryAuditScreenState extends State<InventoryAuditScreen>
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: const Color(0xFFA7F3D0)),
       ),
-      child: const Text('Optimal Stock',
-          style: TextStyle(
+      child: Text(PosLocalization.tr('Optimal Stock'),
+          style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
               color: Color(0xFF059669))),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class StockTransfersScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -153,19 +154,20 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                               color: Color(0xFF4F46E5), size: 22),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Add Stock Transfer',
-                                  style: TextStyle(
+                              Text(PosLocalization.tr('Add Stock Transfer'),
+                                  style: const TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.w800,
                                       color: Color(0xFF0F172A))),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                  'Move inventory between branches or warehouses',
-                                  style: TextStyle(
+                                  PosLocalization.tr(
+                                      'Move inventory between branches or warehouses'),
+                                  style: const TextStyle(
                                       fontSize: 12, color: Color(0xFF64748B))),
                             ],
                           ),
@@ -246,20 +248,27 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                           borderSide: const BorderSide(
                                               color: Color(0xFFE2E8F0))),
                                     ),
-                                    items: const [
+                                    items: [
                                       DropdownMenuItem(
                                           value: 'completed',
                                           child: Text(
-                                              'Completed (Immediate Stock Move)',
-                                              style: TextStyle(fontSize: 13))),
+                                              PosLocalization.tr(
+                                                  'Completed (Immediate Stock Move)'),
+                                              style: const TextStyle(
+                                                  fontSize: 13))),
                                       DropdownMenuItem(
                                           value: 'in_transit',
-                                          child: Text('In Transit',
-                                              style: TextStyle(fontSize: 13))),
+                                          child: Text(
+                                              PosLocalization.tr('In Transit'),
+                                              style: const TextStyle(
+                                                  fontSize: 13))),
                                       DropdownMenuItem(
                                           value: 'pending',
-                                          child: Text('Pending Approval',
-                                              style: TextStyle(fontSize: 13))),
+                                          child: Text(
+                                              PosLocalization.tr(
+                                                  'Pending Approval'),
+                                              style: const TextStyle(
+                                                  fontSize: 13))),
                                     ],
                                     onChanged: (val) => setDlgState(
                                         () => status = val ?? status),
@@ -511,7 +520,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                           controller: noteCtrl,
                           style: const TextStyle(fontSize: 13),
                           decoration: InputDecoration(
-                            hintText: 'e.g. Sent via internal dispatch courier',
+                            hintText: PosLocalization.tr(
+                                'e.g. Sent via internal dispatch courier'),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 11),
@@ -539,8 +549,10 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Total Transfer Valuation:',
-                                  style: TextStyle(
+                              Text(
+                                  PosLocalization.tr(
+                                      'Total Transfer Valuation:'),
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF4338CA),
                                       fontSize: 13)),
@@ -579,8 +591,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                 borderRadius: BorderRadius.circular(8)),
                           ),
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Cancel',
-                              style: TextStyle(
+                          child: Text(PosLocalization.tr('Cancel'),
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w600, fontSize: 13)),
                         ),
                         const SizedBox(width: 10),
@@ -595,8 +607,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                 borderRadius: BorderRadius.circular(8)),
                           ),
                           icon: const Icon(Icons.check_rounded, size: 18),
-                          label: const Text('Save Stock Transfer',
-                              style: TextStyle(
+                          label: Text(PosLocalization.tr('Save Stock Transfer'),
+                              style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 13)),
                           onPressed: () async {
                             if (fromLoc == null ||
@@ -729,19 +741,20 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                               color: Color(0xFFDC2626), size: 22),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Add Stock Adjustment',
-                                  style: TextStyle(
+                              Text(PosLocalization.tr('Add Stock Adjustment'),
+                                  style: const TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.w800,
                                       color: Color(0xFF0F172A))),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                  'Deduct damaged, expired, stolen or shrinkage stock',
-                                  style: TextStyle(
+                                  PosLocalization.tr(
+                                      'Deduct damaged, expired, stolen or shrinkage stock'),
+                                  style: const TextStyle(
                                       fontSize: 12, color: Color(0xFF64748B))),
                             ],
                           ),
@@ -822,17 +835,21 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                           borderSide: const BorderSide(
                                               color: Color(0xFFE2E8F0))),
                                     ),
-                                    items: const [
+                                    items: [
                                       DropdownMenuItem(
                                           value: 'normal',
                                           child: Text(
-                                              'Normal (Breakage, Spoiled)',
-                                              style: TextStyle(fontSize: 13))),
+                                              PosLocalization.tr(
+                                                  'Normal (Breakage, Spoiled)'),
+                                              style: const TextStyle(
+                                                  fontSize: 13))),
                                       DropdownMenuItem(
                                           value: 'abnormal',
                                           child: Text(
-                                              'Abnormal (Theft, Accident)',
-                                              style: TextStyle(fontSize: 13))),
+                                              PosLocalization.tr(
+                                                  'Abnormal (Theft, Accident)'),
+                                              style: const TextStyle(
+                                                  fontSize: 13))),
                                     ],
                                     onChanged: (val) =>
                                         setDlgState(() => type = val ?? type),
@@ -1028,7 +1045,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                           controller: reasonCtrl,
                           style: const TextStyle(fontSize: 13),
                           decoration: InputDecoration(
-                            hintText: 'e.g. Broken in storage or expired',
+                            hintText: PosLocalization.tr(
+                                'e.g. Broken in storage or expired'),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 11),
@@ -1056,8 +1074,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Total Value Deducted:',
-                                  style: TextStyle(
+                              Text(PosLocalization.tr('Total Value Deducted:'),
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF991B1B),
                                       fontSize: 13)),
@@ -1096,8 +1114,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                 borderRadius: BorderRadius.circular(8)),
                           ),
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Cancel',
-                              style: TextStyle(
+                          child: Text(PosLocalization.tr('Cancel'),
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w600, fontSize: 13)),
                         ),
                         const SizedBox(width: 10),
@@ -1112,8 +1130,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                 borderRadius: BorderRadius.circular(8)),
                           ),
                           icon: const Icon(Icons.check_rounded, size: 18),
-                          label: const Text('Record Adjustment',
-                              style: TextStyle(
+                          label: Text(PosLocalization.tr('Record Adjustment'),
+                              style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 13)),
                           onPressed: () async {
                             if (location == null ||
@@ -1177,18 +1195,18 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Stock Transfer?'),
+        title: Text(PosLocalization.tr('Delete Stock Transfer?')),
         content: Text(
             'Are you sure you want to remove transfer ${transfer.refNo}?\n\nIf stock was deducted (In Transit or Completed), it will be automatically restored back to the source inventory.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(PosLocalization.tr('Cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(PosLocalization.tr('Delete')),
           ),
         ],
       ),
@@ -1227,8 +1245,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Update Transfer Status',
-                          style: TextStyle(
+                      Text(PosLocalization.tr('Update Transfer Status'),
+                          style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)),
                       Text(
                           '${transfer.refNo} (${transfer.fromLocationName} -> ${transfer.toLocationName})',
@@ -1286,9 +1304,9 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Select New Status:',
-                      style:
-                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  Text(PosLocalization.tr('Select New Status:'),
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: selectedStatus,
@@ -1301,16 +1319,18 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8)),
                     ),
-                    items: const [
+                    items: [
                       DropdownMenuItem(
                         value: 'completed',
                         child: Row(
                           children: [
-                            Icon(Icons.check_circle_rounded,
+                            const Icon(Icons.check_circle_rounded,
                                 size: 16, color: Color(0xFF10B981)),
-                            SizedBox(width: 8),
-                            Text('Completed (Delivered & Verified)',
-                                style: TextStyle(
+                            const SizedBox(width: 8),
+                            Text(
+                                PosLocalization.tr(
+                                    'Completed (Delivered & Verified)'),
+                                style: const TextStyle(
                                     fontSize: 13, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -1319,11 +1339,13 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                         value: 'in_transit',
                         child: Row(
                           children: [
-                            Icon(Icons.local_shipping_rounded,
+                            const Icon(Icons.local_shipping_rounded,
                                 size: 16, color: Color(0xFF3B82F6)),
-                            SizedBox(width: 8),
-                            Text('In Transit (Dispatched from Source)',
-                                style: TextStyle(
+                            const SizedBox(width: 8),
+                            Text(
+                                PosLocalization.tr(
+                                    'In Transit (Dispatched from Source)'),
+                                style: const TextStyle(
                                     fontSize: 13, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -1332,11 +1354,13 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                         value: 'pending',
                         child: Row(
                           children: [
-                            Icon(Icons.hourglass_bottom_rounded,
+                            const Icon(Icons.hourglass_bottom_rounded,
                                 size: 16, color: Color(0xFFD97706)),
-                            SizedBox(width: 8),
-                            Text('Pending (Awaiting Dispatch)',
-                                style: TextStyle(
+                            const SizedBox(width: 8),
+                            Text(
+                                PosLocalization.tr(
+                                    'Pending (Awaiting Dispatch)'),
+                                style: const TextStyle(
                                     fontSize: 13, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -1403,7 +1427,7 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(PosLocalization.tr('Cancel')),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -1413,7 +1437,7 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                       borderRadius: BorderRadius.circular(8)),
                 ),
                 icon: const Icon(Icons.check_rounded, size: 16),
-                label: const Text('Update Status'),
+                label: Text(PosLocalization.tr('Update Status')),
                 onPressed: () => Navigator.pop(ctx, true),
               ),
             ],
@@ -1447,18 +1471,18 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Stock Adjustment?'),
+        title: Text(PosLocalization.tr('Delete Stock Adjustment?')),
         content: Text(
             'Are you sure you want to remove adjustment ${adjustment.refNo}?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(PosLocalization.tr('Cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(PosLocalization.tr('Delete')),
           ),
         ],
       ),
@@ -1485,19 +1509,20 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Stock Transfers & Adjustments',
-                        style: TextStyle(
+                    Text(PosLocalization.tr('Stock Transfers & Adjustments'),
+                        style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF0F172A))),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                        'Transfer stock between branches, warehouses, or record inventory shrinkage/damage.',
-                        style:
-                            TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                        PosLocalization.tr(
+                            'Transfer stock between branches, warehouses, or record inventory shrinkage/damage.'),
+                        style: const TextStyle(
+                            fontSize: 13, color: Color(0xFF64748B))),
                   ],
                 ),
                 Row(
@@ -1512,8 +1537,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.sync_alt_rounded, size: 18),
-                      label: const Text('Add Transfer',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(PosLocalization.tr('Add Transfer'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _showAddTransferDialog,
                     ),
                     const SizedBox(width: 10),
@@ -1527,8 +1552,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                             borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.tune_rounded, size: 18),
-                      label: const Text('Add Adjustment',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(PosLocalization.tr('Add Adjustment'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: _showAddAdjustmentDialog,
                     ),
                   ],
@@ -1569,53 +1594,64 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: _transfers.isEmpty
-                              ? const Center(
-                                  child:
-                                      Text('No stock transfers recorded yet.'))
+                              ? Center(
+                                  child: Text(PosLocalization.tr(
+                                      'No stock transfers recorded yet.')))
                               : SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: DataTable(
                                     headingRowColor: WidgetStateProperty.all(
                                         const Color(0xFFF8FAFC)),
-                                    columns: const [
+                                    columns: [
                                       DataColumn(
-                                          label: Text('Date',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('Date'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Reference No',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'Reference No'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('From Location',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'From Location'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('To Location',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('To Location'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Status',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('Status'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Shipping',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('Shipping'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Total Amount',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'Total Amount'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Action',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('Action'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                     ],
@@ -1716,8 +1752,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                                           .local_shipping_rounded,
                                                       size: 20,
                                                       color: Color(0xFF3B82F6)),
-                                                  tooltip:
-                                                      'Approve & Dispatch Stock (Move to In-Transit)',
+                                                  tooltip: PosLocalization.tr(
+                                                      'Approve & Dispatch Stock (Move to In-Transit)'),
                                                   onPressed: () async {
                                                     final db =
                                                         await DatabaseService
@@ -1750,8 +1786,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                                           .check_circle_rounded,
                                                       size: 20,
                                                       color: Color(0xFF10B981)),
-                                                  tooltip:
-                                                      'Verify & Receive Stock at Destination',
+                                                  tooltip: PosLocalization.tr(
+                                                      'Verify & Receive Stock at Destination'),
                                                   onPressed: () async {
                                                     final db =
                                                         await DatabaseService
@@ -1783,8 +1819,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                                 onPressed: () =>
                                                     _showUpdateTransferStatusDialog(
                                                         t),
-                                                tooltip:
-                                                    'Update Status (Pending / In Transit / Completed)',
+                                                tooltip: PosLocalization.tr(
+                                                    'Update Status (Pending / In Transit / Completed)'),
                                               ),
                                               IconButton(
                                                 icon: const Icon(
@@ -1793,7 +1829,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                                     color: Colors.red),
                                                 onPressed: () =>
                                                     _deleteTransfer(t),
-                                                tooltip: 'Delete Transfer',
+                                                tooltip: PosLocalization.tr(
+                                                    'Delete Transfer'),
                                               ),
                                             ],
                                           ),
@@ -1812,53 +1849,64 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: _adjustments.isEmpty
-                              ? const Center(
-                                  child: Text(
-                                      'No stock adjustments recorded yet.'))
+                              ? Center(
+                                  child: Text(PosLocalization.tr(
+                                      'No stock adjustments recorded yet.')))
                               : SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: DataTable(
                                     headingRowColor: WidgetStateProperty.all(
                                         const Color(0xFFF8FAFC)),
-                                    columns: const [
+                                    columns: [
                                       DataColumn(
-                                          label: Text('Date',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('Date'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Reference No',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'Reference No'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Location',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('Location'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Type',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('Type'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Total Amount',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'Total Amount'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Recovered Amount',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr(
+                                                  'Recovered Amount'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Reason',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('Reason'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                       DataColumn(
-                                          label: Text('Action',
-                                              style: TextStyle(
+                                          label: Text(
+                                              PosLocalization.tr('Action'),
+                                              style: const TextStyle(
                                                   fontWeight:
                                                       FontWeight.bold))),
                                     ],
@@ -1914,7 +1962,8 @@ class _StockTransfersScreenState extends State<StockTransfersScreen>
                                                 color: Colors.red),
                                             onPressed: () =>
                                                 _deleteAdjustment(a),
-                                            tooltip: 'Delete Adjustment',
+                                            tooltip: PosLocalization.tr(
+                                                'Delete Adjustment'),
                                           ),
                                         ),
                                       ]);

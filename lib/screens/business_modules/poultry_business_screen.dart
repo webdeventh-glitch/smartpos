@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class PoultryBusinessScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -150,41 +151,42 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
               children: [
                 TextField(
                     controller: buyerCtrl,
-                    decoration:
-                        const InputDecoration(labelText: 'Buyer / Market*')),
+                    decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Buyer / Market*'))),
                 TextField(
                     controller: vehicleCtrl,
-                    decoration:
-                        const InputDecoration(labelText: 'Vehicle No.')),
+                    decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Vehicle No.'))),
                 TextField(
                     controller: cratesCtrl,
                     keyboardType: TextInputType.number,
-                    decoration:
-                        const InputDecoration(labelText: 'Crates Count')),
+                    decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Crates Count'))),
                 TextField(
                     controller: birdsCtrl,
                     keyboardType: TextInputType.number,
-                    decoration:
-                        const InputDecoration(labelText: 'Birds Count')),
+                    decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Birds Count'))),
                 TextField(
                     controller: netKgCtrl,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    decoration:
-                        const InputDecoration(labelText: 'Net Weight (kg)')),
+                    decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Net Weight (kg)'))),
                 TextField(
                     controller: rateCtrl,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    decoration:
-                        const InputDecoration(labelText: 'Rate per kg')),
+                    decoration: InputDecoration(
+                        labelText: PosLocalization.tr('Rate per kg'))),
               ],
             ),
           ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(PosLocalization.tr('Cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
@@ -233,7 +235,7 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
               }
               if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text('Save Dispatch'),
+            child: Text(PosLocalization.tr('Save Dispatch')),
           ),
         ],
       ),
@@ -257,7 +259,7 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          title: Text('Start New Poultry Flock / Batch',
+          title: Text(PosLocalization.tr('Start New Poultry Flock / Batch'),
               style: TextStyle(
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
                   fontWeight: FontWeight.bold)),
@@ -269,7 +271,8 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                 style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  labelText: 'Flock / Batch Number (e.g. FLOCK-90)*',
+                  labelText: PosLocalization.tr(
+                      'Flock / Batch Number (e.g. FLOCK-90)*'),
                   labelStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -282,7 +285,8 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                 style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  labelText: 'Shed Name / Location (e.g. Shed 4)*',
+                  labelText:
+                      PosLocalization.tr('Shed Name / Location (e.g. Shed 4)*'),
                   labelStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -296,7 +300,8 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                 style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  labelText: 'Initial Day-Old Chicks (DOC) Count*',
+                  labelText:
+                      PosLocalization.tr('Initial Day-Old Chicks (DOC) Count*'),
                   labelStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -308,7 +313,7 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel',
+              child: Text(PosLocalization.tr('Cancel'),
                   style: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -350,8 +355,8 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                   if (ctx.mounted) Navigator.pop(ctx);
                 }
               },
-              child: const Text('Start Flock',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(PosLocalization.tr('Start Flock'),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -375,7 +380,7 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
             const Icon(Icons.egg_rounded, color: Color(0xFFF59E0B), size: 22),
             const SizedBox(width: 10),
             Text(
-              'Poultry Farm & Broiler / Layer Management',
+              PosLocalization.tr('Poultry Farm & Broiler / Layer Management'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -408,8 +413,8 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                   foregroundColor: Colors.black),
               onPressed: _showAddFlockModal,
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('New Flock / Batch',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(PosLocalization.tr('New Flock / Batch'),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -548,13 +553,13 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                                   );
                                   if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Recorded daily mortality entry.')),
+                                    SnackBar(
+                                        content: Text(PosLocalization.tr(
+                                            'Recorded daily mortality entry.'))),
                                   );
                                 },
-                                child: const Text('+ Mortality',
-                                    style: TextStyle(fontSize: 11)),
+                                child: Text(PosLocalization.tr('+ Mortality'),
+                                    style: const TextStyle(fontSize: 11)),
                               ),
                               const SizedBox(width: 8),
                               OutlinedButton(
@@ -576,13 +581,14 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                                   );
                                   if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Feed consumption entry recorded.')),
+                                    SnackBar(
+                                        content: Text(PosLocalization.tr(
+                                            'Feed consumption entry recorded.'))),
                                   );
                                 },
-                                child: const Text('+ Feed Consumed',
-                                    style: TextStyle(fontSize: 11)),
+                                child: Text(
+                                    PosLocalization.tr('+ Feed Consumed'),
+                                    style: const TextStyle(fontSize: 11)),
                               ),
                               const SizedBox(width: 8),
                               ElevatedButton(
@@ -592,8 +598,9 @@ class _PoultryBusinessScreenState extends State<PoultryBusinessScreen>
                                   visualDensity: VisualDensity.compact,
                                 ),
                                 onPressed: () => _showDispatchModal(f),
-                                child: const Text('Dispatch Birds',
-                                    style: TextStyle(fontSize: 11)),
+                                child: Text(
+                                    PosLocalization.tr('Dispatch Birds'),
+                                    style: const TextStyle(fontSize: 11)),
                               ),
                             ],
                           ),

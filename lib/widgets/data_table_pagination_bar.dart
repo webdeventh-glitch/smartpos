@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../services/localization_service.dart';
 
 class DataTablePaginationBar extends StatelessWidget {
   final int currentPage;
@@ -47,7 +48,12 @@ class DataTablePaginationBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Showing $startItem to $endItem of $totalItems entries',
+                PosLocalization.trParams(
+                    'Showing {start} to {end} of {total} entries', {
+                  'start': '$startItem',
+                  'end': '$endItem',
+                  'total': '$totalItems',
+                }),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -87,7 +93,8 @@ class DataTablePaginationBar extends StatelessWidget {
                     items: pageSizeOptions.map((sz) {
                       return DropdownMenuItem<int>(
                         value: sz,
-                        child: Text('$sz / page'),
+                        child: Text(PosLocalization.trParams(
+                            '{count} / page', {'count': '$sz'})),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -107,7 +114,7 @@ class DataTablePaginationBar extends StatelessWidget {
               _buildNavButton(
                 context: context,
                 icon: Icons.chevron_left_rounded,
-                tooltip: 'Previous Page',
+                tooltip: PosLocalization.tr('Previous Page'),
                 enabled: currentPage > 1,
                 onTap: () => onPageChanged(currentPage - 1),
               ),
@@ -121,7 +128,7 @@ class DataTablePaginationBar extends StatelessWidget {
               _buildNavButton(
                 context: context,
                 icon: Icons.chevron_right_rounded,
-                tooltip: 'Next Page',
+                tooltip: PosLocalization.tr('Next Page'),
                 enabled: currentPage < totalPages,
                 onTap: () => onPageChanged(currentPage + 1),
               ),

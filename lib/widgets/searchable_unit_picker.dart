@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../services/localization_service.dart';
 
 /// Modal dialog providing search-to-select functionality for Units of Measure
 /// with category grouping, base-unit highlighting, and deduplication.
@@ -185,18 +186,20 @@ class _UnitSearchDialogState extends State<UnitSearchDialog> {
                         color: Color(0xFF4F46E5), size: 22),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Select Unit of Measure',
-                          style: TextStyle(
+                          PosLocalization.tr('Select Unit of Measure'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 16),
                         ),
                         Text(
-                          'پیمائش کی اکائی تلاش کر کے منتخب کریں',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          PosLocalization.tr(
+                              'Search and select a unit of measure'),
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -214,8 +217,8 @@ class _UnitSearchDialogState extends State<UnitSearchDialog> {
                 controller: _searchCtrl,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText:
-                      'Search unit (e.g. kg, meter, pcs, liter, dozen)...',
+                  hintText: PosLocalization.tr(
+                      'Search unit (e.g. kg, meter, pcs, liter, dozen)...'),
                   hintStyle: TextStyle(
                       fontSize: 13,
                       color: isDark
@@ -266,12 +269,13 @@ class _UnitSearchDialogState extends State<UnitSearchDialog> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _filterChip('all', 'All Units (تمام)'),
-                    _filterChip('count', '1. Count (گنتی)'),
-                    _filterChip('weight', '2. Weight (وزن)'),
-                    _filterChip('volume', '3. Volume (مائع)'),
-                    _filterChip('length', '4. Length / Area (لمبائی)'),
-                    _filterChip('time', '5. Time (وقت)'),
+                    _filterChip('all', PosLocalization.tr('All Units')),
+                    _filterChip('count', PosLocalization.tr('1. Count')),
+                    _filterChip('weight', PosLocalization.tr('2. Weight')),
+                    _filterChip('volume', PosLocalization.tr('3. Volume')),
+                    _filterChip(
+                        'length', PosLocalization.tr('4. Length / Area')),
+                    _filterChip('time', PosLocalization.tr('5. Time')),
                   ],
                 ),
               ),
@@ -292,7 +296,7 @@ class _UnitSearchDialogState extends State<UnitSearchDialog> {
                                     : const Color(0xFF94A3B8)),
                             const SizedBox(height: 8),
                             Text(
-                              'No matching unit found',
+                              PosLocalization.tr('No matching unit found'),
                               style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: isDark
@@ -301,7 +305,8 @@ class _UnitSearchDialogState extends State<UnitSearchDialog> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Click below to add a new custom unit.',
+                              PosLocalization.tr(
+                                  'Click below to add a new custom unit.'),
                               style: TextStyle(
                                   fontSize: 12,
                                   color: isDark
@@ -371,9 +376,9 @@ class _UnitSearchDialogState extends State<UnitSearchDialog> {
                                       color: const Color(0xFFDCFCE7),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: const Text(
-                                      'BASE UNIT',
-                                      style: TextStyle(
+                                    child: Text(
+                                      PosLocalization.tr('BASE UNIT'),
+                                      style: const TextStyle(
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.w800,
                                         color: Color(0xFF15803D),
@@ -389,7 +394,10 @@ class _UnitSearchDialogState extends State<UnitSearchDialog> {
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      'x${u.baseUnitMultiplier} Base',
+                                      PosLocalization.trParams(
+                                          'x{multiplier} Base', {
+                                        'multiplier': '${u.baseUnitMultiplier}',
+                                      }),
                                       style: const TextStyle(
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.w700,
@@ -400,7 +408,11 @@ class _UnitSearchDialogState extends State<UnitSearchDialog> {
                               ],
                             ),
                             subtitle: Text(
-                              'Category: ${u.category.toUpperCase()} • Code: ${u.shortName}',
+                              PosLocalization.trParams(
+                                  'Category: {category} • Code: {code}', {
+                                'category': u.category.toUpperCase(),
+                                'code': u.shortName,
+                              }),
                               style: TextStyle(
                                   fontSize: 11,
                                   color: isDark
@@ -427,8 +439,8 @@ class _UnitSearchDialogState extends State<UnitSearchDialog> {
                   if (widget.onAddNewUnit != null)
                     TextButton.icon(
                       icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Add Custom Unit (نیا یونٹ بنائیں)',
-                          style: TextStyle(fontSize: 12)),
+                      label: Text(PosLocalization.tr('Add Custom Unit'),
+                          style: const TextStyle(fontSize: 12)),
                       onPressed: () {
                         Navigator.pop(context);
                         widget.onAddNewUnit!();
@@ -448,7 +460,8 @@ class _UnitSearchDialogState extends State<UnitSearchDialog> {
                           horizontal: 16, vertical: 8),
                     ),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+                    child: Text(PosLocalization.tr('Cancel'),
+                        style: const TextStyle(fontSize: 12)),
                   ),
                 ],
               ),

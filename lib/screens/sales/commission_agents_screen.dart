@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 /// Step 6.4: Commission Agents Directory & Live Sales Commission Report.
 class CommissionAgentsScreen extends StatefulWidget {
@@ -63,10 +64,10 @@ class _CommissionAgentsScreenState extends State<CommissionAgentsScreen> {
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Agent Name *',
+                  decoration: InputDecoration(
+                      labelText: PosLocalization.tr('Agent Name *'),
                       isDense: true,
-                      border: OutlineInputBorder()),
+                      border: const OutlineInputBorder()),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -74,10 +75,10 @@ class _CommissionAgentsScreenState extends State<CommissionAgentsScreen> {
                     Expanded(
                       child: TextField(
                         controller: phoneCtrl,
-                        decoration: const InputDecoration(
-                            labelText: 'Phone',
+                        decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Phone'),
                             isDense: true,
-                            border: OutlineInputBorder()),
+                            border: const OutlineInputBorder()),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -86,10 +87,10 @@ class _CommissionAgentsScreenState extends State<CommissionAgentsScreen> {
                         controller: pctCtrl,
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
-                        decoration: const InputDecoration(
-                            labelText: 'Commission % *',
+                        decoration: InputDecoration(
+                            labelText: PosLocalization.tr('Commission % *'),
                             isDense: true,
-                            border: OutlineInputBorder()),
+                            border: const OutlineInputBorder()),
                       ),
                     ),
                   ],
@@ -97,24 +98,24 @@ class _CommissionAgentsScreenState extends State<CommissionAgentsScreen> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: emailCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Email',
+                  decoration: InputDecoration(
+                      labelText: PosLocalization.tr('Email'),
                       isDense: true,
-                      border: OutlineInputBorder()),
+                      border: const OutlineInputBorder()),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: addressCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Territory / Address',
+                  decoration: InputDecoration(
+                      labelText: PosLocalization.tr('Territory / Address'),
                       isDense: true,
-                      border: OutlineInputBorder()),
+                      border: const OutlineInputBorder()),
                 ),
                 const SizedBox(height: 6),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Active Agent',
-                      style: TextStyle(fontSize: 13)),
+                  title: Text(PosLocalization.tr('Active Agent'),
+                      style: const TextStyle(fontSize: 13)),
                   value: isActive,
                   onChanged: (v) => setDlg(() => isActive = v),
                 ),
@@ -124,7 +125,7 @@ class _CommissionAgentsScreenState extends State<CommissionAgentsScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+                child: Text(PosLocalization.tr('Cancel'))),
             ElevatedButton(
               onPressed: saving
                   ? null
@@ -190,7 +191,7 @@ class _CommissionAgentsScreenState extends State<CommissionAgentsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Commission Agents & Payouts',
+                      Text(PosLocalization.tr('Commission Agents & Payouts'),
                           style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -198,7 +199,8 @@ class _CommissionAgentsScreenState extends State<CommissionAgentsScreen> {
                                   ? Colors.white
                                   : const Color(0xFF0F172A))),
                       Text(
-                          'Assign sales agents at POS checkout and track % commission earnings per invoice',
+                          PosLocalization.tr(
+                              'Assign sales agents at POS checkout and track % commission earnings per invoice'),
                           style: TextStyle(
                               fontSize: 12,
                               color: isDark
@@ -213,7 +215,7 @@ class _CommissionAgentsScreenState extends State<CommissionAgentsScreen> {
                       foregroundColor: Colors.white),
                   onPressed: () => _showAgentDialog(),
                   icon: const Icon(Icons.person_add, size: 18),
-                  label: const Text('Add Agent'),
+                  label: Text(PosLocalization.tr('Add Agent')),
                 ),
               ],
             ),
@@ -242,9 +244,11 @@ class _CommissionAgentsScreenState extends State<CommissionAgentsScreen> {
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
                     : _reportRows.isEmpty
-                        ? const Center(
-                            child: Text('No commission agents added yet.',
-                                style: TextStyle(color: Colors.grey)))
+                        ? Center(
+                            child: Text(
+                                PosLocalization.tr(
+                                    'No commission agents added yet.'),
+                                style: const TextStyle(color: Colors.grey)))
                         : ListView.separated(
                             itemCount: _reportRows.length,
                             separatorBuilder: (_, __) =>
@@ -301,13 +305,14 @@ class _CommissionAgentsScreenState extends State<CommissionAgentsScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      tooltip: 'Edit Agent',
+                                      tooltip: PosLocalization.tr('Edit Agent'),
                                       icon: const Icon(Icons.edit_outlined,
                                           size: 18),
                                       onPressed: () => _showAgentDialog(agent),
                                     ),
                                     IconButton(
-                                      tooltip: 'Delete Agent',
+                                      tooltip:
+                                          PosLocalization.tr('Delete Agent'),
                                       icon: const Icon(Icons.delete_outline,
                                           size: 18, color: Colors.red),
                                       onPressed: agent.id == null

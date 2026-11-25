@@ -225,12 +225,28 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
               const Icon(Icons.lock_rounded,
                   color: Color(0xFFD97706), size: 22),
               const SizedBox(width: 10),
-              Flexible(child: Text('${mod['title']} Locked')),
+              Flexible(
+                child: Text(PosLocalization.trParams(
+                  '{title} Locked',
+                  {
+                    'title': PosLocalization.tr(mod['title'] as String,
+                        settings: widget.settings)
+                  },
+                  settings: widget.settings,
+                )),
+              ),
             ],
           ),
           content: Text(
-            'Single-Business Lock: This POS installation is permanently locked to "${widget.settings.businessTypeDisplayName}".\n\n'
-            'Aik time mein sirf installation ke waqt select kiya gaya ek hi business use ho sakta hai.',
+            PosLocalization.trParams(
+              'Single-Business Lock: This POS installation is permanently locked to "{business}". Only one business type selected at installation can be used at a time.',
+              {
+                'business': PosLocalization.tr(
+                    widget.settings.businessTypeDisplayName,
+                    settings: widget.settings)
+              },
+              settings: widget.settings,
+            ),
             style: const TextStyle(fontSize: 13, height: 1.4),
           ),
           actions: [
@@ -240,7 +256,7 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('OK'),
+              child: Text(PosLocalization.tr('OK', settings: widget.settings)),
             ),
           ],
         ),
@@ -261,7 +277,16 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
               Icon(mod['icon'] as IconData,
                   color: mod['color'] as Color, size: 24),
               const SizedBox(width: 10),
-              Flexible(child: Text('${mod['title']} Disabled')),
+              Flexible(
+                child: Text(PosLocalization.trParams(
+                  '{title} Disabled',
+                  {
+                    'title': PosLocalization.tr(mod['title'] as String,
+                        settings: widget.settings)
+                  },
+                  settings: widget.settings,
+                )),
+              ),
             ],
           ),
           content: Column(
@@ -269,20 +294,32 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'This add-on utility is currently inactive for your store (${widget.settings.businessTypeDisplayName}).',
+                PosLocalization.trParams(
+                  'This add-on utility is currently inactive for your store ({business}).',
+                  {
+                    'business': PosLocalization.tr(
+                        widget.settings.businessTypeDisplayName,
+                        settings: widget.settings)
+                  },
+                  settings: widget.settings,
+                ),
                 style: const TextStyle(fontSize: 13),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Would you like to enable this add-on utility now?',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              Text(
+                PosLocalization.tr(
+                    'Would you like to enable this add-on utility now?',
+                    settings: widget.settings),
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child:
+                  Text(PosLocalization.tr('Cancel', settings: widget.settings)),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -290,7 +327,8 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.check_circle_outline, size: 16),
-              label: const Text('Enable & Open'),
+              label: Text(PosLocalization.tr('Enable & Open',
+                  settings: widget.settings)),
               onPressed: () => Navigator.pop(ctx, true),
             ),
           ],
@@ -394,8 +432,19 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                             children: [
                               Text(
                                 widget.settings.isConfigured
-                                    ? '${widget.settings.businessTypeDisplayName} Workspace'
-                                    : 'Multi-Industry Business Hub',
+                                    ? PosLocalization.trParams(
+                                        '{business} Workspace',
+                                        {
+                                          'business': PosLocalization.tr(
+                                              widget.settings
+                                                  .businessTypeDisplayName,
+                                              settings: widget.settings)
+                                        },
+                                        settings: widget.settings,
+                                      )
+                                    : PosLocalization.tr(
+                                        'Multi-Industry Business Hub',
+                                        settings: widget.settings),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 22,
@@ -406,8 +455,12 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 widget.settings.isConfigured
-                                    ? 'Modules & utilities active for your installed business'
-                                    : 'Smart POS supports 16 customized business workflows & enterprise modules',
+                                    ? PosLocalization.tr(
+                                        'Modules & utilities active for your installed business',
+                                        settings: widget.settings)
+                                    : PosLocalization.tr(
+                                        'Smart POS supports 16 customized business workflows & enterprise modules',
+                                        settings: widget.settings),
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.8),
                                   fontSize: 13,
@@ -437,7 +490,16 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                                     color: Colors.white, size: 16),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Current: ${widget.settings.businessTypeDisplayName}',
+                                  PosLocalization.trParams(
+                                    'Current: {business}',
+                                    {
+                                      'business': PosLocalization.tr(
+                                          widget
+                                              .settings.businessTypeDisplayName,
+                                          settings: widget.settings)
+                                    },
+                                    settings: widget.settings,
+                                  ),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -508,8 +570,10 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                             onChanged: (val) =>
                                 setState(() => _searchFilter = val.trim()),
                             decoration: InputDecoration(
-                              hintText:
-                                  'Search business models (e.g. Restaurant, Kiryana, Mandi, Gym, HR, Poultry)...',
+                              hintText: PosLocalization.tr(
+                                'Search business models (e.g. Restaurant, Kiryana, Mandi, Gym, HR, Poultry)...',
+                                settings: widget.settings,
+                              ),
                               hintStyle: TextStyle(
                                   fontSize: 13,
                                   color: isDark
@@ -542,8 +606,16 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                   ),
                   child: Text(
                     widget.settings.isConfigured
-                        ? '${filtered.length} Available Modules'
-                        : '${filtered.length} of 16 Models Available',
+                        ? PosLocalization.trParams(
+                            '{count} Available Modules',
+                            {'count': '${filtered.length}'},
+                            settings: widget.settings,
+                          )
+                        : PosLocalization.trParams(
+                            '{count} of 16 Models Available',
+                            {'count': '${filtered.length}'},
+                            settings: widget.settings,
+                          ),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -649,8 +721,11 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                                     ),
                                     child: Text(
                                       isLocked
-                                          ? 'LOCKED'
-                                          : (mod['badge'] as String),
+                                          ? PosLocalization.tr('LOCKED',
+                                              settings: widget.settings)
+                                          : PosLocalization.tr(
+                                              mod['badge'] as String,
+                                              settings: widget.settings),
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
@@ -671,7 +746,9 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          mod['title'] as String,
+                                          PosLocalization.tr(
+                                              mod['title'] as String,
+                                              settings: widget.settings),
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w800,
@@ -705,7 +782,9 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                                                   BorderRadius.circular(4),
                                             ),
                                             child: Text(
-                                              isEnabled ? 'ACTIVE' : 'OFF',
+                                              PosLocalization.tr(
+                                                  isEnabled ? 'ACTIVE' : 'OFF',
+                                                  settings: widget.settings),
                                               style: TextStyle(
                                                 color: isEnabled
                                                     ? const Color(0xFF10B981)
@@ -725,7 +804,9 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    mod['subtitle'] as String,
+                                    PosLocalization.tr(
+                                        mod['subtitle'] as String,
+                                        settings: widget.settings),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: isDark
@@ -744,10 +825,16 @@ class _BusinessModulesHubScreenState extends State<BusinessModulesHubScreen> {
                                 children: [
                                   Text(
                                     isLocked
-                                        ? 'Locked to Initial Setup'
+                                        ? PosLocalization.tr(
+                                            'Locked to Initial Setup',
+                                            settings: widget.settings)
                                         : (mod['actionType'] == 'screen'
-                                            ? 'Open Dedicated Module'
-                                            : 'Launch POS Feature'),
+                                            ? PosLocalization.tr(
+                                                'Open Dedicated Module',
+                                                settings: widget.settings)
+                                            : PosLocalization.tr(
+                                                'Launch POS Feature',
+                                                settings: widget.settings)),
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,

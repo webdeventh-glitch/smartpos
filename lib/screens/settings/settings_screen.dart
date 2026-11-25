@@ -905,17 +905,22 @@ class _SettingsScreenState extends State<SettingsScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.lock_rounded, color: Color(0xFFD97706)),
-            SizedBox(width: 8),
-            Text('Business Model Locked / Ø¨Ø²Ù†Ø³ Ù¹Ø§Ø¦Ù¾ Ù„Ø§Ú© ÛÛ’'),
+            const Icon(Icons.lock_rounded, color: Color(0xFFD97706)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(PosLocalization.tr('Business Model Locked',
+                  settings: widget.settings)),
+            ),
           ],
         ),
         content: Text(
-          'Your active business model is "${_getBusinessTypeName(_businessType)}".\n\n'
-          'To ensure accounting accuracy and prevent corruption of unit conversion formulas, stock deductions, and customer/supplier khata ledgers, the business model is permanently locked upon initial installation.\n\n'
-          'Ø³Ø§ÙÙ¹ ÙˆÛŒØ¦Ø± Ø§Ù†Ø³Ù¹Ø§Ù„ÛŒØ´Ù† Ú©Û’ ÙˆÙ‚Øª Ù…Ù†ØªØ®Ø¨ Ú©ÛŒØ§ Ú¯ÛŒØ§ Ø¨Ø²Ù†Ø³ Ù…Ø§ÚˆÙ„ Ù…Ø³ØªÙ‚Ù„ Ø·ÙˆØ± Ù¾Ø± Ù„Ø§Ú© Ú©Ø± Ø¯ÛŒØ§ Ø¬Ø§ØªØ§ ÛÛ’ ØªØ§Ú©Û ÛŒÙˆÙ†Ù¹ Ú©Ù†ÙˆØ±Ú˜Ù†ØŒ Ø§Ø³Ù¹Ø§Ú© Ø§ÙˆØ± Ú©Ú¾Ø§ØªÛ Ø¬Ø§Øª Ú©Û’ Ø­Ø³Ø§Ø¨Ø§Øª Ù…ÛŒÚº Ú©ÙˆØ¦ÛŒ Ú¯Ú‘Ø¨Ú‘ Ù†Û ÛÙˆÛ”',
+          PosLocalization.trParams(
+            'Your active business model is "{business}". To ensure accounting accuracy and prevent corruption of unit conversion formulas, stock deductions, and customer/supplier khata ledgers, the business model is permanently locked upon initial installation.',
+            {'business': _getBusinessTypeName(_businessType)},
+            settings: widget.settings,
+          ),
           style: const TextStyle(fontSize: 13, height: 1.4),
         ),
         actions: [
@@ -925,7 +930,8 @@ class _SettingsScreenState extends State<SettingsScreen>
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Understood / Ù¹Ú¾ÛŒÚ© ÛÛ’'),
+            child: Text(
+                PosLocalization.tr('Understood', settings: widget.settings)),
           ),
         ],
       ),
@@ -1485,9 +1491,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                       children: [
                         Row(
                           children: [
-                            const Text(
-                              'Embedded Portable Database Server (بلٹ ان سرور)',
-                              style: TextStyle(
+                            Text(
+                              PosLocalization.tr(
+                                  'Embedded Portable Database Server',
+                                  settings: widget.settings),
+                              style: const TextStyle(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1504,8 +1512,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                               ),
                               child: Text(
                                 isRunning
-                                    ? 'RUNNING : $_embeddedServerPort'
-                                    : 'STOPPED',
+                                    ? PosLocalization.trParams(
+                                        'RUNNING : {port}',
+                                        {'port': '$_embeddedServerPort'},
+                                        settings: widget.settings,
+                                      )
+                                    : PosLocalization.tr('STOPPED',
+                                        settings: widget.settings),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -1519,8 +1532,18 @@ class _SettingsScreenState extends State<SettingsScreen>
                         const SizedBox(height: 2),
                         Text(
                           hasEngine
-                              ? 'Detected Engine: ${p.basename(p.dirname(p.dirname(enginePath ?? '')))} (${p.basename(enginePath ?? '')})'
-                              : 'No portable engine found in engine/ folder. (SQLite is active)',
+                              ? PosLocalization.trParams(
+                                  'Detected Engine: {dir} ({file})',
+                                  {
+                                    'dir': p.basename(
+                                        p.dirname(p.dirname(enginePath ?? ''))),
+                                    'file': p.basename(enginePath ?? ''),
+                                  },
+                                  settings: widget.settings,
+                                )
+                              : PosLocalization.tr(
+                                  'No portable engine found in engine/ folder. (SQLite is active)',
+                                  settings: widget.settings),
                           style: TextStyle(
                             fontSize: 11,
                             color: isDark
@@ -1551,8 +1574,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                             borderRadius: BorderRadius.circular(6)),
                       ),
                       icon: const Icon(Icons.stop_circle_rounded, size: 16),
-                      label: const Text('Stop Server (بند کریں)',
-                          style: TextStyle(fontSize: 11.5)),
+                      label: Text(
+                          PosLocalization.tr('Stop Server',
+                              settings: widget.settings),
+                          style: const TextStyle(fontSize: 11.5)),
                       onPressed: () async {
                         setState(() => _isTogglingEmbedded = true);
                         await EmbeddedDatabaseService.stopServer(
@@ -1574,8 +1599,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ),
                       icon:
                           const Icon(Icons.play_circle_fill_rounded, size: 16),
-                      label: const Text('Start Server (اسٹارٹ کریں)',
-                          style: TextStyle(fontSize: 11.5)),
+                      label: Text(
+                          PosLocalization.tr('Start Server',
+                              settings: widget.settings),
+                          style: const TextStyle(fontSize: 11.5)),
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
                         setState(() => _isTogglingEmbedded = true);
@@ -1586,8 +1613,14 @@ class _SettingsScreenState extends State<SettingsScreen>
                           if (!ok) {
                             messenger.showSnackBar(
                               SnackBar(
-                                content: Text(
-                                    'Could not start embedded server: ${EmbeddedDatabaseService.statusText.value}'),
+                                content: Text(PosLocalization.trParams(
+                                  'Could not start embedded server: {status}',
+                                  {
+                                    'status':
+                                        EmbeddedDatabaseService.statusText.value
+                                  },
+                                  settings: widget.settings,
+                                )),
                                 backgroundColor: Colors.red.shade700,
                               ),
                             );
@@ -1607,7 +1640,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Zero-Configuration Embedded MySQL: Laragon یا XAMPP انسٹال کیے بغیر سافٹ ویئر اپنا ڈیٹا بیس خود چلاتا ہے۔',
+                          PosLocalization.tr(
+                            'Zero-Configuration Embedded MySQL: Software runs its own portable database automatically without installing Laragon or XAMPP.',
+                            settings: widget.settings,
+                          ),
                           style: TextStyle(
                             fontSize: 11.5,
                             color: isDark
@@ -1618,7 +1654,15 @@ class _SettingsScreenState extends State<SettingsScreen>
                         if (_lanIps.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           SelectableText(
-                            '📡 Other LAN Counters Connection: ${_lanIps.map((ip) => '$ip:$_embeddedServerPort').join('  •  ')}',
+                            '📡 ${PosLocalization.trParams(
+                              'Other LAN Counters Connection: {endpoints}',
+                              {
+                                'endpoints': _lanIps
+                                    .map((ip) => '$ip:$_embeddedServerPort')
+                                    .join('  •  ')
+                              },
+                              settings: widget.settings,
+                            )}',
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -1640,10 +1684,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                           borderRadius: BorderRadius.circular(6)),
                     ),
                     icon: const Icon(Icons.flash_on_rounded, size: 14),
-                    label: const Text(
-                      'Use in Form (سیٹنگز میں لگائیں)',
-                      style:
-                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    label: Text(
+                      PosLocalization.tr('Use in Form',
+                          settings: widget.settings),
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                     onPressed: () {
                       setState(() {
@@ -1655,11 +1700,12 @@ class _SettingsScreenState extends State<SettingsScreen>
                         _dbPassCtrl.text = '';
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Embedded Database configuration applied to form!'),
-                          backgroundColor: Color(0xFF4F46E5),
-                          duration: Duration(seconds: 2),
+                        SnackBar(
+                          content: Text(PosLocalization.tr(
+                              'Embedded Database configuration applied to form!',
+                              settings: widget.settings)),
+                          backgroundColor: const Color(0xFF4F46E5),
+                          duration: const Duration(seconds: 2),
                         ),
                       );
                     },
@@ -1672,9 +1718,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                   const Icon(Icons.settings_ethernet_rounded,
                       size: 16, color: Color(0xFF4F46E5)),
                   const SizedBox(width: 8),
-                  const Text('Port: ',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  Text(
+                      '${PosLocalization.tr('Port', settings: widget.settings)}: ',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 12)),
                   SizedBox(
                     width: 85,
                     height: 32,
@@ -1708,10 +1755,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                           borderRadius: BorderRadius.circular(6)),
                     ),
                     icon: const Icon(Icons.search_rounded, size: 14),
-                    label: const Text(
-                      'Auto-Find Free Port (فری پورٹ ڈھونڈیں)',
-                      style:
-                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    label: Text(
+                      PosLocalization.tr('Auto-Find Free Port',
+                          settings: widget.settings),
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                     onPressed: () async {
                       final messenger = ScaffoldMessenger.of(context);
@@ -1721,8 +1769,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                       setState(() => _embeddedServerPort = freePort);
                       messenger.showSnackBar(
                         SnackBar(
-                          content: Text(
-                              'Free available port detected: $freePort (No Laragon/XAMPP conflict!)'),
+                          content: Text(PosLocalization.trParams(
+                            'Free available port detected: {port} (No Laragon/XAMPP conflict!)',
+                            {'port': '$freePort'},
+                            settings: widget.settings,
+                          )),
                           backgroundColor: const Color(0xFF10B981),
                           duration: const Duration(seconds: 2),
                         ),
@@ -1740,10 +1791,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                           borderRadius: BorderRadius.circular(6)),
                     ),
                     icon: const Icon(Icons.security_rounded, size: 14),
-                    label: const Text(
-                      'Allow Firewall (فائر وال الاؤ کریں)',
-                      style:
-                          TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    label: Text(
+                      PosLocalization.tr('Allow Firewall',
+                          settings: widget.settings),
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                     onPressed: () async {
                       final messenger = ScaffoldMessenger.of(context);
@@ -1753,8 +1805,16 @@ class _SettingsScreenState extends State<SettingsScreen>
                       messenger.showSnackBar(
                         SnackBar(
                           content: Text(ok
-                              ? 'Port $_embeddedServerPort successfully opened in Windows Firewall for LAN access!'
-                              : 'Firewall rule command executed for port $_embeddedServerPort.'),
+                              ? PosLocalization.trParams(
+                                  'Port {port} successfully opened in Windows Firewall for LAN access!',
+                                  {'port': '$_embeddedServerPort'},
+                                  settings: widget.settings,
+                                )
+                              : PosLocalization.trParams(
+                                  'Firewall rule command executed for port {port}.',
+                                  {'port': '$_embeddedServerPort'},
+                                  settings: widget.settings,
+                                )),
                           backgroundColor: ok
                               ? const Color(0xFF10B981)
                               : const Color(0xFF4F46E5),
@@ -1777,10 +1837,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                       });
                     },
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Auto-start embedded database engine when SmartPOS launches (اسمارٹ پی او ایس شروع ہوتے ہی بیک گراؤنڈ میں سرور چلائیں)',
-                      style: TextStyle(
+                      PosLocalization.tr(
+                        'Auto-start embedded database engine when SmartPOS launches',
+                        settings: widget.settings,
+                      ),
+                      style: const TextStyle(
                           fontSize: 11.5, fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -2889,16 +2952,19 @@ class _SettingsScreenState extends State<SettingsScreen>
                       size: 48, color: Colors.red),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Access Denied / Ø±Ø³Ø§Ø¦ÛŒ Ù…Ù…Ù†ÙˆØ¹ ÛÛ’',
-                  style: TextStyle(
+                Text(
+                  PosLocalization.tr('Access Denied',
+                      settings: widget.settings),
+                  style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.red),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Only the Super Admin (Owner) has authorization to view or modify business settings and system configurations.\n\nØµØ±Ù Ø³Ù¾Ø± Ø§ÛŒÚˆÙ…Ù† Ú©Ùˆ Ø³Ø³Ù¹Ù… Ú©ÛŒ ØªØ±ØªÛŒØ¨Ø§Øª Ø¯ÛŒÚ©Ú¾Ù†Û’ Ø§ÙˆØ± ØªØ¨Ø¯ÛŒÙ„ Ú©Ø±Ù†Û’ Ú©ÛŒ Ø§Ø¬Ø§Ø²Øª ÛÛ’Û”',
+                  PosLocalization.tr(
+                      'Only the Super Admin (Owner) has authorization to view or modify business settings and system configurations.',
+                      settings: widget.settings),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -3858,7 +3924,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                             ),
                                           ),
                                           Text(
-                                            'Symbol: ${_currencySymCtrl.text.isNotEmpty ? _currencySymCtrl.text : "Rs"}  â€¢  Click to search and change currency',
+                                            'Symbol: ${_currencySymCtrl.text.isNotEmpty ? _currencySymCtrl.text : "Rs"}  •  Click to search and change currency',
                                             style: TextStyle(
                                               fontSize: 11,
                                               color: isDark
@@ -4148,7 +4214,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                                     BorderRadius.circular(4),
                                               ),
                                               child: const Text(
-                                                  'FREE API â€¢ 0 COST',
+                                                  'FREE API • 0 COST',
                                                   style: TextStyle(
                                                       fontSize: 9,
                                                       fontWeight:
@@ -4832,14 +4898,14 @@ class _SettingsScreenState extends State<SettingsScreen>
                                                   loc.country,
                                                 if (loc.zipCode.isNotEmpty)
                                                   'Zip: ${loc.zipCode}',
-                                              ].join(' â€¢ '),
+                                              ].join(' • '),
                                               style: const TextStyle(
                                                   fontSize: 12,
                                                   color: Color(0xFF64748B)),
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              'Phone: ${loc.mobile.isNotEmpty ? loc.mobile : "N/A"} â€¢ Email: ${loc.email.isNotEmpty ? loc.email : "N/A"}',
+                                              'Phone: ${loc.mobile.isNotEmpty ? loc.mobile : "N/A"} • Email: ${loc.email.isNotEmpty ? loc.email : "N/A"}',
                                               style: const TextStyle(
                                                   fontSize: 11,
                                                   color: Color(0xFF94A3B8)),
@@ -5029,11 +5095,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   DropdownMenuItem(
                                       value: 'zatca',
                                       child: Text(
-                                          'Saudi Arabia â€” ZATCA Fatoorah (Phase 1 & 2 TLV)')),
+                                          'Saudi Arabia — ZATCA Fatoorah (Phase 1 & 2 TLV)')),
                                   DropdownMenuItem(
                                       value: 'fbr',
                                       child: Text(
-                                          'Pakistan â€” FBR Digital Invoicing (USIN & QR)')),
+                                          'Pakistan — FBR Digital Invoicing (USIN & QR)')),
                                 ],
                                 onChanged: (val) {
                                   if (val != null) {
@@ -5309,7 +5375,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                           ],
                                         ),
                                         subtitle: Text(
-                                          'Sub-taxes: ${componentsLabel.isEmpty ? "None" : componentsLabel} â€¢ Effective: ${eff.toStringAsFixed(2)}%',
+                                          'Sub-taxes: ${componentsLabel.isEmpty ? "None" : componentsLabel} • Effective: ${eff.toStringAsFixed(2)}%',
                                           style: const TextStyle(fontSize: 12),
                                         ),
                                         trailing: Row(
@@ -5462,7 +5528,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14)),
                                 subtitle: Text(
-                                    'Preview: ${sc.previewExample} â€¢ Start: ${sc.startNumber} â€¢ Total Invoices: ${sc.invoiceCount}'),
+                                    'Preview: ${sc.previewExample} • Start: ${sc.startNumber} • Total Invoices: ${sc.invoiceCount}'),
                                 trailing: sc.isDefault
                                     ? Container(
                                         padding: const EdgeInsets.symmetric(
@@ -6049,7 +6115,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                                 style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13)),
-                                            Text('Port 3306 â€¢ Central Server',
+                                            Text('Port 3306 • Central Server',
                                                 style: TextStyle(
                                                     fontSize: 11,
                                                     color:
@@ -6109,7 +6175,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13)),
                                             Text(
-                                                'Port 5432 â€¢ Enterprise Relational',
+                                                'Port 5432 • Enterprise Relational',
                                                 style: TextStyle(
                                                     fontSize: 11,
                                                     color:
@@ -6167,7 +6233,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13)),
                                             Text(
-                                                'Zero Latency â€¢ Local Device Only',
+                                                'Zero Latency • Local Device Only',
                                                 style: TextStyle(
                                                     fontSize: 11,
                                                     color:
@@ -6530,11 +6596,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                               ),
                               SizedBox(height: 6),
                               Text(
-                                'â€¢ 2,500 Realistic Medicines: Panadol, Augmentin, Arinac, Risek, Brufen, Amoxil, Flagyl, Ciproxin, Velosef, Surbex Z, etc.\n'
-                                'â€¢ Complete Batch Numbers, Expiry Dates (Active, Near Expiry <90 days, Expired for audit testing), Unit packs, Purchase & Sale Prices.\n'
-                                'â€¢ 1,500 Customer Outlets: Shaheen Chemist, Fazal Din, Clinix, Servaid, Care Pharmacy, Al-Shifa Medicose with DL & NTN numbers.\n'
-                                'â€¢ 100 Distributors: Getz Pharma, GSK, Abbott, Searle, Sami, Hilton, Bosch, Sanofi, Ferozsons, Highnoon, etc.\n'
-                                'â€¢ 15 Salesmen Accounts: salesmen 1 to 15 with login permissions and auto-assigned territories.',
+                                '• 2,500 Realistic Medicines: Panadol, Augmentin, Arinac, Risek, Brufen, Amoxil, Flagyl, Ciproxin, Velosef, Surbex Z, etc.\n'
+                                '• Complete Batch Numbers, Expiry Dates (Active, Near Expiry <90 days, Expired for audit testing), Unit packs, Purchase & Sale Prices.\n'
+                                '• 1,500 Customer Outlets: Shaheen Chemist, Fazal Din, Clinix, Servaid, Care Pharmacy, Al-Shifa Medicose with DL & NTN numbers.\n'
+                                '• 100 Distributors: Getz Pharma, GSK, Abbott, Searle, Sami, Hilton, Bosch, Sanofi, Ferozsons, Highnoon, etc.\n'
+                                '• 15 Salesmen Accounts: salesmen 1 to 15 with login permissions and auto-assigned territories.',
                                 style: TextStyle(fontSize: 12, height: 1.5),
                               ),
                             ],
@@ -7781,9 +7847,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                             ),
                             icon:
                                 const Icon(Icons.bug_report_rounded, size: 14),
-                            label: const Text(
-                              'View Error Logs (ایرر لاگز دیکھیں)',
-                              style: TextStyle(
+                            label: Text(
+                              PosLocalization.tr('View Error Logs',
+                                  settings: widget.settings),
+                              style: const TextStyle(
                                   fontSize: 11, fontWeight: FontWeight.bold),
                             ),
                             onPressed: () => SystemLogsDialog.show(context),
@@ -7861,7 +7928,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         subtitle: Text(
-                                          'Size: ${_formatFileSize(stat.size)} â€¢ Date: ${_formatFileDate(stat.modified)}',
+                                          'Size: ${_formatFileSize(stat.size)} • Date: ${_formatFileDate(stat.modified)}',
                                           style: const TextStyle(
                                               fontSize: 10, color: Colors.grey),
                                         ),
@@ -9781,7 +9848,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               color: Colors.black),
         ),
         Text(
-          '$heading â€¢ WHOLESALE & DISTRIBUTION',
+          '$heading • WHOLESALE & DISTRIBUTION',
           textAlign: TextAlign.center,
           style: const TextStyle(
               fontFamily: 'monospace',
@@ -9790,7 +9857,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               color: Color(0xFF334155)),
         ),
         Text(
-          '$address â€¢ $phone',
+          '$address • $phone',
           textAlign: TextAlign.center,
           style: const TextStyle(
               fontFamily: 'monospace', fontSize: 8, color: Colors.black54),
@@ -9992,10 +10059,13 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
         ],
         const SizedBox(height: 6),
-        const Text(
-          'Ù†ÙˆÙ¹: Ù…Ø§Ù„ ÙˆØµÙˆÙ„ Ú©Ø±ØªÛ’ ÙˆÙ‚Øª Ø§ÛŒÚ©Ø³Ù¾Ø§Ø¦Ø±ÛŒ Ø§ÙˆØ± ÚˆØ¨Û Ú†ÛŒÚ© Ú©Ø±Ù„ÛŒÚºÛ”',
+        Text(
+          PosLocalization.tr(
+            'Note: Report expiries with original bill.',
+            settings: widget.settings,
+          ),
           textAlign: TextAlign.right,
-          style: TextStyle(
+          style: const TextStyle(
               fontSize: 8, color: Colors.red, fontWeight: FontWeight.bold),
         ),
       ],
@@ -10422,20 +10492,23 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 width: _aiSettings.provider == 'gemini' ? 2 : 1,
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(Icons.bolt_rounded,
+                                const Icon(Icons.bolt_rounded,
                                     color: Color(0xFF4F46E5), size: 22),
-                                SizedBox(width: 10),
+                                const SizedBox(width: 10),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Google Gemini 1.5 Flash',
+                                    const Text('Google Gemini 1.5 Flash',
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14)),
-                                    Text('100% Free â€¢ Recommended â€¢ Fast',
-                                        style: TextStyle(
+                                    Text(
+                                        PosLocalization.tr(
+                                            '100% Free • Recommended • Fast',
+                                            settings: widget.settings),
+                                        style: const TextStyle(
                                             fontSize: 11, color: Colors.grey)),
                                   ],
                                 ),
@@ -10472,20 +10545,23 @@ class _SettingsScreenState extends State<SettingsScreen>
                                 width: _aiSettings.provider == 'openai' ? 2 : 1,
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(Icons.auto_awesome,
+                                const Icon(Icons.auto_awesome,
                                     color: Color(0xFF059669), size: 22),
-                                SizedBox(width: 10),
+                                const SizedBox(width: 10),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('OpenAI GPT-4o Mini',
+                                    const Text('OpenAI GPT-4o Mini',
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14)),
-                                    Text('High Intelligence â€¢ Paid Key',
-                                        style: TextStyle(
+                                    Text(
+                                        PosLocalization.tr(
+                                            'High Intelligence • Paid Key',
+                                            settings: widget.settings),
+                                        style: const TextStyle(
                                             fontSize: 11, color: Colors.grey)),
                                   ],
                                 ),
@@ -10531,21 +10607,26 @@ class _SettingsScreenState extends State<SettingsScreen>
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: _aiSettings.preferredLanguage,
-                          decoration: const InputDecoration(
-                              labelText: 'AI Advisory Language',
-                              border: OutlineInputBorder()),
-                          items: const [
+                          decoration: InputDecoration(
+                              labelText: PosLocalization.tr(
+                                  'AI Advisory Language',
+                                  settings: widget.settings),
+                              border: const OutlineInputBorder()),
+                          items: [
                             DropdownMenuItem(
                                 value: 'roman_urdu',
-                                child: Text(
-                                    'Roman Urdu (Ø§Ø±Ø¯Ùˆ/English - Recommended)')),
+                                child: Text(PosLocalization.tr(
+                                    'Roman Urdu (Urdu/English - Recommended)',
+                                    settings: widget.settings))),
                             DropdownMenuItem(
                                 value: 'urdu',
-                                child: Text('Urdu (Ø§Ø±Ø¯Ùˆ Ø±Ø³Ù… Ø§Ù„Ø®Ø·)')),
+                                child: Text(PosLocalization.tr('Urdu (Script)',
+                                    settings: widget.settings))),
                             DropdownMenuItem(
                                 value: 'english',
-                                child: Text(
-                                    'English (Executive Business Standard)')),
+                                child: Text(PosLocalization.tr(
+                                    'English (Executive Business Standard)',
+                                    settings: widget.settings))),
                           ],
                           onChanged: (v) {
                             if (v != null) {
@@ -10884,8 +10965,9 @@ class _SettingsScreenState extends State<SettingsScreen>
           _posToggleRow(
             isDark: isDark,
             icon: Icons.person_pin_outlined,
-            title:
-                'Prompt / Allow Customer Name on Walk-in Sales (ÙˆØ§Ú© Ø§ÙÙ† Ø¨Ù„ Ù¾Ø± Ú¯Ø§ÛÚ© Ú©Ø§ Ù†Ø§Ù…)',
+            title: PosLocalization.tr(
+                'Prompt / Allow Customer Name on Walk-in Sales',
+                settings: widget.settings),
             subtitle:
                 'Allows typing customer name on cash walk-in bills without registering an account. Prints on invoice and enables 1-click transfer to customer ledger later.',
             value: _promptWalkinCustomerName,
@@ -10915,7 +10997,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                         size: 18, color: Color(0xFF0284C7)),
                     const SizedBox(width: 8),
                     Text(
-                      'Default POS Print Format (ÚˆÛŒÙØ§Ù„Ù¹ Ù¾Ø±Ù†Ù¹ ÙØ§Ø±Ù…ÛŒÙ¹)',
+                      PosLocalization.tr('Default POS Print Format',
+                          settings: widget.settings),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -11087,7 +11170,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Default Product Barcode Type (بارکوڈ کی ڈیفالٹ قسم)',
+                        PosLocalization.tr('Default Product Barcode Type',
+                            settings: widget.settings),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -11150,7 +11234,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                         size: 18, color: Color(0xFF10B981)),
                     const SizedBox(width: 8),
                     Text(
-                      'Pakistan POS Payment Methods (Ú©Ø§Ø¤Ù†Ù¹Ø± Ù¾ÛŒÙ…Ù†Ù¹ Ú©Û’ Ø·Ø±ÛŒÙ‚Û’)',
+                      PosLocalization.tr('Pakistan POS Payment Methods',
+                          settings: widget.settings),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -11173,8 +11258,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.credit_card_outlined,
-                  title:
-                      'Debit / Credit Card Payment [F8] (Ú©Ø§Ø±Úˆ Ù¾ÛŒÙ…Ù†Ù¹)',
+                  title: PosLocalization.tr('Debit / Credit Card Payment [F8]',
+                      settings: widget.settings),
                   subtitle:
                       'Show Card checkout button (rarely used in local PK retail; off by default).',
                   value: _enableCardPayment,
@@ -11186,7 +11271,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.phone_android_rounded,
-                  title: 'EasyPaisa Mobile Account (Ø§ÛŒØ²ÛŒ Ù¾ÛŒØ³Û)',
+                  title: PosLocalization.tr('EasyPaisa Mobile Account',
+                      settings: widget.settings),
                   subtitle:
                       'Enable EasyPaisa tender button and QR in Payment Modal.',
                   value: _enableEasyPaisa,
@@ -11198,7 +11284,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.account_balance_wallet_outlined,
-                  title: 'JazzCash Mobile Account (Ø¬Ø§Ø² Ú©ÛŒØ´)',
+                  title: PosLocalization.tr('JazzCash Mobile Account',
+                      settings: widget.settings),
                   subtitle:
                       'Enable JazzCash tender button and QR in Payment Modal.',
                   value: _enableJazzCash,
@@ -11210,8 +11297,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.account_balance_outlined,
-                  title:
-                      'Direct Bank Transfer / IBFT / Raast (Ø¨ÛŒÙ†Ú© Ø§Ú©Ø§Ø¤Ù†Ù¹ / Ø±Ø§Ø³Øª)',
+                  title: PosLocalization.tr(
+                      'Direct Bank Transfer / IBFT / Raast',
+                      settings: widget.settings),
                   subtitle:
                       'Enable direct bank account & Raast payment tender option.',
                   value: _enableBankTransfer,
@@ -11223,7 +11311,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.article_outlined,
-                  title: 'Cheque Payment Clearing (Ú†ÛŒÚ© Ù¾ÛŒÙ…Ù†Ù¹)',
+                  title: PosLocalization.tr('Cheque Payment Clearing',
+                      settings: widget.settings),
                   subtitle:
                       'Enable Cheque payment with cheque number and clearing date.',
                   value: _enableChequePayment,
@@ -11236,8 +11325,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                 _posToggleRow(
                   isDark: isDark,
                   icon: Icons.menu_book_rounded,
-                  title:
-                      'Credit / Khata / Udhaar Sale [F6] (Ø§Ø¯Ú¾Ø§Ø± Ú©Ú¾Ø§ØªÛ)',
+                  title: PosLocalization.tr('Credit / Khata / Udhaar Sale [F6]',
+                      settings: widget.settings),
                   subtitle: 'Enable due/credit sale for registered customers.',
                   value: _enableCreditSale,
                   onChanged: (val) {

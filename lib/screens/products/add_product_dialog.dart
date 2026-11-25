@@ -6,6 +6,7 @@ import '../../services/database_service.dart';
 import '../../services/regional_data_service.dart';
 import '../../widgets/barcode_type_badge.dart';
 import '../../widgets/product_thumbnail.dart';
+import '../../services/localization_service.dart';
 
 class AddProductDialog extends StatefulWidget {
   final Product? productToEdit;
@@ -437,9 +438,10 @@ class _AddProductDialogState extends State<AddProductDialog> {
                       // Name
                       TextFormField(
                         controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Product Name *',
-                          hintText: 'e.g. Wireless Ergonomic Mouse',
+                        decoration: InputDecoration(
+                          labelText: PosLocalization.tr('Product Name *'),
+                          hintText: PosLocalization.tr(
+                              'e.g. Wireless Ergonomic Mouse'),
                           isDense: true,
                         ),
                         validator: (v) => v == null || v.trim().isEmpty
@@ -455,11 +457,12 @@ class _AddProductDialogState extends State<AddProductDialog> {
                             child: TextFormField(
                               controller: _skuController,
                               decoration: InputDecoration(
-                                labelText: 'SKU (Stock Keeping Unit) *',
-                                hintText: 'e.g. ELEC-1042',
+                                labelText: PosLocalization.tr(
+                                    'SKU (Stock Keeping Unit) *'),
+                                hintText: PosLocalization.tr('e.g. ELEC-1042'),
                                 isDense: true,
                                 suffixIcon: IconButton(
-                                  tooltip: 'Generate SKU',
+                                  tooltip: PosLocalization.tr('Generate SKU'),
                                   icon: const Icon(Icons.auto_fix_high,
                                       size: 18, color: Color(0xFF004EEB)),
                                   onPressed: _generateSku,
@@ -474,9 +477,11 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           Expanded(
                             child: TextFormField(
                               controller: _barcodeController,
-                              decoration: const InputDecoration(
-                                labelText: 'Barcode (EAN/UPC/Code128)',
-                                hintText: 'Leave blank to match SKU',
+                              decoration: InputDecoration(
+                                labelText: PosLocalization.tr(
+                                    'Barcode (EAN/UPC/Code128)'),
+                                hintText: PosLocalization.tr(
+                                    'Leave blank to match SKU'),
                                 isDense: true,
                               ),
                             ),
@@ -490,8 +495,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<Category>(
-                              decoration: const InputDecoration(
-                                  labelText: 'Category', isDense: true),
+                              decoration: InputDecoration(
+                                  labelText: PosLocalization.tr('Category'),
+                                  isDense: true),
                               initialValue: _selectedCategory,
                               items: _categories
                                   .map((c) => DropdownMenuItem(
@@ -504,8 +510,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<Brand>(
-                              decoration: const InputDecoration(
-                                  labelText: 'Brand', isDense: true),
+                              decoration: InputDecoration(
+                                  labelText: PosLocalization.tr('Brand'),
+                                  isDense: true),
                               initialValue: _selectedBrand,
                               items: _brands
                                   .map((b) => DropdownMenuItem(
@@ -519,8 +526,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           SizedBox(
                             width: 110,
                             child: DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(
-                                  labelText: 'Unit', isDense: true),
+                              decoration: InputDecoration(
+                                  labelText: PosLocalization.tr('Unit'),
+                                  isDense: true),
                               initialValue: _selectedUnit,
                               items: [
                                 'Pc',
@@ -564,7 +572,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                       decimal: true),
                               onChanged: _onCostChanged,
                               decoration: InputDecoration(
-                                labelText: 'Cost Price',
+                                labelText: PosLocalization.tr('Cost Price'),
                                 prefixText: '$currency ',
                                 isDense: true,
                               ),
@@ -590,8 +598,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF10B981)),
-                              decoration: const InputDecoration(
-                                labelText: 'Margin %',
+                              decoration: InputDecoration(
+                                labelText: PosLocalization.tr('Margin %'),
                                 suffixText: '%',
                                 isDense: true,
                               ),
@@ -607,7 +615,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                       decimal: true),
                               onChanged: _onSellingChanged,
                               decoration: InputDecoration(
-                                labelText: 'Selling Price *',
+                                labelText:
+                                    PosLocalization.tr('Selling Price *'),
                                 prefixText: '$currency ',
                                 isDense: true,
                               ),
@@ -629,8 +638,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                       decimal: true),
-                              decoration: const InputDecoration(
-                                labelText: 'Opening Stock Quantity',
+                              decoration: InputDecoration(
+                                labelText: PosLocalization.tr(
+                                    'Opening Stock Quantity'),
                                 isDense: true,
                               ),
                             ),
@@ -642,8 +652,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                       decimal: true),
-                              decoration: const InputDecoration(
-                                labelText: 'Alert Quantity (Reorder Point)',
+                              decoration: InputDecoration(
+                                labelText: PosLocalization.tr(
+                                    'Alert Quantity (Reorder Point)'),
                                 isDense: true,
                               ),
                             ),
@@ -661,8 +672,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
                             Expanded(
                               child: TextFormField(
                                 controller: _batchController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Batch / Lot No',
+                                decoration: InputDecoration(
+                                  labelText:
+                                      PosLocalization.tr('Batch / Lot No'),
                                   hintText: 'e.g. 02260',
                                   isDense: true,
                                 ),
@@ -673,13 +685,15 @@ class _AddProductDialogState extends State<AddProductDialog> {
                               child: TextFormField(
                                 controller: _expiryController,
                                 decoration: InputDecoration(
-                                  labelText: 'Expiry Date (MM-YYYY)',
+                                  labelText: PosLocalization.tr(
+                                      'Expiry Date (MM-YYYY)'),
                                   hintText: 'e.g. 12-2028',
                                   isDense: true,
                                   suffixIcon: IconButton(
                                     icon: const Icon(Icons.calendar_month,
                                         size: 18, color: Color(0xFF004EEB)),
-                                    tooltip: 'Select Expiry Date',
+                                    tooltip: PosLocalization.tr(
+                                        'Select Expiry Date'),
                                     onPressed: _pickExpiryDate,
                                   ),
                                 ),
@@ -692,8 +706,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                 child: TextFormField(
                                   controller: _bonusController,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Bonus Free',
+                                  decoration: InputDecoration(
+                                    labelText: PosLocalization.tr('Bonus Free'),
                                     hintText: '0',
                                     isDense: true,
                                   ),
@@ -733,7 +747,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           if (_pickedImagePath != null) ...[
                             const SizedBox(width: 8),
                             IconButton(
-                              tooltip: 'Remove Image',
+                              tooltip: PosLocalization.tr('Remove Image'),
                               onPressed: () =>
                                   setState(() => _pickedImagePath = null),
                               icon: const Icon(Icons.delete_outline,
@@ -746,9 +760,10 @@ class _AddProductDialogState extends State<AddProductDialog> {
                       SwitchListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                            'Featured Product (Show in POS Featured filter)',
-                            style: TextStyle(
+                        title: Text(
+                            PosLocalization.tr(
+                                'Featured Product (Show in POS Featured filter)'),
+                            style: const TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w600)),
                         value: _isFeatured,
                         onChanged: (val) => setState(() => _isFeatured = val),
@@ -761,7 +776,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
                         children: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: Text('Cancel',
+                            child: Text(PosLocalization.tr('Cancel'),
                                 style: TextStyle(
                                     color: isDark
                                         ? const Color(0xFF94A3B8)

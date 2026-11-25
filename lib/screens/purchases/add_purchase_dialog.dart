@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import 'product_search_dialog.dart';
+import '../../services/localization_service.dart';
 
 class AddPurchaseDialog extends StatefulWidget {
   final VoidCallback onPurchaseSaved;
@@ -229,8 +230,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
   Future<void> _savePurchase() async {
     if (_selectedSupplier == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please select a supplier.'),
+        SnackBar(
+            content: Text(PosLocalization.tr('Please select a supplier.')),
             backgroundColor: Colors.orange),
       );
       return;
@@ -238,9 +239,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
 
     if (_lineItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Please add at least one product item to the purchase bill.'),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'Please add at least one product item to the purchase bill.')),
             backgroundColor: Colors.orange),
       );
       return;
@@ -398,7 +399,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Create Purchase Invoice (Restock Products)',
+                                    PosLocalization.tr(
+                                        'Create Purchase Invoice (Restock Products)'),
                                     style: TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold,
@@ -408,7 +410,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Add multiple products to restock, compute profit margins, and update supplier payable khata.',
+                                    PosLocalization.tr(
+                                        'Add multiple products to restock, compute profit margins, and update supplier payable khata.'),
                                     style: TextStyle(
                                         fontSize: 12, color: textSecondary),
                                   ),
@@ -440,7 +443,7 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Supplier *',
+                                  Text(PosLocalization.tr('Supplier *'),
                                       style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
@@ -476,7 +479,7 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Receiving Location',
+                                  Text(PosLocalization.tr('Receiving Location'),
                                       style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
@@ -511,7 +514,7 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Status',
+                                  Text(PosLocalization.tr('Status'),
                                       style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
@@ -523,16 +526,19 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                     style: TextStyle(
                                         fontSize: 13, color: textPrimary),
                                     initialValue: _status,
-                                    items: const [
+                                    items: [
                                       DropdownMenuItem(
                                           value: 'received',
-                                          child: Text('Received (Restock)')),
+                                          child: Text(PosLocalization.tr(
+                                              'Received (Restock)'))),
                                       DropdownMenuItem(
                                           value: 'pending',
-                                          child: Text('Pending Approval')),
+                                          child: Text(PosLocalization.tr(
+                                              'Pending Approval'))),
                                       DropdownMenuItem(
                                           value: 'ordered',
-                                          child: Text('Ordered')),
+                                          child: Text(
+                                              PosLocalization.tr('Ordered'))),
                                     ],
                                     onChanged: (val) => setState(
                                         () => _status = val ?? 'received'),
@@ -562,8 +568,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                 style:
                                     TextStyle(fontSize: 13, color: textPrimary),
                                 decoration: InputDecoration(
-                                  hintText:
-                                      'Enter Product Name, SKU, or Scan Barcode to add to purchase...',
+                                  hintText: PosLocalization.tr(
+                                      'Enter Product Name, SKU, or Scan Barcode to add to purchase...'),
                                   hintStyle: TextStyle(
                                       fontSize: 13, color: textSecondary),
                                   prefixIcon: const Icon(
@@ -597,8 +603,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                               ),
                               icon:
                                   const Icon(Icons.list_alt_rounded, size: 16),
-                              label: const Text('Browse Products',
-                                  style: TextStyle(
+                              label: Text(PosLocalization.tr('Browse Products'),
+                                  style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold)),
                               onPressed: _openProductCatalog,
@@ -619,14 +625,17 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                         color: textSecondary.withValues(
                                             alpha: 0.5)),
                                     const SizedBox(height: 12),
-                                    Text('No products added yet',
+                                    Text(
+                                        PosLocalization.tr(
+                                            'No products added yet'),
                                         style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
                                             color: textPrimary)),
                                     const SizedBox(height: 4),
                                     Text(
-                                        'Scan barcode or click "Browse Products" above to add items.',
+                                        PosLocalization.tr(
+                                            'Scan barcode or click "Browse Products" above to add items.'),
                                         style: TextStyle(
                                             fontSize: 12,
                                             color: textSecondary)),
@@ -698,7 +707,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Text('Cost Price',
+                                              Text(
+                                                  PosLocalization.tr(
+                                                      'Cost Price'),
                                                   style: TextStyle(
                                                       fontSize: 10,
                                                       color: textSecondary)),
@@ -735,7 +746,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Text('Margin %',
+                                              Text(
+                                                  PosLocalization.tr(
+                                                      'Margin %'),
                                                   style: TextStyle(
                                                       fontSize: 10,
                                                       color: textSecondary)),
@@ -772,7 +785,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Text('Sale Price',
+                                              Text(
+                                                  PosLocalization.tr(
+                                                      'Sale Price'),
                                                   style: TextStyle(
                                                       fontSize: 10,
                                                       color: textSecondary)),
@@ -809,7 +824,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Text('Restock Qty',
+                                              Text(
+                                                  PosLocalization.tr(
+                                                      'Restock Qty'),
                                                   style: TextStyle(
                                                       fontSize: 10,
                                                       color: textSecondary)),
@@ -846,7 +863,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.end,
                                             children: [
-                                              Text('Line Total',
+                                              Text(
+                                                  PosLocalization.tr(
+                                                      'Line Total'),
                                                   style: TextStyle(
                                                       fontSize: 10,
                                                       color: textSecondary)),
@@ -915,8 +934,10 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                       const SizedBox(height: 2),
                                       Row(
                                         children: [
-                                          const Text('BILL TOTAL: ',
-                                              style: TextStyle(
+                                          Text(
+                                              PosLocalization.tr(
+                                                  'BILL TOTAL: '),
+                                              style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 13)),
                                           Text(
@@ -951,7 +972,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                           fontSize: 13,
                                           fontWeight: FontWeight.bold),
                                       decoration: inputDeco.copyWith(
-                                        labelText: 'Paid Amount',
+                                        labelText:
+                                            PosLocalization.tr('Paid Amount'),
                                         labelStyle: TextStyle(
                                             fontSize: 11, color: textSecondary),
                                       ),
@@ -972,8 +994,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                       setState(() => _paidController.text =
                                           total.toStringAsFixed(2));
                                     },
-                                    child: const Text('Full Paid',
-                                        style: TextStyle(
+                                    child: Text(PosLocalization.tr('Full Paid'),
+                                        style: const TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold)),
                                   ),
@@ -990,8 +1012,8 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                       setState(
                                           () => _paidController.text = '0.00');
                                     },
-                                    child: const Text('Full Due',
-                                        style: TextStyle(
+                                    child: Text(PosLocalization.tr('Full Due'),
+                                        style: const TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.orange)),
@@ -1038,8 +1060,9 @@ class _AddPurchaseDialogState extends State<AddPurchaseDialog> {
                                           color: Colors.white, strokeWidth: 2))
                                   : const Icon(Icons.check_circle_rounded,
                                       size: 18),
-                              label: const Text('Save Purchase Bill',
-                                  style: TextStyle(
+                              label: Text(
+                                  PosLocalization.tr('Save Purchase Bill'),
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13)),
                               onPressed: _isSaving ? null : _savePurchase,

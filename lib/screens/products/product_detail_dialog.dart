@@ -5,6 +5,7 @@ import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/print_service.dart';
 import '../../widgets/product_thumbnail.dart';
+import '../../services/localization_service.dart';
 
 class ProductDetailDialog extends StatefulWidget {
   final Product product;
@@ -234,7 +235,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close (بند کریں)'),
+                  child: Text(PosLocalization.tr('Close')),
                 ),
               ),
             ],
@@ -733,7 +734,8 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                     if (_serials.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       Text(
-                        'Pallet / Lot & Serial Range Tracking (سولر پینل پیلیٹ و سیریل نمبرز کی لاٹ تفصیل)',
+                        PosLocalization.tr(
+                            'Pallet / Lot & Serial Range Tracking'),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -789,10 +791,10 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                                             color: greenHeaderColor),
                                         children: [
                                           _tableHeaderCell('Pallet / Lot No.'),
+                                          _tableHeaderCell(PosLocalization.tr(
+                                              'Start Serial')),
                                           _tableHeaderCell(
-                                              'Start Serial (پہلا نمبر)'),
-                                          _tableHeaderCell(
-                                              'End Serial (آخری نمبر)'),
+                                              PosLocalization.tr('End Serial')),
                                           _tableHeaderCell('Total Units'),
                                           _tableHeaderCell('In Stock'),
                                           _tableHeaderCell('Sold'),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import 'quick_customer_dialog.dart';
+import '../../services/localization_service.dart';
 
 class CustomerSearchDialog extends StatefulWidget {
   final List<Contact> customers;
@@ -119,7 +120,7 @@ class _CustomerSearchDialogState extends State<CustomerSearchDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Select Customer',
+                          PosLocalization.tr('Select Customer'),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
@@ -128,7 +129,8 @@ class _CustomerSearchDialogState extends State<CustomerSearchDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Quick search across name, phone, or medical store',
+                          PosLocalization.tr(
+                              'Quick search across name, phone, or medical store'),
                           style: TextStyle(fontSize: 11, color: textSecondary),
                         ),
                       ],
@@ -146,8 +148,8 @@ class _CustomerSearchDialogState extends State<CustomerSearchDialog> {
                       elevation: 0,
                     ),
                     icon: const Icon(Icons.person_add_rounded, size: 15),
-                    label: const Text('Add Customer',
-                        style: TextStyle(
+                    label: Text(PosLocalization.tr('Add Customer'),
+                        style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.bold)),
                     onPressed: () {
                       showDialog(
@@ -190,8 +192,8 @@ class _CustomerSearchDialogState extends State<CustomerSearchDialog> {
                       fontWeight: FontWeight.w600,
                       color: textPrimary),
                   decoration: InputDecoration(
-                    hintText:
-                        'Search customer by name, mobile (0300...) or store...',
+                    hintText: PosLocalization.tr(
+                        'Search customer by name, mobile (0300...) or store...'),
                     hintStyle: TextStyle(fontSize: 12, color: textSecondary),
                     prefixIcon: Icon(Icons.search_rounded,
                         size: 18, color: textSecondary),
@@ -249,14 +251,15 @@ class _CustomerSearchDialogState extends State<CustomerSearchDialog> {
                               size: 48, color: textSecondary),
                           const SizedBox(height: 12),
                           Text(
-                            'No matching customers found',
+                            PosLocalization.tr('No matching customers found'),
                             style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: textSecondary),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Click "+ Add Customer" above to create one instantly.',
+                            PosLocalization.tr(
+                                'Click "+ Add Customer" above to create one instantly.'),
                             style:
                                 TextStyle(fontSize: 12, color: textSecondary),
                           ),

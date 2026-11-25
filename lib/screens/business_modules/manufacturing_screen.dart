@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class ManufacturingScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -185,7 +186,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                         color: Color(0xFF14B8A6), size: 22),
                   ),
                   const SizedBox(width: 12),
-                  Text('New Bill of Materials (BOM)',
+                  Text(PosLocalization.tr('New Bill of Materials (BOM)'),
                       style: TextStyle(
                           color:
                               isDark ? Colors.white : const Color(0xFF0F172A),
@@ -203,10 +204,10 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                       // Select from existing product or type new
                       if (_products.isNotEmpty) ...[
                         DropdownButtonFormField<Product>(
-                          decoration: const InputDecoration(
-                            labelText:
-                                'Link Existing Finished Product (Optional)',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: PosLocalization.tr(
+                                'Link Existing Finished Product (Optional)'),
+                            border: const OutlineInputBorder(),
                             isDense: true,
                           ),
                           items: _products.take(30).map((p) {
@@ -230,9 +231,10 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                       ],
                       TextField(
                         controller: nameCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Finished Product Name*',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText:
+                              PosLocalization.tr('Finished Product Name*'),
+                          border: const OutlineInputBorder(),
                           isDense: true,
                         ),
                       ),
@@ -243,9 +245,10 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                             child: TextField(
                               controller: batchCtrl,
                               keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Batch Output Yield*',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText:
+                                    PosLocalization.tr('Batch Output Yield*'),
+                                border: const OutlineInputBorder(),
                                 isDense: true,
                               ),
                               onChanged: (_) => setDlgState(() {}),
@@ -303,11 +306,12 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                       TextField(
                         controller: rawCtrl,
                         maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Raw Materials & Ingredients Breakdown*',
-                          hintText:
-                              'e.g. 100kg Material A, 20L Solution B, 100x Jars',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: PosLocalization.tr(
+                              'Raw Materials & Ingredients Breakdown*'),
+                          hintText: PosLocalization.tr(
+                              'e.g. 100kg Material A, 20L Solution B, 100x Jars'),
+                          border: const OutlineInputBorder(),
                           isDense: true,
                         ),
                       ),
@@ -347,7 +351,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: Text(PosLocalization.tr('Cancel')),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -385,7 +389,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                       if (ctx.mounted) Navigator.pop(ctx);
                     }
                   },
-                  child: const Text('Save BOM Recipe'),
+                  child: Text(PosLocalization.tr('Save BOM Recipe')),
                 ),
               ],
             );
@@ -486,7 +490,8 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                                     ? Colors.white
                                     : const Color(0xFF0F172A))),
                         Text(
-                            'Atomic inventory increment & raw material consumption',
+                            PosLocalization.tr(
+                                'Atomic inventory increment & raw material consumption'),
                             style: TextStyle(
                                 fontSize: 11,
                                 color: isDark
@@ -548,9 +553,10 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                             child: TextField(
                               controller: yieldCtrl,
                               keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Finished Goods Produced*',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText: PosLocalization.tr(
+                                    'Finished Goods Produced*'),
+                                border: const OutlineInputBorder(),
                                 isDense: true,
                               ),
                               onChanged: (_) => setDlgState(() {}),
@@ -561,9 +567,10 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                             child: TextField(
                               controller: scrapCtrl,
                               keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Defects / Scrap Units',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText:
+                                    PosLocalization.tr('Defects / Scrap Units'),
+                                border: const OutlineInputBorder(),
                                 isDense: true,
                               ),
                               onChanged: (_) => setDlgState(() {}),
@@ -634,7 +641,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text('Financial Loss:',
+                                    Text(PosLocalization.tr('Financial Loss:'),
                                         style: TextStyle(
                                             fontSize: 10,
                                             color: isDark
@@ -758,14 +765,15 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Row(
+                              Row(
                                 children: [
-                                  Icon(Icons.inventory_rounded,
+                                  const Icon(Icons.inventory_rounded,
                                       size: 15, color: Colors.grey),
-                                  SizedBox(width: 6),
+                                  const SizedBox(width: 6),
                                   Text(
-                                    'Deduct Raw Material Product (Optional)',
-                                    style: TextStyle(
+                                    PosLocalization.tr(
+                                        'Deduct Raw Material Product (Optional)'),
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 12),
                                   ),
@@ -775,16 +783,17 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                               DropdownButtonFormField<Product?>(
                                 initialValue: manualRawMaterial,
                                 isDense: true,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   isDense: true,
-                                  border: OutlineInputBorder(),
-                                  hintText:
-                                      'Select raw material product to deduct',
+                                  border: const OutlineInputBorder(),
+                                  hintText: PosLocalization.tr(
+                                      'Select raw material product to deduct'),
                                 ),
                                 items: [
-                                  const DropdownMenuItem(
+                                  DropdownMenuItem(
                                     value: null,
-                                    child: Text('None / Pre-deducted'),
+                                    child: Text(PosLocalization.tr(
+                                        'None / Pre-deducted')),
                                   ),
                                   ..._products
                                       .where((p) => p.id != matchedProduct?.id)
@@ -805,10 +814,10 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                                 TextField(
                                   controller: manualRawQtyCtrl,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText:
-                                        'Raw material consumed per finished unit',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: PosLocalization.tr(
+                                        'Raw material consumed per finished unit'),
+                                    border: const OutlineInputBorder(),
                                     isDense: true,
                                   ),
                                 ),
@@ -824,7 +833,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: Text(PosLocalization.tr('Cancel')),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -834,7 +843,8 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                         horizontal: 18, vertical: 12),
                   ),
                   icon: const Icon(Icons.check_circle_rounded, size: 18),
-                  label: const Text('Complete & Update Inventory'),
+                  label:
+                      Text(PosLocalization.tr('Complete & Update Inventory')),
                   onPressed: () async {
                     final producedQty =
                         double.tryParse(yieldCtrl.text) ?? targetQty;
@@ -1142,7 +1152,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                 color: Color(0xFF14B8A6), size: 22),
             const SizedBox(width: 10),
             Text(
-              'Manufacturing & Production Work Orders',
+              PosLocalization.tr('Manufacturing & Production Work Orders'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -1175,7 +1185,7 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                   foregroundColor: Colors.white),
               onPressed: _showAddBomModal,
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('New BOM Recipe'),
+              label: Text(PosLocalization.tr('New BOM Recipe')),
             ),
           ),
         ],
@@ -1312,7 +1322,8 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                                 },
                                 icon: const Icon(Icons.play_arrow_rounded,
                                     size: 16),
-                                label: const Text('Start Work Order'),
+                                label: Text(
+                                    PosLocalization.tr('Start Work Order')),
                               ),
                             ],
                           ),
@@ -1490,8 +1501,8 @@ class _ManufacturingScreenState extends State<ManufacturingScreen>
                                       icon: const Icon(
                                           Icons.check_circle_outline_rounded,
                                           size: 16),
-                                      label:
-                                          const Text('Complete Production Run'),
+                                      label: Text(PosLocalization.tr(
+                                          'Complete Production Run')),
                                     ),
                                   ] else
                                     Row(

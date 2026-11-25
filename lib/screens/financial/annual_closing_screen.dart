@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/localization_service.dart';
 
 class AnnualClosingScreen extends StatefulWidget {
   final BusinessSettings settings;
@@ -118,8 +119,9 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                   color: Color(0xFFD97706), size: 24),
             ),
             const SizedBox(width: 12),
-            const Text('Confirm Annual Year Closing',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            Text(PosLocalization.tr('Confirm Annual Year Closing'),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
           ],
         ),
         content: Column(
@@ -148,9 +150,10 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              '• All ending balances will be locked and carried forward as opening balances for the new fiscal year.\n• A permanent audit certificate will be recorded in the system database.',
-              style: TextStyle(
+            Text(
+              PosLocalization.tr(
+                  '• All ending balances will be locked and carried forward as opening balances for the new fiscal year.\n• A permanent audit certificate will be recorded in the system database.'),
+              style: const TextStyle(
                   fontSize: 12, color: Color(0xFF64748B), height: 1.4),
             ),
           ],
@@ -158,14 +161,14 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(PosLocalization.tr('Cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4F46E5),
                 foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Execute Closing',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(PosLocalization.tr('Execute Closing'),
+                style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -248,7 +251,8 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Annual Financial Closing & Fiscal Year Audit',
+                      PosLocalization.tr(
+                          'Annual Financial Closing & Fiscal Year Audit'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -257,7 +261,8 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Close fiscal years, snapshot balance sheets, carry forward ledgers, and audit agency books',
+                      PosLocalization.tr(
+                          'Close fiscal years, snapshot balance sheets, carry forward ledgers, and audit agency books'),
                       style: TextStyle(
                           fontSize: 12,
                           color: isDark
@@ -276,8 +281,8 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: const Icon(Icons.lock_clock_rounded, size: 18),
-                  label: const Text('Execute Annual Closing',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: Text(PosLocalization.tr('Execute Annual Closing'),
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   onPressed: _performAnnualClosing,
                 ),
               ],
@@ -343,8 +348,8 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                         decoration: BoxDecoration(
                             color: const Color(0xFFD1FAE5),
                             borderRadius: BorderRadius.circular(20)),
-                        child: const Text('● LIVE LEDGER AUDIT',
-                            style: TextStyle(
+                        child: Text(PosLocalization.tr('● LIVE LEDGER AUDIT'),
+                            style: const TextStyle(
                                 color: Color(0xFF059669),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11)),
@@ -415,7 +420,7 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
 
             // Historical Closed Years Table
             Text(
-              'Historical Closed Fiscal Years & Audit Log',
+              PosLocalization.tr('Historical Closed Fiscal Years & Audit Log'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -438,12 +443,13 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                       padding: EdgeInsets.all(40),
                       child: Center(child: CircularProgressIndicator()))
                   : _closedYears.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(40),
+                      ? Padding(
+                          padding: const EdgeInsets.all(40),
                           child: Center(
                             child: Text(
-                              'No previous financial years closed yet. Execute Annual Closing above to lock your first audit record.',
-                              style: TextStyle(color: Colors.grey),
+                              PosLocalization.tr(
+                                  'No previous financial years closed yet. Execute Annual Closing above to lock your first audit record.'),
+                              style: const TextStyle(color: Colors.grey),
                             ),
                           ),
                         )
@@ -460,42 +466,49 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                               headingRowColor: WidgetStateProperty.all(isDark
                                   ? const Color(0xFF0F172A)
                                   : const Color(0xFFF8FAFC)),
-                              columns: const [
+                              columns: [
                                 DataColumn(
-                                    label: Text('FISCAL YEAR',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('FISCAL YEAR'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('START DATE',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('START DATE'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('CLOSING DATE',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('CLOSING DATE'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('FINAL SALES',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('FINAL SALES'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('NET PROFIT',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('NET PROFIT'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('STOCK VALUE',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('STOCK VALUE'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('RECEIVABLES C/F',
-                                        style: TextStyle(
+                                    label: Text(
+                                        PosLocalization.tr('RECEIVABLES C/F'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('CLOSED BY',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('CLOSED BY'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                                 DataColumn(
-                                    label: Text('STATUS',
-                                        style: TextStyle(
+                                    label: Text(PosLocalization.tr('STATUS'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold))),
                               ],
                               rows: _closedYears.map((fy) {
@@ -531,8 +544,9 @@ class _AnnualClosingScreenState extends State<AnnualClosingScreen> {
                                           color: const Color(0xFFDCFCE7),
                                           borderRadius:
                                               BorderRadius.circular(4)),
-                                      child: const Text('LOCKED & CLOSED',
-                                          style: TextStyle(
+                                      child: Text(
+                                          PosLocalization.tr('LOCKED & CLOSED'),
+                                          style: const TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
                                               color: Color(0xFF16A34A))),

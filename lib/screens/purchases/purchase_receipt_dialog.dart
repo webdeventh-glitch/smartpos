@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/models.dart';
 import '../../services/pdf_export_service.dart';
+import '../../services/localization_service.dart';
 
 class PurchaseReceiptDialog extends StatefulWidget {
   final Purchase purchase;
@@ -123,9 +124,9 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                     const Icon(Icons.receipt_long_rounded,
                         color: Color(0xFF38BDF8), size: 20),
                     const SizedBox(width: 10),
-                    const Text(
-                      'Purchase Order & Goods Receipt',
-                      style: TextStyle(
+                    Text(
+                      PosLocalization.tr('Purchase Order & Goods Receipt'),
+                      style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 15),
@@ -188,9 +189,10 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                                       color: Color(0xFF0F172A)),
                                 ),
                                 const SizedBox(height: 2),
-                                const Text(
-                                  'INWARD STOCK RECEIPT / PURCHASE VOUCHER',
-                                  style: TextStyle(
+                                Text(
+                                  PosLocalization.tr(
+                                      'INWARD STOCK RECEIPT / PURCHASE VOUCHER'),
+                                  style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF0284C7),
@@ -252,8 +254,10 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('SUPPLIER / VENDOR:',
-                                        style: TextStyle(
+                                    Text(
+                                        PosLocalization.tr(
+                                            'SUPPLIER / VENDOR:'),
+                                        style: const TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                             color: Color(0xFF64748B))),
@@ -270,8 +274,8 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('PURCHASE DATE:',
-                                        style: TextStyle(
+                                    Text(PosLocalization.tr('PURCHASE DATE:'),
+                                        style: const TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                             color: Color(0xFF64748B))),
@@ -288,8 +292,8 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('PAYMENT STATUS:',
-                                        style: TextStyle(
+                                    Text(PosLocalization.tr('PAYMENT STATUS:'),
+                                        style: const TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                             color: Color(0xFF64748B))),
@@ -323,35 +327,38 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                             3: FlexColumnWidth(2),
                           },
                           children: [
-                            const TableRow(
+                            TableRow(
                               decoration:
-                                  BoxDecoration(color: Color(0xFFF1F5F9)),
+                                  const BoxDecoration(color: Color(0xFFF1F5F9)),
                               children: [
                                 Padding(
-                                    padding: EdgeInsets.all(8),
-                                    child: Text('Product Description',
-                                        style: TextStyle(
+                                    padding: const EdgeInsets.all(8),
+                                    child: Text(
+                                        PosLocalization.tr(
+                                            'Product Description'),
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12))),
                                 Padding(
-                                    padding: EdgeInsets.all(8),
-                                    child: Text('Qty Recv',
+                                    padding: const EdgeInsets.all(8),
+                                    child: Text(PosLocalization.tr('Qty Recv'),
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12))),
                                 Padding(
-                                    padding: EdgeInsets.all(8),
-                                    child: Text('Cost Price',
+                                    padding: const EdgeInsets.all(8),
+                                    child: Text(
+                                        PosLocalization.tr('Cost Price'),
                                         textAlign: TextAlign.right,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12))),
                                 Padding(
-                                    padding: EdgeInsets.all(8),
-                                    child: Text('Total',
+                                    padding: const EdgeInsets.all(8),
+                                    child: Text(PosLocalization.tr('Total'),
                                         textAlign: TextAlign.right,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12))),
                               ],
@@ -432,10 +439,12 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                             else
                               TableRow(
                                 children: [
-                                  const Padding(
-                                      padding: EdgeInsets.all(8),
-                                      child: Text('Standard Restock Shipment',
-                                          style: TextStyle(
+                                  Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                          PosLocalization.tr(
+                                              'Standard Restock Shipment'),
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.w600,
                                               fontSize: 12))),
                                   const Padding(
@@ -527,19 +536,21 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                         ],
 
                         // Receiving Officer Signature
-                        const Row(
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SizedBox(height: 30),
-                                SizedBox(
+                                const SizedBox(height: 30),
+                                const SizedBox(
                                     width: 180,
                                     child: Divider(
                                         color: Colors.black87, thickness: 1)),
-                                Text('Receiving Store Officer',
-                                    style: TextStyle(
+                                Text(
+                                    PosLocalization.tr(
+                                        'Receiving Store Officer'),
+                                    style: const TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
                                         color: Color(0xFF475569))),
@@ -548,13 +559,15 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                SizedBox(height: 30),
-                                SizedBox(
+                                const SizedBox(height: 30),
+                                const SizedBox(
                                     width: 180,
                                     child: Divider(
                                         color: Colors.black87, thickness: 1)),
-                                Text('Supplier Delivery Signature',
-                                    style: TextStyle(
+                                Text(
+                                    PosLocalization.tr(
+                                        'Supplier Delivery Signature'),
+                                    style: const TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
                                         color: Color(0xFF475569))),
@@ -601,14 +614,14 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                         Clipboard.setData(
                             ClipboardData(text: _generatePlainText()));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Purchase Receipt text copied to clipboard!'),
-                              backgroundColor: Color(0xFF10B981)),
+                          SnackBar(
+                              content: Text(PosLocalization.tr(
+                                  'Purchase Receipt text copied to clipboard!')),
+                              backgroundColor: const Color(0xFF10B981)),
                         );
                       },
                       icon: const Icon(Icons.copy_rounded, size: 16),
-                      label: const Text('Copy Voucher Text'),
+                      label: Text(PosLocalization.tr('Copy Voucher Text')),
                     ),
                     const SizedBox(width: 10),
                     OutlinedButton.icon(
@@ -636,7 +649,7 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                         );
                       },
                       icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
-                      label: const Text('Export PDF'),
+                      label: Text(PosLocalization.tr('Export PDF')),
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton.icon(
@@ -668,7 +681,7 @@ class _PurchaseReceiptDialogState extends State<PurchaseReceiptDialog> {
                         if (context.mounted) Navigator.pop(context);
                       },
                       icon: const Icon(Icons.print_rounded, size: 16),
-                      label: const Text('Print Purchase Voucher'),
+                      label: Text(PosLocalization.tr('Print Purchase Voucher')),
                     ),
                   ],
                 ),

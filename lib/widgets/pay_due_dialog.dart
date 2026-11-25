@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/database_service.dart';
+import '../services/localization_service.dart';
 
 enum DuePaymentType {
   sale,
@@ -76,13 +77,20 @@ class _PayDueDialogState extends State<PayDueDialog> {
 
     final amt = _enteredAmount;
     if (amt <= 0) {
-      setState(() => _errorMessage =
-          'Please enter a valid payment amount greater than zero.');
+      setState(() => _errorMessage = PosLocalization.tr(
+          'Please enter a valid payment amount greater than zero.',
+          settings: widget.settings));
       return;
     }
     if (amt > widget.dueAmount) {
-      setState(() => _errorMessage =
-          'Entered amount exceeds the outstanding balance (${widget.settings.currencySymbol}${widget.dueAmount.toStringAsFixed(2)}).');
+      setState(() => _errorMessage = PosLocalization.trParams(
+            'Entered amount exceeds the outstanding balance ({currency}{due}).',
+            {
+              'currency': widget.settings.currencySymbol,
+              'due': widget.dueAmount.toStringAsFixed(2),
+            },
+            settings: widget.settings,
+          ));
       return;
     }
 
@@ -140,8 +148,15 @@ class _PayDueDialogState extends State<PayDueDialog> {
               children: [
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 8),
-                Text(
-                    'Successfully collected ${widget.settings.currencySymbol}${amt.toStringAsFixed(2)} for ${widget.contactName}!'),
+                Text(PosLocalization.trParams(
+                  'Successfully collected {currency}{amount} for {name}!',
+                  {
+                    'currency': widget.settings.currencySymbol,
+                    'amount': amt.toStringAsFixed(2),
+                    'name': widget.contactName,
+                  },
+                  settings: widget.settings,
+                )),
               ],
             ),
           ),
@@ -151,7 +166,11 @@ class _PayDueDialogState extends State<PayDueDialog> {
       if (mounted) {
         setState(() {
           _submitting = false;
-          _errorMessage = 'Error processing payment: $e';
+          _errorMessage = PosLocalization.trParams(
+            'Error processing payment: {error}',
+            {'error': '$e'},
+            settings: widget.settings,
+          );
         });
       }
     }
@@ -218,7 +237,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Settle Due / Pay Installment',
+                            PosLocalization.tr('Settle Due / Pay Installment',
+                                settings: widget.settings),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -276,7 +296,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'TOTAL OUTSTANDING DUE',
+                          PosLocalization.tr('TOTAL OUTSTANDING DUE',
+                              settings: widget.settings),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -288,7 +309,15 @@ class _PayDueDialogState extends State<PayDueDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Total: $currency${widget.totalAmount.toStringAsFixed(2)} | Paid: $currency${widget.paidAmount.toStringAsFixed(2)}',
+                          PosLocalization.trParams(
+                            'Total: {currency}{total} | Paid: {currency}{paid}',
+                            {
+                              'currency': currency,
+                              'total': widget.totalAmount.toStringAsFixed(2),
+                              'paid': widget.paidAmount.toStringAsFixed(2),
+                            },
+                            settings: widget.settings,
+                          ),
                           style: TextStyle(
                             fontSize: 11,
                             color: isDark
@@ -340,7 +369,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
 
               // Amount to Collect Input
               Text(
-                'AMOUNT TO COLLECT / SETTLE',
+                PosLocalization.tr('AMOUNT TO COLLECT / SETTLE',
+                    settings: widget.settings),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -386,7 +416,11 @@ class _PayDueDialogState extends State<PayDueDialog> {
               // Quick Percent Chips
               Row(
                 children: [
-                  _quickPctChip('Full (100%)', 1.0, isDark),
+                  _quickPctChip(
+                      PosLocalization.tr('Full (100%)',
+                          settings: widget.settings),
+                      1.0,
+                      isDark),
                   _quickPctChip('75%', 0.75, isDark),
                   _quickPctChip('50%', 0.5, isDark),
                   _quickPctChip('25%', 0.25, isDark),
@@ -402,7 +436,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PAYMENT METHOD',
+                          PosLocalization.tr('PAYMENT METHOD',
+                              settings: widget.settings),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -424,16 +459,23 @@ class _PayDueDialogState extends State<PayDueDialog> {
                             border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8)),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
-                                value: 'cash', child: Text('Cash')),
+                                value: 'cash',
+                                child: Text(PosLocalization.tr('Cash',
+                                    settings: widget.settings))),
                             DropdownMenuItem(
-                                value: 'card', child: Text('Card / POS')),
+                                value: 'card',
+                                child: Text(PosLocalization.tr('Card / POS',
+                                    settings: widget.settings))),
                             DropdownMenuItem(
                                 value: 'bank_transfer',
-                                child: Text('Bank Transfer')),
+                                child: Text(PosLocalization.tr('Bank Transfer',
+                                    settings: widget.settings))),
                             DropdownMenuItem(
-                                value: 'cheque', child: Text('Cheque')),
+                                value: 'cheque',
+                                child: Text(PosLocalization.tr('Cheque',
+                                    settings: widget.settings))),
                           ],
                           onChanged: (val) =>
                               setState(() => _paymentMethod = val ?? 'cash'),
@@ -447,7 +489,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'RECEIVING ACCOUNT',
+                          PosLocalization.tr('RECEIVING ACCOUNT',
+                              settings: widget.settings),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -469,15 +512,20 @@ class _PayDueDialogState extends State<PayDueDialog> {
                             border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8)),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                                 value: 'Cash Register',
-                                child: Text('Cash Register')),
+                                child: Text(PosLocalization.tr('Cash Register',
+                                    settings: widget.settings))),
                             DropdownMenuItem(
                                 value: 'Main Bank Account',
-                                child: Text('Main Bank Account')),
+                                child: Text(PosLocalization.tr(
+                                    'Main Bank Account',
+                                    settings: widget.settings))),
                             DropdownMenuItem(
-                                value: 'Petty Cash', child: Text('Petty Cash')),
+                                value: 'Petty Cash',
+                                child: Text(PosLocalization.tr('Petty Cash',
+                                    settings: widget.settings))),
                           ],
                           onChanged: (val) => setState(
                               () => _accountName = val ?? 'Cash Register'),
@@ -491,7 +539,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
 
               // Reference No & Note
               Text(
-                'TRANSACTION REFERENCE / NOTE',
+                PosLocalization.tr('TRANSACTION REFERENCE / NOTE',
+                    settings: widget.settings),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -504,7 +553,9 @@ class _PayDueDialogState extends State<PayDueDialog> {
               TextField(
                 controller: _refController,
                 decoration: InputDecoration(
-                  hintText: 'e.g. Bank Ref #, Receipt #, or Cheque #',
+                  hintText: PosLocalization.tr(
+                      'e.g. Bank Ref #, Receipt #, or Cheque #',
+                      settings: widget.settings),
                   isDense: true,
                   filled: true,
                   fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
@@ -532,7 +583,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Remaining Balance After Payment:',
+                      PosLocalization.tr('Remaining Balance After Payment:',
+                          settings: widget.settings),
                       style: TextStyle(
                           fontSize: 12,
                           color: isDark
@@ -567,7 +619,8 @@ class _PayDueDialogState extends State<PayDueDialog> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: const Text('Cancel'),
+                    child: Text(PosLocalization.tr('Cancel',
+                        settings: widget.settings)),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
@@ -587,7 +640,11 @@ class _PayDueDialogState extends State<PayDueDialog> {
                                 strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.check_circle_rounded, size: 18),
                     label: Text(
-                      _submitting ? 'RECORDING...' : 'RECORD PAYMENT',
+                      _submitting
+                          ? PosLocalization.tr('RECORDING...',
+                              settings: widget.settings)
+                          : PosLocalization.tr('RECORD PAYMENT',
+                              settings: widget.settings),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     onPressed: _submitting ? null : _submitPayment,

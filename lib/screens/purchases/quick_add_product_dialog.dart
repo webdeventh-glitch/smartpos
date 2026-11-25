@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class QuickAddProductDialog extends StatefulWidget {
   final BusinessSettings settings;
@@ -94,9 +95,9 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
         setState(() => _isSaving = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'Loss Guard: Selling price cannot be lower than purchase cost!'),
+            SnackBar(
+              content: Text(PosLocalization.tr(
+                  'Loss Guard: Selling price cannot be lower than purchase cost!')),
               backgroundColor: Colors.red,
             ),
           );
@@ -227,7 +228,8 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Quick Add New Product to Catalog',
+                              PosLocalization.tr(
+                                  'Quick Add New Product to Catalog'),
                               style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -254,7 +256,7 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Product Name *',
+                                    Text(PosLocalization.tr('Product Name *'),
                                         style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
@@ -265,7 +267,8 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                       style: TextStyle(
                                           fontSize: 13, color: textPrimary),
                                       decoration: inputDeco.copyWith(
-                                          hintText: 'e.g. Panadol 500mg Strip'),
+                                          hintText: PosLocalization.tr(
+                                              'e.g. Panadol 500mg Strip')),
                                       validator: (v) =>
                                           (v == null || v.trim().isEmpty)
                                               ? 'Product name required'
@@ -280,7 +283,7 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Category',
+                                    Text(PosLocalization.tr('Category'),
                                         style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
@@ -315,7 +318,7 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('SKU Code',
+                                    Text(PosLocalization.tr('SKU Code'),
                                         style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
@@ -326,8 +329,8 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                       style: TextStyle(
                                           fontSize: 13, color: textPrimary),
                                       decoration: inputDeco.copyWith(
-                                          hintText:
-                                              'Leave blank to autogenerate'),
+                                          hintText: PosLocalization.tr(
+                                              'Leave blank to autogenerate')),
                                     ),
                                   ],
                                 ),
@@ -337,7 +340,7 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Barcode',
+                                    Text(PosLocalization.tr('Barcode'),
                                         style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
@@ -348,7 +351,8 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                       style: TextStyle(
                                           fontSize: 13, color: textPrimary),
                                       decoration: inputDeco.copyWith(
-                                          hintText: 'Scan or leave blank'),
+                                          hintText: PosLocalization.tr(
+                                              'Scan or leave blank')),
                                     ),
                                   ],
                                 ),
@@ -358,7 +362,7 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Unit',
+                                    Text(PosLocalization.tr('Unit'),
                                         style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
@@ -370,24 +374,31 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                       style: TextStyle(
                                           fontSize: 13, color: textPrimary),
                                       initialValue: _unit,
-                                      items: const [
+                                      items: [
                                         DropdownMenuItem(
                                             value: 'Pc',
-                                            child: Text('Pieces (Pc)')),
+                                            child: Text(PosLocalization.tr(
+                                                'Pieces (Pc)'))),
                                         DropdownMenuItem(
                                             value: 'Box',
-                                            child: Text('Box / Carton')),
+                                            child: Text(PosLocalization.tr(
+                                                'Box / Carton'))),
                                         DropdownMenuItem(
                                             value: 'Strip',
-                                            child: Text('Strip')),
+                                            child: Text(
+                                                PosLocalization.tr('Strip'))),
                                         DropdownMenuItem(
                                             value: 'Kg',
-                                            child: Text('Kilogram (Kg)')),
+                                            child: Text(PosLocalization.tr(
+                                                'Kilogram (Kg)'))),
                                         DropdownMenuItem(
                                             value: 'Ltr',
-                                            child: Text('Liter (Ltr)')),
+                                            child: Text(PosLocalization.tr(
+                                                'Liter (Ltr)'))),
                                         DropdownMenuItem(
-                                            value: 'Pack', child: Text('Pack')),
+                                            value: 'Pack',
+                                            child: Text(
+                                                PosLocalization.tr('Pack'))),
                                       ],
                                       onChanged: (val) =>
                                           setState(() => _unit = val ?? 'Pc'),
@@ -432,7 +443,7 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Profit Margin %',
+                                    Text(PosLocalization.tr('Profit Margin %'),
                                         style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
@@ -508,7 +519,7 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                   borderRadius: BorderRadius.circular(8)),
                             ),
                             onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Cancel'),
+                            child: Text(PosLocalization.tr('Cancel')),
                           ),
                           const SizedBox(width: 10),
                           ElevatedButton.icon(
@@ -527,8 +538,10 @@ class _QuickAddProductDialogState extends State<QuickAddProductDialog> {
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2, color: Colors.white))
                                 : const Icon(Icons.check_rounded, size: 17),
-                            label: const Text('Save & Add to Bill',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            label: Text(
+                                PosLocalization.tr('Save & Add to Bill'),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
                             onPressed: _isSaving ? null : _save,
                           ),
                         ],

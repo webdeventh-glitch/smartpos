@@ -8,6 +8,7 @@ import '../models/models.dart';
 import '../services/auth_service.dart';
 import '../services/backup_update_service.dart';
 import '../services/database_service.dart';
+import '../services/localization_service.dart';
 import '../services/qulop_service.dart';
 import '../widgets/smart_app_bar.dart';
 import '../widgets/smart_sidebar.dart';
@@ -81,6 +82,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   void initState() {
     super.initState();
     _settings = widget.initialSettings;
+    PosLocalization.setActiveSettings(_settings);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(settingsProvider.notifier).setSettings(_settings);
     });
@@ -199,6 +201,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   Future<void> _reloadSettings() async {
     final db = await DatabaseService.initialize();
     final fresh = await db.getBusinessSettings();
+    PosLocalization.setActiveSettings(fresh);
     if (mounted) {
       setState(() => _settings = fresh);
     }
@@ -716,7 +719,14 @@ class _MainShellState extends ConsumerState<MainShell> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Qulop License Warning: Your Smart POS ${qulopStatus.tierLabel} will expire in ${qulopStatus.remainingDays} days. Please contact vendor (+92 313 8437438 / WhatsApp: +92 320 1166949) to renew.',
+                              PosLocalization.trParams(
+                                'Qulop License Warning: Your Smart POS {tier} will expire in {days} days. Please contact vendor (+92 313 8437438 / WhatsApp: +92 320 1166949) to renew.',
+                                {
+                                  'tier': qulopStatus.tierLabel,
+                                  'days': '${qulopStatus.remainingDays}',
+                                },
+                                settings: _settings,
+                              ),
                               style: const TextStyle(
                                   color: Color(0xFF92400E),
                                   fontSize: 12,
@@ -732,8 +742,10 @@ class _MainShellState extends ConsumerState<MainShell> {
                               visualDensity: VisualDensity.compact,
                             ),
                             onPressed: () => _navigateTo(AppRoute.settings),
-                            child: const Text('Renew / Activate Key',
-                                style: TextStyle(
+                            child: Text(
+                                PosLocalization.tr('Renew / Activate Key',
+                                    settings: _settings),
+                                style: const TextStyle(
                                     fontWeight: FontWeight.bold, fontSize: 11)),
                           ),
                         ],

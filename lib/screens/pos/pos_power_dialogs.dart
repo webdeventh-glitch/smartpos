@@ -5,6 +5,7 @@ import '../../services/database_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../services/thermal_printer_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
+import '../../services/localization_service.dart';
 
 // ==========================================
 // 1. KITCHEN ORDER TICKET (KOT) DIALOG
@@ -62,9 +63,9 @@ class KotTicketDialog extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'KITCHEN ORDER TICKET',
-                          style: TextStyle(
+                        Text(
+                          PosLocalization.tr('KITCHEN ORDER TICKET'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 14,
                               letterSpacing: 0.5),
@@ -142,9 +143,9 @@ class KotTicketDialog extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            const Text(
-              'ORDERED ITEMS',
-              style: TextStyle(
+            Text(
+              PosLocalization.tr('ORDERED ITEMS'),
+              style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 11,
                   letterSpacing: 0.8),
@@ -201,8 +202,8 @@ class KotTicketDialog extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8)),
               ),
               icon: const Icon(Icons.print_rounded, size: 18),
-              label: const Text('PRINT KOT TO KITCHEN',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(PosLocalization.tr('PRINT KOT TO KITCHEN'),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
               onPressed: () async {
                 final messenger = ScaffoldMessenger.of(context);
                 bool printed = false;
@@ -423,7 +424,7 @@ class RegisterReportDialog extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Close'),
+                      child: Text(PosLocalization.tr('Close')),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -818,14 +819,17 @@ class _SolarBundleDialogState extends State<SolarBundleDialog> {
                           color: Colors.amber, size: 22),
                     ),
                     const SizedBox(width: 12),
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Solar System Packages (BOM)',
-                            style: TextStyle(
+                        Text(PosLocalization.tr('Solar System Packages (BOM)'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w900, fontSize: 16)),
-                        Text('Bill of Materials & Composite Bundle Builder',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                            PosLocalization.tr(
+                                'Bill of Materials & Composite Bundle Builder'),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   ],
@@ -979,9 +983,9 @@ class _SolarBundleDialogState extends State<SolarBundleDialog> {
                                         ),
                                       );
                                     },
-                                    child: const Text(
-                                      'Add Package',
-                                      style: TextStyle(
+                                    child: Text(
+                                      PosLocalization.tr('Add Package'),
+                                      style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -1062,8 +1066,8 @@ class _ImeiPickerDialogState extends State<ImeiPickerDialog> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Select IMEI / Serial',
-                            style: TextStyle(
+                        Text(PosLocalization.tr('Select IMEI / Serial'),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w900, fontSize: 16)),
                         Text(widget.product.name,
                             style: const TextStyle(
@@ -1080,8 +1084,9 @@ class _ImeiPickerDialogState extends State<ImeiPickerDialog> {
             const Divider(height: 20),
 
             // Scan / Type Custom IMEI
-            const Text('SCAN OR ENTER IMEI / SERIAL NUMBER',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            Text(PosLocalization.tr('SCAN OR ENTER IMEI / SERIAL NUMBER'),
+                style:
+                    const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
             Row(
               children: [
@@ -1104,15 +1109,16 @@ class _ImeiPickerDialogState extends State<ImeiPickerDialog> {
                       Navigator.pop(context);
                     }
                   },
-                  child: const Text('Confirm'),
+                  child: Text(PosLocalization.tr('Confirm')),
                 ),
               ],
             ),
             const SizedBox(height: 16),
 
             if (widget.serials.isNotEmpty) ...[
-              const Text('OR SELECT FROM IN-STOCK INVENTORY',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(PosLocalization.tr('OR SELECT FROM IN-STOCK INVENTORY'),
+                  style: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Flexible(
                 child: ListView.builder(

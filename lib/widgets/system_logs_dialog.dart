@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import '../services/app_logger.dart';
+import '../services/localization_service.dart';
 
 /// Interactive System & Error Logs Viewer dialog for Super Admin / Developers.
 /// Allows viewing, filtering, searching, copying, and exporting error logs.
@@ -242,9 +243,9 @@ class _SystemLogsDialogState extends State<SystemLogsDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'System & Error Logs Viewer (سسٹم اور ایرر لاگز)',
-                          style: TextStyle(
+                        Text(
+                          PosLocalization.tr('System & Error Logs Viewer'),
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.3,
@@ -252,7 +253,10 @@ class _SystemLogsDialogState extends State<SystemLogsDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Real-time diagnostic records from: ${logsDir.path}',
+                          PosLocalization.trParams(
+                            'Real-time diagnostic records from: {path}',
+                            {'path': logsDir.path},
+                          ),
                           style: TextStyle(
                             fontSize: 11,
                             color: isDark
@@ -267,17 +271,18 @@ class _SystemLogsDialogState extends State<SystemLogsDialog> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Open Logs Folder in Windows Explorer',
+                    tooltip: PosLocalization.tr(
+                        'Open Logs Folder in Windows Explorer'),
                     icon: const Icon(Icons.folder_open_rounded, size: 20),
                     onPressed: _openLogsFolder,
                   ),
                   IconButton(
-                    tooltip: 'Refresh Logs',
+                    tooltip: PosLocalization.tr('Refresh Logs'),
                     icon: const Icon(Icons.refresh_rounded, size: 20),
                     onPressed: _loadLogs,
                   ),
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: PosLocalization.tr('Close'),
                     icon: const Icon(Icons.close_rounded, size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -309,8 +314,8 @@ class _SystemLogsDialogState extends State<SystemLogsDialog> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('Log File:',
-                            style: TextStyle(
+                        Text(PosLocalization.tr('Log File:'),
+                            style: const TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.bold)),
                         const SizedBox(width: 8),
                         DropdownButton<File?>(
@@ -351,15 +356,19 @@ class _SystemLogsDialogState extends State<SystemLogsDialog> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildFilterChip(
-                            'ALL', 'All Logs (${_logLines.length})'),
+                            'ALL',
+                            PosLocalization.trParams('All Logs ({count})',
+                                {'count': '${_logLines.length}'})),
                         const SizedBox(width: 6),
-                        _buildFilterChip('ERROR', 'Errors & Crashes',
+                        _buildFilterChip(
+                            'ERROR', PosLocalization.tr('Errors & Crashes'),
                             color: const Color(0xFFEF4444)),
                         const SizedBox(width: 6),
-                        _buildFilterChip('WARNING', 'Warnings',
+                        _buildFilterChip(
+                            'WARNING', PosLocalization.tr('Warnings'),
                             color: const Color(0xFFF59E0B)),
                         const SizedBox(width: 6),
-                        _buildFilterChip('INFO', 'Info',
+                        _buildFilterChip('INFO', PosLocalization.tr('Info'),
                             color: const Color(0xFF10B981)),
                       ],
                     ),
@@ -372,7 +381,7 @@ class _SystemLogsDialogState extends State<SystemLogsDialog> {
                         controller: _searchCtrl,
                         style: const TextStyle(fontSize: 12),
                         decoration: InputDecoration(
-                          hintText: 'Search in logs...',
+                          hintText: PosLocalization.tr('Search in logs...'),
                           prefixIcon: const Icon(Icons.search, size: 16),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
@@ -456,7 +465,13 @@ class _SystemLogsDialogState extends State<SystemLogsDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Showing ${filtered.length} of ${_logLines.length} lines',
+                    PosLocalization.trParams(
+                      'Showing {shown} of {total} lines',
+                      {
+                        'shown': '${filtered.length}',
+                        'total': '${_logLines.length}'
+                      },
+                    ),
                     style: TextStyle(
                       fontSize: 12,
                       color: isDark
@@ -475,7 +490,7 @@ class _SystemLogsDialogState extends State<SystemLogsDialog> {
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.copy_all_rounded, size: 16),
-                        label: const Text('Copy All Logs (کاپی کریں)'),
+                        label: Text(PosLocalization.tr('Copy All Logs')),
                         onPressed: () => _copyAllLogs(filtered),
                       ),
                       OutlinedButton.icon(
@@ -487,7 +502,7 @@ class _SystemLogsDialogState extends State<SystemLogsDialog> {
                         ),
                         icon:
                             const Icon(Icons.file_download_outlined, size: 16),
-                        label: const Text('Export to Desktop'),
+                        label: Text(PosLocalization.tr('Export to Desktop')),
                         onPressed: () => _exportLogsToDesktop(filtered),
                       ),
                       FilledButton(
@@ -499,7 +514,7 @@ class _SystemLogsDialogState extends State<SystemLogsDialog> {
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Close'),
+                        child: Text(PosLocalization.tr('Close')),
                       ),
                     ],
                   ),

@@ -832,8 +832,9 @@ class _PaymentModalState extends State<PaymentModal> {
                           decoration: InputDecoration(
                             isDense: true,
                             border: InputBorder.none,
-                            labelText:
-                                'Customer Name on Bill / Invoice (واک اِن گاہک کا نام)',
+                            labelText: PosLocalization.tr(
+                                'Customer Name on Bill / Invoice',
+                                settings: widget.settings),
                             labelStyle: TextStyle(
                               fontSize: 12,
                               color: isDark

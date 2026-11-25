@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
+import '../services/localization_service.dart';
 import '../services/theme_service.dart';
 import '../services/cloud_sync_service.dart';
 import 'calculator_dialog.dart';
@@ -110,8 +111,13 @@ class _SmartAppBarState extends State<SmartAppBar> {
                   color: Color(0xFFDC2626), size: 20),
             ),
             const SizedBox(width: 10),
-            const Text('Inventory Critical Alerts',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+            Flexible(
+              child: Text(
+                  PosLocalization.tr('Inventory Critical Alerts',
+                      settings: widget.settings),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 17)),
+            ),
           ],
         ),
         content: SizedBox(
@@ -127,7 +133,11 @@ class _SmartAppBarState extends State<SmartAppBar> {
                         size: 16, color: Color(0xFFD97706)),
                     const SizedBox(width: 6),
                     Text(
-                      'Low Stock / Shortage Items (${_alertProducts.length})',
+                      PosLocalization.trParams(
+                        'Low Stock / Shortage Items ({count})',
+                        {'count': '${_alertProducts.length}'},
+                        settings: widget.settings,
+                      ),
                       style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
@@ -160,7 +170,14 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w600, fontSize: 12)),
                             Text(
-                              '${p.stockQuantity.toInt()} left (Alert: ${p.alertQuantity.toInt()})',
+                              PosLocalization.trParams(
+                                '{stock} left (Alert: {alert})',
+                                {
+                                  'stock': '${p.stockQuantity.toInt()}',
+                                  'alert': '${p.alertQuantity.toInt()}',
+                                },
+                                settings: widget.settings,
+                              ),
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
@@ -181,7 +198,11 @@ class _SmartAppBarState extends State<SmartAppBar> {
                         size: 16, color: Color(0xFFDC2626)),
                     const SizedBox(width: 6),
                     Text(
-                      'Impending Expiry Items (Within 6 Months) (${_expiringProducts.length})',
+                      PosLocalization.trParams(
+                        'Impending Expiry Items (Within 6 Months) ({count})',
+                        {'count': '${_expiringProducts.length}'},
+                        settings: widget.settings,
+                      ),
                       style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
@@ -218,7 +239,12 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                         fontWeight: FontWeight.w600,
                                         fontSize: 12)),
                                 if (p.batchNumber != null)
-                                  Text('Batch: ${p.batchNumber}',
+                                  Text(
+                                      PosLocalization.trParams(
+                                        'Batch: {batch}',
+                                        {'batch': '${p.batchNumber}'},
+                                        settings: widget.settings,
+                                      ),
                                       style: const TextStyle(
                                           fontSize: 10,
                                           color: Color(0xFF64748B))),
@@ -234,7 +260,11 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                     Border.all(color: const Color(0xFFFCA5A5)),
                               ),
                               child: Text(
-                                'Exp: ${p.expiryDate}',
+                                PosLocalization.trParams(
+                                  'Exp: {date}',
+                                  {'date': '${p.expiryDate}'},
+                                  settings: widget.settings,
+                                ),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
@@ -249,11 +279,12 @@ class _SmartAppBarState extends State<SmartAppBar> {
                 ),
               ],
               if (_alertProducts.isEmpty && _expiringProducts.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(20),
+                Padding(
+                  padding: const EdgeInsets.all(20),
                   child: Center(
-                    child: Text(
-                        'All inventory is optimal! No items low on stock or expiring soon.'),
+                    child: Text(PosLocalization.tr(
+                        'All inventory is optimal! No items low on stock or expiring soon.',
+                        settings: widget.settings)),
                   ),
                 ),
             ],
@@ -266,7 +297,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Acknowledge'),
+            child: Text(
+                PosLocalization.tr('Acknowledge', settings: widget.settings)),
           ),
         ],
       ),
@@ -345,7 +377,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
                 icon: const Icon(Icons.menu_open_rounded,
                     color: Color(0xFF475569), size: 19),
                 onTap: widget.onToggleSidebar,
-                tooltip: 'Toggle Navigation',
+                tooltip: PosLocalization.tr('Toggle Navigation',
+                    settings: widget.settings),
               ),
               const SizedBox(width: 8),
 
@@ -430,7 +463,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                         backgroundColor: Color(0xFF10B981)),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Live',
+                                      PosLocalization.tr('Live',
+                                          settings: widget.settings),
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -526,7 +560,9 @@ class _SmartAppBarState extends State<SmartAppBar> {
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: PopupMenuButton<String>(
-                              tooltip: 'Switch Active Branch',
+                              tooltip: PosLocalization.tr(
+                                  'Switch Active Branch',
+                                  settings: widget.settings),
                               color: isDark
                                   ? const Color(0xFF1E293B)
                                   : Colors.white,
@@ -545,8 +581,11 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                 }
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(
-                                        'Switched active branch to $locName'),
+                                    content: Text(PosLocalization.trParams(
+                                      'Switched active branch to {branch}',
+                                      {'branch': locName},
+                                      settings: widget.settings,
+                                    )),
                                     duration: const Duration(seconds: 1),
                                     backgroundColor: const Color(0xFF1E293B),
                                     behavior: SnackBarBehavior.floating,
@@ -638,8 +677,9 @@ class _SmartAppBarState extends State<SmartAppBar> {
                         // Global Quick Search (Ctrl+K) Pill
                         if (widget.onOpenQuickSearch != null)
                           Tooltip(
-                            message:
+                            message: PosLocalization.tr(
                                 'Quick Search Screens, Products & Customers (Ctrl+K)',
+                                settings: widget.settings),
                             child: InkWell(
                               onTap: widget.onOpenQuickSearch,
                               borderRadius: BorderRadius.circular(8),
@@ -669,7 +709,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                     if (!isCompact) ...[
                                       const SizedBox(width: 6),
                                       Text(
-                                        'Quick Search',
+                                        PosLocalization.tr('Quick Search',
+                                            settings: widget.settings),
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
@@ -754,8 +795,16 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                 const SizedBox(width: 5),
                                 Text(
                                   isRegisterOpen
-                                      ? 'Cash: $currency${inHand.toStringAsFixed(2)}'
-                                      : 'Register Closed',
+                                      ? PosLocalization.trParams(
+                                          'Cash: {amount}',
+                                          {
+                                            'amount':
+                                                '$currency${inHand.toStringAsFixed(2)}'
+                                          },
+                                          settings: widget.settings,
+                                        )
+                                      : PosLocalization.tr('Register Closed',
+                                          settings: widget.settings),
                                   style: TextStyle(
                                     color: isRegisterOpen
                                         ? (isDark
@@ -825,7 +874,8 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                 builder: (_) => const CalculatorDialog(),
                               );
                             },
-                            tooltip: 'Quick Calculator',
+                            tooltip: PosLocalization.tr('Quick Calculator',
+                                settings: widget.settings),
                           ),
 
                         // Smart AI Business Assistant Shortcut
@@ -839,7 +889,9 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                   settings: widget.settings),
                             );
                           },
-                          tooltip: 'Smart AI Business Assistant',
+                          tooltip: PosLocalization.tr(
+                              'Smart AI Business Assistant',
+                              settings: widget.settings),
                         ),
 
                         // Touch-Friendly Mode Toggle Button
@@ -856,8 +908,12 @@ class _SmartAppBarState extends State<SmartAppBar> {
                               ),
                               onTap: () => ThemeService.toggleTouchFriendly(),
                               tooltip: touchOn
-                                  ? 'Touch-Friendly Mode: ON (Click for Standard Density)'
-                                  : 'Touch-Friendly Mode: OFF (Click for Larger Touch Targets)',
+                                  ? PosLocalization.tr(
+                                      'Touch-Friendly Mode: ON (Click for Standard Density)',
+                                      settings: widget.settings)
+                                  : PosLocalization.tr(
+                                      'Touch-Friendly Mode: OFF (Click for Larger Touch Targets)',
+                                      settings: widget.settings),
                             );
                           },
                         ),
@@ -879,8 +935,10 @@ class _SmartAppBarState extends State<SmartAppBar> {
                               ),
                               onTap: () => ThemeService.toggleTheme(),
                               tooltip: isDark
-                                  ? 'Switch to Light Mode'
-                                  : 'Switch to Dark Mode',
+                                  ? PosLocalization.tr('Switch to Light Mode',
+                                      settings: widget.settings)
+                                  : PosLocalization.tr('Switch to Dark Mode',
+                                      settings: widget.settings),
                             );
                           },
                         ),
@@ -896,7 +954,9 @@ class _SmartAppBarState extends State<SmartAppBar> {
                             context,
                             settings: widget.settings,
                           ),
-                          tooltip: 'About Developer & Support (Webdeventh)',
+                          tooltip: PosLocalization.tr(
+                              'About Developer & Support (Webdeventh)',
+                              settings: widget.settings),
                         ),
 
                         // Online / Offline & Pending Sync Queue Pill (Step 7.6)
@@ -916,27 +976,46 @@ class _SmartAppBarState extends State<SmartAppBar> {
                             if (isOffline) {
                               iconData = Icons.cloud_off_rounded;
                               statusColor = const Color(0xFF64748B);
-                              statusLabel = 'Offline';
-                              tooltipText =
-                                  'Offline-First Mode: Local SQLite database active';
+                              statusLabel = PosLocalization.tr('Offline',
+                                  settings: widget.settings);
+                              tooltipText = PosLocalization.tr(
+                                  'Offline-First Mode: Local SQLite database active',
+                                  settings: widget.settings);
                             } else if (isSyncing) {
                               iconData = Icons.sync_rounded;
                               statusColor = const Color(0xFF6366F1);
-                              statusLabel = 'Syncing';
-                              tooltipText = 'Synchronizing pending changes...';
+                              statusLabel = PosLocalization.tr('Syncing',
+                                  settings: widget.settings);
+                              tooltipText = PosLocalization.tr(
+                                  'Synchronizing pending changes...',
+                                  settings: widget.settings);
                             } else if (syncInfo.pendingCount > 0 || isError) {
                               iconData = Icons.cloud_upload_rounded;
                               statusColor = const Color(0xFFD97706);
-                              statusLabel = '${syncInfo.pendingCount} Pending';
+                              statusLabel = PosLocalization.trParams(
+                                '{count} Pending',
+                                {'count': '${syncInfo.pendingCount}'},
+                                settings: widget.settings,
+                              );
                               tooltipText = isError
-                                  ? 'Sync Offline/Error: ${syncInfo.pendingCount} pending changes queued (Click to Retry)'
-                                  : 'Pending Sync Queue: ${syncInfo.pendingCount} item(s) waiting (Click to Sync)';
+                                  ? PosLocalization.trParams(
+                                      'Sync Offline/Error: {count} pending changes queued (Click to Retry)',
+                                      {'count': '${syncInfo.pendingCount}'},
+                                      settings: widget.settings,
+                                    )
+                                  : PosLocalization.trParams(
+                                      'Pending Sync Queue: {count} item(s) waiting (Click to Sync)',
+                                      {'count': '${syncInfo.pendingCount}'},
+                                      settings: widget.settings,
+                                    );
                             } else {
                               iconData = Icons.cloud_done_rounded;
                               statusColor = const Color(0xFF10B981);
-                              statusLabel = 'Online';
-                              tooltipText =
-                                  'Online & Synchronized (Click to Verify)';
+                              statusLabel = PosLocalization.tr('Online',
+                                  settings: widget.settings);
+                              tooltipText = PosLocalization.tr(
+                                  'Online & Synchronized (Click to Verify)',
+                                  settings: widget.settings);
                             }
 
                             return Padding(
@@ -948,20 +1027,22 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                     if (isOffline) {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              'Offline SQLite Database active. All sales & stock changes are safely queued locally.'),
-                                          duration: Duration(seconds: 2),
+                                        SnackBar(
+                                          content: Text(PosLocalization.tr(
+                                              'Offline SQLite Database active. All sales & stock changes are safely queued locally.',
+                                              settings: widget.settings)),
+                                          duration: const Duration(seconds: 2),
                                           behavior: SnackBarBehavior.floating,
                                         ),
                                       );
                                     } else {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              'Starting synchronization with Cloud/MySQL...'),
-                                          duration: Duration(seconds: 1),
+                                        SnackBar(
+                                          content: Text(PosLocalization.tr(
+                                              'Starting synchronization with Cloud/MySQL...',
+                                              settings: widget.settings)),
+                                          duration: const Duration(seconds: 1),
                                           behavior: SnackBarBehavior.floating,
                                         ),
                                       );
@@ -1022,8 +1103,14 @@ class _SmartAppBarState extends State<SmartAppBar> {
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: Tooltip(
-                            message:
-                                'Inventory Alerts: ${_alertProducts.length} low stock, ${_expiringProducts.length} expiring',
+                            message: PosLocalization.trParams(
+                              'Inventory Alerts: {low} low stock, {exp} expiring',
+                              {
+                                'low': '${_alertProducts.length}',
+                                'exp': '${_expiringProducts.length}',
+                              },
+                              settings: widget.settings,
+                            ),
                             child: InkWell(
                               onTap: _showInventoryAlertsDialog,
                               borderRadius: BorderRadius.circular(8),
@@ -1171,7 +1258,9 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                 .join();
 
                             return PopupMenuButton<String>(
-                              tooltip: 'Account & Session Options',
+                              tooltip: PosLocalization.tr(
+                                  'Account & Session Options',
+                                  settings: widget.settings),
                               offset: const Offset(0, 46),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10)),
@@ -1285,12 +1374,15 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                             Navigator.pop(ctx);
                                             widget.onOpenSettings?.call();
                                           },
-                                          child:
-                                              const Text('Business Settings'),
+                                          child: Text(PosLocalization.tr(
+                                              'Business Settings',
+                                              settings: widget.settings)),
                                         ),
                                         ElevatedButton(
                                           onPressed: () => Navigator.pop(ctx),
-                                          child: const Text('Close'),
+                                          child: Text(PosLocalization.tr(
+                                              'Close',
+                                              settings: widget.settings)),
                                         ),
                                       ],
                                     ),
@@ -1301,28 +1393,35 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                   final confirm = await showDialog<bool>(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
-                                      title: const Row(
+                                      title: Row(
                                         children: [
-                                          Icon(Icons.logout_rounded,
+                                          const Icon(Icons.logout_rounded,
                                               color: Colors.red),
-                                          SizedBox(width: 8),
-                                          Text('Confirm Logout'),
+                                          const SizedBox(width: 8),
+                                          Text(PosLocalization.tr(
+                                              'Confirm Logout',
+                                              settings: widget.settings)),
                                         ],
                                       ),
-                                      content: const Text(
-                                          'Are you sure you want to end your current terminal session?'),
+                                      content: Text(PosLocalization.tr(
+                                          'Are you sure you want to end your current terminal session?',
+                                          settings: widget.settings)),
                                       actions: [
                                         TextButton(
                                             onPressed: () =>
                                                 Navigator.pop(ctx, false),
-                                            child: const Text('Cancel')),
+                                            child: Text(PosLocalization.tr(
+                                                'Cancel',
+                                                settings: widget.settings))),
                                         ElevatedButton(
                                           style: ElevatedButton.styleFrom(
                                               backgroundColor: Colors.red,
                                               foregroundColor: Colors.white),
                                           onPressed: () =>
                                               Navigator.pop(ctx, true),
-                                          child: const Text('Logout'),
+                                          child: Text(PosLocalization.tr(
+                                              'Logout',
+                                              settings: widget.settings)),
                                         ),
                                       ],
                                     ),
@@ -1369,7 +1468,20 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                               : const Color(0xFF475569)),
                                       const SizedBox(width: 10),
                                       Text(
-                                          'Business: ${widget.settings.businessTypeDisplayName.split("/").first.trim()}',
+                                          PosLocalization.trParams(
+                                            'Business: {name}',
+                                            {
+                                              'name': PosLocalization.tr(
+                                                widget.settings
+                                                    .businessTypeDisplayName
+                                                    .split('/')
+                                                    .first
+                                                    .trim(),
+                                                settings: widget.settings,
+                                              )
+                                            },
+                                            settings: widget.settings,
+                                          ),
                                           style: const TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600)),
@@ -1386,20 +1498,26 @@ class _SmartAppBarState extends State<SmartAppBar> {
                                               ? Colors.white70
                                               : const Color(0xFF475569)),
                                       const SizedBox(width: 10),
-                                      const Text('My Profile & Roles',
-                                          style: TextStyle(fontSize: 13)),
+                                      Text(
+                                          PosLocalization.tr(
+                                              'My Profile & Roles',
+                                              settings: widget.settings),
+                                          style: const TextStyle(fontSize: 13)),
                                     ],
                                   ),
                                 ),
-                                const PopupMenuItem<String>(
+                                PopupMenuItem<String>(
                                   value: 'logout',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.logout_rounded,
+                                      const Icon(Icons.logout_rounded,
                                           size: 18, color: Colors.red),
-                                      SizedBox(width: 10),
-                                      Text('Log Out / Exit Session',
-                                          style: TextStyle(
+                                      const SizedBox(width: 10),
+                                      Text(
+                                          PosLocalization.tr(
+                                              'Log Out / Exit Session',
+                                              settings: widget.settings),
+                                          style: const TextStyle(
                                               fontSize: 13,
                                               color: Colors.red,
                                               fontWeight: FontWeight.bold)),

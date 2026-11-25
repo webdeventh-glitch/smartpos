@@ -60,7 +60,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          title: Text('Add Dining Table',
+          title: Text(
+              PosLocalization.tr('Add Dining Table', settings: widget.settings),
               style: TextStyle(
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
                   fontWeight: FontWeight.bold)),
@@ -72,7 +73,9 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                 style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  labelText: 'Table Name / Number (e.g. Table 5, VIP 3)',
+                  labelText: PosLocalization.tr(
+                      'Table Name / Number (e.g. Table 5, VIP 3)',
+                      settings: widget.settings),
                   labelStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -86,7 +89,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                 style: TextStyle(
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  labelText: 'Seating Capacity',
+                  labelText: PosLocalization.tr('Seating Capacity',
+                      settings: widget.settings),
                   labelStyle: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -98,7 +102,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel',
+              child: Text(
+                  PosLocalization.tr('Cancel', settings: widget.settings),
                   style: TextStyle(
                       color: isDark
                           ? const Color(0xFF94A3B8)
@@ -127,7 +132,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                   await _loadData();
                 }
               },
-              child: const Text('Add Table'),
+              child: Text(
+                  PosLocalization.tr('Add Table', settings: widget.settings)),
             ),
           ],
         );
@@ -152,7 +158,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                 color: Color(0xFFF97316), size: 22),
             const SizedBox(width: 10),
             Text(
-              'Restaurant & Cafe Management (KOT & Tables)',
+              PosLocalization.tr('Restaurant & Cafe Management (KOT & Tables)',
+                  settings: widget.settings),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -167,13 +174,15 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
           indicatorColor: const Color(0xFFF97316),
           unselectedLabelColor:
               isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-          tabs: const [
+          tabs: [
             Tab(
-                icon: Icon(Icons.table_restaurant_rounded, size: 18),
-                text: 'Floor Plan & Tables'),
+                icon: const Icon(Icons.table_restaurant_rounded, size: 18),
+                text: PosLocalization.tr('Floor Plan & Tables',
+                    settings: widget.settings)),
             Tab(
-                icon: Icon(Icons.soup_kitchen_rounded, size: 18),
-                text: 'Live KOT Kitchen Queue'),
+                icon: const Icon(Icons.soup_kitchen_rounded, size: 18),
+                text: PosLocalization.tr('Live KOT Kitchen Queue',
+                    settings: widget.settings)),
           ],
         ),
         actions: [
@@ -215,7 +224,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
               ),
               onPressed: _showAddTableModal,
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Add Table'),
+              label: Text(
+                  PosLocalization.tr('Add Table', settings: widget.settings)),
             ),
           ),
         ],
@@ -234,21 +244,43 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                       // Quick Summary
                       Row(
                         children: [
-                          _statusBadge('Total Tables: ${_tables.length}',
-                              const Color(0xFF6366F1), isDark),
+                          _statusBadge(
+                              PosLocalization.trParams('Total Tables: {count}',
+                                  {'count': '${_tables.length}'},
+                                  settings: widget.settings),
+                              const Color(0xFF6366F1),
+                              isDark),
                           const SizedBox(width: 12),
                           _statusBadge(
-                              'Occupied: ${_tables.where((t) => t['status'] == 'occupied').length}',
+                              PosLocalization.trParams(
+                                  'Occupied: {count}',
+                                  {
+                                    'count':
+                                        '${_tables.where((t) => t['status'] == 'occupied').length}'
+                                  },
+                                  settings: widget.settings),
                               const Color(0xFFF97316),
                               isDark),
                           const SizedBox(width: 12),
                           _statusBadge(
-                              'Vacant: ${_tables.where((t) => t['status'] == 'vacant').length}',
+                              PosLocalization.trParams(
+                                  'Vacant: {count}',
+                                  {
+                                    'count':
+                                        '${_tables.where((t) => t['status'] == 'vacant').length}'
+                                  },
+                                  settings: widget.settings),
                               const Color(0xFF10B981),
                               isDark),
                           const SizedBox(width: 12),
                           _statusBadge(
-                              'Billed: ${_tables.where((t) => t['status'] == 'billed').length}',
+                              PosLocalization.trParams(
+                                  'Billed: {count}',
+                                  {
+                                    'count':
+                                        '${_tables.where((t) => t['status'] == 'billed').length}'
+                                  },
+                                  settings: widget.settings),
                               const Color(0xFF3B82F6),
                               isDark),
                         ],
@@ -285,7 +317,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'No Dining Tables Added Yet',
+                                PosLocalization.tr('No Dining Tables Added Yet',
+                                    settings: widget.settings),
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -296,7 +329,9 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Configure your restaurant floor plan by clicking "Add Table" above.',
+                                PosLocalization.tr(
+                                    'Configure your restaurant floor plan by clicking "Add Table" above.',
+                                    settings: widget.settings),
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: isDark
@@ -316,9 +351,11 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                 ),
                                 onPressed: _showAddTableModal,
                                 icon: const Icon(Icons.add, size: 18),
-                                label: const Text('Add First Dining Table',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold)),
+                                label: Text(
+                                    PosLocalization.tr('Add First Dining Table',
+                                        settings: widget.settings),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
@@ -395,7 +432,9 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                               BorderRadius.circular(6),
                                         ),
                                         child: Text(
-                                          status.toUpperCase(),
+                                          PosLocalization.tr(
+                                              status.toUpperCase(),
+                                              settings: widget.settings),
                                           style: TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
@@ -405,7 +444,13 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                     ],
                                   ),
                                   Text(
-                                    'Section: ${t['section']} • Cap: ${t['capacity']} Seats',
+                                    PosLocalization.trParams(
+                                        'Section: {section} • Cap: {capacity} Seats',
+                                        {
+                                          'section': '${t['section']}',
+                                          'capacity': '${t['capacity']}'
+                                        },
+                                        settings: widget.settings),
                                     style: TextStyle(
                                         fontSize: 11,
                                         color: isDark
@@ -414,7 +459,17 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                   ),
                                   if (status != 'vacant') ...[
                                     Text(
-                                      'Running Bill: $currency${((t['order_total'] ?? t['orderTotal'] ?? 0.0) as num).toDouble().toStringAsFixed(2)}',
+                                      PosLocalization.trParams(
+                                          'Running Bill: {currency}{amount}',
+                                          {
+                                            'currency': currency,
+                                            'amount': ((t['order_total'] ??
+                                                    t['orderTotal'] ??
+                                                    0.0) as num)
+                                                .toDouble()
+                                                .toStringAsFixed(2),
+                                          },
+                                          settings: widget.settings),
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w800,
@@ -424,7 +479,14 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                       ),
                                     ),
                                     Text(
-                                      'Guests: ${t['guests']} • KOT Sent: ${t['kot_time'] ?? t['kotTime'] ?? 'Active'}',
+                                      PosLocalization.trParams(
+                                          'Guests: {guests} • KOT Sent: {time}',
+                                          {
+                                            'guests': '${t['guests']}',
+                                            'time':
+                                                '${t['kot_time'] ?? t['kotTime'] ?? PosLocalization.tr('Active', settings: widget.settings)}',
+                                          },
+                                          settings: widget.settings),
                                       style: TextStyle(
                                           fontSize: 10,
                                           color: isDark
@@ -445,7 +507,10 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                               BorderRadius.circular(4),
                                         ),
                                         child: Text(
-                                          'Notes: ${t['modifiers']}',
+                                          PosLocalization.trParams(
+                                              'Notes: {notes}',
+                                              {'notes': '${t['modifiers']}'},
+                                              settings: widget.settings),
                                           style: const TextStyle(
                                               fontSize: 9.5,
                                               color: Color(0xFFEA580C),
@@ -457,7 +522,9 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                     ],
                                   ] else ...[
                                     Text(
-                                      'Table is ready for new guests',
+                                      PosLocalization.tr(
+                                          'Table is ready for new guests',
+                                          settings: widget.settings),
                                       style: TextStyle(
                                           fontSize: 12,
                                           color: isDark
@@ -491,7 +558,14 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                               context: context,
                                               builder: (ctx) => AlertDialog(
                                                 title: Text(
-                                                    'Seat Guests • ${t['name']}'),
+                                                    PosLocalization.trParams(
+                                                        'Seat Guests • {table}',
+                                                        {
+                                                          'table':
+                                                              '${t['name']}'
+                                                        },
+                                                        settings:
+                                                            widget.settings)),
                                                 content: Column(
                                                   mainAxisSize:
                                                       MainAxisSize.min,
@@ -500,10 +574,11 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                                       controller: guestsCtrl,
                                                       keyboardType:
                                                           TextInputType.number,
-                                                      decoration:
-                                                          const InputDecoration(
-                                                              labelText:
-                                                                  'Number of Guests'),
+                                                      decoration: InputDecoration(
+                                                          labelText: PosLocalization.tr(
+                                                              'Number of Guests',
+                                                              settings: widget
+                                                                  .settings)),
                                                     ),
                                                     const SizedBox(height: 10),
                                                     TextField(
@@ -514,8 +589,16 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                                               decimal: true),
                                                       decoration:
                                                           InputDecoration(
-                                                        labelText:
-                                                            'Initial Table Order / Cover (${widget.settings.currencySymbol})',
+                                                        labelText: PosLocalization
+                                                            .trParams(
+                                                                'Initial Table Order / Cover ({currency})',
+                                                                {
+                                                                  'currency': widget
+                                                                      .settings
+                                                                      .currencySymbol
+                                                                },
+                                                                settings: widget
+                                                                    .settings),
                                                       ),
                                                     ),
                                                   ],
@@ -525,14 +608,20 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                                       onPressed: () =>
                                                           Navigator.pop(
                                                               ctx, false),
-                                                      child:
-                                                          const Text('Cancel')),
+                                                      child: Text(
+                                                          PosLocalization.tr(
+                                                              'Cancel',
+                                                              settings: widget
+                                                                  .settings))),
                                                   ElevatedButton(
                                                     onPressed: () =>
                                                         Navigator.pop(
                                                             ctx, true),
-                                                    child: const Text(
-                                                        'Seat Table'),
+                                                    child: Text(
+                                                        PosLocalization.tr(
+                                                            'Seat Table',
+                                                            settings: widget
+                                                                .settings)),
                                                   ),
                                                 ],
                                               ),
@@ -567,8 +656,11 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                               });
                                             }
                                           },
-                                          child: const Text('Seat Guests',
-                                              style: TextStyle(fontSize: 11)),
+                                          child: Text(
+                                              PosLocalization.tr('Seat Guests',
+                                                  settings: widget.settings),
+                                              style: const TextStyle(
+                                                  fontSize: 11)),
                                         )
                                       else
                                         Row(
@@ -632,15 +724,33 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                                   SnackBar(
                                                     content: Text(
                                                       printed
-                                                          ? 'KOT Reprint printed to kitchen printer for ${t['name']}'
-                                                          : 'KOT Reprint queued for ${t['name']}',
+                                                          ? PosLocalization.trParams(
+                                                              'KOT Reprint printed to kitchen printer for {table}',
+                                                              {
+                                                                'table':
+                                                                    '${t['name']}'
+                                                              },
+                                                              settings: widget
+                                                                  .settings)
+                                                          : PosLocalization.trParams(
+                                                              'KOT Reprint queued for {table}',
+                                                              {
+                                                                'table':
+                                                                    '${t['name']}'
+                                                              },
+                                                              settings: widget
+                                                                  .settings),
                                                     ),
                                                   ),
                                                 );
                                               },
-                                              child: const Text('Print KOT',
-                                                  style:
-                                                      TextStyle(fontSize: 11)),
+                                              child: Text(
+                                                  PosLocalization.tr(
+                                                      'Print KOT',
+                                                      settings:
+                                                          widget.settings),
+                                                  style: const TextStyle(
+                                                      fontSize: 11)),
                                             ),
                                             const SizedBox(width: 6),
                                             OutlinedButton(
@@ -658,9 +768,13 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                               ),
                                               onPressed: () =>
                                                   _showTableModifiersDialog(t),
-                                              child: const Text('Modifiers',
-                                                  style:
-                                                      TextStyle(fontSize: 11)),
+                                              child: Text(
+                                                  PosLocalization.tr(
+                                                      'Modifiers',
+                                                      settings:
+                                                          widget.settings),
+                                                  style: const TextStyle(
+                                                      fontSize: 11)),
                                             ),
                                             const SizedBox(width: 6),
                                             OutlinedButton(
@@ -678,9 +792,13 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                               ),
                                               onPressed: () =>
                                                   _showSplitBillDialog(t),
-                                              child: const Text('Split Bill',
-                                                  style:
-                                                      TextStyle(fontSize: 11)),
+                                              child: Text(
+                                                  PosLocalization.tr(
+                                                      'Split Bill',
+                                                      settings:
+                                                          widget.settings),
+                                                  style: const TextStyle(
+                                                      fontSize: 11)),
                                             ),
                                             const SizedBox(width: 6),
                                             ElevatedButton(
@@ -711,8 +829,15 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                                     await showDialog<bool>(
                                                   context: context,
                                                   builder: (ctx) => AlertDialog(
-                                                    title: Text(
-                                                        'Checkout • ${t['name']}'),
+                                                    title: Text(PosLocalization
+                                                        .trParams(
+                                                            'Checkout • {table}',
+                                                            {
+                                                              'table':
+                                                                  '${t['name']}'
+                                                            },
+                                                            settings: widget
+                                                                .settings)),
                                                     content: TextField(
                                                       controller: billCtrl,
                                                       keyboardType:
@@ -721,8 +846,16 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                                               decimal: true),
                                                       decoration:
                                                           InputDecoration(
-                                                        labelText:
-                                                            'Final Table Bill (${widget.settings.currencySymbol})',
+                                                        labelText: PosLocalization
+                                                            .trParams(
+                                                                'Final Table Bill ({currency})',
+                                                                {
+                                                                  'currency': widget
+                                                                      .settings
+                                                                      .currencySymbol
+                                                                },
+                                                                settings: widget
+                                                                    .settings),
                                                       ),
                                                     ),
                                                     actions: [
@@ -730,14 +863,20 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                                           onPressed: () =>
                                                               Navigator.pop(
                                                                   ctx, false),
-                                                          child: const Text(
-                                                              'Cancel')),
+                                                          child: Text(
+                                                              PosLocalization.tr(
+                                                                  'Cancel',
+                                                                  settings: widget
+                                                                      .settings))),
                                                       ElevatedButton(
                                                         onPressed: () =>
                                                             Navigator.pop(
                                                                 ctx, true),
-                                                        child: const Text(
-                                                            'Complete & Print Bill'),
+                                                        child: Text(
+                                                            PosLocalization.tr(
+                                                                'Complete & Print Bill',
+                                                                settings: widget
+                                                                    .settings)),
                                                       ),
                                                     ],
                                                   ),
@@ -813,9 +952,12 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                                   });
                                                 }
                                               },
-                                              child: const Text('Checkout',
-                                                  style:
-                                                      TextStyle(fontSize: 11)),
+                                              child: Text(
+                                                  PosLocalization.tr('Checkout',
+                                                      settings:
+                                                          widget.settings),
+                                                  style: const TextStyle(
+                                                      fontSize: 11)),
                                             ),
                                           ],
                                         ),
@@ -840,7 +982,9 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Live Kitchen Order Tickets (KOT)',
+                            PosLocalization.tr(
+                                'Live Kitchen Order Tickets (KOT)',
+                                settings: widget.settings),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -870,8 +1014,11 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                               ).then((_) => _loadData());
                             },
                             icon: const Icon(Icons.fullscreen, size: 16),
-                            label: const Text('Open Full-Screen KDS',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            label: Text(
+                                PosLocalization.tr('Open Full-Screen KDS',
+                                    settings: widget.settings),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
@@ -896,7 +1043,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                   size: 44, color: Color(0xFF94A3B8)),
                               const SizedBox(height: 12),
                               Text(
-                                'No Active Kitchen Orders',
+                                PosLocalization.tr('No Active Kitchen Orders',
+                                    settings: widget.settings),
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -907,7 +1055,9 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'When waitstaff or cashiers send food orders to the kitchen, live KOT tickets will queue here.',
+                                PosLocalization.tr(
+                                    'When waitstaff or cashiers send food orders to the kitchen, live KOT tickets will queue here.',
+                                    settings: widget.settings),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: isDark
@@ -983,9 +1133,11 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                                     BorderRadius.circular(4),
                                               ),
                                               child: Text(
-                                                (k['order_type'] ??
-                                                    k['type'] ??
-                                                    'Dine-In') as String,
+                                                PosLocalization.tr(
+                                                    (k['order_type'] ??
+                                                        k['type'] ??
+                                                        'Dine-In') as String,
+                                                    settings: widget.settings),
                                                 style: const TextStyle(
                                                     fontSize: 10,
                                                     fontWeight: FontWeight.bold,
@@ -1015,7 +1167,9 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                               color: Color(0xFF94A3B8))),
                                       const SizedBox(height: 6),
                                       PopupMenuButton<String>(
-                                        tooltip: 'Change KOT Status',
+                                        tooltip: PosLocalization.tr(
+                                            'Change KOT Status',
+                                            settings: widget.settings),
                                         initialValue: k['status'] as String?,
                                         onSelected: (newStatus) async {
                                           final id = k['id'] as int? ?? 0;
@@ -1064,7 +1218,9 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Text(
-                                                k['status'] as String,
+                                                PosLocalization.tr(
+                                                    k['status'] as String,
+                                                    settings: widget.settings),
                                                 style: TextStyle(
                                                     color:
                                                         (k['status'] == 'Ready')
@@ -1132,7 +1288,10 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
         ((t['order_total'] ?? t['orderTotal'] ?? 0.0) as num).toDouble();
     if (total <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No active bill to split on this table.')),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'No active bill to split on this table.',
+                settings: widget.settings))),
       );
       return;
     }
@@ -1165,7 +1324,10 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                 const Icon(Icons.call_split_rounded,
                     color: Color(0xFFF97316), size: 22),
                 const SizedBox(width: 8),
-                Text('Split Bill • ${t['name']}',
+                Text(
+                    PosLocalization.trParams(
+                        'Split Bill • {table}', {'table': '${t['name']}'},
+                        settings: widget.settings),
                     style: TextStyle(
                         color: isDark ? Colors.white : const Color(0xFF0F172A),
                         fontWeight: FontWeight.bold,
@@ -1190,8 +1352,10 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Total Table Bill:',
-                            style: TextStyle(
+                        Text(
+                            PosLocalization.tr('Total Table Bill:',
+                                settings: widget.settings),
+                            style: const TextStyle(
                                 fontWeight: FontWeight.w700, fontSize: 13)),
                         Text('$currency ${total.toStringAsFixed(2)}',
                             style: const TextStyle(
@@ -1206,7 +1370,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                     children: [
                       Expanded(
                         child: ChoiceChip(
-                          label: const Text('Split Equally'),
+                          label: Text(PosLocalization.tr('Split Equally',
+                              settings: widget.settings)),
                           selected: splitMode == 'equal',
                           selectedColor: const Color(0xFFF97316),
                           labelStyle: TextStyle(
@@ -1221,7 +1386,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                       const SizedBox(width: 8),
                       Expanded(
                         child: ChoiceChip(
-                          label: const Text('Custom Diner Share'),
+                          label: Text(PosLocalization.tr('Custom Diner Share',
+                              settings: widget.settings)),
                           selected: splitMode == 'custom',
                           selectedColor: const Color(0xFFF97316),
                           labelStyle: TextStyle(
@@ -1241,8 +1407,10 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Number of Diners:',
-                            style: TextStyle(
+                        Text(
+                            PosLocalization.tr('Number of Diners:',
+                                settings: widget.settings),
+                            style: const TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w600)),
                         Row(
                           children: [
@@ -1269,7 +1437,13 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                     ),
                     const Divider(height: 16),
                     Text(
-                      'Each Diner Pays: $currency ${partAmount.toStringAsFixed(2)}',
+                      PosLocalization.trParams(
+                          'Each Diner Pays: {currency} {amount}',
+                          {
+                            'currency': currency,
+                            'amount': partAmount.toStringAsFixed(2)
+                          },
+                          settings: widget.settings),
                       style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
@@ -1281,7 +1455,10 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
-                        labelText: 'Enter Amount for This Diner ($currency)',
+                        labelText: PosLocalization.trParams(
+                            'Enter Amount for This Diner ({currency})',
+                            {'currency': currency},
+                            settings: widget.settings),
                         border: const OutlineInputBorder(),
                         isDense: true,
                       ),
@@ -1289,7 +1466,13 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Remaining Balance: $currency ${remainingAmount.toStringAsFixed(2)}',
+                      PosLocalization.trParams(
+                          'Remaining Balance: {currency} {amount}',
+                          {
+                            'currency': currency,
+                            'amount': remainingAmount.toStringAsFixed(2)
+                          },
+                          settings: widget.settings),
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -1302,7 +1485,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(
+                    PosLocalization.tr('Cancel', settings: widget.settings)),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -1310,8 +1494,13 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                   foregroundColor: Colors.white,
                 ),
                 icon: const Icon(Icons.payment_rounded, size: 16),
-                label: Text(
-                    'Pay Share ($currency ${partAmount.toStringAsFixed(2)})'),
+                label: Text(PosLocalization.trParams(
+                    'Pay Share ({currency} {amount})',
+                    {
+                      'currency': currency,
+                      'amount': partAmount.toStringAsFixed(2)
+                    },
+                    settings: widget.settings)),
                 onPressed: () async {
                   final db = await DatabaseService.initialize();
                   final inv = await db.generateNextInvoiceNo();
@@ -1367,8 +1556,18 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(remaining <= 0.01
-                            ? 'Table ${t['name']} fully paid and cleared!'
-                            : 'Paid $currency ${partAmount.toStringAsFixed(2)}. Remaining balance: $currency ${remaining.toStringAsFixed(2)}'),
+                            ? PosLocalization.trParams(
+                                'Table {table} fully paid and cleared!',
+                                {'table': '${t['name']}'},
+                                settings: widget.settings)
+                            : PosLocalization.trParams(
+                                'Paid {currency} {paid}. Remaining balance: {currency} {remaining}',
+                                {
+                                  'currency': currency,
+                                  'paid': partAmount.toStringAsFixed(2),
+                                  'remaining': remaining.toStringAsFixed(2),
+                                },
+                                settings: widget.settings)),
                         backgroundColor: const Color(0xFF10B981),
                       ),
                     );
@@ -1421,7 +1620,9 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                 const Icon(Icons.ramen_dining_rounded,
                     color: Color(0xFFF97316), size: 22),
                 const SizedBox(width: 8),
-                Text('Kitchen Modifiers • ${t['name']}',
+                Text(
+                    PosLocalization.trParams('Kitchen Modifiers • {table}',
+                        {'table': '${t['name']}'}, settings: widget.settings),
                     style: TextStyle(
                         color: isDark ? Colors.white : const Color(0xFF0F172A),
                         fontWeight: FontWeight.bold,
@@ -1434,8 +1635,11 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Select Food & Cooking Instructions for Kitchen:',
-                      style: TextStyle(
+                  Text(
+                      PosLocalization.tr(
+                          'Select Food & Cooking Instructions for Kitchen:',
+                          settings: widget.settings),
+                      style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: Colors.grey)),
@@ -1446,7 +1650,8 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                     children: availableModifiers.map((mod) {
                       final isSel = currentMods.contains(mod);
                       return FilterChip(
-                        label: Text(mod,
+                        label: Text(
+                            PosLocalization.tr(mod, settings: widget.settings),
                             style: TextStyle(
                                 fontSize: 12,
                                 color: isSel ? Colors.white : null)),
@@ -1469,10 +1674,14 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                   TextField(
                     controller: noteCtrl,
                     maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'Special Chef Note / Allergen Instructions',
-                      hintText: 'e.g. Serve drinks first, less salt in soup',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: PosLocalization.tr(
+                          'Special Chef Note / Allergen Instructions',
+                          settings: widget.settings),
+                      hintText: PosLocalization.tr(
+                          'e.g. Serve drinks first, less salt in soup',
+                          settings: widget.settings),
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                   ),
@@ -1482,14 +1691,16 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel')),
+                  child: Text(
+                      PosLocalization.tr('Cancel', settings: widget.settings))),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF97316),
                   foregroundColor: Colors.white,
                 ),
                 icon: const Icon(Icons.kitchen_rounded, size: 16),
-                label: const Text('Save & Send to Kitchen'),
+                label: Text(PosLocalization.tr('Save & Send to Kitchen',
+                    settings: widget.settings)),
                 onPressed: () async {
                   final id = t['id'] as int?;
                   final text = noteCtrl.text.trim();
@@ -1504,8 +1715,10 @@ class _RestaurantCafeScreenState extends State<RestaurantCafeScreen>
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content:
-                            Text('Kitchen modifiers updated for ${t['name']}!'),
+                        content: Text(PosLocalization.trParams(
+                            'Kitchen modifiers updated for {table}!',
+                            {'table': '${t['name']}'},
+                            settings: widget.settings)),
                         backgroundColor: const Color(0xFFF97316),
                       ),
                     );

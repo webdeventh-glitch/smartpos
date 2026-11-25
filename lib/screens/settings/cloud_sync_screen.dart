@@ -77,7 +77,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
   Future<void> _testConnection() async {
     setState(() {
       _isTesting = true;
-      _testResult = 'Pinging server...';
+      _testResult =
+          PosLocalization.tr('Pinging server...', settings: widget.settings);
       _testSuccess = false;
     });
 
@@ -98,7 +99,8 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
   Future<void> _triggerSyncNow() async {
     setState(() {
       _isSyncing = true;
-      _syncResult = 'Starting bidirectional sync...';
+      _syncResult = PosLocalization.tr('Starting bidirectional sync...',
+          settings: widget.settings);
     });
 
     // Create current settings snapshot
@@ -152,15 +154,19 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text('Cloud & MySQL Sync configuration saved successfully!'),
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(PosLocalization.tr(
+                    'Cloud & MySQL Sync configuration saved successfully!',
+                    settings: widget.settings)),
+              ),
             ],
           ),
-          backgroundColor: Color(0xFF10B981),
+          backgroundColor: const Color(0xFF10B981),
         ),
       );
     }
@@ -170,12 +176,15 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
     required String mode,
     required String title,
     required String subtitle,
-    required String urduDesc,
     required IconData icon,
     required Color color,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _syncMode == mode;
+    final localizedSubtitle =
+        PosLocalization.trPrimary(subtitle, settings: widget.settings);
+    final secondarySubtitle =
+        PosLocalization.trSecondary(subtitle, settings: widget.settings);
 
     return InkWell(
       onTap: () => setState(() => _syncMode = mode),
@@ -229,9 +238,10 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                                 const Color(0xFF10B981).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
-                            'RECOMMENDED',
-                            style: TextStyle(
+                          child: Text(
+                            PosLocalization.tr('RECOMMENDED',
+                                settings: widget.settings),
+                            style: const TextStyle(
                                 color: Color(0xFF10B981),
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold),
@@ -241,19 +251,18 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    subtitle,
+                    localizedSubtitle,
                     style: TextStyle(
                         fontSize: 12,
                         color: isDark
                             ? const Color(0xFF94A3B8)
                             : const Color(0xFF64748B)),
                   ),
-                  if ((widget.settings.hasEffectiveSecondaryLanguage ||
-                          widget.settings.activePrimaryLanguage == 'ur') &&
-                      urduDesc.isNotEmpty) ...[
+                  if (secondarySubtitle != null &&
+                      secondarySubtitle.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      urduDesc,
+                      secondarySubtitle,
                       style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFF0EA5E9),
@@ -309,9 +318,10 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Cloud & MySQL Sync Engine',
-                        style: TextStyle(
+                      Text(
+                        PosLocalization.tr('Cloud & MySQL Sync Engine',
+                            settings: widget.settings),
+                        style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
@@ -386,7 +396,11 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                         Row(
                           children: [
                             Text(
-                              'Sync Status: ${_syncMode.toUpperCase()}',
+                              PosLocalization.trParams(
+                                'Sync Status: {mode}',
+                                {'mode': _syncMode.toUpperCase()},
+                                settings: widget.settings,
+                              ),
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 15),
                             ),
@@ -401,7 +415,11 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                '$_pendingCount Pending in Queue',
+                                PosLocalization.trParams(
+                                  '{count} Pending in Queue',
+                                  {'count': '$_pendingCount'},
+                                  settings: widget.settings,
+                                ),
                                 style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 10,
@@ -413,8 +431,14 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                         const SizedBox(height: 4),
                         Text(
                           widget.settings.lastSyncTimestamp.isNotEmpty
-                              ? 'Last Synced: ${widget.settings.lastSyncTimestamp}'
-                              : 'Last Synced: Never (Never synchronized with online server)',
+                              ? PosLocalization.trParams(
+                                  'Last Synced: {time}',
+                                  {'time': widget.settings.lastSyncTimestamp},
+                                  settings: widget.settings,
+                                )
+                              : PosLocalization.tr(
+                                  'Last Synced: Never (Never synchronized with online server)',
+                                  settings: widget.settings),
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark
@@ -473,8 +497,6 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                   PosLocalization.tr('Offline Only', settings: widget.settings),
               subtitle:
                   'Runs 100% locally on this computer. Zero internet or external database connection needed.',
-              urduDesc:
-                  'کوئی انٹرنیٹ درکار نہیں، سارا ڈیٹا اسی کمپیوٹر میں محفوظ رہتا ہے',
               icon: Icons.computer_rounded,
               color: const Color(0xFF64748B),
             ),
@@ -484,8 +506,6 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                   settings: widget.settings),
               subtitle:
                   'Local SQLite guarantees instant billing without internet; automatically synchronizes with Laravel / MySQL server in the background.',
-              urduDesc:
-                  'بلنگ تیز رفتار لوکل ڈیٹا بیس میں ہوتی ہے اور انٹرنیٹ ملنے پر ڈیٹا ویب سرور پر سنک ہو جاتا ہے',
               icon: Icons.sync_alt_rounded,
               color: const Color(0xFF10B981),
             ),
@@ -495,7 +515,6 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                   settings: widget.settings),
               subtitle:
                   'Connected directly to centralized Laravel REST API with local offline caching fallback.',
-              urduDesc: 'مرکزی کلاؤڈ سرور سے لائیو منسلک رہتا ہے',
               icon: Icons.cloud_rounded,
               color: const Color(0xFF0EA5E9),
             ),
@@ -526,13 +545,17 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                   children: [
                     TextField(
                       controller: _urlCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Laravel REST API Base URL *',
+                      decoration: InputDecoration(
+                        labelText: PosLocalization.tr(
+                            'Laravel REST API Base URL *',
+                            settings: widget.settings),
                         hintText:
                             'http://localhost:8000/api or https://pos.yourdomain.com/api',
-                        prefixIcon: Icon(Icons.link_rounded),
-                        border: OutlineInputBorder(),
-                        helperText: 'Endpoint where SyncController is hosted',
+                        prefixIcon: const Icon(Icons.link_rounded),
+                        border: const OutlineInputBorder(),
+                        helperText: PosLocalization.tr(
+                            'Endpoint where SyncController is hosted',
+                            settings: widget.settings),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -543,10 +566,12 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                           child: TextField(
                             controller: _apiKeyCtrl,
                             obscureText: true,
-                            decoration: const InputDecoration(
-                              labelText: 'API Key / Bearer Secret Token',
-                              prefixIcon: Icon(Icons.vpn_key_rounded),
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr(
+                                  'API Key / Bearer Secret Token',
+                                  settings: widget.settings),
+                              prefixIcon: const Icon(Icons.vpn_key_rounded),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -556,10 +581,12 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                           child: TextField(
                             controller: _branchIdCtrl,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Branch / Outlet ID',
-                              prefixIcon: Icon(Icons.store_rounded),
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr(
+                                  'Branch / Outlet ID',
+                                  settings: widget.settings),
+                              prefixIcon: const Icon(Icons.store_rounded),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -568,22 +595,36 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                           flex: 1,
                           child: DropdownButtonFormField<int>(
                             initialValue: _intervalMinutes,
-                            decoration: const InputDecoration(
-                              labelText: 'Auto-Sync Interval',
-                              prefixIcon: Icon(Icons.timer_rounded),
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr(
+                                  'Auto-Sync Interval',
+                                  settings: widget.settings),
+                              prefixIcon: const Icon(Icons.timer_rounded),
+                              border: const OutlineInputBorder(),
                             ),
-                            items: const [
+                            items: [
                               DropdownMenuItem(
-                                  value: 0, child: Text('Manual Only')),
+                                  value: 0,
+                                  child: Text(PosLocalization.tr('Manual Only',
+                                      settings: widget.settings))),
                               DropdownMenuItem(
-                                  value: 1, child: Text('Every 1 min')),
+                                  value: 1,
+                                  child: Text(PosLocalization.tr('Every 1 min',
+                                      settings: widget.settings))),
                               DropdownMenuItem(
-                                  value: 5, child: Text('Every 5 mins')),
+                                  value: 5,
+                                  child: Text(PosLocalization.tr('Every 5 mins',
+                                      settings: widget.settings))),
                               DropdownMenuItem(
-                                  value: 15, child: Text('Every 15 mins')),
+                                  value: 15,
+                                  child: Text(PosLocalization.tr(
+                                      'Every 15 mins',
+                                      settings: widget.settings))),
                               DropdownMenuItem(
-                                  value: 30, child: Text('Every 30 mins')),
+                                  value: 30,
+                                  child: Text(PosLocalization.tr(
+                                      'Every 30 mins',
+                                      settings: widget.settings))),
                             ],
                             onChanged: (val) {
                               if (val != null) {
@@ -642,27 +683,31 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                 border: Border.all(
                     color: const Color(0xFF10B981).withValues(alpha: 0.4)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.terminal_rounded,
+                  const Icon(Icons.terminal_rounded,
                       color: Color(0xFF10B981), size: 28),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Laravel / React / Next.js Backend Templates Ready!',
-                          style: TextStyle(
+                          PosLocalization.tr(
+                              'Laravel / React / Next.js Backend Templates Ready!',
+                              settings: widget.settings),
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                               color: Color(0xFF10B981)),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
-                          'We have generated mysql_schema.sql and SyncController.php in the backend_resources/ folder. You can directly import them into your Laravel/MySQL project when building your online web portal.',
-                          style:
-                              TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          PosLocalization.tr(
+                              'We have generated mysql_schema.sql and SyncController.php in the backend_resources/ folder. You can directly import them into your Laravel/MySQL project when building your online web portal.',
+                              settings: widget.settings),
+                          style: const TextStyle(
+                              fontSize: 12, color: Color(0xFF64748B)),
                         ),
                       ],
                     ),
@@ -676,13 +721,16 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Recent Sync Queue & Activity Logs',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Text(
+                  PosLocalization.tr('Recent Sync Queue & Activity Logs',
+                      settings: widget.settings),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 TextButton.icon(
                   icon: const Icon(Icons.refresh_rounded, size: 16),
-                  label: const Text('Refresh Logs'),
+                  label: Text(PosLocalization.tr('Refresh Logs',
+                      settings: widget.settings)),
                   onPressed: _loadQueueData,
                 ),
               ],
@@ -699,13 +747,15 @@ class _CloudSyncScreenState extends State<CloudSyncScreen> {
                         : const Color(0xFFE2E8F0)),
               ),
               child: _logs.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(24),
+                  ? Padding(
+                      padding: const EdgeInsets.all(24),
                       child: Center(
                         child: Text(
-                          'No sync activity recorded yet. Items will appear here when saved in Hybrid mode.',
-                          style:
-                              TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                          PosLocalization.tr(
+                              'No sync activity recorded yet. Items will appear here when saved in Hybrid mode.',
+                              settings: widget.settings),
+                          style: const TextStyle(
+                              color: Color(0xFF94A3B8), fontSize: 13),
                         ),
                       ),
                     )

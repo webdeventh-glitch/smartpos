@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../services/localization_service.dart';
 
 class SalesReturnDialog extends StatefulWidget {
   final BusinessSettings settings;
@@ -1139,7 +1140,7 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                                   ),
                                   child: Text(
                                     sel.isDamaged
-                                        ? 'Damaged (ضائع)'
+                                        ? PosLocalization.tr('Damaged')
                                         : 'Good Stock',
                                     style: TextStyle(
                                       fontSize: 10,
@@ -1491,7 +1492,7 @@ class _SalesReturnDialogState extends State<SalesReturnDialog> {
                                       ),
                                       child: Text(
                                         entry.isDamaged
-                                            ? 'Damaged (ضائع)'
+                                            ? PosLocalization.tr('Damaged')
                                             : 'Good Stock',
                                         style: TextStyle(
                                           fontSize: 10,

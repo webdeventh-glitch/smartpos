@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/localization_service.dart';
 
 /// Generic Searchable Select Dialog for fast searching and selection of entities
 /// (Brands, Categories, Subcategories, Units, etc.) with real-time filtering,
@@ -16,7 +17,7 @@ class SearchableSelectDialog<T> extends StatefulWidget {
   final VoidCallback? onAddNew;
   final String? addNewLabel;
   final bool allowClear;
-  final String clearLabel;
+  final String? clearLabel;
   final ValueChanged<T?> onSelected;
   final T Function(String customInput)? onCustomAdd;
 
@@ -34,7 +35,7 @@ class SearchableSelectDialog<T> extends StatefulWidget {
     this.onAddNew,
     this.addNewLabel,
     this.allowClear = true,
-    this.clearLabel = 'None / Clear Selection',
+    this.clearLabel,
     required this.onSelected,
     this.onCustomAdd,
   });
@@ -53,7 +54,7 @@ class SearchableSelectDialog<T> extends StatefulWidget {
     VoidCallback? onAddNew,
     String? addNewLabel,
     bool allowClear = true,
-    String clearLabel = 'None / Clear Selection',
+    String? clearLabel,
     T Function(String customInput)? onCustomAdd,
   }) {
     return showDialog<T?>(
@@ -181,7 +182,8 @@ class _SearchableSelectDialogState<T> extends State<SearchableSelectDialog<T>> {
                           ),
                           icon: const Icon(Icons.add_circle_outline, size: 16),
                           label: Text(
-                            widget.addNewLabel ?? '+ Add New',
+                            widget.addNewLabel ??
+                                PosLocalization.tr('+ Add New'),
                             style: const TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.bold),
                           ),
@@ -293,7 +295,8 @@ class _SearchableSelectDialogState<T> extends State<SearchableSelectDialog<T>> {
                             size: 16, color: Color(0xFFEF4444)),
                         const SizedBox(width: 8),
                         Text(
-                          widget.clearLabel,
+                          widget.clearLabel ??
+                              PosLocalization.tr('None / Clear Selection'),
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -313,7 +316,8 @@ class _SearchableSelectDialogState<T> extends State<SearchableSelectDialog<T>> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Available (${_filteredItems.length})',
+                    PosLocalization.trParams('Available ({count})',
+                        {'count': '${_filteredItems.length}'}),
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -322,7 +326,8 @@ class _SearchableSelectDialogState<T> extends State<SearchableSelectDialog<T>> {
                   ),
                   if (query.isNotEmpty)
                     Text(
-                      'Matching "$query"',
+                      PosLocalization.trParams(
+                          'Matching "{query}"', {'query': query}),
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF4F46E5),
@@ -349,7 +354,9 @@ class _SearchableSelectDialogState<T> extends State<SearchableSelectDialog<T>> {
                                     : const Color(0xFFCBD5E1)),
                             const SizedBox(height: 10),
                             Text(
-                              'No matches found for "$query"',
+                              PosLocalization.trParams(
+                                  'No matches found for "{query}"',
+                                  {'query': query}),
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -372,7 +379,8 @@ class _SearchableSelectDialogState<T> extends State<SearchableSelectDialog<T>> {
                                       borderRadius: BorderRadius.circular(8)),
                                 ),
                                 icon: const Icon(Icons.add, size: 16),
-                                label: Text('Use "$query"'),
+                                label: Text(PosLocalization.trParams(
+                                    'Use "{query}"', {'query': query})),
                                 onPressed: () {
                                   final item = widget.onCustomAdd!(query);
                                   widget.onSelected(item);
@@ -412,7 +420,8 @@ class _SearchableSelectDialogState<T> extends State<SearchableSelectDialog<T>> {
                                   size: 16, color: Color(0xFF4F46E5)),
                             ),
                             title: Text(
-                              'Add & Select "$query"',
+                              PosLocalization.trParams(
+                                  'Add & Select "{query}"', {'query': query}),
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -577,7 +586,12 @@ class SearchSelectField extends StatelessWidget {
           children: [
             Expanded(
               child: Tooltip(
-                message: tooltip ?? 'Click to search & select $label',
+                message: tooltip ??
+                    (label != null
+                        ? PosLocalization.trParams(
+                            'Click to search & select {label}',
+                            {'label': label!})
+                        : PosLocalization.tr('Click to search & select')),
                 child: InkWell(
                   onTap: onTap,
                   borderRadius: BorderRadius.circular(8),

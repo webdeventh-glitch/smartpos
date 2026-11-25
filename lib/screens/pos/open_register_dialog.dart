@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/localization_service.dart';
 
 class OpenRegisterDialog extends StatefulWidget {
   final BusinessSettings settings;
@@ -145,7 +146,7 @@ class _OpenRegisterDialogState extends State<OpenRegisterDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Open Cash Register Shift',
+                          PosLocalization.tr('Open Cash Register Shift'),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
@@ -155,7 +156,8 @@ class _OpenRegisterDialogState extends State<OpenRegisterDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Enter opening cash float in drawer to begin sales',
+                          PosLocalization.tr(
+                              'Enter opening cash float in drawer to begin sales'),
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark
@@ -349,7 +351,8 @@ class _OpenRegisterDialogState extends State<OpenRegisterDialog> {
                     fontSize: 12,
                     color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  hintText: 'e.g. Morning counter shift opening balance',
+                  hintText: PosLocalization.tr(
+                      'e.g. Morning counter shift opening balance'),
                   hintStyle: TextStyle(
                       fontSize: 12,
                       color: isDark
@@ -391,7 +394,7 @@ class _OpenRegisterDialogState extends State<OpenRegisterDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: Text('Cancel / Exit',
+                    child: Text(PosLocalization.tr('Cancel / Exit'),
                         style: TextStyle(
                             color: isDark
                                 ? const Color(0xFF94A3B8)
@@ -416,8 +419,8 @@ class _OpenRegisterDialogState extends State<OpenRegisterDialog> {
                                 strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.check_circle_outline_rounded,
                             size: 18),
-                    label: const Text('Open Register Shift',
-                        style: TextStyle(fontWeight: FontWeight.w800)),
+                    label: Text(PosLocalization.tr('Open Register Shift'),
+                        style: const TextStyle(fontWeight: FontWeight.w800)),
                     onPressed: _loading ? null : _submit,
                   ),
                 ],

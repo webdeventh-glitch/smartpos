@@ -6,6 +6,7 @@ import '../../models/models.dart';
 import '../../services/database_service.dart';
 import '../../services/pdf_export_service.dart';
 import '../../widgets/data_table_pagination_bar.dart';
+import '../../services/localization_service.dart';
 
 /// Step 6.2: Purchase Orders Workflow (Ordered -> Partial -> Received + Supplier Email).
 class PurchaseOrdersScreen extends StatefulWidget {
@@ -113,13 +114,14 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
           );
           final cur = widget.settings.currencySymbol;
           return AlertDialog(
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.local_shipping_outlined, color: Color(0xFF0038B8)),
-                SizedBox(width: 8),
-                Text('Create Purchase Order (PO)',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Icon(Icons.local_shipping_outlined,
+                    color: Color(0xFF0038B8)),
+                const SizedBox(width: 8),
+                Text(PosLocalization.tr('Create Purchase Order (PO)'),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
             content: SizedBox(
@@ -133,10 +135,10 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                         Expanded(
                           child: TextField(
                             controller: refCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'PO Reference #',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('PO Reference #'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -146,10 +148,10 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                           child: DropdownButtonFormField<Contact>(
                             initialValue: selectedSupplier,
                             isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Supplier',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Supplier'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                             items: suppliers
                                 .map((s) => DropdownMenuItem(
@@ -172,10 +174,10 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                           child: DropdownButtonFormField<Product>(
                             initialValue: pickerProd,
                             isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Select Product',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Select Product'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                             items: products
                                 .map((p) => DropdownMenuItem(
@@ -200,10 +202,10 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                             controller: qtyCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Qty',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Qty'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -214,10 +216,10 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                             controller: costCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Unit Cost',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Unit Cost'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -246,16 +248,19 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                                     err = null;
                                   });
                                 },
-                          child: const Text('Add'),
+                          child: Text(PosLocalization.tr('Add')),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     if (lines.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Add products to create a purchase order.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                            PosLocalization.tr(
+                                'Add products to create a purchase order.'),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey)),
                       )
                     else
                       Container(
@@ -294,10 +299,11 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                     const SizedBox(height: 10),
                     TextField(
                       controller: noteCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'PO Notes / Supplier Delivery Terms',
+                      decoration: InputDecoration(
+                        labelText: PosLocalization.tr(
+                            'PO Notes / Supplier Delivery Terms'),
                         isDense: true,
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -324,7 +330,7 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
             actions: [
               TextButton(
                 onPressed: saving ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(PosLocalization.tr('Cancel')),
               ),
               ElevatedButton.icon(
                 icon: const Icon(Icons.check, size: 16),
@@ -379,9 +385,9 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
     }
     if (pendingIndices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'All items on this Purchase Order have already been received.')),
+        SnackBar(
+            content: Text(PosLocalization.tr(
+                'All items on this Purchase Order have already been received.'))),
       );
       return;
     }
@@ -502,10 +508,11 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                                     keyboardType:
                                         const TextInputType.numberWithOptions(
                                             decimal: true),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Receive Qty',
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          PosLocalization.tr('Receive Qty'),
                                       isDense: true,
-                                      border: OutlineInputBorder(),
+                                      border: const OutlineInputBorder(),
                                     ),
                                     onChanged: (_) => setDlg(() {
                                       paidCtrl.text =
@@ -522,10 +529,11 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: grnRefCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Supplier Invoice / GRN Ref (optional)',
+                      decoration: InputDecoration(
+                        labelText: PosLocalization.tr(
+                            'Supplier Invoice / GRN Ref (optional)'),
                         isDense: true,
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -534,21 +542,25 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             initialValue: paymentMethod,
-                            decoration: const InputDecoration(
-                              labelText: 'Payment Method',
+                            decoration: InputDecoration(
+                              labelText: PosLocalization.tr('Payment Method'),
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
                             ),
-                            items: const [
+                            items: [
                               DropdownMenuItem(
-                                  value: 'cash', child: Text('Cash')),
+                                  value: 'cash',
+                                  child: Text(PosLocalization.tr('Cash'))),
                               DropdownMenuItem(
                                   value: 'bank_transfer',
-                                  child: Text('Bank Transfer')),
+                                  child: Text(
+                                      PosLocalization.tr('Bank Transfer'))),
                               DropdownMenuItem(
-                                  value: 'cheque', child: Text('Cheque')),
+                                  value: 'cheque',
+                                  child: Text(PosLocalization.tr('Cheque'))),
                               DropdownMenuItem(
-                                  value: 'card', child: Text('Card')),
+                                  value: 'card',
+                                  child: Text(PosLocalization.tr('Card'))),
                             ],
                             onChanged: (v) =>
                                 setDlg(() => paymentMethod = v ?? 'cash'),
@@ -577,10 +589,10 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                           Expanded(
                             child: TextField(
                               controller: chequeNoCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Cheque No.',
+                              decoration: InputDecoration(
+                                labelText: PosLocalization.tr('Cheque No.'),
                                 isDense: true,
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
                               ),
                             ),
                           ),
@@ -588,10 +600,10 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                           Expanded(
                             child: TextField(
                               controller: bankCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Bank Name',
+                              decoration: InputDecoration(
+                                labelText: PosLocalization.tr('Bank Name'),
                                 isDense: true,
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
                               ),
                             ),
                           ),
@@ -599,10 +611,11 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                           Expanded(
                             child: TextField(
                               controller: dueCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Due Date (YYYY-MM-DD)',
+                              decoration: InputDecoration(
+                                labelText:
+                                    PosLocalization.tr('Due Date (YYYY-MM-DD)'),
                                 isDense: true,
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
                               ),
                             ),
                           ),
@@ -616,7 +629,7 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
             actions: [
               TextButton(
                 onPressed: receiving ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(PosLocalization.tr('Cancel')),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -765,7 +778,7 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Purchase Orders',
+                      Text(PosLocalization.tr('Purchase Orders'),
                           style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -773,7 +786,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                                   ? Colors.white
                                   : const Color(0xFF0F172A))),
                       Text(
-                        'Issue supplier POs (Ordered -> Partial -> Received), receive GRNs into stock & email PO PDFs',
+                        PosLocalization.tr(
+                            'Issue supplier POs (Ordered -> Partial -> Received), receive GRNs into stock & email PO PDFs'),
                         style: TextStyle(
                             fontSize: 12,
                             color: isDark
@@ -792,7 +806,7 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                   ),
                   onPressed: _showCreatePurchaseOrderDialog,
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('New Purchase Order'),
+                  label: Text(PosLocalization.tr('New Purchase Order')),
                 ),
               ],
             ),
@@ -834,11 +848,12 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                   width: 240,
                   child: TextField(
                     controller: _searchCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'Search PO ref or supplier...',
-                      prefixIcon: Icon(Icons.search, size: 18),
+                    decoration: InputDecoration(
+                      hintText:
+                          PosLocalization.tr('Search PO ref or supplier...'),
+                      prefixIcon: const Icon(Icons.search, size: 18),
                       isDense: true,
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (v) {
                       _search = v;
@@ -863,9 +878,12 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                       child: _loading
                           ? const Center(child: CircularProgressIndicator())
                           : _orders.isEmpty
-                              ? const Center(
-                                  child: Text('No purchase orders found.',
-                                      style: TextStyle(color: Colors.grey)))
+                              ? Center(
+                                  child: Text(
+                                      PosLocalization.tr(
+                                          'No purchase orders found.'),
+                                      style:
+                                          const TextStyle(color: Colors.grey)))
                               : ListView.separated(
                                   itemCount: _orders.length,
                                   separatorBuilder: (_, __) =>
@@ -924,7 +942,8 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                                             icon: const Icon(
                                                 Icons.email_outlined,
                                                 size: 15),
-                                            label: const Text('Email PO'),
+                                            label: Text(
+                                                PosLocalization.tr('Email PO')),
                                           ),
                                           const SizedBox(width: 8),
                                           if (po.status != 'received')
