@@ -110,6 +110,8 @@ class BusinessSettings {
   final String whatsappPhoneNumberId;
   final bool autoSendWhatsAppReceipt;
   final String posDefaultPrintFormat; // 'thermal', 'a4'
+  final String
+      defaultBarcodeType; // 'Code 128 (C128)', 'Code 39', 'EAN-13', 'UPC-A'
   final bool promptWalkinCustomerName;
   final bool enableCardPayment;
   final bool enableEasyPaisa;
@@ -225,6 +227,7 @@ class BusinessSettings {
     this.whatsappPhoneNumberId = '',
     this.autoSendWhatsAppReceipt = false,
     this.posDefaultPrintFormat = 'thermal',
+    this.defaultBarcodeType = 'Code 128 (C128)',
     this.promptWalkinCustomerName = false,
     this.enableCardPayment = false,
     this.enableEasyPaisa = true,
@@ -898,6 +901,7 @@ class BusinessSettings {
     String? whatsappPhoneNumberId,
     bool? autoSendWhatsAppReceipt,
     String? posDefaultPrintFormat,
+    String? defaultBarcodeType,
     bool? promptWalkinCustomerName,
     bool? enableCardPayment,
     bool? enableEasyPaisa,
@@ -1031,6 +1035,7 @@ class BusinessSettings {
           autoSendWhatsAppReceipt ?? this.autoSendWhatsAppReceipt,
       posDefaultPrintFormat:
           posDefaultPrintFormat ?? this.posDefaultPrintFormat,
+      defaultBarcodeType: defaultBarcodeType ?? this.defaultBarcodeType,
       promptWalkinCustomerName:
           promptWalkinCustomerName ?? this.promptWalkinCustomerName,
       enableCardPayment: enableCardPayment ?? this.enableCardPayment,
@@ -1149,6 +1154,7 @@ class BusinessSettings {
         'whatsapp_phone_number_id': whatsappPhoneNumberId,
         'auto_send_whatsapp_receipt': autoSendWhatsAppReceipt ? 1 : 0,
         'pos_default_print_format': posDefaultPrintFormat,
+        'default_barcode_type': defaultBarcodeType,
         'prompt_walkin_customer_name': promptWalkinCustomerName ? 1 : 0,
         'enable_card_payment': enableCardPayment ? 1 : 0,
         'enable_easypaisa': enableEasyPaisa ? 1 : 0,
@@ -1288,6 +1294,8 @@ class BusinessSettings {
             modelAsBool(map['auto_send_whatsapp_receipt'], false),
         posDefaultPrintFormat:
             modelAsString(map['pos_default_print_format'], 'thermal'),
+        defaultBarcodeType:
+            modelAsString(map['default_barcode_type'], 'Code 128 (C128)'),
         promptWalkinCustomerName:
             modelAsBool(map['prompt_walkin_customer_name'], false),
         enableCardPayment: modelAsBool(map['enable_card_payment'], false),

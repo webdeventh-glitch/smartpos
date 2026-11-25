@@ -4,6 +4,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../models/models.dart';
 import '../../services/database_service.dart';
+import '../../widgets/barcode_type_badge.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 
 class PrintLabelsScreen extends StatefulWidget {
@@ -159,7 +160,12 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                     ),
                   pw.SizedBox(height: 1),
                   pw.BarcodeWidget(
-                    barcode: pw.Barcode.code128(),
+                    barcode: BarcodeTypeBadge.pwBarcodeFor(
+                      p.barcodeType.isNotEmpty
+                          ? p.barcodeType
+                          : widget.settings.defaultBarcodeType,
+                      code,
+                    ),
                     data: code,
                     width: barcodeW,
                     height: barcodeH,
@@ -247,7 +253,12 @@ class _PrintLabelsScreenState extends State<PrintLabelsScreen> {
                       ),
                     pw.SizedBox(height: 2),
                     pw.BarcodeWidget(
-                      barcode: pw.Barcode.code128(),
+                      barcode: BarcodeTypeBadge.pwBarcodeFor(
+                        p.barcodeType.isNotEmpty
+                            ? p.barcodeType
+                            : widget.settings.defaultBarcodeType,
+                        code,
+                      ),
                       data: code,
                       width: 130,
                       height: 26,

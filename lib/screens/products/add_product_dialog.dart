@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/app_logger.dart';
 import '../../services/database_service.dart';
 import '../../services/regional_data_service.dart';
+import '../../widgets/barcode_type_badge.dart';
 import '../../widgets/product_thumbnail.dart';
 
 class AddProductDialog extends StatefulWidget {
@@ -218,6 +219,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
         barcode: _barcodeController.text.trim().isEmpty
             ? _skuController.text.trim()
             : _barcodeController.text.trim(),
+        barcodeType: widget.productToEdit?.barcodeType ??
+            BarcodeTypeBadge.normalize(_settings?.defaultBarcodeType),
         categoryId: _selectedCategory?.id,
         categoryName: _selectedCategory?.name ?? 'General',
         brandId: _selectedBrand?.id,

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:desktop_starter/models/models.dart';
 import 'package:desktop_starter/services/database_service.dart';
+import 'package:desktop_starter/widgets/barcode_type_badge.dart';
+import 'package:desktop_starter/screens/products/add_product_screen.dart';
 import 'package:desktop_starter/screens/products/brands_screen.dart';
 import 'package:desktop_starter/screens/products/units_screen.dart';
 import 'package:desktop_starter/screens/products/variation_templates_screen.dart';
@@ -220,5 +222,43 @@ void main() {
     await tester.pump();
     expect(find.text('Print Barcode Labels'), findsOneWidget);
     expect(find.text('Sheet / Roll Layout'), findsOneWidget);
+  });
+
+  testWidgets(
+      'Default Barcode Type persists in BusinessSettings and renders visual icons in AddProductScreen',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    late DatabaseService db;
+    await tester.runAsync(() async {
+      db = await DatabaseService.initialize(customPath: inMemoryDatabasePath);
+      final initial = await db.getBusinessSettings();
+      await db.updateBusinessSettings(
+        initial.copyWith(defaultBarcodeType: BarcodeTypeBadge.ean13),
+      );
+    });
+
+    final reloaded = await tester.runAsync(() => db.getBusinessSettings());
+    expect(reloaded!.defaultBarcodeType, equals(BarcodeTypeBadge.ean13));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AddProductScreen(
+          settings: reloaded,
+          onProductCreated: () {},
+          onCancel: () {},
+        ),
+      ),
+    );
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    });
+    await tester.pump();
+
+    expect(find.byType(BarcodeTypeDropdown), findsOneWidget);
+    expect(find.byType(BarcodeSymbologyIcon), findsWidgets);
+    expect(find.text('EAN-13'), findsOneWidget);
   });
 }

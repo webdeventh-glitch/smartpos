@@ -190,6 +190,23 @@ class DatabaseSchema {
         'embedded_database_server_settings',
       );
     }
+    if (fromVersion < 15 && toVersion >= 15) {
+      await _applyV15DefaultBarcodeType(db);
+      await _recordMigration(
+        db,
+        15,
+        'default_barcode_type_setting',
+      );
+    }
+  }
+
+  static Future<void> _applyV15DefaultBarcodeType(Database db) async {
+    await _addColumnIfMissing(
+      db,
+      'business_settings',
+      'default_barcode_type',
+      "TEXT DEFAULT 'Code 128 (C128)'",
+    );
   }
 
   static Future<void> _applyV14EmbeddedDatabaseSettings(Database db) async {
@@ -3120,6 +3137,7 @@ class DatabaseSchema {
         whatsapp_phone_number_id TEXT DEFAULT '',
         auto_send_whatsapp_receipt INTEGER DEFAULT 0,
         pos_default_print_format TEXT DEFAULT 'thermal',
+        default_barcode_type TEXT DEFAULT 'Code 128 (C128)',
         prompt_walkin_customer_name INTEGER DEFAULT 0,
         enable_card_payment INTEGER DEFAULT 0,
         enable_easypaisa INTEGER DEFAULT 1,

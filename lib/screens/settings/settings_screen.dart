@@ -22,6 +22,7 @@ import '../../services/localization_service.dart';
 import '../../services/embedded_database_service.dart';
 import '../../widgets/universal_print_preview_dialog.dart';
 import '../../widgets/about_developer_dialog.dart';
+import '../../widgets/barcode_type_badge.dart';
 import '../../widgets/system_logs_dialog.dart';
 import 'invoice_layouts_manager.dart';
 import 'printer_management_section.dart';
@@ -87,6 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _autoPrintReceipt = false;
   bool _autoPrintKot = false;
   String _posDefaultPrintFormat = 'thermal';
+  String _defaultBarcodeType = BarcodeTypeBadge.code128;
   bool _promptWalkinCustomerName = false;
   bool _enableCardPayment = false;
   bool _enableEasyPaisa = true;
@@ -243,6 +245,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     _autoPrintReceipt = s.autoPrintReceipt;
     _autoPrintKot = s.autoPrintKot;
     _posDefaultPrintFormat = s.posDefaultPrintFormat;
+    _defaultBarcodeType = BarcodeTypeBadge.normalize(s.defaultBarcodeType);
     _promptWalkinCustomerName = s.promptWalkinCustomerName;
     _enableCardPayment = s.enableCardPayment;
     _enableEasyPaisa = s.enableEasyPaisa;
@@ -423,6 +426,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       _autoPrintReceipt = s.autoPrintReceipt;
       _autoPrintKot = s.autoPrintKot;
       _posDefaultPrintFormat = s.posDefaultPrintFormat;
+      _defaultBarcodeType = BarcodeTypeBadge.normalize(s.defaultBarcodeType);
       _promptWalkinCustomerName = s.promptWalkinCustomerName;
       _enableCardPayment = s.enableCardPayment;
       _enableEasyPaisa = s.enableEasyPaisa;
@@ -1110,6 +1114,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       whatsappPhoneNumberId: _waPhoneIdCtrl.text.trim(),
       autoSendWhatsAppReceipt: _autoSendWhatsAppReceipt,
       posDefaultPrintFormat: _posDefaultPrintFormat,
+      defaultBarcodeType: _defaultBarcodeType,
       promptWalkinCustomerName: _promptWalkinCustomerName,
       enableCardPayment: _enableCardPayment,
       enableEasyPaisa: _enableEasyPaisa,
@@ -11056,6 +11061,70 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ),
                     ),
                   ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          // Default Product Barcode Type Selector
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color:
+                    isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.qr_code_2_rounded,
+                        size: 18, color: Color(0xFF4F46E5)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Default Product Barcode Type (بارکوڈ کی ڈیفالٹ قسم)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Automatically pre-selected when adding new products or printing labels. You can still override per product.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                BarcodeTypeDropdown(
+                  value: _defaultBarcodeType,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                  ),
+                  onChanged: (val) {
+                    setState(() => _defaultBarcodeType = val);
+                    _applyPosToggle((s) => s.copyWith(defaultBarcodeType: val));
+                  },
                 ),
               ],
             ),

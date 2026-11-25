@@ -9,6 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/localization_service.dart';
 import '../../services/regional_data_service.dart';
+import '../../widgets/barcode_type_badge.dart';
 import '../../widgets/product_thumbnail.dart';
 import '../../widgets/searchable_select_dialog.dart';
 import '../../widgets/searchable_unit_picker.dart';
@@ -58,13 +59,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _rackLocationCtrl = TextEditingController();
 
   // Dropdown States
-  String _barcodeType = 'Code 128 (C128)';
-  final List<String> _barcodeTypes = [
-    'Code 128 (C128)',
-    'Code 39',
-    'EAN-13',
-    'UPC-A'
-  ];
+  String _barcodeType = BarcodeTypeBadge.code128;
 
   String _productType = 'single'; // 'single' or 'variable'
   List<ProductVariation> _variations = [];
@@ -109,6 +104,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   @override
   void initState() {
     super.initState();
+    _barcodeType =
+        BarcodeTypeBadge.normalize(widget.settings.defaultBarcodeType);
     _loadMetadata();
     _autoGenerateSku();
   }
@@ -144,6 +141,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final tRates = await db.getTaxRates();
     final tGroups = await db.getTaxGroups();
     final varTemplates = await db.getVariationTemplates();
+    final bizSettings = await db.getBusinessSettings();
     List<ProductVariation> loadedVars = [];
     if (widget.productToEdit != null && widget.productToEdit!.id != null) {
       loadedVars = await db.getProductVariations(widget.productToEdit!.id!);
@@ -191,7 +189,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _profitMarginCtrl.text = margin.toStringAsFixed(1);
           _sellingPriceCtrl.text = p.sellingPrice.toStringAsFixed(2);
           _openingStockCtrl.text = isDup ? '0' : p.stockQuantity.toString();
-          _barcodeType = p.barcodeType;
+          _barcodeType = BarcodeTypeBadge.normalize(p.barcodeType);
           _productType = p.type;
           _isFeatured = p.isFeatured;
           _selectedUnit = p.unit;
@@ -260,6 +258,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
           if (cats.isNotEmpty) _selectedCategory = cats.first;
           if (brs.isNotEmpty) _selectedBrand = brs.first;
           if (wars.isNotEmpty) _selectedWarranty = wars.first;
+          _barcodeType = BarcodeTypeBadge.normalize(
+            bizSettings.defaultBarcodeType.isNotEmpty
+                ? bizSettings.defaultBarcodeType
+                : widget.settings.defaultBarcodeType,
+          );
           _autoGenerateSku();
         }
         _isLoading = false;
@@ -1520,12 +1523,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1E293B)),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E293B)),
+            ),
           ),
           if (isRequired)
             const Text(
@@ -1751,21 +1758,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   children: [
                                     _buildFieldLabel('Barcode Type',
                                         isRequired: true),
-                                    DropdownButtonFormField<String>(
-                                      initialValue: _barcodeType,
+                                    BarcodeTypeDropdown(
+                                      value: _barcodeType,
                                       decoration: _inputDecor(''),
-                                      items: _barcodeTypes
-                                          .map((t) => DropdownMenuItem(
-                                              value: t,
-                                              child: Text(t,
-                                                  style: const TextStyle(
-                                                      fontSize: 13))))
-                                          .toList(),
-                                      onChanged: (val) {
-                                        if (val != null) {
-                                          setState(() => _barcodeType = val);
-                                        }
-                                      },
+                                      onChanged: (val) =>
+                                          setState(() => _barcodeType = val),
                                     ),
                                   ],
                                 ),
@@ -1821,21 +1818,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 children: [
                                   _buildFieldLabel('Barcode Type',
                                       isRequired: true),
-                                  DropdownButtonFormField<String>(
-                                    initialValue: _barcodeType,
+                                  BarcodeTypeDropdown(
+                                    value: _barcodeType,
                                     decoration: _inputDecor(''),
-                                    items: _barcodeTypes
-                                        .map((t) => DropdownMenuItem(
-                                            value: t,
-                                            child: Text(t,
-                                                style: const TextStyle(
-                                                    fontSize: 13))))
-                                        .toList(),
-                                    onChanged: (val) {
-                                      if (val != null) {
-                                        setState(() => _barcodeType = val);
-                                      }
-                                    },
+                                    onChanged: (val) =>
+                                        setState(() => _barcodeType = val),
                                   ),
                                 ],
                               ),
