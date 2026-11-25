@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import 'app_logger.dart';
 import 'database_service.dart';
+import 'qulop_service.dart';
 
 enum SyncState { idle, checking, syncing, success, error, offline }
 
@@ -81,8 +82,18 @@ class CloudSyncService {
 
       DatabaseService.onSyncQueueUpdated = refreshPendingCount;
 
-      if (settings.isHybridSync && settings.syncAutoIntervalMinutes > 0) {
-        startPeriodicSync(settings);
+      if (settings.hasOnlineSync && settings.syncAutoIntervalMinutes > 0) {
+        final lic = QulopService.qulopNotifier.value ??
+            await QulopService.checkCurrentQulop(settings);
+        if (lic.isValid && lic.allowsHybridSync) {
+          startPeriodicSync(settings);
+        } else {
+          syncNotifier.value = syncNotifier.value.copyWith(
+            state: SyncState.offline,
+            message:
+                'Cloud sync paused: ${lic.accessModeLabel} license does not include Cloud Sync.',
+          );
+        }
       }
     } catch (e, st) {
       AppLogger.error(
@@ -171,6 +182,23 @@ class CloudSyncService {
         'pulled': 0,
         'message':
             'Offline Mode is active. All data remains in local SQLite without network sync.',
+      };
+    }
+
+    final lic = await QulopService.checkCurrentQulop(settings);
+    if (!lic.isValid || !lic.allowsHybridSync) {
+      final msg = !lic.isValid
+          ? 'Cloud sync blocked: License is inactive (${lic.message}).'
+          : 'Cloud sync blocked: Your license plan (${lic.accessModeLabel}) does not allow Hybrid / Online Cloud Sync.';
+      syncNotifier.value = syncNotifier.value.copyWith(
+        state: SyncState.error,
+        message: msg,
+      );
+      return {
+        'success': false,
+        'pushed': 0,
+        'pulled': 0,
+        'message': msg,
       };
     }
 

@@ -9,6 +9,7 @@ class VendorLicenseRecord {
   final String id;
   final String clientName;
   final String businessType;
+  final String accessMode; // 'offline', 'hybrid', 'online'
   final String contactInfo;
   final String machineId;
   final String tierCode;
@@ -23,6 +24,7 @@ class VendorLicenseRecord {
     required this.id,
     required this.clientName,
     required this.businessType,
+    this.accessMode = 'offline',
     this.contactInfo = '',
     required this.machineId,
     required this.tierCode,
@@ -37,6 +39,7 @@ class VendorLicenseRecord {
   VendorLicenseRecord copyWith({
     String? clientName,
     String? businessType,
+    String? accessMode,
     String? contactInfo,
     String? machineId,
     String? tierCode,
@@ -51,6 +54,7 @@ class VendorLicenseRecord {
       id: id,
       clientName: clientName ?? this.clientName,
       businessType: businessType ?? this.businessType,
+      accessMode: accessMode ?? this.accessMode,
       contactInfo: contactInfo ?? this.contactInfo,
       machineId: machineId ?? this.machineId,
       tierCode: tierCode ?? this.tierCode,
@@ -82,6 +86,7 @@ class VendorLicenseRecord {
         'id': id,
         'client_name': clientName,
         'business_type': businessType,
+        'access_mode': accessMode,
         'contact_info': contactInfo,
         'machine_id': machineId,
         'tier_code': tierCode,
@@ -98,6 +103,7 @@ class VendorLicenseRecord {
       id: (map['id'] ?? '').toString(),
       clientName: (map['client_name'] ?? '').toString(),
       businessType: (map['business_type'] ?? 'universal').toString(),
+      accessMode: (map['access_mode'] ?? 'offline').toString(),
       contactInfo: (map['contact_info'] ?? '').toString(),
       machineId: (map['machine_id'] ?? '').toString(),
       tierCode: (map['tier_code'] ?? 'YRL').toString(),
@@ -253,13 +259,14 @@ class VendorLicenseRegistryService {
     String esc(String v) => '"${v.replaceAll('"', '""')}"';
     final buf = StringBuffer();
     buf.writeln(
-      'id,client_name,business_type,contact_info,machine_id,tier_code,tier_label,generated_at,next_renewal_date,allow_updates,status,license_key',
+      'id,client_name,business_type,access_mode,contact_info,machine_id,tier_code,tier_label,generated_at,next_renewal_date,allow_updates,status,license_key',
     );
     for (final r in records) {
       buf.writeln([
         esc(r.id),
         esc(r.clientName),
         esc(r.businessType),
+        esc(r.accessMode),
         esc(r.contactInfo),
         esc(r.machineId),
         esc(r.tierCode),

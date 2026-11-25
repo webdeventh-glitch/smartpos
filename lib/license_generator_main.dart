@@ -85,6 +85,7 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
   final TextEditingController _searchRegistryCtrl = TextEditingController();
 
   String _selectedBusinessType = 'universal';
+  String _selectedAccessMode = 'offline'; // 'offline', 'hybrid', 'online'
   String _selectedTier = 'YRL'; // TRL, QTR, HLF, YRL, CST, LFT
   bool _allowUpdates = true;
   DateTime? _customExpiryDate;
@@ -218,6 +219,7 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
       clientName: client,
       tierCode: _selectedTier,
       businessType: _selectedBusinessType,
+      accessMode: _selectedAccessMode,
       allowUpdates: _allowUpdates,
       customDays: days,
       customExpiryDate: expiry,
@@ -232,6 +234,7 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
       id: '${now.millisecondsSinceEpoch}_${normalizedTarget.isNotEmpty ? normalizedTarget : 'ANY'}',
       clientName: client,
       businessType: _selectedBusinessType,
+      accessMode: _selectedAccessMode,
       contactInfo: _contactCtrl.text.trim(),
       machineId: mac.toUpperCase(),
       tierCode: _selectedTier,
@@ -345,6 +348,9 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                               'Business Type: ${_businessTypeLabel(result!.businessType!)}',
                               style: const TextStyle(
                                   color: Colors.white70, fontSize: 12)),
+                        Text('Operation Mode: ${result!.accessModeLabel}',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12)),
                         if (result!.targetMac != null)
                           Text('Bound ID: ${result!.targetMac}',
                               style: const TextStyle(
@@ -847,6 +853,7 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
           _businessTypeOptions.any((opt) => opt['id'] == r.businessType)
               ? r.businessType
               : 'universal';
+      _selectedAccessMode = LicenseService.normalizeAccessMode(r.accessMode);
       _selectedTier = r.tierCode;
       _allowUpdates = r.allowUpdates;
       _generatedKey = r.licenseKey;
@@ -1283,6 +1290,39 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
 
                         const SizedBox(height: 18),
 
+                        const Text('4. Software Deployment / Access Mode *',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Color(0xFFCBD5E1))),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            _accessModeChip(
+                              'offline',
+                              'Offline Only (Local PC)',
+                              Icons.desktop_windows_rounded,
+                              const Color(0xFF94A3B8),
+                            ),
+                            _accessModeChip(
+                              'hybrid',
+                              'Hybrid (Desktop + Android Sync)',
+                              Icons.sync_rounded,
+                              const Color(0xFF38BDF8),
+                            ),
+                            _accessModeChip(
+                              'online',
+                              'Full Online (Cloud API Mode)',
+                              Icons.cloud_done_rounded,
+                              const Color(0xFF10B981),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 18),
+
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 8),
@@ -1436,6 +1476,10 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                               _metaRow('Client Store:', _clientNameCtrl.text),
                               _metaRow('Business Type:',
                                   _businessTypeLabel(_selectedBusinessType)),
+                              _metaRow(
+                                  'Access Mode:',
+                                  LicenseService.getAccessModeLabel(
+                                      _selectedAccessMode)),
                               _metaRow('Bound Machine ID:', _macCtrl.text),
                               _metaRow('Subscription Plan:',
                                   LicenseService.getTierLabel(_selectedTier)),
@@ -1634,6 +1678,53 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                                                       horizontal: 6,
                                                       vertical: 1),
                                                   decoration: BoxDecoration(
+                                                    color: rec.accessMode ==
+                                                            'online'
+                                                        ? const Color(
+                                                                0xFF38BDF8)
+                                                            .withValues(
+                                                                alpha: 0.2)
+                                                        : rec.accessMode ==
+                                                                'hybrid'
+                                                            ? const Color(
+                                                                    0xFF818CF8)
+                                                                .withValues(
+                                                                    alpha: 0.2)
+                                                            : const Color(
+                                                                    0xFF64748B)
+                                                                .withValues(
+                                                                    alpha: 0.2),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            4),
+                                                  ),
+                                                  child: Text(
+                                                    rec.accessMode
+                                                        .toUpperCase(),
+                                                    style: TextStyle(
+                                                      fontSize: 9,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: rec.accessMode ==
+                                                              'online'
+                                                          ? const Color(
+                                                              0xFF38BDF8)
+                                                          : rec.accessMode ==
+                                                                  'hybrid'
+                                                              ? const Color(
+                                                                  0xFFA5B4FC)
+                                                              : const Color(
+                                                                  0xFFCBD5E1),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 5),
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 1),
+                                                  decoration: BoxDecoration(
                                                     color: rec.allowUpdates
                                                         ? const Color(
                                                                 0xFF10B981)
@@ -1748,6 +1839,44 @@ class _LicenseGeneratorScreenState extends State<LicenseGeneratorScreen> {
                   color: Colors.white,
                   fontSize: 12)),
         ],
+      ),
+    );
+  }
+
+  Widget _accessModeChip(
+      String code, String label, IconData icon, Color color) {
+    final isSelected = _selectedAccessMode == code;
+    return InkWell(
+      onTap: () => setState(() => _selectedAccessMode = code),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : const Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color : const Color(0xFF334155),
+            width: isSelected ? 1.8 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                size: 14, color: isSelected ? color : const Color(0xFF64748B)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

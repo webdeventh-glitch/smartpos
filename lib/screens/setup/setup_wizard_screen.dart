@@ -311,6 +311,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           _licenseStatus = status;
           if (!status.isValid) {
             _licenseError = status.message;
+          } else {
+            if (!status.allowsHybridSync && _deploymentMode == 'cloud_hybrid') {
+              _deploymentMode = 'offline_server';
+            } else if (status.allowsHybridSync) {
+              _deploymentMode = 'cloud_hybrid';
+            }
           }
         });
       }
@@ -646,7 +652,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             ? _lanDbUserCtrl.text.trim()
             : (_primaryDbType == 'postgresql' ? 'postgres' : 'root'),
         dbPassword: _lanDbPassCtrl.text,
-        syncMode: _deploymentMode == 'cloud_hybrid' ? 'hybrid' : 'offline',
+        syncMode: _deploymentMode == 'cloud_hybrid' &&
+                (_licenseStatus?.allowsHybridSync ?? false)
+            ? (_licenseStatus?.allowsOnlineApi == true ? 'online' : 'hybrid')
+            : 'offline',
         syncServerUrl: _cloudUrlCtrl.text.trim(),
         syncApiKey: _cloudApiKeyCtrl.text.trim(),
         syncBranchId: int.tryParse(_cloudBranchIdCtrl.text.trim()) ?? 1,
@@ -1518,6 +1527,24 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                                     color: Colors.white,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _licenseStatus!.allowsHybridSync
+                                  ? const Color(0xFF4F46E5)
+                                  : const Color(0xFF475569),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _licenseStatus!.accessMode.toUpperCase(),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -2847,12 +2874,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             Expanded(
               child: _topologyModeCard(
                 mode: 'cloud_hybrid',
-                title: 'Mode 3: Online Cloud-Synced',
-                badge: 'Multi-Branch Cloud',
+                title: _licenseStatus?.allowsOnlineApi == true
+                    ? 'Mode 3: Full Online / Cloud API'
+                    : 'Mode 3: Online Cloud-Synced (Hybrid)',
+                badge: (_licenseStatus?.allowsHybridSync ?? false)
+                    ? (_licenseStatus?.allowsOnlineApi == true
+                        ? 'Full Online License'
+                        : 'Hybrid License Active')
+                    : 'Requires Hybrid / Online License',
                 desc:
-                    'Syncs with remote Laravel/MySQL cloud server. Works offline with SQLite queue and auto-syncs when internet restores.',
+                    'Syncs with remote webpixels.net cloud backend & Android Owner App. Works offline with SQLite queue and auto-syncs when online.',
                 icon: Icons.cloud_sync_rounded,
                 isDark: isDark,
+                enabled: _licenseStatus?.allowsHybridSync ?? false,
               ),
             ),
           ],
@@ -3504,14 +3538,25 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     required String desc,
     required IconData icon,
     required bool isDark,
+    bool enabled = true,
   }) {
     final isSelected = _deploymentMode == mode;
 
     return InkWell(
-      onTap: () => setState(() {
-        _deploymentMode = mode;
-        _connectionTestResult = null;
-      }),
+      onTap: enabled
+          ? () => setState(() {
+                _deploymentMode = mode;
+                _connectionTestResult = null;
+              })
+          : () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_translateLabel(
+                      'This deployment mode requires a Hybrid or Full Online license key from your software provider.')),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(14),

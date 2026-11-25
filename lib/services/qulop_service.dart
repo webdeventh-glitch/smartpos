@@ -24,6 +24,7 @@ class QulopStatus {
   final String? clientName;
   final String? targetMac;
   final String? businessType;
+  final String accessMode; // 'offline', 'hybrid', 'online'
   final bool allowUpdates;
   final DateTime? issueDate;
   final DateTime? expiryDate;
@@ -38,6 +39,7 @@ class QulopStatus {
     this.clientName,
     this.targetMac,
     this.businessType,
+    this.accessMode = 'offline',
     this.allowUpdates = true,
     this.issueDate,
     this.expiryDate,
@@ -47,6 +49,9 @@ class QulopStatus {
 
   bool get isTrial => tier == QulopTier.trial;
   bool get isLifetime => tier == QulopTier.lifetime;
+  bool get allowsHybridSync => accessMode == 'hybrid' || accessMode == 'online';
+  bool get allowsOnlineApi => accessMode == 'online';
+  String get accessModeLabel => QulopService.getAccessModeLabel(accessMode);
   QulopTier get type => tier;
 }
 
@@ -237,6 +242,33 @@ class QulopService {
     return rawKey.replaceAll('`', '').replaceAll(RegExp(r'\s+'), '').trim();
   }
 
+  /// Supported deployment/access license modes
+  static const List<String> supportedAccessModes = [
+    'offline',
+    'hybrid',
+    'online',
+  ];
+
+  static String normalizeAccessMode(String? raw) {
+    final val = (raw ?? '').trim().toLowerCase();
+    if (val == 'hybrid' || val == 'online' || val == 'offline') {
+      return val;
+    }
+    return 'offline';
+  }
+
+  static String getAccessModeLabel(String mode) {
+    switch (normalizeAccessMode(mode)) {
+      case 'hybrid':
+        return 'Hybrid (Desktop + Mobile Cloud Sync)';
+      case 'online':
+        return 'Full Online (Cloud API Mode)';
+      case 'offline':
+      default:
+        return 'Offline Desktop Only';
+    }
+  }
+
   /// Map 3-letter tier code to human-readable label
   static String getTierLabel(String code) {
     switch (code.toUpperCase()) {
@@ -263,6 +295,7 @@ class QulopService {
     required String macAddress,
     required String tierCode, // TRL, QTR, HLF, YRL, CST, LFT
     String businessType = '',
+    String accessMode = 'offline', // 'offline', 'hybrid', 'online'
     bool allowUpdates = true,
     DateTime? expiryDate,
     DateTime? customExpiryDate,
@@ -271,6 +304,7 @@ class QulopService {
   }) {
     issueDate ??= DateTime.now();
     final cleanMac = normalizeMac(macAddress);
+    final normalizedMode = normalizeAccessMode(accessMode);
 
     DateTime finalExpiry;
     if (tierCode.toUpperCase() == 'LFT') {
@@ -309,6 +343,7 @@ class QulopService {
           ? '9999-12-31'
           : finalExpiry.toIso8601String().split('T').first,
       if (businessType.trim().isNotEmpty) 'b': businessType.trim(),
+      if (normalizedMode != 'offline') 's': normalizedMode,
       if (!allowUpdates) 'u': 0,
     };
 
@@ -328,6 +363,9 @@ class QulopService {
     required String clientName,
     required String hardwareId,
     required String tierCode,
+    String businessType = '',
+    String accessMode = 'offline',
+    bool allowUpdates = true,
     DateTime? expiryDate,
     DateTime? customExpiryDate,
     int? customDays,
@@ -337,6 +375,9 @@ class QulopService {
       clientName: clientName,
       macAddress: hardwareId,
       tierCode: tierCode,
+      businessType: businessType,
+      accessMode: accessMode,
+      allowUpdates: allowUpdates,
       expiryDate: expiryDate,
       customExpiryDate: customExpiryDate,
       customDays: customDays,
@@ -444,6 +485,7 @@ class QulopService {
     final expiryStr = data['e'] as String? ?? '';
     final issueStr = data['i'] as String? ?? '';
     final businessType = (data['b'] as String?)?.trim();
+    final accessMode = normalizeAccessMode(data['s'] as String?);
     final allowUpdates = data['u'] != 0 && data['u'] != false;
 
     // Hardware Lock Check
@@ -577,6 +619,7 @@ class QulopService {
       clientName: clientName,
       targetMac: targetMac,
       businessType: businessType,
+      accessMode: accessMode,
       allowUpdates: allowUpdates,
       issueDate: DateTime.tryParse(issueStr),
       expiryDate: expiryDate,

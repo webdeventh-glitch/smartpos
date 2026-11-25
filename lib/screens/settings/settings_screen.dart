@@ -5643,6 +5643,36 @@ class _SettingsScreenState extends State<SettingsScreen>
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500),
                               ),
+                            if (_currentLicenseStatus != null) ...[
+                              const SizedBox(width: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: _currentLicenseStatus!.allowsHybridSync
+                                      ? const Color(0xFFEEF2FF)
+                                      : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color:
+                                        _currentLicenseStatus!.allowsHybridSync
+                                            ? const Color(0xFFC7D2FE)
+                                            : const Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                                child: Text(
+                                  _currentLicenseStatus!.accessModeLabel,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        _currentLicenseStatus!.allowsHybridSync
+                                            ? const Color(0xFF4F46E5)
+                                            : const Color(0xFF475569),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 16),

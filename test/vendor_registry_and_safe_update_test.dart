@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:desktop_starter/models/models.dart';
 import 'package:desktop_starter/services/backup_update_service.dart';
+import 'package:desktop_starter/services/cloud_sync_service.dart';
 import 'package:desktop_starter/services/database_encryption_service.dart';
 import 'package:desktop_starter/services/qulop_service.dart';
 import 'package:desktop_starter/services/vendor_license_registry_service.dart';
@@ -309,6 +310,57 @@ void main() {
       } finally {
         if (tmpDir.existsSync()) tmpDir.deleteSync(recursive: true);
       }
+    });
+
+    test(
+        '6. License accessMode (offline/hybrid/online) encodes cleanly and gates CloudSyncService',
+        () async {
+      final mac = await QulopService.getDeviceMacAddress();
+
+      final offlineKey = QulopService.generatePurchaseKey(
+        macAddress: mac,
+        clientName: 'Offline Client',
+        tierCode: 'YRL',
+        accessMode: 'offline',
+      );
+      final hybridKey = QulopService.generatePurchaseKey(
+        macAddress: mac,
+        clientName: 'Hybrid Client',
+        tierCode: 'YRL',
+        accessMode: 'hybrid',
+      );
+      final onlineKey = QulopService.generatePurchaseKey(
+        macAddress: mac,
+        clientName: 'Online Client',
+        tierCode: 'YRL',
+        accessMode: 'online',
+      );
+
+      final vOff = await QulopService.verifyQulopKey(offlineKey);
+      final vHyb = await QulopService.verifyQulopKey(hybridKey);
+      final vOn = await QulopService.verifyQulopKey(onlineKey);
+
+      expect(vOff.accessMode, equals('offline'));
+      expect(vOff.allowsHybridSync, isFalse);
+      expect(vOff.allowsOnlineApi, isFalse);
+
+      expect(vHyb.accessMode, equals('hybrid'));
+      expect(vHyb.allowsHybridSync, isTrue);
+      expect(vHyb.allowsOnlineApi, isFalse);
+
+      expect(vOn.accessMode, equals('online'));
+      expect(vOn.allowsHybridSync, isTrue);
+      expect(vOn.allowsOnlineApi, isTrue);
+
+      final blockedSyncRes = await CloudSyncService.syncNow(
+        BusinessSettings(
+          purchaseKey: offlineKey,
+          syncMode: 'hybrid',
+          syncServerUrl: 'https://webpixels.net/api',
+        ),
+      );
+      expect(blockedSyncRes['success'], isFalse);
+      expect(blockedSyncRes['message'], contains('does not allow'));
     });
   });
 }
